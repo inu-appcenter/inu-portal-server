@@ -23,7 +23,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up JDK 7
+    - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
@@ -45,4 +45,17 @@ jobs:
       run: docker build -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }} .
 
     - name: DockerHub Push
-      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}
+      run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
+
+    - name: Deploy to Server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST_ADDRESS }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        key: ${{ secrets.SERVER_KEY }}
+        port : ${{ secrets.SERVER_PORT }}
+        script: |
+          docker stop ${{ secrets.APPLICATION_NAME }}
+          docker rm ${{ secrets.APPLICATION_NAME }}
+          docker pull ${{ secrets.USERNAME }}/${{ secrets.PORJECT_NAME }}
+          docker run --network=host -d -p ${{ secrets.DEPLOY_PORT }}:8080 -e TZ=Asia/Seoul --name ${{ secrets.APPLICATION_NAME }} ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
