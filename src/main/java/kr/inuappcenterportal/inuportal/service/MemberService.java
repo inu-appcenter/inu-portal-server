@@ -4,6 +4,9 @@ import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.MemberLoginDto;
 import kr.inuappcenterportal.inuportal.dto.MemberSaveDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
+import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,8 +30,7 @@ public class MemberService {
         String encodedPassword = passwordEncoder.encode(memberSaveDto.getPassword());
 
         if(memberRepository.existsByEmail(memberSaveDto.getEmail())){
-            //throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_EMAIL);
-            throw new DataIntegrityViolationException("이미 존재하는 이메일입니다.");
+            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_EMAIL);
         }
         Member member= Member.builder().email(memberSaveDto.getEmail()).password(encodedPassword).roles(Collections.singletonList("ROLE_USER")).build();
         return memberRepository.save(member).getId();
@@ -36,7 +38,7 @@ public class MemberService {
 
     @Transactional
     public Long changePassword(Long id, String password){
-        Member member = memberRepository.findById(id).orElseThrow(()->new NotFoundException("존재하지 않는 회원입니다."));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         String encodedPassword = passwordEncoder.encode(password);
         member.update(encodedPassword);
         return member.getId();
@@ -44,13 +46,13 @@ public class MemberService {
 
     @Transactional
     public void delete(Long id){
-        Member member = memberRepository.findById(id).orElseThrow(()->new NotFoundException("존재하지 않는 회원입니다."));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         memberRepository.delete(member);
     }
 
     @Transactional
     public String login(MemberLoginDto memberLoginDto){
-        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new NotFoundException("존재하지 않는 회원입니다."));
+        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
 
         if(!passwordEncoder.matches(memberLoginDto.getPassword(),member.getPassword())){
             throw new NotFoundException("비밀번호가 틀립니다.");
@@ -60,7 +62,7 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public String getMember(Long id){
-        Member member = memberRepository.findById(id).orElseThrow(()->new NotFoundException("존재하지 않는 회원입니다."));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         return member.getEmail();
     }
 }
