@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*",allowCredentials = "*")
 @RequestMapping("/api/members")
 public class MemberController {
     private final TokenProvider tokenProvider;
