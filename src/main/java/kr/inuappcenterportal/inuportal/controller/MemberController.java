@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.dto.MemberLoginDto;
 import kr.inuappcenterportal.inuportal.dto.MemberSaveDto;
+import kr.inuappcenterportal.inuportal.dto.MemberUpdateDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -44,9 +45,9 @@ public class MemberController {
             @ApiResponse(responseCode = "200",description = "회원정보수정성공")
     })
     @PutMapping("")
-    public ResponseEntity<?> update(@RequestHeader("Auth") String token, @RequestBody String password){
+    public ResponseEntity<?> update(@RequestHeader("Auth") String token, @RequestBody MemberUpdateDto memberUpdateDto){
         Long id = Long.valueOf(tokenProvider.getUsername(token));
-        Long member_id = memberService.changePassword(id, password);
+        Long member_id = memberService.changePassword(id, memberUpdateDto);
         return new ResponseEntity<>(new ResponseDto(member_id,"비밀번호 변경 성공"),HttpStatus.OK);
     }
 

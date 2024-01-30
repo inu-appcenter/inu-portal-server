@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.MemberLoginDto;
 import kr.inuappcenterportal.inuportal.dto.MemberSaveDto;
+import kr.inuappcenterportal.inuportal.dto.MemberUpdateDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
@@ -37,9 +38,9 @@ public class MemberService {
     }
 
     @Transactional
-    public Long changePassword(Long id, String password){
+    public Long changePassword(Long id, MemberUpdateDto memberUpdateDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        String encodedPassword = passwordEncoder.encode(password);
+        String encodedPassword = passwordEncoder.encode(memberUpdateDto.getPassword());
         member.update(encodedPassword);
         return member.getId();
     }
