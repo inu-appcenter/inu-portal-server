@@ -42,7 +42,7 @@ jobs:
         password: ${{ secrets.TOKEN }}
 
     - name: Docker Image Build
-      run: docker build -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }} .
+      run: docker build --no-cache -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }} .
 
     - name: DockerHub Push
       run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
