@@ -40,3 +40,9 @@ jobs:
       with:
         username: ${{ secrets.USERNAME }}
         password: ${{ secrets.TOKEN }}
+
+    - name: Docker Image Build
+      run: docker build -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }} .
+
+    - name: DockerHub Push
+      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}
