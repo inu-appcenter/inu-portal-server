@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.config;
 
+import jakarta.servlet.http.HttpServletRequest;
 import kr.inuappcenterportal.inuportal.exception.CustomAccessDeniedHandler;
 import kr.inuappcenterportal.inuportal.exception.CustomAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+
+import java.util.Collections;
 
 @EnableWebSecurity
 @Configuration
@@ -27,7 +32,19 @@ public class SecurityConfig {
 
         httpSecurity.
                 csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(cors -> cors.configurationSource(new CorsConfigurationSource() {
+                    @Override
+                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                        CorsConfiguration configuration = new CorsConfiguration();
+                        configuration.setAllowCredentials(true);
+                        configuration.addAllowedHeader("*");
+                        configuration.setAllowedOrigins(Collections.singletonList("*"));
+                        configuration.setAllowedMethods(Collections.singletonList("*"));
+                        configuration.setMaxAge(3600L);
+                        return configuration;
+                    }
+                }));
         httpSecurity
                 .authorizeHttpRequests(auth->auth.requestMatchers("/*").permitAll().anyRequest().permitAll());
         httpSecurity
