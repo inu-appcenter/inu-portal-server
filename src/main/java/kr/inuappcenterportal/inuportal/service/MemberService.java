@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.service;
 
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
+import kr.inuappcenterportal.inuportal.dto.MemberLoginDto;
 import kr.inuappcenterportal.inuportal.dto.MemberSaveDto;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -48,10 +49,10 @@ public class MemberService {
     }
 
     @Transactional
-    public String login(String id, String password){
-        Member member = memberRepository.findByEmail(id).orElseThrow(()->new NotFoundException("존재하지 않는 회원입니다."));
+    public String login(MemberLoginDto memberLoginDto){
+        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new NotFoundException("존재하지 않는 회원입니다."));
 
-        if(!passwordEncoder.matches(password,member.getPassword())){
+        if(!passwordEncoder.matches(memberLoginDto.getPassword(),member.getPassword())){
             throw new NotFoundException("비밀번호가 틀립니다.");
         }
         return tokenProvider.createToken(String.valueOf(member.getId()),member.getRoles());

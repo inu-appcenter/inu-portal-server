@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.controller;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
+import kr.inuappcenterportal.inuportal.dto.MemberLoginDto;
 import kr.inuappcenterportal.inuportal.dto.MemberSaveDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.service.MemberService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://portal.inuappcenter.kr/")
 @RequestMapping("/api/members")
 public class MemberController {
     private final TokenProvider tokenProvider;
@@ -45,9 +47,9 @@ public class MemberController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> Login(@RequestParam("email") String id, @RequestParam("password") String password){
+    public ResponseEntity<?> Login(@Valid @RequestBody MemberLoginDto memberLoginDto){
         log.info("로그인 호출");
-        String token = memberService.login(id,password);
+        String token = memberService.login(memberLoginDto);
         return new ResponseEntity<>(token,HttpStatus.OK);
     }
 
