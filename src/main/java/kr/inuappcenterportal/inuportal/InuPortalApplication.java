@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @OpenAPIDefinition(
         servers = {
-                @Server(url = "http://portal.inuappcenter.kr/", description = "Server URL"),
+                @Server(url = "https://portal.inuappcenter.kr/", description = "Server URL"),
                 @Server(url = "http://localhost:8080",description = "Local URL")
         }
 )
