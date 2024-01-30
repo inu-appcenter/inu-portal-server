@@ -46,3 +46,16 @@ jobs:
 
     - name: DockerHub Push
       run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
+
+    - name: Deploy to Server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST_ADDRESS }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        key: ${{ secrets.SERVER_KEY }}
+        port : ${{ secrets.SERVER_PORT }}
+        script: |
+          docker stop ${{ secrets.APPLICATION_NAME }}
+          docker rm ${{ secrets.APPLICATION_NAME }}
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }}
+          docker run --network=host -d -p ${{ secrets.DEPLOY_PORT }}:8080 -e TZ=Asia/Seoul --name ${{ secrets.APPLICATION_NAME }} ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }}
