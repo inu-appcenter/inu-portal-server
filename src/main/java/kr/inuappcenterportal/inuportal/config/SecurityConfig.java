@@ -33,21 +33,7 @@ public class SecurityConfig {
 
         httpSecurity.
                 csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .cors(cors -> cors.configurationSource(new CorsConfigurationSource() {
-                    @Override
-                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-                        CorsConfiguration configuration = new CorsConfiguration();
-                        configuration.setAllowedOriginPatterns(List.of("*"));
-                        configuration.setAllowCredentials(true);
-                        configuration.addAllowedHeader("*");
-                        configuration.setExposedHeaders(List.of("*"));
-                        configuration.setAllowedOrigins(List.of("*"));
-                        configuration.setAllowedMethods(List.of("GET","POST","DELETE","PUT"));
-                        configuration.setMaxAge(3600L);
-                        return configuration;
-                    }
-                }));
+                .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity
                 .authorizeHttpRequests(auth->auth.requestMatchers("/*").permitAll().anyRequest().permitAll());
         httpSecurity
