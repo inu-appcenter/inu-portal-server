@@ -57,6 +57,6 @@ jobs:
         script: |
           docker stop ${{ secrets.APPLICATION_NAME }}
           docker rm ${{ secrets.APPLICATION_NAME }}
-          docker rmi ${{ secrets.USERNAME }}/${{ secrets.PORJECT_NAME }}
-          docker pull ${{ secrets.USERNAME }}/${{ secrets.PORJECT_NAME }}
+          docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
+          docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
           docker run --network=host -d -p ${{ secrets.DEPLOY_PORT }}:8080 -e TZ=Asia/Seoul --name ${{ secrets.APPLICATION_NAME }} ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
