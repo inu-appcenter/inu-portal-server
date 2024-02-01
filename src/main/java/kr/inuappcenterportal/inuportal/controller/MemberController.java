@@ -77,7 +77,7 @@ public class MemberController {
     }
 
     @Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
-    @Operation(summary = "회원 이메일 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
+    @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원가져오기성공")
     })
@@ -85,7 +85,17 @@ public class MemberController {
     public ResponseEntity<?> getMember(@RequestHeader("Auth") String token){
         Long id = Long.valueOf(tokenProvider.getUsername(token));
         log.info("회원 이메일 가져오기 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(memberService.getMember(id),"회원 이메일 가져오기 성공"),HttpStatus.OK);
+        return new ResponseEntity<>(memberService.getMember(id),HttpStatus.OK);
+    }
+
+    //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
+    @Operation(summary = "모든 회원 가져오기")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "모든 회원가져오기성공")
+    })
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllMember(){
+        return new ResponseEntity<>(memberService.getAllMember(),HttpStatus.OK);
     }
 
 
