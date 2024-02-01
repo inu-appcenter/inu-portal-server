@@ -37,6 +37,9 @@ public class Member implements UserDetails {
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<DisLike> disLikes;
 
+    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    private List<Post> posts;
+
     @Builder
     public Member(String email, String password, List<String> roles){
         this.email = email;
