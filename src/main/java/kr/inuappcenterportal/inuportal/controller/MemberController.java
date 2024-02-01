@@ -35,7 +35,7 @@ public class MemberController {
     public ResponseEntity<?> join(@Valid @RequestBody MemberSaveDto memberSaveDto){
         Long id = memberService.join(memberSaveDto);
         log.info("회원 join 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto(id,"회원가입성공"), HttpStatus.CREATED);
+        return new ResponseEntity<>(new ResponseDto<>(id,"회원가입성공"), HttpStatus.CREATED);
     }
 
 
@@ -47,8 +47,9 @@ public class MemberController {
     @PutMapping("")
     public ResponseEntity<?> update(@RequestHeader("Auth") String token, @RequestBody MemberUpdateDto memberUpdateDto){
         Long id = Long.valueOf(tokenProvider.getUsername(token));
+        log.info("회원 비밀번호 변경 호출 id:{}",id);
         Long member_id = memberService.changePassword(id, memberUpdateDto);
-        return new ResponseEntity<>(new ResponseDto(member_id,"비밀번호 변경 성공"),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(member_id,"비밀번호 변경 성공"),HttpStatus.OK);
     }
 
     @Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
@@ -59,8 +60,9 @@ public class MemberController {
     @DeleteMapping("")
     public ResponseEntity<?> delete(@RequestHeader("Auth") String token){
         Long id = Long.valueOf(tokenProvider.getUsername(token));
+        log.info("회원 탈퇴 호출 id:{}",id);
         memberService.delete(id);
-        return new ResponseEntity<>(new ResponseDto(id,"회원삭제성공"), HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(new ResponseDto<>(id,"회원삭제성공"), HttpStatus.NO_CONTENT);
     }
 
     @Operation(summary = "로그인 시 토근이 발급됩니다",description = "바디에 {email,password}을 json 형식으로 보내주세요.")
@@ -75,14 +77,15 @@ public class MemberController {
     }
 
     @Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
-    @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
+    @Operation(summary = "회원 이메일 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원가져오기성공")
     })
     @GetMapping("")
     public ResponseEntity<?> getMember(@RequestHeader("Auth") String token){
         Long id = Long.valueOf(tokenProvider.getUsername(token));
-        return new ResponseEntity<>(memberService.getMember(id),HttpStatus.OK);
+        log.info("회원 이메일 가져오기 호출 id:{}",id);
+        return new ResponseEntity<>(new ResponseDto<>(memberService.getMember(id),"회원 이메일 가져오기 성공"),HttpStatus.OK);
     }
 
 

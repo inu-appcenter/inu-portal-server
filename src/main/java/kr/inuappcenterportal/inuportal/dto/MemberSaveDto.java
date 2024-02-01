@@ -23,10 +23,4 @@ public class MemberSaveDto {
         this.password = password;
     }
 
-    public Member toEntity(){
-        return Member.builder()
-                .email(email)
-                .password(password)
-                .build();
-    }
 }
