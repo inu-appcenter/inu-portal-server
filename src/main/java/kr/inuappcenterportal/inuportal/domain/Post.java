@@ -26,7 +26,7 @@ public class Post extends BaseTimeEntity {
     @Column(nullable = false)
     private String category;
 
-    @Column(nullable = false)
+    @Column
     private String link;
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
@@ -52,5 +52,12 @@ public class Post extends BaseTimeEntity {
         this.category = category;
         this.member = member;
     }
+
+    public void update(String title, String content, String category){
+        this.title = title;
+        this.content = content;
+        this.category = category;
+    }
+
 
 }
