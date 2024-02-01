@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class PostDto extends BaseTimeEntity {
+public class PostDto {
 
     @NotBlank
     private String title;
