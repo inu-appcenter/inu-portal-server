@@ -75,7 +75,7 @@ public class PostController {
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공")
     })
-    @GetMapping("/like")
+    @PostMapping("/like")
     public ResponseEntity<?> likePost(@RequestHeader("Auth") String token,@RequestParam("id") Long postId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(token));
         log.info("게시글 좋아요 호출 id:{}",postId);
@@ -87,7 +87,7 @@ public class PostController {
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 싫어요 성공")
     })
-    @GetMapping("/dislike")
+    @PostMapping("/dislike")
     public ResponseEntity<?> dislikePost(@RequestHeader("Auth") String token,@RequestParam("id") Long postId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(token));
         log.info("게시글 싫어요 호출 id:{}",postId);
