@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.service;
 
 import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.PostDto;
+import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.PostResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
@@ -10,6 +11,9 @@ import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +54,20 @@ public class PostService {
     public PostResponseDto getPost(Long id){
         Post post = postRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
         return new PostResponseDto(post);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> getAllPost(){
+        return postRepository.findAll().stream().map(PostListResponseDto::new).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> getPostByCategory(String category){
+        return postRepository.findAllByCategory(category)
+                .stream()
+                .map(PostListResponseDto::new)
+                .sorted(Comparator.comparingInt(PostListResponseDto::getGood).reversed())
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -98,6 +116,23 @@ public class PostService {
             scrapRepository.save(scrap);
             return 1;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> getPostByMember(Long memberId){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        return postRepository.findAllByMember(member)
+                .stream()
+                .map(PostListResponseDto::new)
+                .sorted(Comparator.comparingInt(PostListResponseDto::getGood).reversed())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> getAllScraps(Long memberId){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        List<Scrap> scraps = scrapRepository.findAllByMember(member);
+        return scraps.stream().map(dto -> new PostListResponseDto(dto.getPost())).collect(Collectors.toList());
     }
 
 }
