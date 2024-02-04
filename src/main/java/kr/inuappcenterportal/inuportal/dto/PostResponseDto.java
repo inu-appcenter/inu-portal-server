@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.Post;
 import kr.inuappcenterportal.inuportal.domain.Reply;
@@ -30,6 +31,8 @@ public class PostResponseDto {
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
     private LocalDate modifiedDate;
+
+    @JsonIgnore
     @Schema(description = "댓글",example = "댓글들")
     private List<Reply> replies;
 
