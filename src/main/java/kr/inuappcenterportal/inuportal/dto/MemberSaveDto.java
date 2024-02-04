@@ -1,20 +1,22 @@
 package kr.inuappcenterportal.inuportal.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
-import kr.inuappcenterportal.inuportal.domain.Member;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
+@Schema(description = "회원가입 요청Dto")
 @Getter
 @NoArgsConstructor
 public class MemberSaveDto {
+    @Schema(description = "이메일",example = "test@gmail.com")
     @Email
-    @NotEmpty
+    @NotBlank
     private String email;
 
-    @NotEmpty
+    @Schema(description = "비밀번호",example = "12345")
+    @NotBlank
     private String password;
 
     @Builder

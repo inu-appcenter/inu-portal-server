@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.dto.MemberUpdateDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
+import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -56,10 +57,10 @@ public class MemberService {
 
     @Transactional
     public String login(MemberLoginDto memberLoginDto){
-        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyUnauthorizedException(MyErrorCode.ID_NOT_FOUND));
 
         if(!passwordEncoder.matches(memberLoginDto.getPassword(),member.getPassword())){
-            throw new NotFoundException("비밀번호가 틀립니다.");
+            throw new MyUnauthorizedException(MyErrorCode.PASSWORD_NOT_MATCHED);
         }
         return tokenProvider.createToken(String.valueOf(member.getId()),member.getRoles());
     }

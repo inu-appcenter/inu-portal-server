@@ -17,7 +17,7 @@ public class SwaggerConfig {
     }
     private Info apiInfo() {
         return new Info()
-                .title("toDoList")
+                .title("INTIP API명세서")
                 .description("api 명세서")
                 .version("1.0.0");
     }
