@@ -16,21 +16,21 @@ import java.util.List;
 public class PostResponseDto {
     @Schema(description = "게시글 데이터베이스 아이디값")
     private Long id;
-    @Schema(description = "제목")
+    @Schema(description = "제목",example = "제목")
     private String title;
-    @Schema(description = "카테고리")
+    @Schema(description = "카테고리",example = "카테고리")
     private String category;
-    @Schema(description = "작성자")
+    @Schema(description = "작성자",example = "작성자")
     private String writer;
     @Schema(description = "좋아요")
     private int good;
     @Schema(description = "싫어요")
     private int bad;
-    @Schema(description = "생성일")
+    @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
-    @Schema(description = "수정일")
+    @Schema(description = "수정일",example = "yyyy-mm-dd")
     private LocalDate modifiedDate;
-    @Schema(description = "댓글")
+    @Schema(description = "댓글",example = "댓글들")
     private List<Reply> replies;
 
     @Builder

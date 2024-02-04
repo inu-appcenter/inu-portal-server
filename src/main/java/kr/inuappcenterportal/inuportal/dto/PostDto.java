@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PostDto {
 
-    @Schema(description = "제목")
+    @Schema(description = "제목",example = "제목")
     @NotBlank
     private String title;
 
-    @Schema(description = "내용")
+    @Schema(description = "내용",example = "내용")
     @NotBlank
     private String content;
 

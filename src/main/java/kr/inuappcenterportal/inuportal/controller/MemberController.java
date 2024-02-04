@@ -3,15 +3,14 @@ package kr.inuappcenterportal.inuportal.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
-import kr.inuappcenterportal.inuportal.dto.MemberLoginDto;
-import kr.inuappcenterportal.inuportal.dto.MemberSaveDto;
-import kr.inuappcenterportal.inuportal.dto.MemberUpdateDto;
-import kr.inuappcenterportal.inuportal.dto.ResponseDto;
+import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +30,8 @@ public class MemberController {
 
     @Operation(summary = "회원 가입",description = "바디에 {email(@가 들어간 이메일 형식이어야 합니다.),password}을 json 형식으로 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201",description = "회원가입성공"),
-            @ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.")
+            @ApiResponse(responseCode = "201",description = "회원가입성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("")
     public ResponseEntity<?> join(@Valid @RequestBody MemberSaveDto memberSaveDto){
@@ -45,8 +44,8 @@ public class MemberController {
     @Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원 정보 수정",description = "url 헤더에 Auth 토큰,바디에 {password}을 json 형식으로 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원정보수정성공"),
-            @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.")
+            @ApiResponse(responseCode = "200",description = "회원정보수정성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("")
     public ResponseEntity<?> update(@RequestHeader("Auth") String token, @RequestBody MemberUpdateDto memberUpdateDto){
@@ -59,8 +58,8 @@ public class MemberController {
     @Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원 삭제",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
-            @ApiResponse(responseCode = "204",description = "회원삭제성공")
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.")
+            @ApiResponse(responseCode = "204",description = "회원삭제성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("")
     public ResponseEntity<?> delete(@RequestHeader("Auth") String token){
@@ -72,9 +71,9 @@ public class MemberController {
 
     @Operation(summary = "로그인 시 토근이 발급됩니다",description = "바디에 {email,password}을 json 형식으로 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "로그인 성공"),
-            @ApiResponse(responseCode = "401",description = "존재하지 않는 아이디(이메일)입니다."),
-            @ApiResponse(responseCode = "401",description = "비밀번호가 일치하지 않습니다.")
+            @ApiResponse(responseCode = "200",description = "로그인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "401",description = "존재하지 않는 아이디(이메일)입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "401",description = "비밀번호가 일치하지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/login")
     public ResponseEntity<?> Login(@Valid @RequestBody MemberLoginDto memberLoginDto){
@@ -86,8 +85,8 @@ public class MemberController {
     @Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원가져오기성공")
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.")
+            @ApiResponse(responseCode = "200",description = "회원가져오기성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
     public ResponseEntity<?> getMember(@RequestHeader("Auth") String token){
@@ -99,7 +98,7 @@ public class MemberController {
     //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "모든 회원 가져오기")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "모든 회원가져오기성공")
+            @ApiResponse(responseCode = "200",description = "모든 회원가져오기성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
     })
     @GetMapping("/all")
     public ResponseEntity<?> getAllMember(){
