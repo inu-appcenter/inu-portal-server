@@ -31,13 +31,13 @@ public class Member implements UserDetails {
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
 
-    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
     private List<Good> goods;
 
-    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
     private List<DisLike> disLikes;
 
-    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
     private List<Post> posts;
 
     @Builder

@@ -1,19 +1,12 @@
 package kr.inuappcenterportal.inuportal.service;
 
-import kr.inuappcenterportal.inuportal.domain.DisLike;
-import kr.inuappcenterportal.inuportal.domain.Good;
-import kr.inuappcenterportal.inuportal.domain.Member;
-import kr.inuappcenterportal.inuportal.domain.Post;
+import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.PostDto;
 import kr.inuappcenterportal.inuportal.dto.PostResponseDto;
-import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotPermittedException;
-import kr.inuappcenterportal.inuportal.repository.DisLikeRepository;
-import kr.inuappcenterportal.inuportal.repository.LikeRepository;
-import kr.inuappcenterportal.inuportal.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.repository.PostRepository;
+import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +18,7 @@ public class PostService {
     private final MemberRepository memberRepository;
     private final LikeRepository likeRepository;
     private final DisLikeRepository disLikeRepository;
+    private final ScrapRepository scrapRepository;
 
     @Transactional
     public Long save(Long id, PostDto postSaveDto){
@@ -59,25 +53,51 @@ public class PostService {
     }
 
     @Transactional
-    public void likePost(Long memberId, Long postId){
+    public int likePost(Long memberId, Long postId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
         if(likeRepository.existsByMemberAndPost(member,post)){
-            throw new MyDuplicateException(MyErrorCode.NOT_MULTIPLE_LIKE);
+            Good good = likeRepository.findByMemberAndPost(member,post).get();
+            likeRepository.delete(good);
+            return -1;
         }
-        Good good = Good.builder().member(member).post(post).build();
-        likeRepository.save(good);
+        else {
+            Good good = Good.builder().member(member).post(post).build();
+            likeRepository.save(good);
+            return 1;
+        }
     }
 
     @Transactional
-    public void dislikePost(Long memberId, Long postId){
+    public int dislikePost(Long memberId, Long postId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
         if(disLikeRepository.existsByMemberAndPost(member,post)){
-            throw new MyDuplicateException(MyErrorCode.NOT_MULTIPLE_LIKE);
+            DisLike disLike = disLikeRepository.findByMemberAndPost(member,post).get();
+            disLikeRepository.delete(disLike);
+            return -1;
         }
-        DisLike disLike = DisLike.builder().member(member).post(post).build();
-        disLikeRepository.save(disLike);
+        else {
+            DisLike disLike = DisLike.builder().member(member).post(post).build();
+            disLikeRepository.save(disLike);
+            return 1;
+        }
+    }
+
+    @Transactional
+    public int scrapPost(Long memberId, Long postId){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        if(scrapRepository.existsByMemberAndPost(member,post)){
+            Scrap scrap = scrapRepository.findByMemberAndPost(member,post).get();
+            scrapRepository.delete(scrap);
+            return -1;
+        }
+        else{
+            Scrap scrap = Scrap.builder().member(member).post(post).build();
+            scrapRepository.save(scrap);
+            return 1;
+        }
     }
 
 }

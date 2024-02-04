@@ -83,11 +83,10 @@ public class PostController {
         return new ResponseEntity<>(postService.getPost(postId),HttpStatus.OK);
     }
 
-    @Operation(summary = "게시글 좋아요",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id를 보내주세요.")
+    @Operation(summary = "게시글 좋아요 여부 변경",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id를 보내주세요. 좋아요 시 {data:1}, 좋아요 취소 시 {data:-1}입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "409",description = "이미 좋아요를 누른 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/like/{postId}")
     public ResponseEntity<?> likePost(@RequestHeader("Auth") String token, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
@@ -97,12 +96,10 @@ public class PostController {
         return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 좋아요 성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "게시글 싫어요",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id를 보내주세요.")
+    @Operation(summary = "게시글 싫어요 여부 변경",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id를 보내주세요. 싫어요 시 {data:1}, 싫어요 취소 시 {data:-1}입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 싫어요 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "409",description = "이미 싫어요를 누른 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-
     })
     @PostMapping("/dislike/{postId}")
     public ResponseEntity<?> dislikePost(@RequestHeader("Auth") String token,@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
@@ -111,6 +108,19 @@ public class PostController {
         postService.dislikePost(memberId,postId);
         return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 싫어요 성공"), HttpStatus.OK);
     }
+
+    @Operation(summary = "스크랩 여부 변경",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id를 보내주세요. 스크랩 시 {data:1}, 스크랩 해제 시 {data:-1} 입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping("/scrap/{postId}")
+    public ResponseEntity<?> scrapPost(@RequestHeader("Auth") String token,@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
+        Long memberId = Long.valueOf(tokenProvider.getUsername(token));
+        log.info("게시글 스크랩 여부 변경 호출 id:{}",postId);
+        return new ResponseEntity<>(new ResponseDto<>(postService.scrapPost(memberId,postId),"스크랩 여부 변경 완료"),HttpStatus.OK);
+    }
+
 
 
 

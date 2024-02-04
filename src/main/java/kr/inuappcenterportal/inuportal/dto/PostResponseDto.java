@@ -27,6 +27,8 @@ public class PostResponseDto {
     private int good;
     @Schema(description = "싫어요")
     private int bad;
+    @Schema(description = "스크랩")
+    private int scrap;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
@@ -38,10 +40,16 @@ public class PostResponseDto {
 
     @Builder
     public PostResponseDto(Post post){
-        String email = post.getMember().getEmail();
-        int atIndex = email.indexOf('@');
-        if (atIndex != -1) {
-             email = email.substring(0, atIndex);
+        String email;
+        if(post.getMember()!=null) {
+            email = post.getMember().getEmail();
+            int atIndex = email.indexOf('@');
+            if (atIndex != -1) {
+                email = email.substring(0, atIndex);
+            }
+        }
+        else{
+            email = "(알수없음)";
         }
         this.id = post.getId();
         this.title = post.getTitle();
@@ -52,6 +60,7 @@ public class PostResponseDto {
         this.modifiedDate = post.getModifiedDate();
         this.good = post.getGoods().size();
         this.bad = post.getDisLikes().size();
+        this.scrap = post.getScraps().size();
 
     }
 
