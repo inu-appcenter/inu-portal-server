@@ -89,7 +89,7 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("/like/{postId}")
+    @PutMapping("/like/{postId}")
     public ResponseEntity<?> likePost(@RequestHeader("Auth") String token, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(token));
         log.info("게시글 좋아요 호출 id:{}",postId);
@@ -101,7 +101,7 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "게시글 싫어요 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("/dislike/{postId}")
+    @PutMapping("/dislike/{postId}")
     public ResponseEntity<?> dislikePost(@RequestHeader("Auth") String token,@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(token));
         log.info("게시글 싫어요 호출 id:{}",postId);
@@ -114,7 +114,7 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("/scrap/{postId}")
+    @PutMapping("/scrap/{postId}")
     public ResponseEntity<?> scrapPost(@RequestHeader("Auth") String token,@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(token));
         log.info("게시글 스크랩 여부 변경 호출 id:{}",postId);
@@ -125,7 +125,7 @@ public class PostController {
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))}
             )
-    @PostMapping("/all")
+    @GetMapping("/all")
     public ResponseEntity<?> getAllPost(){
         return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
@@ -134,7 +134,7 @@ public class PostController {
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))}
     )
-    @PostMapping("/all/{category}")
+    @GetMapping("/all/{category}")
     public ResponseEntity<?> getAllPost(@PathVariable String category){
         return new ResponseEntity<>(new ResponseDto<>(postService.getPostByCategory(category),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
