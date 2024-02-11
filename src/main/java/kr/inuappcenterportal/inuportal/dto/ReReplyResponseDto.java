@@ -20,21 +20,21 @@ public class ReReplyResponseDto {
     @Schema(description = "좋아요")
     private int like;
     @Schema(description = "좋아요 여부")
-    private Boolean isLike;
+    private Boolean isLiked;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
     private LocalDate modifiedDate;
 
     @Builder
-    public ReReplyResponseDto(Long id, String writer, String content, int like, LocalDate createDate, LocalDate modifiedDate,Boolean isLike){
+    public ReReplyResponseDto(Long id, String writer, String content, int like, LocalDate createDate, LocalDate modifiedDate,Boolean isLiked){
         this.id = id;
         this.writer =writer;
         this.content = content;
         this.like = like;
         this.createDate =createDate;
         this.modifiedDate = modifiedDate;
-        this.isLike =isLike;
+        this.isLiked =isLiked;
     }
 
 

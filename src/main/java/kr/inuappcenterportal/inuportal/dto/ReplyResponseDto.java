@@ -21,7 +21,7 @@ public class ReplyResponseDto {
     @Schema(description = "좋아요")
     private int like;
     @Schema(description = "좋아요 여부")
-    private Boolean isLike;
+    private Boolean isLiked;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
@@ -30,7 +30,7 @@ public class ReplyResponseDto {
     private List<ReReplyResponseDto> reReplies;
 
     @Builder
-    public ReplyResponseDto(Long id, String writer, String content, int like, LocalDate createDate, LocalDate modifiedDate, List<ReReplyResponseDto> reReplies, Boolean isLike){
+    public ReplyResponseDto(Long id, String writer, String content, int like, LocalDate createDate, LocalDate modifiedDate, List<ReReplyResponseDto> reReplies, Boolean isLiked){
         this.id = id;
         this.writer =writer;
         this.content =content;
@@ -38,7 +38,7 @@ public class ReplyResponseDto {
         this.createDate = createDate;
         this.modifiedDate =modifiedDate;
         this.reReplies = reReplies;
-        this.isLike = isLike;
+        this.isLiked = isLiked;
     }
 
 }

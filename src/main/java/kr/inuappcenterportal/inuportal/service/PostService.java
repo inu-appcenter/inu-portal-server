@@ -53,15 +53,15 @@ public class PostService {
     @Transactional(readOnly = true)
     public PostResponseDto getPost(Long postId,Long memberId){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
-        Boolean isLike = false;
-        Boolean isScrap = false;
+        Boolean isLiked = false;
+        Boolean isScraped = false;
         if(memberId!=-1L){
             Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
             if(likePostRepository.existsByMemberAndPost(member,post)){
-                isLike = true;
+                isLiked = true;
             }
             if(scrapRepository.existsByMemberAndPost(member,post)){
-                isScrap = true;
+                isScraped = true;
             }
         }
         String writer;
@@ -86,8 +86,8 @@ public class PostService {
                 .title(post.getTitle())
                 .like(post.getPostLikes().size())
                 .scrap(post.getScraps().size())
-                .isLike(isLike)
-                .isScrap(isScrap)
+                .isLiked(isLiked)
+                .isScraped(isScraped)
                 .build();
     }
 

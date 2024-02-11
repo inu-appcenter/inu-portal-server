@@ -155,11 +155,11 @@ public class ReplyService {
         return replies.stream().map(reply -> {
             List<ReReplyResponseDto> reReplyResponseDtoList = replyRepository.findAllByReply(reply).stream().map(reReply ->{
                         String writer;
-                        Boolean isLike = false;
+                        Boolean isLiked = false;
                         if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reReply)){
-                            isLike = true;
+                            isLiked = true;
                         }
-                        if(reReply.getDelete()){
+                        if(reReply.getIsDeleted()){
                             writer="(삭제됨)";
                         }
                         else if(reReply.getMember()==null){
@@ -185,16 +185,16 @@ public class ReplyService {
                         .like(reReply.getLikeReplies().size())
                         .createDate(reReply.getCreateDate())
                         .modifiedDate(reReply.getModifiedDate())
-                        .isLike(isLike)
+                        .isLiked(isLiked)
                         .build();
             })
                     .collect(Collectors.toList());
                     String writer;
-                    Boolean isLike = false;
+                    Boolean isLiked = false;
                     if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reply)){
-                        isLike = true;
+                        isLiked = true;
                     }
-                    if(reply.getDelete()){
+                    if(reply.getIsDeleted()){
                         writer="(삭제됨)";
                     }
                     else if(reply.getMember()==null){
@@ -221,7 +221,7 @@ public class ReplyService {
                     .createDate(reply.getCreateDate())
                     .modifiedDate(reply.getModifiedDate())
                     .reReplies(reReplyResponseDtoList)
-                    .isLike(isLike)
+                    .isLiked(isLiked)
                     .build();
 
         })

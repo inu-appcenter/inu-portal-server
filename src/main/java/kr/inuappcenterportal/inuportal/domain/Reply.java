@@ -24,7 +24,7 @@ public class Reply extends BaseTimeEntity{
     private Boolean anonymous;
 
     @Column
-    private Boolean delete;
+    private Boolean isDeleted;
 
     @Column
     private Integer number;
@@ -53,7 +53,7 @@ public class Reply extends BaseTimeEntity{
         this.member = member;
         this.anonymous =anonymous;
         this.reply =reply;
-        this.delete = false;
+        this.isDeleted = false;
         this.number = number;
     }
 
@@ -65,6 +65,6 @@ public class Reply extends BaseTimeEntity{
     public void onDelete(String content, Member member){
         this.content =content;
         this.member = member;
-        this.delete = true;
+        this.isDeleted = true;
     }
 }
