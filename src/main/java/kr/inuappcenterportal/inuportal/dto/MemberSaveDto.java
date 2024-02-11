@@ -19,10 +19,15 @@ public class MemberSaveDto {
     @NotBlank
     private String password;
 
+    @Schema(description = "닉네임",example = "인천대팁쟁이")
+    @NotBlank
+    private String nickname;
+
     @Builder
-    public MemberSaveDto(String email, String password){
+    public MemberSaveDto(String email, String password, String nickname){
         this.email= email;
         this.password = password;
+        this.nickname = nickname;
     }
 
 }

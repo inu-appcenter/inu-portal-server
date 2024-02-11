@@ -12,11 +12,9 @@ import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.webjars.NotFoundException;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,15 +35,21 @@ public class MemberService {
         if(memberRepository.existsByEmail(memberSaveDto.getEmail())){
             throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_EMAIL);
         }
-        Member member= Member.builder().email(memberSaveDto.getEmail()).password(encodedPassword).roles(Collections.singletonList("ROLE_USER")).build();
+        if(memberRepository.existsByNickname(memberSaveDto.getNickname())){
+            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_NICKNAME);
+        }
+        Member member= Member.builder().email(memberSaveDto.getEmail()).nickname(memberSaveDto.getNickname()).password(encodedPassword).roles(Collections.singletonList("ROLE_USER")).build();
         return memberRepository.save(member).getId();
     }
 
     @Transactional
-    public Long changePassword(Long id, MemberUpdateDto memberUpdateDto){
+    public Long updateMember(Long id, MemberUpdateDto memberUpdateDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        if(memberRepository.existsByNickname(memberUpdateDto.getNickname())){
+            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_NICKNAME);
+        }
         String encodedPassword = passwordEncoder.encode(memberUpdateDto.getPassword());
-        member.update(encodedPassword);
+        member.update(encodedPassword, memberUpdateDto.getNickname());
         return member.getId();
     }
 

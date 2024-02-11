@@ -26,29 +26,34 @@ public class Member implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    private String nickname;
+
+    @Column(nullable = false)
     private String password;
 
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
 
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
-    private List<Good> goods;
-
-    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
-    private List<DisLike> disLikes;
+    private List<PostLike> postLikes;
 
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
     private List<Post> posts;
 
+    @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
+    private List<Reply> replies;
+
     @Builder
-    public Member(String email, String password, List<String> roles){
+    public Member(String email, String password, String nickname, List<String> roles){
         this.email = email;
         this.password = password;
+        this.nickname = nickname;
         this.roles = roles;
     }
 
-    public void update(String password){
+    public void update(String password,String nickname){
         this.password = password;
+        this.nickname = nickname;
     }
 
     @ElementCollection(fetch = FetchType.EAGER)

@@ -23,11 +23,15 @@ public class PostDto {
     @NotBlank
     private String category;
 
+    @Schema(description = "익명 여부",example = "true")
+    private Boolean anonymous;
+
     @Builder
-    public PostDto(String title, String content, String category){
+    public PostDto(String title, String content, String category,Boolean anonymous){
         this.title = title;
         this.content = content;
         this.category = category;
+        this.anonymous = anonymous;
     }
 
 

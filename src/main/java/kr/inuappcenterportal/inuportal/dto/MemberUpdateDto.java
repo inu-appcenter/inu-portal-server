@@ -10,12 +10,16 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public class MemberUpdateDto {
+
     @Schema(description = "비밀번호",example = "12345")
-    @NotBlank
     private String password;
 
+    @Schema(description = "닉네임",example = "인천대팁쟁이")
+    private String nickname;
+
     @Builder
-    public MemberUpdateDto(String password){
+    public MemberUpdateDto(String password,String nickname){
         this.password = password;
+        this.nickname = nickname;
     }
 }

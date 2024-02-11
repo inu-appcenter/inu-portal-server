@@ -14,10 +14,13 @@ public class MemberResponseDto {
     private Long id;
     @Schema(description = "이메일",example = "test@gmail.com")
     private String email;
+    @Schema(description = "닉네임",example = "인천대팁쟁이")
+    private String nickname;
 
     @Builder
     public MemberResponseDto(Member member){
         this.id = member.getId();
         this.email = member.getEmail();
+        this.nickname = member.getNickname();
     }
 }

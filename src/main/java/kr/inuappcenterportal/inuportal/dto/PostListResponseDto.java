@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.inuappcenterportal.inuportal.domain.Post;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,9 +20,7 @@ public class PostListResponseDto {
     @Schema(description = "작성자",example = "작성자")
     private String writer;
     @Schema(description = "좋아요")
-    private int good;
-    @Schema(description = "싫어요")
-    private int bad;
+    private int like;
     @Schema(description = "스크랩")
     private int scrap;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
@@ -32,21 +29,15 @@ public class PostListResponseDto {
     private LocalDate modifiedDate;
 
     @Builder
-    public PostListResponseDto(Post post){
-        String email = post.getMember().getEmail();
-        int atIndex = email.indexOf('@');
-        if (atIndex != -1) {
-            email = email.substring(0, atIndex);
-        }
-        this.id = post.getId();
-        this.title = post.getTitle();
-        this.category = post.getCategory();
-        this.writer = email;
-        this.createDate = post.getCreateDate();
-        this.modifiedDate = post.getModifiedDate();
-        this.good = post.getGoods().size();
-        this.bad = post.getDisLikes().size();
-        this.scrap = post.getScraps().size();
+    public PostListResponseDto(Long id, String title, String category, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap){
+        this.id = id;
+        this.title = title;
+        this.category = category;
+        this.writer = writer;
+        this.createDate = createDate;
+        this.modifiedDate = modifiedDate;
+        this.like = like;
+        this.scrap = scrap;
     }
 
 }

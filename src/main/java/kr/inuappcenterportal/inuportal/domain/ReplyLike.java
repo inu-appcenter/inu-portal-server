@@ -11,8 +11,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class DisLike {
-
+public class ReplyLike {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,12 +22,12 @@ public class DisLike {
     private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private Post post;
+    @JoinColumn(name = "reply_id")
+    private Reply reply;
 
     @Builder
-    public DisLike(Member member, Post post){
+    public ReplyLike(Member member, Reply reply) {
         this.member = member;
-        this.post = post;
+        this.reply = reply;
     }
 }

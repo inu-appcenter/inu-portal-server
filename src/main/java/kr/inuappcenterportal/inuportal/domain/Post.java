@@ -29,16 +29,17 @@ public class Post extends BaseTimeEntity {
     private String category;
 
     @Column
-    private String link;
+    private Boolean anonymous;
+
+    @Column
+    private Integer number = 0;
+
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
-    private List<Good> goods;
-
-    @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
-    private List<DisLike> disLikes;
+    private List<PostLike> postLikes;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Reply> replies;
@@ -49,17 +50,22 @@ public class Post extends BaseTimeEntity {
     private Member member;
 
     @Builder
-    public Post(String title, String content, String category, Member member){
+    public Post(String title, String content, String category, Boolean anonymous, Member member){
         this.title = title;
         this.content = content;
         this.category = category;
+        this.anonymous = anonymous;
         this.member = member;
     }
 
-    public void update(String title, String content, String category){
+    public void update(String title, String content, String category, Boolean anonymous){
         this.title = title;
         this.content = content;
         this.category = category;
+        this.anonymous = anonymous;
+    }
+    public void upNumber(){
+        this.number++;
     }
 
 

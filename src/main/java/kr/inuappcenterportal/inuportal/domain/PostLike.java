@@ -11,7 +11,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Good {
+public class PostLike {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,7 +27,7 @@ public class Good {
     private Post post;
 
     @Builder
-    public Good(Member member, Post post){
+    public PostLike(Member member, Post post){
         this.member = member;
         this.post = post;
     }
