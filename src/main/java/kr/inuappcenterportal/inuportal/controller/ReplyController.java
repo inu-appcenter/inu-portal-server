@@ -59,7 +59,7 @@ public class ReplyController {
 
     @Operation(summary = "댓글 삭제",description = "헤더 Auth에 발급받은 토큰을 보내주세요. url 파라미터에 댓글의 id를 보내주세요. 성공 시 작성된 댓글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204",description = "댓글 삭제 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "댓글 삭제 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 댓글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "403",description = "이 댓글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
@@ -69,7 +69,7 @@ public class ReplyController {
         log.info("댓글 삭제 호출 id:{}",replyId);
         Long memberId = Long.parseLong(tokenProvider.getUsername(token));
         replyService.delete(memberId, replyId);
-        return new ResponseEntity<>(new ResponseDto<>(replyId,"댓글 삭제 성공"), HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(new ResponseDto<>(replyId,"댓글 삭제 성공"), HttpStatus.OK);
 
     }
 

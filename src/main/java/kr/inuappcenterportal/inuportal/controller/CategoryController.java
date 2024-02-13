@@ -38,7 +38,7 @@ public class CategoryController {
 
     @Operation(summary = "카테고리명 변경",description = "바디에 {category, newCategory}을 json 형식으로 보내주세요. 성공 시 등록한 카테고리의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201",description = "카테고리명 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "200",description = "카테고리명 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "동일한 카테고리가 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "404",description = "존재하지 않는 카테고리입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
@@ -50,7 +50,7 @@ public class CategoryController {
 
     @Operation(summary = "카테고리 삭제",description = "바디에 {category}을 json 형식으로 보내주세요. 성공 시 등록한 카테고리의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201",description = "카테고리 삭제 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "200",description = "카테고리 삭제 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "동일한 카테고리가 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "404",description = "존재하지 않는 카테고리입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
@@ -58,7 +58,7 @@ public class CategoryController {
     public ResponseEntity<?> deleteCategory(@RequestBody CategoryDto categoryDto){
         log.info("카테고리 삭제 호출 카테고리명:{}", categoryDto.getCategory());
         categoryService.deleteCategory(categoryDto.getCategory());
-        return new ResponseEntity<>(new ResponseDto<>(categoryDto.getCategory(),"카테고리 삭제 성공"), HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(new ResponseDto<>(categoryDto.getCategory(),"카테고리 삭제 성공"), HttpStatus.OK);
     }
 
     @Operation(summary = "모든 카테고리 가져오기")
