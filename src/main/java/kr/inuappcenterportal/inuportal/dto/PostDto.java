@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,6 +25,7 @@ public class PostDto {
     private String category;
 
     @Schema(description = "익명 여부",example = "true")
+    @NotNull
     private Boolean anonymous;
 
     @Builder
