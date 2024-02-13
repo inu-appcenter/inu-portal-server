@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -57,6 +58,12 @@ public class MyExceptionHandler {
     public ResponseEntity<?> MyNotPermittedException(MyNotPermittedException ex){
         log.error("다른 사람의 할일 접근 시도 msg:{}",ex.getErrorCode().getMessage());
         return new ResponseEntity<>(new ResponseDto(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        String errorMessage = "요청한 JSON 데이터를 읽을 수 없습니다: " + ex.getMessage();
+        return new ResponseEntity<>(new ResponseDto<>(-1,errorMessage), HttpStatus.BAD_REQUEST);
     }
 
 }
