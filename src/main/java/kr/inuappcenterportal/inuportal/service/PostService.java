@@ -23,6 +23,7 @@ public class PostService {
     private final LikePostRepository likePostRepository;
     private final ScrapRepository scrapRepository;
     private final ReplyService replyService;
+    private final CategoryRepository categoryRepository;
 
     @Transactional
     public Long save(Long id, PostDto postSaveDto){
@@ -102,6 +103,9 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getPostByCategory(String category){
+        if(!categoryRepository.existsByCategory(category)){
+            throw new MyNotFoundException(MyErrorCode.CATEGORY_NOT_FOUND);
+        }
         return postRepository.findAllByCategory(category).stream()
                 .map(this::getPostListResponseDto)
                 .sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed())

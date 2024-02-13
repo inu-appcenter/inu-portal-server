@@ -128,7 +128,8 @@ public class PostController {
 
     @Operation(summary = "카테고리별 모든 게시글 가져오기",description = "url 파라미터에 카테고리를 보내주세요. 게시글은 좋아요 순으로 정렬되어 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "카테고리별 모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))}
+            @ApiResponse(responseCode = "200",description = "카테고리별 모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 카테고리입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))}
     )
     @GetMapping("/all/{category}")
     public ResponseEntity<?> getAllPost(@PathVariable String category){
