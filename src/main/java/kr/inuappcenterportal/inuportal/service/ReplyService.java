@@ -134,7 +134,7 @@ public class ReplyService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ReplyListResponseDto> getReplyByMember(Long memberId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         return replyRepository.findAllByMember(member).stream().map(ReplyListResponseDto::new).collect(Collectors.toList());
