@@ -1,9 +1,6 @@
 package kr.inuappcenterportal.inuportal.service;
 
-import kr.inuappcenterportal.inuportal.domain.Folder;
-import kr.inuappcenterportal.inuportal.domain.FolderPost;
-import kr.inuappcenterportal.inuportal.domain.Member;
-import kr.inuappcenterportal.inuportal.domain.Post;
+import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.FolderDto;
 import kr.inuappcenterportal.inuportal.dto.FolderPostDto;
 import kr.inuappcenterportal.inuportal.dto.FolderResponseDto;
@@ -11,13 +8,11 @@ import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
-import kr.inuappcenterportal.inuportal.repository.FolderPostRepository;
-import kr.inuappcenterportal.inuportal.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.repository.FolderRepository;
-import kr.inuappcenterportal.inuportal.repository.PostRepository;
+import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.webjars.NotFoundException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +25,7 @@ public class FolderService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final PostService postService;
+    private final ScrapRepository scrapRepository;
 
 
     @Transactional
@@ -55,12 +51,14 @@ public class FolderService {
     public Long insertPost(FolderPostDto folderPostDto){
         Folder folder = folderRepository.findById(folderPostDto.getFolderId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
         Post post = postRepository.findById(folderPostDto.getPostId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Member member =memberRepository.findById(folder.getMember().getId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Scrap scrap = scrapRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyNotFoundException(MyErrorCode.SCRAP_NOT_FOUND));
         if(folderPostRepository.existsByFolderAndPost(folder,post)){
             System.out.println(folder.getName());
             System.out.println(post.getId());
             throw new MyDuplicateException(MyErrorCode.POST_DUPLICATE_FOLDER);
         }
-        return folderPostRepository.save(FolderPost.builder().post(post).folder(folder).build()).getId();
+        return folderPostRepository.save(FolderPost.builder().post(post).folder(folder).scrap(scrap).build()).getId();
     }
 
     @Transactional

@@ -22,10 +22,15 @@ public class FolderPost {
     @JoinColumn(name = "folder_id")
     private Folder folder;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scrap")
+    private Scrap scrap;
+
     @Builder
-    public FolderPost(Post post, Folder folder){
+    public FolderPost(Post post, Folder folder, Scrap scrap){
         this.post = post;
         this.folder = folder;
+        this.scrap = scrap;
     }
 
 }

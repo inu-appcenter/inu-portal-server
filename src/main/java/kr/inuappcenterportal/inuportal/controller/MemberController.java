@@ -24,6 +24,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Slf4j
 @Tag(name="Members", description = "회원 API")
 @RestController
@@ -42,7 +44,7 @@ public class MemberController {
             @ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("")
-    public ResponseEntity<?> join(@Valid @RequestBody MemberSaveDto memberSaveDto){
+    public ResponseEntity<ResponseDto<Long>> join(@Valid @RequestBody MemberSaveDto memberSaveDto){
         Long id = memberService.join(memberSaveDto);
         log.info("회원 join 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(id,"회원가입성공"), HttpStatus.CREATED);
@@ -55,7 +57,7 @@ public class MemberController {
             @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("")
-    public ResponseEntity<?> update(@RequestBody MemberUpdateDto memberUpdateDto,HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<Long>> update(@RequestBody MemberUpdateDto memberUpdateDto,HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 정보 수정 호출 id:{}",id);
         Long member_id = memberService.updateMember(id, memberUpdateDto);
@@ -68,7 +70,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("")
-    public ResponseEntity<?> delete(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<Long>> delete(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 탈퇴 호출 id:{}",id);
         memberService.delete(id);
@@ -82,7 +84,7 @@ public class MemberController {
             @ApiResponse(responseCode = "401",description = "비밀번호가 일치하지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody MemberLoginDto memberLoginDto){
+    public ResponseEntity<ResponseDto<String>> login(@Valid @RequestBody MemberLoginDto memberLoginDto){
         log.info("로그인 호출");
         String token = memberService.login(memberLoginDto);
         return new ResponseEntity<>(new ResponseDto<>(token,"로그인 성공, 토근이 발급되었습니다."),HttpStatus.OK);
@@ -94,10 +96,10 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<?> getMember(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 이메일 가져오기 호출 id:{}",id);
-        return new ResponseEntity<>(memberService.getMember(id),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(memberService.getMember(id),"회원 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "모든 회원 가져오기")
@@ -105,8 +107,8 @@ public class MemberController {
             @ApiResponse(responseCode = "200",description = "모든 회원가져오기성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
     })
     @GetMapping("/all")
-    public ResponseEntity<?> getAllMember(){
-        return new ResponseEntity<>(memberService.getAllMember(),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<MemberResponseDto>>> getAllMember(){
+        return new ResponseEntity<>(new ResponseDto<>(memberService.getAllMember(),"모든 회원 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원이 작성한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
@@ -115,7 +117,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/posts")
-    public ResponseEntity<?> getAllPost(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(postService.getPostByMember(id),"회원이 작성한 모든 게시글 가져오기 성공"),HttpStatus.OK);
@@ -127,7 +129,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/scraps")
-    public ResponseEntity<?> getAllScrap(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllScrap(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(postService.getAllScraps(id),"회원이 스크랩한 모든 게시글 가져오기 성공"),HttpStatus.OK);
@@ -139,7 +141,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/replies")
-    public ResponseEntity<?> getAllReply(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<List<ReplyListResponseDto>>> getAllReply(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 작성한 모든 댓글 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(replyService.getReplyByMember(id),"회원이 작성한 모든 댓글 가져오기 성공"),HttpStatus.OK);

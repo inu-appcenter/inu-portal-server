@@ -175,10 +175,10 @@ public class ReplyService {
                         else{
                             if (reReply.getAnonymous()) {
                                 if(reReply.getMember().equals(post.getMember())){
-                                    writer = "익명(글쓴이)";
+                                    writer = "횃불이(글쓴이)";
                                 }
                                 else {
-                                    writer = "익명"+reReply.getNumber();
+                                    writer = "횃불이"+reReply.getNumber();
                                 }
                             }
                             else{
@@ -210,10 +210,10 @@ public class ReplyService {
                     else{
                         if (reply.getAnonymous()) {
                             if(reply.getMember().equals(post.getMember())){
-                                writer = "익명(글쓴이)";
+                                writer = "횃불이(글쓴이)";
                             }
                             else {
-                                writer = "익명"+reply.getNumber();
+                                writer = "횃불이"+reply.getNumber();
                             }
                         }
                         else{

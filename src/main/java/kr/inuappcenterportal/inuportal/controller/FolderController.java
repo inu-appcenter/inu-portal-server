@@ -11,16 +11,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
-import kr.inuappcenterportal.inuportal.dto.FolderDto;
-import kr.inuappcenterportal.inuportal.dto.FolderPostDto;
-import kr.inuappcenterportal.inuportal.dto.PostDto;
-import kr.inuappcenterportal.inuportal.dto.ResponseDto;
+import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.service.FolderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @Tag(name="Folders", description = "스크랩폴더 API")
@@ -38,7 +37,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("")
-    public ResponseEntity<?> createFolder(@Valid @RequestBody FolderDto folderDto, HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<Long>> createFolder(@Valid @RequestBody FolderDto folderDto, HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("스크랩폴더 생성 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(folderService.createFolder(id,folderDto),"폴더 생성 성공"), HttpStatus.CREATED);
@@ -50,7 +49,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/{folderId}")
-    public ResponseEntity<?> updateFolder(@Parameter(name = "folderId",description = "폴더의 id",in = ParameterIn.PATH) @PathVariable Long folderId, @Valid@RequestBody FolderDto folderDto){
+    public ResponseEntity<ResponseDto<Long>> updateFolder(@Parameter(name = "folderId",description = "폴더의 id",in = ParameterIn.PATH) @PathVariable Long folderId, @Valid@RequestBody FolderDto folderDto){
         log.info("스크랩폴더명 수정 호출 id:{}",folderId);
         return new ResponseEntity<>(new ResponseDto<>(folderService.updateFolder(folderId,folderDto),"스크랩폴더명 수정 성공"), HttpStatus.OK);
     }
@@ -61,7 +60,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("/{folderId}")
-    public ResponseEntity<?> deleteFolder(@Parameter(name = "folderId",description = "스크랩폴더의 id",in = ParameterIn.PATH) @PathVariable Long folderId){
+    public ResponseEntity<ResponseDto<Long>> deleteFolder(@Parameter(name = "folderId",description = "스크랩폴더의 id",in = ParameterIn.PATH) @PathVariable Long folderId){
         log.info("스크랩폴더 삭제 호출 id:{}",folderId);
         folderService.deleteFolder(folderId);
         return new ResponseEntity<>(new ResponseDto<>(folderId,"스크랩폴더 삭제 성공"), HttpStatus.OK);
@@ -75,7 +74,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "400",description = "스크랩폴더에 존재하는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/insert")
-    public ResponseEntity<?> insertPost(@Valid @RequestBody FolderPostDto folderDto){
+    public ResponseEntity<ResponseDto<Long>> insertPost(@Valid @RequestBody FolderPostDto folderDto){
         log.info("스크랩폴더에 게시글 담기 호출 스크랩폴더 id:{}, 게시글 id:{}",folderDto.getFolderId(),folderDto.getPostId());
         return new ResponseEntity<>(new ResponseDto<>(folderService.insertPost(folderDto),"스크랩폴더에 게시글 담기 성공"), HttpStatus.CREATED);
     }
@@ -88,7 +87,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "스크랩폴더나 게시글이 존재하지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("/post")
-    public ResponseEntity<?> deleteInFolder(@Valid @RequestBody FolderPostDto folderPostDto){
+    public ResponseEntity<ResponseDto<Long>> deleteInFolder(@Valid @RequestBody FolderPostDto folderPostDto){
         log.info("스크랩폴더에서 게시글 빼기 호출 스크랩폴더 id:{} 게시글 id:{}",folderPostDto.getFolderId(),folderPostDto.getPostId());
         folderService.deleteInFolder(folderPostDto);
         return new ResponseEntity<>(new ResponseDto<>(folderPostDto.getFolderId(),"스크랩폴더에서 게시글 빼기 성공"), HttpStatus.OK);
@@ -100,7 +99,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<?> getFolder(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<List<FolderResponseDto>>> getFolder(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원의 모든 스크랩폴더 가져오기 호출 폴더 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(folderService.getFolder(id),"회원의 모든 스크랩폴더 가져오기 성공"), HttpStatus.OK);
@@ -112,7 +111,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 스크랩폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/{folderId}")
-    public ResponseEntity<?> getPostInFolder(@PathVariable Long folderId){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostInFolder(@PathVariable Long folderId){
         log.info("스크랩폴더의 모든 게시글 가져오기 호출 폴더 id:{}",folderId);
         return new ResponseEntity<>(new ResponseDto<>(folderService.getPostInFolder(folderId),"스크랩폴더의 모든 게시글 가져오기 성공"), HttpStatus.OK);
     }

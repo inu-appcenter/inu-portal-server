@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor
@@ -21,6 +23,8 @@ public class Scrap {
     @JoinColumn(name = "post_id")
     private Post post;
 
+    @OneToMany(mappedBy = "scrap", fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    List<FolderPost> folderPostList;
 
     @Builder
     public Scrap(Member member,Post post){
