@@ -1,31 +1,38 @@
 package kr.inuappcenterportal.inuportal.domain;
 
+
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor
-public class Scrap {
+public class Folder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
+    private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
     private Member member;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private Post post;
-
+    @OneToMany(mappedBy = "folder",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    private List<FolderPost> folderPosts;
 
     @Builder
-    public Scrap(Member member,Post post){
+    public Folder(String name, Member member){
+        this.name = name;
         this.member = member;
-        this.post =post;
     }
 
+    public void update(String name){
+        this.name = name;
+    }
 }

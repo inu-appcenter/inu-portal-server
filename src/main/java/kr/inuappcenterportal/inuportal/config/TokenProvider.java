@@ -5,6 +5,8 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -58,6 +60,9 @@ public class TokenProvider {
 
     public String getUsername(String token){
         log.info("토큰으로 회원 정보 추출");
+        if(token==null){
+            throw new MyUnauthorizedException(MyErrorCode.TOKEN_NOT_FOUND);
+        }
         String info = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody().getSubject();
         log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
         return info;

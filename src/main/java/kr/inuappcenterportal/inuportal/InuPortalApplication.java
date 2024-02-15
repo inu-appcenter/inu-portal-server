@@ -14,18 +14,18 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
         servers = {
                 @Server(url = "https://portal.inuappcenter.kr/", description = "Server URL"),
                 @Server(url = "http://localhost:8080",description = "Local URL")
-        }/*,
+        },
         security = {
                 @SecurityRequirement(name = "Auth"),
-        }*/
+        }
 )
-/*@SecuritySchemes({
+@SecuritySchemes({
         @SecurityScheme(name = "Auth",
                 type = SecuritySchemeType.APIKEY,
                 description = "JWT token",
                 in = SecuritySchemeIn.HEADER,
                 paramName = "Auth"),
-})*/
+})
 @EnableJpaAuditing
 @SpringBootApplication
 public class InuPortalApplication {

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.dto.PostDto;
@@ -37,8 +38,8 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("")
-    public ResponseEntity<?> savePost(@RequestHeader("Auth") String token, @Valid@RequestBody PostDto postSaveDto){
-        Long id = Long.valueOf(tokenProvider.getUsername(token));
+    public ResponseEntity<?> savePost(/*@RequestHeader("Auth") String token,*/ @Valid@RequestBody PostDto postSaveDto, HttpServletRequest httpServletRequest){
+        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 저장 호출 id:{}",id);
         Long postId = postService.save(id,postSaveDto);
         return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 등록 성공"), HttpStatus.CREATED);
@@ -52,8 +53,8 @@ public class PostController {
             ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/{postId}")
-    public ResponseEntity<?> updatePost(@RequestHeader("Auth") String token, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestBody PostDto postDto){
-        Long memberId = Long.valueOf(tokenProvider.getUsername(token));
+    public ResponseEntity<?> updatePost(/*@RequestHeader("Auth") String token,*/HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestBody PostDto postDto){
+        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 수정 호출 id:{}",postId);
         postService.update(memberId,postId,postDto);
         return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 수정 성공"), HttpStatus.OK);
@@ -66,9 +67,9 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @DeleteMapping("{postId}")
-    public ResponseEntity<?> deletePost(@RequestHeader("Auth") String token,@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId){
-        Long memberId = Long.valueOf(tokenProvider.getUsername(token));
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<?> deletePost(/*@RequestHeader("Auth") String token,*/HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId){
+        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 삭제 호출 id:{}",postId);
         postService.delete(memberId,postId);
         return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 삭제 성공"), HttpStatus.OK);
@@ -80,12 +81,12 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @GetMapping("{postId}")
-    public ResponseEntity<?> getPost(@RequestHeader(name = "Auth",required = false) String token, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
+    @GetMapping("/{postId}")
+    public ResponseEntity<?> getPost(/*@RequestHeader(name = "Auth",required = false) String token*/ HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         log.info("게시글 가져오기 호출 id:{}",postId);
         Long memberId = -1L;
-        if(token!=null){
-            memberId = Long.valueOf(tokenProvider.getUsername(token));
+        if(httpServletRequest.getHeader("Auth")!=null){
+            memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         }
         return new ResponseEntity<>(postService.getPost(postId,memberId),HttpStatus.OK);
     }
@@ -97,8 +98,8 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/like/{postId}")
-    public ResponseEntity<?> likePost(@RequestHeader("Auth") String token, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
-        Long memberId = Long.valueOf(tokenProvider.getUsername(token));
+    public ResponseEntity<?> likePost(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
+        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 좋아요 여부 변경 호출 id:{}",postId);
         return new ResponseEntity<>(new ResponseDto<>(postService.likePost(memberId,postId),"게시글 좋아요 여부 변경성공"), HttpStatus.OK);
     }
@@ -111,8 +112,8 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/scrap/{postId}")
-    public ResponseEntity<?> scrapPost(@RequestHeader("Auth") String token,@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
-        Long memberId = Long.valueOf(tokenProvider.getUsername(token));
+    public ResponseEntity<?> scrapPost(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
+        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 스크랩 여부 변경 호출 id:{}",postId);
         return new ResponseEntity<>(new ResponseDto<>(postService.scrapPost(memberId,postId),"스크랩 여부 변경 성공"),HttpStatus.OK);
     }

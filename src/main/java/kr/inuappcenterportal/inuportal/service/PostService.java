@@ -166,7 +166,7 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    private PostListResponseDto getPostListResponseDto(Post post) {
+    public PostListResponseDto getPostListResponseDto(Post post) {
         String writer;
         if(post.getMember()==null){
             writer="(알수없음)";
