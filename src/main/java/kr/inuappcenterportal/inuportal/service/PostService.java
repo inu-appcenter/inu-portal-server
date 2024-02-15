@@ -146,8 +146,8 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getPostByMember(Long memberId){
-        Member mem = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        return postRepository.findAllByMember(mem)
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        return postRepository.findAllByMember(member)
                 .stream()
                 .map(this::getPostListResponseDto)
                 .sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed())
@@ -155,10 +155,22 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getAllScraps(Long memberId){
-        Member mem = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        List<Scrap> scraps = scrapRepository.findAllByMember(mem);
+    public List<PostListResponseDto> getScrapsByMember(Long memberId){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        List<Scrap> scraps = scrapRepository.findAllByMember(member);
         return scraps.stream()
+                .map(scrap -> {
+                    Post post = scrap.getPost();
+                    return getPostListResponseDto(post);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> getLikeByMember(Long memberId){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        List<PostLike> likes = likePostRepository.findAllByMember(member);
+        return likes.stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
                     return getPostListResponseDto(post);
