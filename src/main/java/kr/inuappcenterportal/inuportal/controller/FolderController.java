@@ -66,11 +66,12 @@ public class FolderController {
         return new ResponseEntity<>(new ResponseDto<>(folderId,"스크랩폴더 삭제 성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "스크랩폴더에 게시글 담기",description = "바디에 {folderId(스크랩폴더의 데이터베이스 id값),postId(게시글의 데이터베이스 id값)}을 json 형식으로 보내주세요. 성공 시 담긴 관계의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "스크랩폴더에 게시글 담기",description = "바디에 {folderId(스크랩폴더의 데이터베이스 id값),postId(게시글의 데이터베이스 id값)}을 json 형식으로 보내주세요. 성공 시 스크랩폴더의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201",description = "스크랩폴더에 게시글 담기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 스크랩폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "스크랩하지 않은 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "스크랩폴더에 존재하는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/insert")
