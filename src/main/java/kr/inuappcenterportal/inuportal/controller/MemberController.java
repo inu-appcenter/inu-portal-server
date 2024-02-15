@@ -126,7 +126,7 @@ public class MemberController {
             @ApiResponse(responseCode = "200",description = "회원이 스크랩한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @GetMapping("/scrap")
+    @GetMapping("/scraps")
     public ResponseEntity<?> getAllScrap(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",id);
@@ -138,7 +138,7 @@ public class MemberController {
             @ApiResponse(responseCode = "200",description = "회원이 스크랩한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @GetMapping("/scrap")
+    @GetMapping("/replies")
     public ResponseEntity<?> getAllReply(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 작성한 모든 댓글 호출 id:{}",id);
