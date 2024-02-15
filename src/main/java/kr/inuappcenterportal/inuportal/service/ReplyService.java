@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.service;
 import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.ReReplyResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyDto;
+import kr.inuappcenterportal.inuportal.dto.ReplyListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
@@ -131,6 +132,12 @@ public class ReplyService {
             likeReplyRepository.save(replyLike);
             return 1;
         }
+    }
+
+    @Transactional
+    public List<ReplyListResponseDto> getReplyByMember(Long memberId){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        return replyRepository.findByMember(member).stream().map(ReplyListResponseDto::new).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

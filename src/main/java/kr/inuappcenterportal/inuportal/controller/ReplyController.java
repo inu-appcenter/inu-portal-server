@@ -37,7 +37,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/{postId}")
-    public ResponseEntity<?> saveReply(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
+    public ResponseEntity<?> saveReply(HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         log.info("댓글 등록 호출");
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         return new ResponseEntity<>(new ResponseDto<>(replyService.saveReply(memberId, replyDto,postId),"댓글 등록 성공"), HttpStatus.CREATED);
@@ -51,7 +51,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "403",description = "이 댓글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/{replyId}")
-    public ResponseEntity<?> updateReply(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
+    public ResponseEntity<?> updateReply(HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 수정 호출 id:{}",replyId);
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));;
         return new ResponseEntity<>(new ResponseDto<>(replyService.updateReply(memberId, replyDto,replyId),"댓글 수정 성공"), HttpStatus.OK);
@@ -66,7 +66,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "403",description = "이 댓글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("/{replyId}")
-    public ResponseEntity<?> deleteReply(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
+    public ResponseEntity<?> deleteReply(HttpServletRequest httpServletRequest, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 삭제 호출 id:{}",replyId);
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         replyService.delete(memberId, replyId);
@@ -82,7 +82,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 댓글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/reReplies/{replyId}")
-    public ResponseEntity<?> saveReReply(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
+    public ResponseEntity<?> saveReReply(HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 저장 호출");
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         return new ResponseEntity<>(new ResponseDto<>(replyService.saveReReply(memberId, replyDto,replyId),"대댓글 저장 성공"), HttpStatus.CREATED);
@@ -95,7 +95,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 댓글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/like/{replyId}")
-    public ResponseEntity<?> likePost(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
+    public ResponseEntity<?> likePost(HttpServletRequest httpServletRequest, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("댓글 좋아요 여부 변경 호출 id:{}",replyId);
         return new ResponseEntity<>(new ResponseDto<>(replyService.likeReply(memberId,replyId),"게시글 좋아요 여부 변경성공"), HttpStatus.OK);

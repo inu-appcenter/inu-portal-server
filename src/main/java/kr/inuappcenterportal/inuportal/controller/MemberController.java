@@ -16,6 +16,7 @@ import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
 import kr.inuappcenterportal.inuportal.service.MemberService;
 import kr.inuappcenterportal.inuportal.service.PostService;
+import kr.inuappcenterportal.inuportal.service.ReplyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpRequest;
@@ -33,6 +34,7 @@ public class MemberController {
     private final TokenProvider tokenProvider;
     private final MemberService memberService;
     private final PostService postService;
+    private final ReplyService replyService;
 
     @Operation(summary = "회원 가입",description = "바디에 {email(@가 들어간 이메일 형식이어야 합니다.),password,nickname}을 json 형식으로 보내주세요. 성공 시 가입한 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
@@ -47,28 +49,26 @@ public class MemberController {
     }
 
 
-    //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원 정보 수정",description = "url 헤더에 Auth 토큰,바디에 {password,nickname}을 json 형식으로 보내주세요.성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원정보수정성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("")
-    public ResponseEntity<?> update(/*@RequestHeader("Auth") String token, */@RequestBody MemberUpdateDto memberUpdateDto,HttpServletRequest httpServletRequest){
+    public ResponseEntity<?> update(@RequestBody MemberUpdateDto memberUpdateDto,HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 정보 수정 호출 id:{}",id);
         Long member_id = memberService.updateMember(id, memberUpdateDto);
         return new ResponseEntity<>(new ResponseDto<>(member_id,"회원 정보 수정 성공"),HttpStatus.OK);
     }
 
-    //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원 삭제",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 성공 시 삭제한 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원삭제성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("")
-    public ResponseEntity<?> delete(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest){
+    public ResponseEntity<?> delete(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 탈퇴 호출 id:{}",id);
         memberService.delete(id);
@@ -88,20 +88,18 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(token,"로그인 성공, 토근이 발급되었습니다."),HttpStatus.OK);
     }
 
-    //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원가져오기성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<?> getMember(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest){
+    public ResponseEntity<?> getMember(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 이메일 가져오기 호출 id:{}",id);
         return new ResponseEntity<>(memberService.getMember(id),HttpStatus.OK);
     }
 
-    //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "모든 회원 가져오기")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 회원가져오기성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
@@ -111,29 +109,39 @@ public class MemberController {
         return new ResponseEntity<>(memberService.getAllMember(),HttpStatus.OK);
     }
 
-    //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원이 작성한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원이 작성한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/posts")
-    public ResponseEntity<?> getAllPost(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest){
+    public ResponseEntity<?> getAllPost(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(postService.getPostByMember(id),"회원이 작성한 모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
-    //@Parameter(name = "Auth",description = "로그인 후 발급 받은 토큰",required = true,in = ParameterIn.HEADER)
     @Operation(summary = "회원이 스크랩한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원이 스크랩한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/scrap")
-    public ResponseEntity<?> getAllScrap(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest){
+    public ResponseEntity<?> getAllScrap(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(postService.getAllScraps(id),"회원이 스크랩한 모든 게시글 가져오기 성공"),HttpStatus.OK);
+    }
+
+    @Operation(summary = "회원이 작성한 모든 댓글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "회원이 스크랩한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @GetMapping("/scrap")
+    public ResponseEntity<?> getAllReply(HttpServletRequest httpServletRequest){
+        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
+        log.info("회원이 작성한 모든 댓글 호출 id:{}",id);
+        return new ResponseEntity<>(new ResponseDto<>(replyService.getReplyByMember(id),"회원이 작성한 모든 댓글 가져오기 성공"),HttpStatus.OK);
     }
 }

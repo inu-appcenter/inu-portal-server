@@ -38,7 +38,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("")
-    public ResponseEntity<?> createFolder(/*@RequestHeader("Auth") String token,*/@Valid @RequestBody FolderDto folderDto, HttpServletRequest httpServletRequest){
+    public ResponseEntity<?> createFolder(@Valid @RequestBody FolderDto folderDto, HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("스크랩폴더 생성 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(folderService.createFolder(id,folderDto),"폴더 생성 성공"), HttpStatus.CREATED);
@@ -100,7 +100,7 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<?> getFolder(/*@RequestHeader("Auth") String token*/HttpServletRequest httpServletRequest){
+    public ResponseEntity<?> getFolder(HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원의 모든 스크랩폴더 가져오기 호출 폴더 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(folderService.getFolder(id),"회원의 모든 스크랩폴더 가져오기 성공"), HttpStatus.OK);
