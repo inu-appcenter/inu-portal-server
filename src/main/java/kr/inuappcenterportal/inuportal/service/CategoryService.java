@@ -43,7 +43,7 @@ public class CategoryService {
         categoryRepository.delete(cate);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<String> getCategories(){
         return categoryRepository.findAll().stream().map(Category::getCategory).collect(Collectors.toList());
     }
