@@ -71,7 +71,7 @@ public class PostService {
         }
         else{
             if (post.getAnonymous()) {
-                writer = "익명";
+                writer = "횃불이";
             }
             else{
                 writer = memberRepository.findById(post.getMember().getId()).get().getNickname();
@@ -173,7 +173,7 @@ public class PostService {
         }
         else{
             if (post.getAnonymous()) {
-                writer = "익명";
+                writer = "횃불이";
             }
             else{
                 writer = memberRepository.findById(post.getMember().getId()).get().getNickname();
