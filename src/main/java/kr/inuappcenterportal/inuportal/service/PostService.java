@@ -24,6 +24,7 @@ public class PostService {
     private final ScrapRepository scrapRepository;
     private final ReplyService replyService;
     private final CategoryRepository categoryRepository;
+    private final RedisService redisService;
 
     @Transactional
     public Long save(Long id, PostDto postSaveDto){
@@ -52,8 +53,12 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PostResponseDto getPost(Long postId,Long memberId){
+    public PostResponseDto getPost(Long postId,Long memberId,String address){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        if(redisService.isFirstConnect(address,postId)){
+            redisService.insertAddress(address,postId);
+            post.upViewCount();
+        }
         Boolean isLiked = false;
         Boolean isScraped = false;
         if(memberId!=-1L){
@@ -89,6 +94,7 @@ public class PostService {
                 .scrap(post.getScraps().size())
                 .isLiked(isLiked)
                 .isScraped(isScraped)
+                .view(post.getView())
                 .build();
     }
 
@@ -177,6 +183,7 @@ public class PostService {
                 })
                 .collect(Collectors.toList());
     }
+
 
     public PostListResponseDto getPostListResponseDto(Post post) {
         String writer;

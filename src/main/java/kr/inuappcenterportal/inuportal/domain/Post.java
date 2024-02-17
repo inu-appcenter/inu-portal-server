@@ -34,6 +34,9 @@ public class Post extends BaseTimeEntity {
     @Column
     private Integer number = 0;
 
+    @Column
+    private Long view;
+
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
@@ -59,6 +62,7 @@ public class Post extends BaseTimeEntity {
         this.category = category;
         this.anonymous = anonymous;
         this.member = member;
+        this.view = 0L;
     }
 
     public void update(String title, String content, String category, Boolean anonymous){
@@ -70,6 +74,8 @@ public class Post extends BaseTimeEntity {
     public void upNumber(){
         this.number++;
     }
+
+    public void upViewCount(){this.view++;}
 
 
 }

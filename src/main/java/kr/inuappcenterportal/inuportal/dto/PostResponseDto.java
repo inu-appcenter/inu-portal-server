@@ -24,6 +24,8 @@ public class PostResponseDto {
     private int like;
     @Schema(description = "스크랩")
     private int scrap;
+    @Schema(description = "조회수")
+    private Long view;
     @Schema(description = "좋아요 여부",example = "false")
     private Boolean isLiked;
     @Schema(description = "스크랩 여부",example = "false")
@@ -37,7 +39,7 @@ public class PostResponseDto {
     private List<ReplyResponseDto> replies;
 
     @Builder
-    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped){
+    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -49,6 +51,7 @@ public class PostResponseDto {
         this.scrap = scrap;
         this.isLiked = isLiked;
         this.isScraped = isScraped;
+        this.view = view;
 
     }
 

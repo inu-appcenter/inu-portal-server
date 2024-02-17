@@ -91,7 +91,7 @@ public class PostController {
         if(httpServletRequest.getHeader("Auth")!=null){
             memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         }
-        return new ResponseEntity<>(new ResponseDto<>(postService.getPost(postId,memberId),"게시글 가져오기 성공"),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(postService.getPost(postId,memberId,httpServletRequest.getRemoteAddr()),"게시글 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "게시글 좋아요 여부 변경",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id를 보내주세요. 좋아요 시 {data:1}, 좋아요 취소 시 {data:-1}입니다.")
