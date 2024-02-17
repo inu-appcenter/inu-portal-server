@@ -193,6 +193,7 @@ public class ReplyService {
                         .createDate(reReply.getCreateDate())
                         .modifiedDate(reReply.getModifiedDate())
                         .isLiked(isLiked)
+                        .isAnonymous(reReply.getAnonymous())
                         .build();
             })
                     .collect(Collectors.toList());
@@ -229,6 +230,7 @@ public class ReplyService {
                     .modifiedDate(reply.getModifiedDate())
                     .reReplies(reReplyResponseDtoList)
                     .isLiked(isLiked)
+                    .isAnonymous(reply.getAnonymous())
                     .build();
 
         })

@@ -22,6 +22,8 @@ public class ReplyResponseDto {
     private int like;
     @Schema(description = "좋아요 여부")
     private Boolean isLiked;
+    @Schema(description = "익명 여부")
+    private Boolean isAnonymous;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
@@ -30,7 +32,7 @@ public class ReplyResponseDto {
     private List<ReReplyResponseDto> reReplies;
 
     @Builder
-    public ReplyResponseDto(Long id, String writer, String content, int like, LocalDate createDate, LocalDate modifiedDate, List<ReReplyResponseDto> reReplies, Boolean isLiked){
+    public ReplyResponseDto(Long id, String writer, String content, int like, LocalDate createDate, LocalDate modifiedDate, List<ReReplyResponseDto> reReplies, Boolean isLiked,Boolean isAnonymous){
         this.id = id;
         this.writer =writer;
         this.content =content;
@@ -39,6 +41,7 @@ public class ReplyResponseDto {
         this.modifiedDate =modifiedDate;
         this.reReplies = reReplies;
         this.isLiked = isLiked;
+        this.isAnonymous = isAnonymous;
     }
 
 }
