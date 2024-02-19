@@ -147,9 +147,9 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/images")
-    public ResponseEntity<byte[]> getImages(@Valid@RequestBody ImageDto imageDto){
-        log.info("게시글의 이미지 가져오기 호출 id:{}",imageDto.getPostId());
-        return new ResponseEntity<>(redisService.findImages(imageDto.getPostId(), imageDto.getImageId()),HttpStatus.OK);
+    public ResponseEntity<byte[]> getImages(@RequestParam Long postId, @RequestParam Long imageId){
+        log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
+        return new ResponseEntity<>(redisService.findImages(postId, imageId),HttpStatus.OK);
     }
 
 
