@@ -140,7 +140,7 @@ public class PostController {
         return new ResponseEntity<>(new ResponseDto<>(postService.getPostByCategory(category),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "게시글의 이미지 가져오기",description = "바디에 {postId, imageId}를 json 형식으로 보내주세요. imageId는 이미지의 등록 순서이며 이미지의 갯수는 post 에 imageCount 입니다.")
+    @Operation(summary = "게시글의 이미지 가져오기",description = "url 파라미터에 postId, imageId를 보내주세요. imageId는 이미지의 등록 순서이며 이미지의 갯수는 post 에 imageCount 입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
