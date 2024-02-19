@@ -37,6 +37,9 @@ public class Post extends BaseTimeEntity {
     @Column
     private Long view;
 
+    @Column
+    private Integer imageCount;
+
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
@@ -56,20 +59,22 @@ public class Post extends BaseTimeEntity {
     private Member member;
 
     @Builder
-    public Post(String title, String content, String category, Boolean anonymous, Member member){
+    public Post(String title, String content, String category, Boolean anonymous, Member member, Integer imageCount){
         this.title = title;
         this.content = content;
         this.category = category;
         this.anonymous = anonymous;
         this.member = member;
         this.view = 0L;
+        this.imageCount = imageCount;
     }
 
-    public void update(String title, String content, String category, Boolean anonymous){
+    public void update(String title, String content, String category, Boolean anonymous, Integer imageCount){
         this.title = title;
         this.content = content;
         this.category = category;
         this.anonymous = anonymous;
+        this.imageCount = imageCount;
     }
     public void upNumber(){
         this.number++;

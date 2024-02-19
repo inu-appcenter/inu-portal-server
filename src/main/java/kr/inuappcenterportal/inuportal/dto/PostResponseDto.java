@@ -34,12 +34,17 @@ public class PostResponseDto {
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
     private LocalDate modifiedDate;
+    @Schema(description = "이미지 갯수")
+    private Integer imageCount;
 
     @Schema(description = "댓글",example = "댓글들")
     private List<ReplyResponseDto> replies;
 
+    @Schema(description = "이미지들")
+    private List<byte[]> images;
+
     @Builder
-    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view){
+    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view, List<byte[]> images,Integer imageCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -52,7 +57,8 @@ public class PostResponseDto {
         this.isLiked = isLiked;
         this.isScraped = isScraped;
         this.view = view;
-
+        this.images = images;
+        this.imageCount = imageCount;
     }
 
 }

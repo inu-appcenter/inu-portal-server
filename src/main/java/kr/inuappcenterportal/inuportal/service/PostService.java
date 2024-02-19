@@ -11,6 +11,9 @@ import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,25 +30,41 @@ public class PostService {
     private final RedisService redisService;
 
     @Transactional
-    public Long save(Long id, PostDto postSaveDto){
+    public Long save(Long id, PostDto postSaveDto, List<MultipartFile> imageDto) throws IOException {
         Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).build();
+        int imageCount;
+        if(imageDto==null){
+            imageCount = 0;
+        }
+        else{
+            imageCount = imageDto.size();
+        }
+        Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(imageCount).build();
         postRepository.save(post);
+        if(imageDto!=null) {
+            redisService.saveImage(post.getId(), imageDto);
+        }
         return post.getId();
     }
 
     @Transactional
-    public void update(Long memberId, Long postId, PostDto postDto){
+    public void update(Long memberId, Long postId, PostDto postDto, List<MultipartFile> images) throws IOException {
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Integer imageCount = 0;
+        if(images!=null){
+            imageCount =images.size();
+        }
+        redisService.updateImage(postId,images,post.getImageCount());
         if(!post.getMember().getId().equals(memberId)){
             throw new MyNotPermittedException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
-        post.update(postDto.getTitle(),postDto.getContent(), postDto.getCategory(),postDto.getAnonymous());
+        post.update(postDto.getTitle(),postDto.getContent(), postDto.getCategory(),postDto.getAnonymous(),imageCount);
     }
 
     @Transactional
     public void delete(Long memberId, Long postId){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        redisService.deleteImage(postId,post.getImageCount());
         if(!post.getMember().getId().equals(memberId)){
             throw new MyNotPermittedException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
@@ -82,6 +101,7 @@ public class PostService {
                 writer = memberRepository.findById(post.getMember().getId()).get().getNickname();
             }
         }
+
         return PostResponseDto.builder()
                 .id(post.getId())
                 .replies(replyService.getReplies(postId,memberId))
@@ -95,6 +115,8 @@ public class PostService {
                 .isLiked(isLiked)
                 .isScraped(isScraped)
                 .view(post.getView())
+                .images(redisService.findImages(postId,post.getImageCount()))
+                .imageCount(post.getImageCount())
                 .build();
     }
 

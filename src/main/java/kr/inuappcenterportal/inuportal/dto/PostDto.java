@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Schema(description = "게시글 등록/수정 요청Dto")
 @Getter
@@ -29,7 +32,7 @@ public class PostDto {
     private Boolean anonymous;
 
     @Builder
-    public PostDto(String title, String content, String category,Boolean anonymous){
+    public PostDto(String title, String content, String category, Boolean anonymous, List<MultipartFile> images){
         this.title = title;
         this.content = content;
         this.category = category;
