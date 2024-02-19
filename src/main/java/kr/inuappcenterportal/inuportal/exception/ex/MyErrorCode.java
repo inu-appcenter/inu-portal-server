@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum MyErrorCode {
 
     USER_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 유저입니다."),
+    IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 이미지 번호입니다."),
     POST_SCRAP_LIST_NOT_FOUND(HttpStatus.NOT_FOUND,"게시글 리스트가 비어있습니다."),
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND,"스크랩하지 않은 게시물입니다."),
     FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 스크랩폴더입니다."),

@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.service;
 
+import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -57,15 +59,14 @@ public class RedisService {
         }
     }
 
-    public List<byte[]> findImages(Long postId, Integer imageCount){
-        List<byte[]> images = new ArrayList<>();
-        for(int i = 0 ; i<imageCount;i++){
-            String key = postId + "-" + (i+1);
-            log.info("이미지가져오기 key:{}",key);
-            byte[] image = redisTemplateForImage.opsForValue().get(key);
-            images.add(image);
+    public byte[] findImages(Long postId, Integer imageId){
+        String key = postId + "-" + imageId;
+        log.info("이미지가져오기 key:{}",key);
+        byte[] image = redisTemplateForImage.opsForValue().get(key);
+        if(image==null){
+            throw new MyNotFoundException(MyErrorCode.IMAGE_NOT_FOUND);
         }
-        return images;
+        return image;
     }
 
     public void updateImage(Long postId, List<MultipartFile> images, Integer imageCount) throws IOException {

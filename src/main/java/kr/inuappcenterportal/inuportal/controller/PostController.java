@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.service.PostService;
+import kr.inuappcenterportal.inuportal.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ import java.util.List;
 public class PostController {
     private final PostService postService;
     private final TokenProvider tokenProvider;
+    private final RedisService redisService;
 
     @Operation(summary = "게시글 등록",description = "이 기능은 swagger에서 작동하지 않습니다. 헤더 Auth에 발급받은 토큰을, multipart/form-data 형식으로, post에 {title,content,category,bool 형태의 anonymous}을 application/json 형식으로, image에 이미지 파일을 보내주세요. 성공 시 작성된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
@@ -136,6 +138,18 @@ public class PostController {
     @GetMapping("/all/{category}")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@PathVariable String category){
         return new ResponseEntity<>(new ResponseDto<>(postService.getPostByCategory(category),"모든 게시글 가져오기 성공"),HttpStatus.OK);
+    }
+
+    @Operation(summary = "게시글의 이미지 가져오기",description = "바디에 {postId, imageId}를 json 형식으로 보내주세요. imageId는 이미지의 등록 순서이며 이미지의 갯수는 post 에 imageCount 입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "404",description = "존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @GetMapping("/images")
+    public ResponseEntity<byte[]> getImages(@Valid@RequestBody ImageDto imageDto){
+        log.info("게시글의 이미지 가져오기 호출 id:{}",imageDto.getPostId());
+        return new ResponseEntity<>(redisService.findImages(imageDto.getPostId(), imageDto.getImageId()),HttpStatus.OK);
     }
 
 

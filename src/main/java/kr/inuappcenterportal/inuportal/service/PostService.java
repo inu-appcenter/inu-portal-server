@@ -115,7 +115,6 @@ public class PostService {
                 .isLiked(isLiked)
                 .isScraped(isScraped)
                 .view(post.getView())
-                .images(redisService.findImages(postId,post.getImageCount()))
                 .imageCount(post.getImageCount())
                 .build();
     }
