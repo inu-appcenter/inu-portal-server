@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,10 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ImageDto {
     @Schema(description = "게시물의 데이터베이스 id값",example = "1")
-    @NotBlank
+    @NotNull
     private Long postId;
     @Schema(description = "이미지의 등록 순서",example = "1")
-    @NotBlank
+    @NotNull
     private Long imageId;
 
     @Builder
