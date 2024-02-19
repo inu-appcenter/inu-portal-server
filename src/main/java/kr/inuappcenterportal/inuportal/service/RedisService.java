@@ -59,7 +59,7 @@ public class RedisService {
         }
     }
 
-    public byte[] findImages(Long postId, Integer imageId){
+    public byte[] findImages(Long postId, Long imageId){
         String key = postId + "-" + imageId;
         log.info("이미지가져오기 key:{}",key);
         byte[] image = redisTemplateForImage.opsForValue().get(key);
