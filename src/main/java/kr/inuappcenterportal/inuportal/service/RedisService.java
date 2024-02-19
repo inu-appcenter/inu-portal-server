@@ -18,8 +18,9 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class RedisService {
 
-    private final RedisTemplate<String,String> redisTemplate;
     private final RedisTemplate<String,byte[]> redisTemplateForImage;
+    private final RedisTemplate<String,Boolean> redisTemplate;
+
 
     public boolean isFirstConnect(String address, Long postId){
         String key = address + "&"+ postId;
@@ -43,6 +44,7 @@ public class RedisService {
         Duration subTime = Duration.between(currentTime, endTime);
         long expireTime = subTime.getSeconds();
         log.info("만료시간: {}",expireTime);
+        redisTemplate.opsForValue().set(key,true);
         redisTemplate.expire(key,expireTime, TimeUnit.SECONDS);
     }
 
