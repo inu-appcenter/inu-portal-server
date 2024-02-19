@@ -16,7 +16,9 @@ import kr.inuappcenterportal.inuportal.service.PostService;
 import kr.inuappcenterportal.inuportal.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -149,7 +151,9 @@ public class PostController {
     @GetMapping("/images")
     public ResponseEntity<byte[]> getImages(@RequestParam Long postId, @RequestParam Long imageId){
         log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
-        return new ResponseEntity<>(redisService.findImages(postId, imageId),HttpStatus.OK);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.IMAGE_PNG);
+        return new ResponseEntity<>(redisService.findImages(postId, imageId),httpHeaders,HttpStatus.OK);
     }
 
 
