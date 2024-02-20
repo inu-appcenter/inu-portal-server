@@ -97,7 +97,7 @@ public class ReplyService {
         Integer num = 0;
         if(post.getMember()!=null) {
             if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
-                Reply preReply = replyRepository.findByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
                 num = preReply.getNumber();
             } else if (!member.getId().equals(post.getMember().getId())) {
                 post.upNumber();
@@ -106,7 +106,7 @@ public class ReplyService {
         }
         else{
             if( replyRepository.existsByMember(member)){
-                Reply preReply = replyRepository.findByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
                 num = preReply.getNumber();
             }
             else{
