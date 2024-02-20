@@ -110,6 +110,7 @@ public class PostService {
                 .category(post.getCategory())
                 .writer(writer)
                 .title(post.getTitle())
+                .content(post.getContent())
                 .like(post.getPostLikes().size())
                 .scrap(post.getScraps().size())
                 .isLiked(isLiked)

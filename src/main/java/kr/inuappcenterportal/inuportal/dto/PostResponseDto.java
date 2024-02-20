@@ -20,6 +20,8 @@ public class PostResponseDto {
     private String category;
     @Schema(description = "작성자",example = "작성자")
     private String writer;
+    @Schema(description = "내용", example = "내용")
+    private String content;
     @Schema(description = "좋아요")
     private int like;
     @Schema(description = "스크랩")
@@ -42,7 +44,7 @@ public class PostResponseDto {
 
 
     @Builder
-    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view,Integer imageCount){
+    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view,Integer imageCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -50,6 +52,7 @@ public class PostResponseDto {
         this.writer = writer;
         this.createDate = createDate;
         this.modifiedDate = modifiedDate;
+        this.content =content;
         this.like = like;
         this.scrap = scrap;
         this.isLiked = isLiked;
