@@ -37,7 +37,7 @@ public class ReplyService {
         Integer num = 0;
         if(post.getMember()!=null) {
             if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
-                Reply preReply = replyRepository.findByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
                 num = preReply.getNumber();
             } else if (!member.getId().equals(post.getMember().getId())) {
                 post.upNumber();
@@ -46,7 +46,7 @@ public class ReplyService {
         }
         else{
             if( replyRepository.existsByMember(member)){
-                Reply preReply = replyRepository.findByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
                 num = preReply.getNumber();
             }
             else{
@@ -145,19 +145,6 @@ public class ReplyService {
 
         Member member = memberRepository.findById(memberId).orElse(null);
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
-
-        List<Reply> replyList = replyRepository.findAllByPost(post);
-        List<Long> idList = replyList.stream().map(list -> list.getMember().getId()).toList();
-        Set<Long> idSet = new HashSet<>();
-        List<Long> numberList = new ArrayList<>();
-        for (Long id : idList) {
-            if (idSet.add(id)) {
-                numberList.add(id);
-            }
-        }
-
-        //numberList.removeIf(n ->n.equals(member.getId()));
-
         List<Reply> replies = replyRepository.findAllByPostAndReplyIsNull(post);
         return replies.stream().map(reply -> {
             List<ReReplyResponseDto> reReplyResponseDtoList = replyRepository.findAllByReply(reply).stream().map(reReply ->{
@@ -218,7 +205,7 @@ public class ReplyService {
                             }
                         }
                         else{
-                            writer = memberRepository.findById(post.getMember().getId()).get().getNickname();
+                            writer = memberRepository.findById(reply.getMember().getId()).get().getNickname();
                         }
                     }
             return ReplyResponseDto.builder()
