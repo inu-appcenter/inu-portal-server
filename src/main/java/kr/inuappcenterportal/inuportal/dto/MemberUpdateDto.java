@@ -12,9 +12,11 @@ import lombok.RequiredArgsConstructor;
 public class MemberUpdateDto {
 
     @Schema(description = "비밀번호",example = "12345")
+    @NotBlank
     private String password;
 
     @Schema(description = "닉네임",example = "인천대팁쟁이")
+    @NotBlank
     private String nickname;
 
     @Builder
