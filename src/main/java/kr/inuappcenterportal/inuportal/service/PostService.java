@@ -71,7 +71,7 @@ public class PostService {
         postRepository.delete(post);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostResponseDto getPost(Long postId,Long memberId,String address){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
         if(redisService.isFirstConnect(address,postId)){
