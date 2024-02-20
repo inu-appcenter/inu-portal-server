@@ -150,8 +150,10 @@ public class ReplyService {
             List<ReReplyResponseDto> reReplyResponseDtoList = replyRepository.findAllByReply(reply).stream().map(reReply ->{
                         String writer;
                         Boolean isLiked = false;
+                        Boolean hasAuthority = false;
                         if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reReply)){
                             isLiked = true;
+                            hasAuthority = true;
                         }
                         if(reReply.getIsDeleted()){
                             writer="(삭제됨)";
@@ -180,14 +182,17 @@ public class ReplyService {
                         .createDate(reReply.getCreateDate())
                         .modifiedDate(reReply.getModifiedDate())
                         .isLiked(isLiked)
+                        .hasAuthority(hasAuthority)
                         .isAnonymous(reReply.getAnonymous())
                         .build();
             })
                     .collect(Collectors.toList());
                     String writer;
                     Boolean isLiked = false;
+                    Boolean hasAuthority = false;
                     if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reply)){
                         isLiked = true;
+                        hasAuthority = true;
                     }
                     if(reply.getIsDeleted()){
                         writer="(삭제됨)";
@@ -218,6 +223,7 @@ public class ReplyService {
                     .reReplies(reReplyResponseDtoList)
                     .isLiked(isLiked)
                     .isAnonymous(reply.getAnonymous())
+                    .hasAuthority(hasAuthority)
                     .build();
 
         })

@@ -80,6 +80,7 @@ public class PostService {
         }
         Boolean isLiked = false;
         Boolean isScraped = false;
+        Boolean hasAuthority = false;
         if(memberId!=-1L){
             Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
             if(likePostRepository.existsByMemberAndPost(member,post)){
@@ -87,6 +88,9 @@ public class PostService {
             }
             if(scrapRepository.existsByMemberAndPost(member,post)){
                 isScraped = true;
+            }
+            if(post.getMember()!=null&&member.getId().equals(post.getMember().getId())){
+                hasAuthority = true;
             }
         }
         String writer;
@@ -115,6 +119,7 @@ public class PostService {
                 .scrap(post.getScraps().size())
                 .isLiked(isLiked)
                 .isScraped(isScraped)
+                .hasAuthority(hasAuthority)
                 .view(post.getView())
                 .imageCount(post.getImageCount())
                 .build();

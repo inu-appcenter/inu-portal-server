@@ -32,6 +32,8 @@ public class PostResponseDto {
     private Boolean isLiked;
     @Schema(description = "스크랩 여부",example = "false")
     private Boolean isScraped;
+    @Schema(description = "수정/삭제 가능 여부")
+    private Boolean hasAuthority;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
@@ -44,7 +46,7 @@ public class PostResponseDto {
 
 
     @Builder
-    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view,Integer imageCount){
+    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view,Integer imageCount,Boolean hasAuthority){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -59,6 +61,7 @@ public class PostResponseDto {
         this.isScraped = isScraped;
         this.view = view;
         this.imageCount = imageCount;
+        this.hasAuthority =hasAuthority;
     }
 
 }
