@@ -153,6 +153,8 @@ public class ReplyService {
                         Boolean hasAuthority = false;
                         if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reReply)){
                             isLiked = true;
+                        }
+                        if(member!=null&&reReply.getMember()!=null&&reReply.getMember().getId().equals(member.getId())){
                             hasAuthority = true;
                         }
                         if(reReply.getIsDeleted()){
@@ -192,6 +194,8 @@ public class ReplyService {
                     Boolean hasAuthority = false;
                     if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reply)){
                         isLiked = true;
+                    }
+                    if(member!=null&&reply.getMember()!=null&&reply.getMember().getId().equals(member.getId())){
                         hasAuthority = true;
                     }
                     if(reply.getIsDeleted()){
