@@ -37,20 +37,46 @@ public class PostController {
     private final TokenProvider tokenProvider;
     private final RedisService redisService;
 
-    @Operation(summary = "게시글 등록",description = "이 기능은 swagger에서 작동하지 않습니다. 헤더 Auth에 발급받은 토큰을, multipart/form-data 형식으로, post에 {title,content,category,bool 형태의 anonymous}을 application/json 형식으로, image에 이미지 파일을 보내주세요. 성공 시 작성된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    /*@Operation(summary = "게시글 등록",description = "이 기능은 swagger에서 작동하지 않습니다. 헤더 Auth에 발급받은 토큰을, multipart/form-data 형식으로, post에 {title,content,category,bool 형태의 anonymous}을 application/json 형식으로, image에 이미지 파일을 보내주세요. 성공 시 작성된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201",description = "게시글 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("")
+    @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Long>> savePost(@Valid@RequestPart(value = "post") PostDto postSaveDto, @RequestPart(value = "image", required = false)List<MultipartFile> imageDto, HttpServletRequest httpServletRequest) throws IOException {
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 저장 호출 id:{}",id);
         Long postId = postService.save(id,postSaveDto,imageDto);
         return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 등록 성공"), HttpStatus.CREATED);
+    }*/
+
+    @Operation(summary = "게시글 등록",description = "헤더 Auth에 발급받은 토큰을, 바디에 {title,content,category,bool 형태의 anonymous} 보내주세요. 그 이후 등록된 게시글의 id와 이미지를 보내주세요. 성공 시 작성된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201",description = "게시글 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping("")
+    public ResponseEntity<ResponseDto<Long>> saveOnlyPost(@Valid@RequestBody PostDto postSaveDto, HttpServletRequest httpServletRequest) {
+        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
+        log.info("게시글만 저장 호출 id:{}",id);
+        Long postId = postService.saveOnlyPost(id,postSaveDto);
+        return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 등록 성공"), HttpStatus.CREATED);
     }
 
-    @Operation(summary = "게시글 수정",description = "이 기능은 swagger에서 작동하지 않습니다. 헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id, multipart/form-data 형식으로, post에 {title,content,category, bool 형태의 anonymous}을 application/json 형식으로, image에 이미지 파일(기존 이미지 포함)을 보내주세요. 성공 시 수정된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "이미지 등록",description = "파라미터에 게시글의 id, images에 이미지 파일들을 보내주세요. 성공 시 게시글의 데이터베이 아이디값이 {data: id}으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201",description = "이미지 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping(value = "/images/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<Long>> saveOnlyImage( @RequestPart List<MultipartFile> images,@PathVariable Long postId, HttpServletRequest httpServletRequest) throws IOException {
+        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
+        log.info("이미지만 저장 호출 id:{}",postId);
+        return new ResponseEntity<>(new ResponseDto<>(postService.saveOnlyImage(id,postId,images),"이미지 등록 성공"), HttpStatus.CREATED);
+    }
+
+    /*@Operation(summary = "게시글 수정",description = "이 기능은 swagger에서 작동하지 않습니다. 헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id, multipart/form-data 형식으로, post에 {title,content,category, bool 형태의 anonymous}을 application/json 형식으로, image에 이미지 파일(기존 이미지 포함)을 보내주세요. 성공 시 수정된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 수정 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
@@ -62,6 +88,35 @@ public class PostController {
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 수정 호출 id:{}",postId);
         postService.update(memberId,postId,postDto,imageDto);
+        return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 수정 성공"), HttpStatus.OK);
+    }*/
+
+    @Operation(summary = "게시글 수정",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id, 바디에 {title,content,category, bool 형태의 anonymous}을 형식으로 보내주세요. 성공 시 수정된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "게시글 수정 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PutMapping("/{postId}")
+    public ResponseEntity<ResponseDto<Long>> updateOnlyPost(HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestBody PostDto postDto) {
+        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
+        log.info("게시글 수정 호출 id:{}",postId);
+        postService.updateOnlyPost(memberId,postId,postDto);
+        return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 수정 성공"), HttpStatus.OK);
+    }
+    @Operation(summary = "게시글의 이미지 수정",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id, images 에 기존 이미지를 포함한 이미지들을 보내주세요. 성공 시 수정된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "게시글이미지 수정 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PutMapping(value = "/images/{postId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<Long>> updateOnlyImage(HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @RequestPart List<MultipartFile> images) throws IOException {
+        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
+        log.info("게시글 수정 호출 id:{}",postId);
+        postService.updateOnlyImage(memberId,postId,images);
         return new ResponseEntity<>(new ResponseDto<>(postId,"게시글 수정 성공"), HttpStatus.OK);
     }
 

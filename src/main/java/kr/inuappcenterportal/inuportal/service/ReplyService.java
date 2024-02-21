@@ -149,8 +149,8 @@ public class ReplyService {
         return replies.stream().map(reply -> {
             List<ReReplyResponseDto> reReplyResponseDtoList = replyRepository.findAllByReply(reply).stream().map(reReply ->{
                         String writer;
-                        Boolean isLiked = false;
-                        Boolean hasAuthority = false;
+                        boolean isLiked = false;
+                        boolean hasAuthority = false;
                         if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reReply)){
                             isLiked = true;
                         }
@@ -190,8 +190,8 @@ public class ReplyService {
             })
                     .collect(Collectors.toList());
                     String writer;
-                    Boolean isLiked = false;
-                    Boolean hasAuthority = false;
+                    boolean isLiked = false;
+                    boolean hasAuthority = false;
                     if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reply)){
                         isLiked = true;
                     }

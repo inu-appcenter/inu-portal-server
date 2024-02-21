@@ -76,11 +76,23 @@ public class Post extends BaseTimeEntity {
         this.anonymous = anonymous;
         this.imageCount = imageCount;
     }
+
+    public void updateOnlyPost(String title, String content, String category, Boolean anonymous){
+        this.title = title;
+        this.content = content;
+        this.category = category;
+        this.anonymous = anonymous;
+    }
     public void upNumber(){
         this.number++;
     }
 
     public void upViewCount(){this.view++;}
+
+    public void updateImageCount(Integer imageCount){
+        this.imageCount = imageCount;
+
+    }
 
 
 }

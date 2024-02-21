@@ -27,11 +27,7 @@ public class RedisService {
     public boolean isFirstConnect(String address, Long postId){
         String key = address + "&"+ postId;
         log.info("check isFirstConnect key:{}",key);
-        if(redisTemplate.hasKey(key)){
-            return false;
-        }
-        else
-            return true;
+        return !redisTemplate.hasKey(key);
     }
 
     public void insertAddress(String address, Long postId){
