@@ -2,10 +2,7 @@ package kr.inuappcenterportal.inuportal.service;
 
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
-import kr.inuappcenterportal.inuportal.dto.MemberLoginDto;
-import kr.inuappcenterportal.inuportal.dto.MemberResponseDto;
-import kr.inuappcenterportal.inuportal.dto.MemberSaveDto;
-import kr.inuappcenterportal.inuportal.dto.MemberUpdateDto;
+import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
@@ -16,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -78,5 +76,11 @@ public class MemberService {
     @Transactional(readOnly = true)
     public List<MemberResponseDto> getAllMember(){
         return memberRepository.findAll().stream().map(MemberResponseDto::new).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Boolean checkPassword(Long id, MemberPasswordDto memberPasswordDto){
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        return passwordEncoder.matches(member.getPassword(), memberPasswordDto.getPassword());
     }
 }
