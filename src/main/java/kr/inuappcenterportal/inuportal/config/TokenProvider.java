@@ -69,7 +69,7 @@ public class TokenProvider {
     }
     public String resolveToken(HttpServletRequest request){
         log.info("헤더에서 토큰 값 추출");
-        return request.getHeader("Auth");
+        return request.getHeader("Authentication");
     }
 
     public boolean validateToken(String token){
