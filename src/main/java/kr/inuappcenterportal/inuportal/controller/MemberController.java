@@ -164,8 +164,8 @@ public class MemberController {
             @ApiResponse(responseCode = "200",description = "회원의 비밀번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @GetMapping("/checkPassword")
-    public ResponseEntity<ResponseDto<Boolean>> checkPassword(HttpServletRequest httpServletRequest, @RequestBody MemberPasswordDto memberPasswordDto){
+    @PostMapping("/checkPassword")
+    public ResponseEntity<ResponseDto<Boolean>> checkPassword(HttpServletRequest httpServletRequest, @Valid@RequestBody MemberPasswordDto memberPasswordDto){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원의 비밀번호 일치여부 확인 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(memberService.checkPassword(id,memberPasswordDto),"회원의 비밀번호 일치여부 확인 성공"),HttpStatus.OK);
