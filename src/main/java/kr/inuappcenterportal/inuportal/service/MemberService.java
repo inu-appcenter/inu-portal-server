@@ -81,6 +81,6 @@ public class MemberService {
     @Transactional(readOnly = true)
     public Boolean checkPassword(Long id, MemberPasswordDto memberPasswordDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        return passwordEncoder.matches(member.getPassword(), memberPasswordDto.getPassword());
+        return passwordEncoder.matches(memberPasswordDto.getPassword(),member.getPassword());
     }
 }
