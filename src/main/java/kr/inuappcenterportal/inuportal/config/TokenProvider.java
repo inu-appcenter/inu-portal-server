@@ -26,7 +26,7 @@ public class TokenProvider {
 
     private final UserDetailsService userDetailsService;
     private Key secretKey;
-    private final long tokenValidMillisecond = 1000L * 60 * 60;
+    private final long tokenValidMillisecond = 1000L * 60 * 60 * 12;//12시간
    @Autowired
     public TokenProvider(UserDetailsService userDetailsService){
         this.userDetailsService =userDetailsService;
@@ -69,17 +69,17 @@ public class TokenProvider {
     }
     public String resolveToken(HttpServletRequest request){
         log.info("헤더에서 토큰 값 추출");
-        return request.getHeader("Authentication");
+        return request.getHeader("Auth");
     }
 
     public boolean validateToken(String token){
         log.info("토큰 유효성 검증 시작");
         try{
             Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
-
             return !claims.getBody().getExpiration().before(new Date());
         }catch (Exception e){
             log.info("토큰 유효 체크 예외 발생");
+
             return false;
         }
     }
