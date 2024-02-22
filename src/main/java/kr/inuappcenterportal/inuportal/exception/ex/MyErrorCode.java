@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum MyErrorCode {
 
     USER_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 유저입니다."),
+    USER_NOT_CHECK_EMAIL(HttpStatus.NOT_FOUND,"만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다."),
     IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 이미지 번호입니다."),
     POST_SCRAP_LIST_NOT_FOUND(HttpStatus.NOT_FOUND,"게시글 리스트가 비어있습니다."),
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND,"스크랩하지 않은 게시물입니다."),
@@ -20,6 +21,7 @@ public enum MyErrorCode {
     REPLY_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 댓글입니다."),
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 카테고리입니다."),
     USER_DUPLICATE_EMAIL(HttpStatus.BAD_REQUEST,"동일한 이메일이 존재합니다."),
+    ONLY_SCHOOL_EMAIL(HttpStatus.BAD_REQUEST,"학교 이메일만 가입 가능합니다."),
     POST_DUPLICATE_FOLDER(HttpStatus.BAD_REQUEST,"스크랩폴더에 존재하는 게시글입니다."),
     USER_DUPLICATE_NICKNAME(HttpStatus.BAD_REQUEST,"동일한 닉네임이 존재합니다."),
     USER_DUPLICATE_CATEGORY(HttpStatus.BAD_REQUEST,"동일한 카테고리가 존재합니다."),

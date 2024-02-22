@@ -3,19 +3,16 @@ package kr.inuappcenterportal.inuportal.service;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.*;
-import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
-import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
-import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
+import kr.inuappcenterportal.inuportal.exception.ex.*;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 
@@ -25,11 +22,15 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
+    private final MailService mailService;
+    private final RedisService redisService;
 
     @Transactional
     public Long join(MemberSaveDto memberSaveDto){
+        if(!checkSchoolEmail(memberSaveDto.getEmail())){
+            throw new MyNotPermittedException(MyErrorCode.ONLY_SCHOOL_EMAIL);
+        }
         String encodedPassword = passwordEncoder.encode(memberSaveDto.getPassword());
-
         if(memberRepository.existsByEmail(memberSaveDto.getEmail())){
             throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_EMAIL);
         }
@@ -82,5 +83,39 @@ public class MemberService {
     public Boolean checkPassword(Long id, MemberPasswordDto memberPasswordDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         return passwordEncoder.matches(memberPasswordDto.getPassword(),member.getPassword());
+    }
+
+    public String sendMail(EmailDto emailDto){
+        if(!checkSchoolEmail(emailDto.getEmail())){
+            throw new MyNotPermittedException(MyErrorCode.ONLY_SCHOOL_EMAIL);
+        }
+        if(memberRepository.existsByEmail(emailDto.getEmail())){
+            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_EMAIL);
+        }
+        String numbers = createNumber();
+        mailService.sendMail(emailDto.getEmail(),numbers);
+        redisService.storeMail(emailDto.getEmail(),numbers);
+        return emailDto.getEmail();
+    }
+    public String createNumber(){
+        StringBuilder sb = new StringBuilder();
+        Random random = new Random();
+        for(int i = 0 ; i < 6 ; i++){
+            sb.append(random.nextInt(10));
+        }
+        return sb.toString();
+    }
+
+    public Boolean checkNumbers(EmailCheckDto emailCheckDto){
+        return redisService.getNumbers(emailCheckDto.getEmail()).equals(emailCheckDto.getNumbers());
+    }
+
+    public Boolean checkSchoolEmail(String email){
+        int atIndex = email.indexOf("@");
+        if (atIndex == -1) {
+            return false;
+        }
+        String domain = email.substring(atIndex + 1);
+        return domain.equals("inu.ac.kr");
     }
 }

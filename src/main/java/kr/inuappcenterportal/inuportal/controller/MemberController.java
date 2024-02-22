@@ -171,6 +171,29 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(memberService.checkPassword(id,memberPasswordDto),"회원의 비밀번호 일치여부 확인 성공"),HttpStatus.OK);
     }
 
+    @Operation(summary = "인증 메일 보내기",description = "바디에 {email}을 json 형식으로 보내주세요. 성공 시 발송완료된 이메일이 {data:email} 형식으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "인증 메일 보내기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping("/sendMail")
+    public ResponseEntity<ResponseDto<String>> sendMail(@Valid@RequestBody EmailDto emailDto){
+        log.info("인증 이메일 보내기 호출 email:{}",emailDto.getEmail());
+        return new ResponseEntity<>(new ResponseDto<>(memberService.sendMail(emailDto),"인증 메일 보내기 성공"),HttpStatus.OK);
+    }
+
+    @Operation(summary = "가입 인증번호 일치 확인",description = "바디에 {email,numbers}을 json 형식으로 보내주세요. 성공 시 인증번호 일치 여부가 {data:boolean} 형식으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "가입 인증번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping("/checkMail")
+    public ResponseEntity<ResponseDto<Boolean>> checkMail(@Valid@RequestBody EmailCheckDto emailCheckDto){
+        log.info("가입 인증번호 확인 호출 email:{}",emailCheckDto.getEmail());
+        return new ResponseEntity<>(new ResponseDto<>(memberService.checkNumbers(emailCheckDto),"가입 인증번호 일치확인 성공"),HttpStatus.OK);
+    }
+
 
 
 }

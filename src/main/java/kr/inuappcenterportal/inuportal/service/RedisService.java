@@ -86,4 +86,19 @@ public class RedisService {
         }
     }
 
+    public void storeMail(String email, String numbers){
+        redisTemplate.opsForValue().set(email,numbers);
+        redisTemplate.expire(email,30*60*1000L, TimeUnit.SECONDS);
+    }
+
+    public String getNumbers(String email){
+        String numbers = redisTemplate.opsForValue().get(email);
+        if(numbers==null){
+            throw new MyNotFoundException(MyErrorCode.USER_NOT_CHECK_EMAIL);
+        }
+        return numbers;
+    }
+
+
+
 }
