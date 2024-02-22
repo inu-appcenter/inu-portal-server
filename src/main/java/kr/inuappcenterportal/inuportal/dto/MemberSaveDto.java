@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class MemberSaveDto {
-    @Schema(description = "이메일",example = "test@gmail.com")
+    @Schema(description = "이메일",example = "test@inu.ac.kr")
     @Email
     @NotBlank
     private String email;
