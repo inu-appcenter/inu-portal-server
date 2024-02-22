@@ -23,13 +23,15 @@ public class PostListResponseDto {
     private int like;
     @Schema(description = "스크랩")
     private int scrap;
+    @Schema(description = "이미지수")
+    private int imageCount;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
     private LocalDate modifiedDate;
 
     @Builder
-    public PostListResponseDto(Long id, String title, String category, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap){
+    public PostListResponseDto(Long id, String title, String category, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,int imageCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -38,6 +40,7 @@ public class PostListResponseDto {
         this.modifiedDate = modifiedDate;
         this.like = like;
         this.scrap = scrap;
+        this.imageCount = imageCount;
     }
 
 }

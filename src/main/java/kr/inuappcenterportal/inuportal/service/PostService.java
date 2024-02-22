@@ -280,6 +280,7 @@ public class PostService {
                 .writer(writer)
                 .title(post.getTitle())
                 .like(post.getPostLikes().size())
+                .imageCount(post.getImageCount())
                 .scrap(post.getScraps().size())
                 .build();
     }
