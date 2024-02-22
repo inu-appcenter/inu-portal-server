@@ -26,7 +26,7 @@ public class TokenProvider {
 
     private final UserDetailsService userDetailsService;
     private Key secretKey;
-    private final long tokenValidMillisecond = 1000L * 60 * 60 * 12;//12시간
+    private final long tokenValidMillisecond = 1000L * 60 * 60 * 24;//24시간
    @Autowired
     public TokenProvider(UserDetailsService userDetailsService){
         this.userDetailsService =userDetailsService;

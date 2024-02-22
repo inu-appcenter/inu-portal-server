@@ -77,7 +77,7 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(id,"회원삭제성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "로그인",description = "바디에 {email,password}을 json 형식으로 보내주세요. {data: 토큰} 형식으로 로그인 성공 시 토큰이 발급됩니다.")
+    @Operation(summary = "로그인",description = "바디에 {email,password}을 json 형식으로 보내주세요. {data: 토큰} 형식으로 로그인 성공 시 토큰이 발급됩니다. 토큰 유효시간은 24시간입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "로그인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "401",description = "존재하지 않는 아이디(이메일)입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
@@ -171,7 +171,7 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(memberService.checkPassword(id,memberPasswordDto),"회원의 비밀번호 일치여부 확인 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "인증 메일 보내기",description = "바디에 {email}을 json 형식으로 보내주세요. 성공 시 발송완료된 이메일이 {data:email} 형식으로 보내집니다.")
+    @Operation(summary = "인증 메일 보내기",description = "바디에 {email}을 json 형식으로 보내주세요. 성공 시 발송완료된 이메일이 {data:email} 형식으로 보내집니다. 인증코드의 유효시간은 30분입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "인증 메일 보내기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
