@@ -161,7 +161,7 @@ public class MemberController {
 
     @Operation(summary = "회원의 비밀번호 일치여부 확인",description = "url 헤더에 Auth 토큰을, 바디에 {password} json 형식으로 보내주세요. 성공 시 일치 여부가 {data:boolean} 형식으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원의 비밀번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "회원의 비밀번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/checkPassword")
@@ -173,7 +173,7 @@ public class MemberController {
 
     @Operation(summary = "인증 메일 보내기",description = "바디에 {email}을 json 형식으로 보내주세요. 성공 시 발송완료된 이메일이 {data:email} 형식으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "인증 메일 보내기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "인증 메일 보내기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
@@ -185,7 +185,7 @@ public class MemberController {
 
     @Operation(summary = "가입 인증번호 일치 확인",description = "바디에 {email,numbers}을 json 형식으로 보내주세요. 성공 시 인증번호 일치 여부가 {data:boolean} 형식으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "가입 인증번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "가입 인증번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/checkMail")
