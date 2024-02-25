@@ -1,11 +1,11 @@
 package kr.inuappcenterportal.inuportal.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import jakarta.servlet.http.HttpServletResponse;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyJwtException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,12 +60,20 @@ public class TokenProvider {
 
     public String getUsername(String token){
         log.info("토큰으로 회원 정보 추출");
-        if(token==null){
-            throw new MyUnauthorizedException(MyErrorCode.TOKEN_NOT_FOUND);
+        try {
+            String info = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody().getSubject();
+            log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
+            return info;
+        }catch (SignatureException ex){
+            throw new MyJwtException(MyErrorCode.WRONG_TYPE_TOKEN);
+        }catch (MalformedJwtException ex){
+            throw new MyJwtException(MyErrorCode.UNSUPPORTED_TOKEN);
+        }catch (ExpiredJwtException ex){
+            throw new MyJwtException(MyErrorCode.EXPIRED_TOKEN);
+        }catch (IllegalArgumentException ex){
+            throw new MyJwtException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
         }
-        String info = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody().getSubject();
-        log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
-        return info;
+
     }
     public String resolveToken(HttpServletRequest request){
         log.info("헤더에서 토큰 값 추출");
@@ -79,7 +87,6 @@ public class TokenProvider {
             return !claims.getBody().getExpiration().before(new Date());
         }catch (Exception e){
             log.info("토큰 유효 체크 예외 발생");
-
             return false;
         }
     }

@@ -26,13 +26,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("토큰 값 추출 token:{}",token);
 
         log.info("토큰 값 유효성 체크 시작");
-            if (token != null && tokenProvider.validateToken(token)) {
-                Authentication authentication = tokenProvider.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+        if (token != null && tokenProvider.validateToken(token)) {
+            Authentication authentication = tokenProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
         log.info("토큰 값 유효성 체크 완료");
-
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
     }
 
 }

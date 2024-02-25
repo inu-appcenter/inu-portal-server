@@ -27,12 +27,15 @@ public enum MyErrorCode {
     USER_DUPLICATE_CATEGORY(HttpStatus.BAD_REQUEST,"동일한 카테고리가 존재합니다."),
     POST_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 게시글입니다."),
     ID_NOT_FOUND(HttpStatus.UNAUTHORIZED,"아이디가 존재하지 않습니다."),
-    TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED,"토큰의 값이 존재하지않습니다."),
     PASSWORD_NOT_MATCHED(HttpStatus.UNAUTHORIZED,"비밀번호가 틀립니다."),
     HAS_NOT_POST_AUTHORIZATION(HttpStatus.FORBIDDEN,"이 게시글의 수정/삭제에 대한 권한이 없습니다."),
     HAS_NOT_REPLY_AUTHORIZATION(HttpStatus.FORBIDDEN,"이 게시글의 수정/삭제에 대한 권한이 없습니다."),
     NOT_MULTIPLE_LIKE(HttpStatus.CONFLICT,"이미 좋아요를 눌렀습니다."),
-    NOT_MULTIPLE_DISLIKE(HttpStatus.CONFLICT,"이미 싫어요를 눌렀습니다.");
+    NOT_MULTIPLE_DISLIKE(HttpStatus.CONFLICT,"이미 싫어요를 눌렀습니다."),
+    WRONG_TYPE_TOKEN(HttpStatus.UNAUTHORIZED,"토큰의 서명이 유효하지 않습니다."),
+    UNSUPPORTED_TOKEN(HttpStatus.UNAUTHORIZED,"잘못된 형식의 토큰입니다."),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED,"만료된 토큰입니다."),
+    UNKNOWN_TOKEN_ERROR(HttpStatus.BAD_REQUEST,"토큰의 값이 존재하지 않습니다.");
 
 
     private final HttpStatus status;
