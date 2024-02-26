@@ -35,7 +35,7 @@ public class NoticeService {
         for(Element ele:notice){
             noticeRepository.save(Notice.builder().category(ele.select("td.td-category").select("span").text())
                     .title(Objects.requireNonNull(Objects.requireNonNull(ele.select("td.td-subject").first()).selectFirst("strong").text()))
-                    .url(ele.select("td.td-subject").select("a").attr("href"))
+                    .url("www.inu.ac.kr/"+ele.select("td.td-subject").select("a").attr("href"))
                     .writer(ele.select("td.td-write").text())
                     .date(ele.select("td.td-date").text())
                     .build());
