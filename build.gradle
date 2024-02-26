@@ -37,6 +37,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.jsoup:jsoup:1.15.3'
 }
 
 tasks.named('test') {
