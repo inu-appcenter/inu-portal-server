@@ -14,19 +14,19 @@ public class NoticeListResponseDto {
     @Schema(description = "공지사항 데이터베이스 id 값")
     private Long id;
 
-    @Schema(description = "카테고리")
+    @Schema(description = "카테고리",example = "카테고리")
     private String category;
 
-    @Schema(description = "제목")
+    @Schema(description = "제목",example = "제목")
     private String title;
 
-    @Schema(description = "작성자")
+    @Schema(description = "작성자",example = "작성자")
     private String writer;
 
-    @Schema(description = "작성일")
+    @Schema(description = "작성일",example = "작성일")
     private String date;
 
-    @Schema(description = "링크 url")
+    @Schema(description = "링크 url",example = "url")
     private String url;
 
     @Builder
