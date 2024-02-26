@@ -26,6 +26,7 @@ public class NoticeService {
     private final NoticeRepository noticeRepository;
 
     @PostConstruct
+    @Transactional
     public void getNotice() throws IOException {
         noticeRepository.truncateTable();
         String url = "https://www.inu.ac.kr/inu/1534/subview.do";
