@@ -27,7 +27,7 @@ public class NoticeService {
 
     @PostConstruct
     public void getNotice() throws IOException {
-        noticeRepository.deleteAll();
+        noticeRepository.truncateTable();
         String url = "https://www.inu.ac.kr/inu/1534/subview.do";
         Document document = Jsoup.connect(url).get();
         Elements notice = document.select("tr.notice");
@@ -45,7 +45,7 @@ public class NoticeService {
     @Transactional
     @Scheduled(cron = "0 0/30 * * * *")
     public void getNewNotice() throws IOException {
-        noticeRepository.deleteAll();
+        noticeRepository.truncateTable();
         String url = "https://www.inu.ac.kr/inu/1534/subview.do";
         Document document = Jsoup.connect(url).get();
         Elements notice = document.select("tr.notice");
