@@ -10,6 +10,6 @@ public interface NoticeRepository extends JpaRepository<Notice,Long> {
 
     @Modifying
     @Transactional
-    @Query(value = "truncate table Notice",nativeQuery = true)
+    @Query(value = "truncate table notice",nativeQuery = true)
     public void truncateTable();
 }
