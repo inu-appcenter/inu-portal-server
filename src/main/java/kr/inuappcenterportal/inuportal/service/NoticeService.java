@@ -27,6 +27,7 @@ public class NoticeService {
 
     @PostConstruct
     public void getNotice() throws IOException {
+        noticeRepository.deleteAll();
         String url = "https://www.inu.ac.kr/inu/1534/subview.do";
         Document document = Jsoup.connect(url).get();
         Elements notice = document.select("tr.notice");
