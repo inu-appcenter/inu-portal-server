@@ -47,7 +47,7 @@ public class MemberService {
        if(!passwordEncoder.matches(memberUpdatePasswordDto.getPassword(),member.getPassword())){
            throw new MyUnauthorizedException(MyErrorCode.PASSWORD_NOT_MATCHED);
        }
-       String encodedPassword = passwordEncoder.encode(memberUpdatePasswordDto.getPassword());
+       String encodedPassword = passwordEncoder.encode(memberUpdatePasswordDto.getNewPassword());
        member.updatePassword(encodedPassword);
         return member.getId();
     }
