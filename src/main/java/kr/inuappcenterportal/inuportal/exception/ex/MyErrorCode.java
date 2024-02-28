@@ -24,6 +24,7 @@ public enum MyErrorCode {
     ONLY_SCHOOL_EMAIL(HttpStatus.BAD_REQUEST,"학교 이메일만 가입 가능합니다."),
     POST_DUPLICATE_FOLDER(HttpStatus.BAD_REQUEST,"스크랩폴더에 존재하는 게시글입니다."),
     USER_DUPLICATE_NICKNAME(HttpStatus.BAD_REQUEST,"동일한 닉네임이 존재합니다."),
+    SAME_NICKNAME_UPDATE(HttpStatus.BAD_REQUEST,"입력한 닉네임과 현재 닉네임이 동일합니다."),
     USER_DUPLICATE_CATEGORY(HttpStatus.BAD_REQUEST,"동일한 카테고리가 존재합니다."),
     POST_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 게시글입니다."),
     ID_NOT_FOUND(HttpStatus.UNAUTHORIZED,"아이디가 존재하지 않습니다."),

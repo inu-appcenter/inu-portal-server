@@ -54,8 +54,11 @@ public class Member implements UserDetails {
         this.roles = roles;
     }
 
-    public void update(String password,String nickname){
+    public void updatePassword(String password){
         this.password = password;
+    }
+
+    public void updateNickname(String nickname){
         this.nickname = nickname;
     }
 

@@ -6,22 +6,22 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@Schema(description = "회원정보 수정 요청Dto")
+@Schema(description = "회원 비밀번호 수정 요청Dto")
 @Getter
 @RequiredArgsConstructor
-public class MemberUpdateDto {
+public class MemberUpdatePasswordDto {
 
     @Schema(description = "비밀번호",example = "12345")
     @NotBlank
     private String password;
 
-    @Schema(description = "닉네임",example = "인천대팁쟁이")
+    @Schema(description = "새 비밀번호",example = "1234")
     @NotBlank
-    private String nickname;
+    private String newPassword;
 
     @Builder
-    public MemberUpdateDto(String password,String nickname){
+    public MemberUpdatePasswordDto(String password, String newPassword){
         this.password = password;
-        this.nickname = nickname;
+        this.newPassword = newPassword;
     }
 }

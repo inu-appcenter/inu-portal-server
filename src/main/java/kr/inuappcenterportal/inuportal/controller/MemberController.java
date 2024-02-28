@@ -1,8 +1,6 @@
 package kr.inuappcenterportal.inuportal.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,14 +10,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.dto.*;
-import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.exception.ex.MyUnauthorizedException;
 import kr.inuappcenterportal.inuportal.service.MemberService;
 import kr.inuappcenterportal.inuportal.service.PostService;
 import kr.inuappcenterportal.inuportal.service.ReplyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,17 +46,33 @@ public class MemberController {
     }
 
 
-    @Operation(summary = "회원 정보 수정",description = "url 헤더에 Auth 토큰,바디에 {password,nickname}을 json 형식으로 보내주세요.성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "회원 비밀번호 변경",description = "url 헤더에 Auth 토큰,바디에 {password,newPassword}을 json 형식으로 보내주세요.성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원정보수정성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "200",description = "회원 비밀번호 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "401",description = "비밀번호가 틀립니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PutMapping("")
-    public ResponseEntity<ResponseDto<Long>> update(@RequestBody MemberUpdateDto memberUpdateDto,HttpServletRequest httpServletRequest){
+    @PutMapping("/password")
+    public ResponseEntity<ResponseDto<Long>> updatePassword(@RequestBody MemberUpdatePasswordDto memberUpdatePasswordDto, HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원 정보 수정 호출 id:{}",id);
-        Long member_id = memberService.updateMember(id, memberUpdateDto);
-        return new ResponseEntity<>(new ResponseDto<>(member_id,"회원 정보 수정 성공"),HttpStatus.OK);
+        log.info("회원 비밀번호 변경 호출 id:{}",id);
+        Long memberId = memberService.updateMemberPassword(id, memberUpdatePasswordDto);
+        return new ResponseEntity<>(new ResponseDto<>(memberId,"회원 비밀번호 변경 성공"),HttpStatus.OK);
+    }
+
+    @Operation(summary = "회원 닉네임 변경",description = "url 헤더에 Auth 토큰,바디에 {nickname}을 json 형식으로 보내주세요.성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "회원 닉네임 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "동일한 닉네임이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PutMapping("/nickname")
+    public ResponseEntity<ResponseDto<Long>> updateNickname(@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, HttpServletRequest httpServletRequest){
+        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
+        log.info("회원 닉네임 변경 호출 id:{}",id);
+        Long memberId = memberService.updateMemberNickname(id, memberUpdateNicknameDto);
+        return new ResponseEntity<>(new ResponseDto<>(memberId,"회원 닉네임 변경 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원 삭제",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 성공 시 삭제한 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
@@ -159,17 +170,6 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(replyService.getReplyByMember(id),"회원이 작성한 모든 댓글 가져오기 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "회원의 비밀번호 일치여부 확인",description = "url 헤더에 Auth 토큰을, 바디에 {password} json 형식으로 보내주세요. 성공 시 일치 여부가 {data:boolean} 형식으로 보내집니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원의 비밀번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
-    @PostMapping("/checkPassword")
-    public ResponseEntity<ResponseDto<Boolean>> checkPassword(HttpServletRequest httpServletRequest, @Valid@RequestBody MemberPasswordDto memberPasswordDto){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원의 비밀번호 일치여부 확인 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(memberService.checkPassword(id,memberPasswordDto),"회원의 비밀번호 일치여부 확인 성공"),HttpStatus.OK);
-    }
 
     @Operation(summary = "인증 메일 보내기",description = "바디에 {email}을 json 형식으로 보내주세요. 성공 시 발송완료된 이메일이 {data:email} 형식으로 보내집니다. 인증코드의 유효시간은 30분입니다.")
     @ApiResponses({
@@ -177,7 +177,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("/sendMail")
+    @PostMapping("/send-mail")
     public ResponseEntity<ResponseDto<String>> sendMail(@Valid@RequestBody EmailDto emailDto){
         log.info("인증 이메일 보내기 호출 email:{}",emailDto.getEmail());
         return new ResponseEntity<>(new ResponseDto<>(memberService.sendMail(emailDto),"인증 메일 보내기 성공"),HttpStatus.OK);
@@ -188,7 +188,7 @@ public class MemberController {
             @ApiResponse(responseCode = "200",description = "가입 인증번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("/checkMail")
+    @PostMapping("/check-mail")
     public ResponseEntity<ResponseDto<Boolean>> checkMail(@Valid@RequestBody EmailCheckDto emailCheckDto){
         log.info("가입 인증번호 확인 호출 email:{}",emailCheckDto.getEmail());
         return new ResponseEntity<>(new ResponseDto<>(memberService.checkNumbers(emailCheckDto),"가입 인증번호 일치확인 성공"),HttpStatus.OK);

@@ -42,13 +42,26 @@ public class MemberService {
     }
 
     @Transactional
-    public Long updateMember(Long id, MemberUpdateDto memberUpdateDto){
+    public Long updateMemberPassword(Long id, MemberUpdatePasswordDto memberUpdatePasswordDto){
+       Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+       if(!passwordEncoder.matches(memberUpdatePasswordDto.getPassword(),member.getPassword())){
+           throw new MyUnauthorizedException(MyErrorCode.PASSWORD_NOT_MATCHED);
+       }
+       String encodedPassword = passwordEncoder.encode(memberUpdatePasswordDto.getPassword());
+       member.updatePassword(encodedPassword);
+        return member.getId();
+    }
+
+    @Transactional
+    public Long updateMemberNickname(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        if(memberRepository.existsByNickname(memberUpdateDto.getNickname())){
+        if(memberUpdateNicknameDto.getNickname().equals(member.getNickname())){
+            throw new MyDuplicateException(MyErrorCode.SAME_NICKNAME_UPDATE);
+        }
+        if(memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())){
             throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_NICKNAME);
         }
-        String encodedPassword = passwordEncoder.encode(memberUpdateDto.getPassword());
-        member.update(encodedPassword, memberUpdateDto.getNickname());
+        member.updateNickname(memberUpdateNicknameDto.getNickname());
         return member.getId();
     }
 
@@ -77,12 +90,6 @@ public class MemberService {
     @Transactional(readOnly = true)
     public List<MemberResponseDto> getAllMember(){
         return memberRepository.findAll().stream().map(MemberResponseDto::new).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public Boolean checkPassword(Long id, MemberPasswordDto memberPasswordDto){
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        return passwordEncoder.matches(memberPasswordDto.getPassword(),member.getPassword());
     }
 
     public String sendMail(EmailDto emailDto){
