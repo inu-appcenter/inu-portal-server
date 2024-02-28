@@ -74,8 +74,7 @@ public class NoticeService {
     }
 
     public String encoding(String baseUrl) throws UnsupportedEncodingException {
-        String encodeResult = URLEncoder.encode(baseUrl, StandardCharsets.UTF_8);
-        return Base64.getUrlEncoder().encodeToString(encodeResult.getBytes());
+        return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
     }
 
 
