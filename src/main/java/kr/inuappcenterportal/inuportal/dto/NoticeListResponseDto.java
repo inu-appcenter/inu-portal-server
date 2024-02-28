@@ -25,6 +25,8 @@ public class NoticeListResponseDto {
 
     @Schema(description = "작성일",example = "작성일")
     private String date;
+    @Schema(description = "조회수")
+    private Integer view;
 
     @Schema(description = "링크 url",example = "url")
     private String url;
@@ -36,6 +38,7 @@ public class NoticeListResponseDto {
         this.title = notice.getTitle();
         this.writer = notice.getWriter();
         this.date = notice.getDate();
+        this.view = notice.getView();
         this.url = notice.getUrl();
     }
 }

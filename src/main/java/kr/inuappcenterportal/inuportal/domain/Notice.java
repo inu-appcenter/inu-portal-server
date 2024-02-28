@@ -27,15 +27,18 @@ public class Notice {
     @Column
     private String date;
 
-    @Column
+    @Column Integer view;
+
+    @Column(length = 512)
     private String url;
 
     @Builder
-    public Notice(String category, String title, String writer, String date, String url){
+    public Notice(String category, String title, String writer, String date, String url,Integer view){
         this.category = category;
         this.title = title;
         this.writer = writer;
         this.date = date;
+        this.view = view;
         this.url = url;
     }
 }
