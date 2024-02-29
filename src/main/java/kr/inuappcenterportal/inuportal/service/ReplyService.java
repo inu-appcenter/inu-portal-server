@@ -31,7 +31,7 @@ public class ReplyService {
     public Long saveReply(Long memberId, ReplyDto replyDto, Long postId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
-        Integer num = countNumber(member,post);
+        int num = countNumber(member,post);
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
         replyRepository.save(reply);
         return reply.getId();
@@ -45,13 +45,14 @@ public class ReplyService {
             throw new MyNotPermittedException(MyErrorCode.NOT_REPLY_ON_REREPLY);
         }
         Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
-        Integer num = countNumber(member,post);
+        int num = countNumber(member,post);
         Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
         return replyRepository.save(reReply).getId();
     }
 
-    public Integer countNumber(Member member, Post post){
-        Integer num = 0;
+    @Transactional
+    public int countNumber(Member member, Post post){
+        int num = 0;
         if(post.getMember()!=null) {
             if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
                 Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
@@ -127,7 +128,6 @@ public class ReplyService {
 
     @Transactional(readOnly = true)
     public List<ReplyResponseDto> getReplies(Long postId, Long memberId){
-
         Member member = memberRepository.findById(memberId).orElse(null);
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> replies = replyRepository.findAllByPostAndReplyIsNull(post);
