@@ -29,23 +29,6 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final RedisService redisService;
 
-    @Transactional
-    public Long save(Long id, PostDto postSaveDto, List<MultipartFile> imageDto) throws IOException {
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        int imageCount;
-        if(imageDto==null){
-            imageCount = 0;
-        }
-        else{
-            imageCount = imageDto.size();
-        }
-        Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(imageCount).build();
-        postRepository.save(post);
-        if(imageDto!=null) {
-            redisService.saveImage(post.getId(), imageDto);
-        }
-        return post.getId();
-    }
 
     @Transactional
     public Long saveOnlyPost(Long id, PostDto postSaveDto) {
@@ -73,20 +56,6 @@ public class PostService {
         }
         post.updateImageCount(imageCount);
         return post.getId();
-    }
-
-    @Transactional
-    public void update(Long memberId, Long postId, PostDto postDto, List<MultipartFile> images) throws IOException {
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
-        int imageCount = 0;
-        if(images!=null){
-            imageCount =images.size();
-        }
-        redisService.updateImage(postId,images,post.getImageCount());
-        if(!post.getMember().getId().equals(memberId)){
-            throw new MyNotPermittedException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
-        }
-        post.update(postDto.getTitle(),postDto.getContent(), postDto.getCategory(),postDto.getAnonymous(),imageCount);
     }
 
     @Transactional

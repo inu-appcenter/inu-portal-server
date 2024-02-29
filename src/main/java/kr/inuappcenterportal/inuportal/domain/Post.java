@@ -32,7 +32,7 @@ public class Post extends BaseTimeEntity {
     private Boolean anonymous;
 
     @Column
-    private Integer number = 0;
+    private Integer number;
 
     @Column
     private Long view;
@@ -66,14 +66,7 @@ public class Post extends BaseTimeEntity {
         this.anonymous = anonymous;
         this.member = member;
         this.view = 0L;
-        this.imageCount = imageCount;
-    }
-
-    public void update(String title, String content, String category, Boolean anonymous, Integer imageCount){
-        this.title = title;
-        this.content = content;
-        this.category = category;
-        this.anonymous = anonymous;
+        this.number = 0;
         this.imageCount = imageCount;
     }
 
