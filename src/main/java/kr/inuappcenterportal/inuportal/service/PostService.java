@@ -156,6 +156,7 @@ public class PostService {
         return PostResponseDto.builder()
                 .id(post.getId())
                 .replies(replyService.getReplies(postId,memberId))
+                .bestReplies(replyService.getBestReplies(postId,memberId))
                 .createDate(post.getCreateDate())
                 .modifiedDate(post.getModifiedDate())
                 .category(post.getCategory())

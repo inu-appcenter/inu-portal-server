@@ -16,10 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +31,26 @@ public class ReplyService {
     public Long saveReply(Long memberId, ReplyDto replyDto, Long postId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Integer num = countNumber(member,post);
+        Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
+        replyRepository.save(reply);
+        return reply.getId();
+    }
+
+    @Transactional
+    public Long saveReReply(Long memberId, ReplyDto replyDto, Long replyId){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+        if(reply.getReply()!=null){
+            throw new MyNotPermittedException(MyErrorCode.NOT_REPLY_ON_REREPLY);
+        }
+        Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Integer num = countNumber(member,post);
+        Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
+        return replyRepository.save(reReply).getId();
+    }
+
+    public Integer countNumber(Member member, Post post){
         Integer num = 0;
         if(post.getMember()!=null) {
             if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
@@ -54,10 +71,9 @@ public class ReplyService {
                 num = post.getNumber();
             }
         }
-        Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
-        replyRepository.save(reply);
-        return reply.getId();
+        return  num;
     }
+
 
     @Transactional
     public Long updateReply(Long memberId, ReplyDto replyDto, Long replyId){
@@ -86,37 +102,6 @@ public class ReplyService {
         }
     }
 
-    @Transactional
-    public Long saveReReply(Long memberId, ReplyDto replyDto, Long replyId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
-        if(reply.getReply()!=null){
-            throw new MyNotPermittedException(MyErrorCode.NOT_REPLY_ON_REREPLY);
-        }
-        Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
-        Integer num = 0;
-        if(post.getMember()!=null) {
-            if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
-                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
-                num = preReply.getNumber();
-            } else if (!member.getId().equals(post.getMember().getId())) {
-                post.upNumber();
-                num = post.getNumber();
-            }
-        }
-        else{
-            if( replyRepository.existsByMember(member)){
-                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
-                num = preReply.getNumber();
-            }
-            else{
-                post.upNumber();
-                num = post.getNumber();
-            }
-        }
-        Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
-        return replyRepository.save(reReply).getId();
-    }
 
     @Transactional
     public int likeReply(Long memberId, Long replyId){
@@ -148,34 +133,9 @@ public class ReplyService {
         List<Reply> replies = replyRepository.findAllByPostAndReplyIsNull(post);
         return replies.stream().map(reply -> {
             List<ReReplyResponseDto> reReplyResponseDtoList = replyRepository.findAllByReply(reply).stream().map(reReply ->{
-                        String writer;
-                        boolean isLiked = false;
-                        boolean hasAuthority = false;
-                        if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reReply)){
-                            isLiked = true;
-                        }
-                        if(member!=null&&reReply.getMember()!=null&&reReply.getMember().getId().equals(member.getId())){
-                            hasAuthority = true;
-                        }
-                        if(reReply.getIsDeleted()){
-                            writer="(삭제됨)";
-                        }
-                        else if(reReply.getMember()==null){
-                            writer="(알수없음)";
-                        }
-                        else{
-                            if (reReply.getAnonymous()) {
-                                if(reReply.getMember().equals(post.getMember())){
-                                    writer = "횃불이(글쓴이)";
-                                }
-                                else {
-                                    writer = "횃불이"+reReply.getNumber();
-                                }
-                            }
-                            else{
-                                writer = memberRepository.findById(reReply.getMember().getId()).get().getNickname();
-                            }
-                        }
+                        String writer = writerName(reReply,post);
+                        boolean isLiked = isLiked(member,reReply);
+                        boolean hasAuthority = hasAuthority(member,reReply);
                 return ReReplyResponseDto.builder()
                         .id(reReply.getId())
                         .writer(writer)
@@ -189,34 +149,9 @@ public class ReplyService {
                         .build();
             })
                     .collect(Collectors.toList());
-                    String writer;
-                    boolean isLiked = false;
-                    boolean hasAuthority = false;
-                    if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reply)){
-                        isLiked = true;
-                    }
-                    if(member!=null&&reply.getMember()!=null&&reply.getMember().getId().equals(member.getId())){
-                        hasAuthority = true;
-                    }
-                    if(reply.getIsDeleted()){
-                        writer="(삭제됨)";
-                    }
-                    else if(reply.getMember()==null){
-                        writer="(알수없음)";
-                    }
-                    else{
-                        if (reply.getAnonymous()) {
-                            if(reply.getMember().equals(post.getMember())){
-                                writer = "횃불이(글쓴이)";
-                            }
-                            else {
-                                writer = "횃불이"+reply.getNumber();
-                            }
-                        }
-                        else{
-                            writer = memberRepository.findById(reply.getMember().getId()).get().getNickname();
-                        }
-                    }
+                    String writer = writerName(reply,post);
+                    boolean isLiked = isLiked(member,reply);
+                    boolean hasAuthority = hasAuthority(member,reply);
             return ReplyResponseDto.builder()
                     .id(reply.getId())
                     .writer(writer)
@@ -232,6 +167,81 @@ public class ReplyService {
 
         })
                 .collect(Collectors.toList());
+    }
+    public boolean isLiked(Member member,Reply reply){
+        boolean isLiked = false;
+        if(member!=null&&likeReplyRepository.existsByMemberAndReply(member,reply)){
+            isLiked = true;
+        }
+        return isLiked;
+    }
+    public boolean hasAuthority(Member member, Reply reply){
+        boolean hasAuthority = false;
+        if(member!=null&&reply.getMember()!=null&&reply.getMember().getId().equals(member.getId())){
+            hasAuthority = true;
+        }
+        return hasAuthority;
+    }
+
+    public String writerName(Reply reply,Post post){
+        String writer;
+        if(reply.getIsDeleted()){
+            writer="(삭제됨)";
+        }
+        else if(reply.getMember()==null){
+            writer="(알수없음)";
+        }
+        else{
+            if (reply.getAnonymous()) {
+                if(reply.getMember().equals(post.getMember())){
+                    writer = "횃불이(글쓴이)";
+                }
+                else {
+                    writer = "횃불이"+reply.getNumber();
+                }
+            }
+            else{
+                writer = memberRepository.findById(reply.getMember().getId()).get().getNickname();
+            }
+        }
+        return writer;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReReplyResponseDto> getBestReplies(Long postId,Long memberId){
+        Member member = memberRepository.findById(memberId).orElse(null);
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        List<Reply> list = replyRepository.findAllByPost(post);
+        List<Reply> likeList= new ArrayList<>();
+        for(Reply reply:list){
+            if(reply.getLikeReplies().size()>0){
+                likeList.add(reply);
+            }
+        }
+        likeList.sort((o1, o2) -> o2.getLikeReplies().size() - o1.getLikeReplies().size());
+        List<ReReplyResponseDto> bestReplies = new ArrayList<>();
+        int count =0;
+        for(Reply reply:likeList){
+            if(count>2)
+                break;
+            count++;
+            String writer = writerName(reply,post);
+            boolean isLiked = isLiked(member,reply);
+            boolean hasAuthority = hasAuthority(member,reply);
+            bestReplies.add(ReReplyResponseDto.builder()
+                    .id(reply.getId())
+                    .writer(writer)
+                    .content(reply.getContent())
+                    .like(reply.getLikeReplies().size())
+                    .createDate(reply.getCreateDate())
+                    .modifiedDate(reply.getModifiedDate())
+                    .isLiked(isLiked)
+                    .isAnonymous(reply.getAnonymous())
+                    .hasAuthority(hasAuthority)
+                    .build());
+
+        }
+        return bestReplies;
     }
 
 }

@@ -53,7 +53,7 @@ public class ReplyController {
     @PutMapping("/{replyId}")
     public ResponseEntity<ResponseDto<Long>> updateReply(HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 수정 호출 id:{}",replyId);
-        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));;
+        Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         return new ResponseEntity<>(new ResponseDto<>(replyService.updateReply(memberId, replyDto,replyId),"댓글 수정 성공"), HttpStatus.OK);
 
     }

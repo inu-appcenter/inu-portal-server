@@ -40,17 +40,19 @@ public class PostResponseDto {
     private LocalDate modifiedDate;
     @Schema(description = "이미지 갯수")
     private Integer imageCount;
-
+    @Schema(description = "베스트 댓글")
+    private List<ReReplyResponseDto> bestReplies;
     @Schema(description = "댓글",example = "댓글들")
     private List<ReplyResponseDto> replies;
 
 
     @Builder
-    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, String writer, String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view,Integer imageCount,Boolean hasAuthority){
+    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view,Integer imageCount,Boolean hasAuthority){
         this.id = id;
         this.title = title;
         this.category = category;
         this.replies = replies;
+        this.bestReplies = bestReplies;
         this.writer = writer;
         this.createDate = createDate;
         this.modifiedDate = modifiedDate;
