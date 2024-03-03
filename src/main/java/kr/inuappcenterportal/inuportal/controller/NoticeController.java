@@ -27,23 +27,26 @@ import java.util.List;
 public class NoticeController {
     private final NoticeService noticeService;
 
-    @Operation(summary = "모든 공지사항 가져오기")
+    @Operation(summary = "모든 공지사항 가져오기",description = "url 파라미터에 정렬기준(sortBy) 을 view,date 둘 중 하나로 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 공지사항 가져오기 성공",content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))),
+            @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getAllNotice(){
+    public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getAllNotice(@RequestParam String sortBy){
         log.info("모든 공지사항 가져오기 호출");
-        return new ResponseEntity<>(new ResponseDto<>(noticeService.getNoticeList(),"모든 공지사항 가져오기 성공"), HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(noticeService.getNoticeList(sortBy),"모든 공지사항 가져오기 성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "카테고리별 공지사항 가져오기",description = "url 파라미터에 공지사항에 카테고리를 보내주세요")
+    @Operation(summary = "카테고리별 공지사항 가져오기",description = "url 파라미터에 공지사항에 카테고리,정렬기준(sortBy) 을 view,date 둘 중 하나로 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "카테고리별 공지사항 가져오기 성공",content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))),
+            @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/{category}")
-    public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getNoticeByCategory(@PathVariable String category){
+    public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getNoticeByCategory(@PathVariable String category, @RequestParam String sortBy){
         log.info("카테고리별 공지사항 가져오기 카테고리:{}",category);
-        return new ResponseEntity<>(new ResponseDto<>(noticeService.getNoticeByCategory(category),"카테고리별 공지사항 가져오기 성공"),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(noticeService.getNoticeByCategory(category,sortBy),"카테고리별 공지사항 가져오기 성공"),HttpStatus.OK);
     }
 }

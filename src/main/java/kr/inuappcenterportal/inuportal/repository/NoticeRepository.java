@@ -13,7 +13,10 @@ public interface NoticeRepository extends JpaRepository<Notice,Long> {
     @Modifying
     @Transactional
     @Query(value = "truncate table notice",nativeQuery = true)
-    public void truncateTable();
+    void truncateTable();
 
     List<Notice> findAllByCategory(String category);
+    List<Notice> findAllByCategoryOrderByViewDesc(String category);
+    List<Notice> findAllByOrderByDateDesc();
+    List<Notice> findAllByOrderByViewDesc();
 }

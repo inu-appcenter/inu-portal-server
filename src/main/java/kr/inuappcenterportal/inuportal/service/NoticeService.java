@@ -3,6 +3,8 @@ package kr.inuappcenterportal.inuportal.service;
 import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.domain.Notice;
 import kr.inuappcenterportal.inuportal.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import kr.inuappcenterportal.inuportal.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -127,16 +129,32 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
-    public List<NoticeListResponseDto> getNoticeList(){
-        return noticeRepository.findAll().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+    public List<NoticeListResponseDto> getNoticeList(String sortBy){
+        if(sortBy.equals("date")) {
+            return noticeRepository.findAllByOrderByDateDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+        }
+        else if(sortBy.equals("view")){
+            return noticeRepository.findAllByOrderByViewDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+        }
+        else{
+            throw new MyNotFoundException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
     @Transactional(readOnly = true)
-    public List<NoticeListResponseDto> getNoticeByCategory(String category){
-        return noticeRepository.findAllByCategory(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+    public List<NoticeListResponseDto> getNoticeByCategory(String category , String sortBy){
+        if(sortBy.equals("date")) {
+            return noticeRepository.findAllByCategory(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+        }
+        else if(sortBy.equals("view")){
+            return noticeRepository.findAllByCategoryOrderByViewDesc(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+        }
+        else{
+            throw new MyNotFoundException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
-    public String encoding(String baseUrl) throws UnsupportedEncodingException {
+    public String encoding(String baseUrl)  {
         return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
     }
 
