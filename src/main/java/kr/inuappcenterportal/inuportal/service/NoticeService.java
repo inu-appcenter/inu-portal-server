@@ -103,10 +103,17 @@ public class NoticeService {
                 if(isAMonthAgo(ele.select("td.td-date").text())){
                     outLoop = true;
                     break;
-                }
+                }String href = "www.inu.ac.kr"+ele.select("td.td-subject").select("a").attr("href");
+                String pattern = "\\d+";//숫자로 시작하는 패턴
+                Pattern p = Pattern.compile(pattern);
+                Matcher m = p.matcher(href);
+                m.find();
+                m.find();
+                String number = m.group();
+                String baseUrl = "fnct1|@@|%2Fbbs%2Finu%2F2006%2F"+number+"%2FartclView.do%3Fpage%3D3%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%26password%3D%267";
                 noticeRepository.save(Notice.builder().category(categoryName)
                         .title(Objects.requireNonNull(Objects.requireNonNull(ele.select("td.td-subject").first()).selectFirst("strong").text()))
-                        .url("www.inu.ac.kr/inu/1534/subview.do?enc="+encoding(postUrl))
+                        .url("www.inu.ac.kr/inu/"+categoryName+"/subview.do?enc="+encoding(baseUrl))
                         .writer(ele.select("td.td-write").text())
                         .date(ele.select("td.td-date").text())
                         .view(Integer.parseInt(ele.select("td.td-access").text()))
