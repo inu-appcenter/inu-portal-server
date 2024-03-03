@@ -36,4 +36,14 @@ public class NoticeController {
         log.info("모든 공지사항 가져오기 호출");
         return new ResponseEntity<>(new ResponseDto<>(noticeService.getNoticeList(),"모든 공지사항 가져오기 성공"), HttpStatus.OK);
     }
+
+    @Operation(summary = "카테고리별 공지사항 가져오기",description = "url 파라미터에 공지사항에 카테고리를 보내주세요")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "카테고리별 공지사항 가져오기 성공",content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))),
+    })
+    @GetMapping("/{category}")
+    public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getNoticeByCategory(@PathVariable String category){
+        log.info("카테고리별 공지사항 가져오기 카테고리:{}",category);
+        return new ResponseEntity<>(new ResponseDto<>(noticeService.getNoticeByCategory(category),"카테고리별 공지사항 가져오기 성공"),HttpStatus.OK);
+    }
 }
