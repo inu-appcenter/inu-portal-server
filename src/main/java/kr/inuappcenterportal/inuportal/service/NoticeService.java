@@ -113,7 +113,7 @@ public class NoticeService {
                 String baseUrl = "fnct1|@@|%2Fbbs%2Finu%2F2006%2F"+number+"%2FartclView.do%3Fpage%3D3%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%26password%3D%267";
                 noticeRepository.save(Notice.builder().category(categoryName)
                         .title(Objects.requireNonNull(Objects.requireNonNull(ele.select("td.td-subject").first()).selectFirst("strong").text()))
-                        .url("www.inu.ac.kr/inu/"+categoryName+"/subview.do?enc="+encoding(baseUrl))
+                        .url("www.inu.ac.kr/inu/"+category+"/subview.do?enc="+encoding(baseUrl))
                         .writer(ele.select("td.td-write").text())
                         .date(ele.select("td.td-date").text())
                         .view(Integer.parseInt(ele.select("td.td-access").text()))
