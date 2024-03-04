@@ -3,8 +3,8 @@ package kr.inuappcenterportal.inuportal.service;
 import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.domain.Notice;
 import kr.inuappcenterportal.inuportal.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyBadRequestException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import kr.inuappcenterportal.inuportal.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -129,15 +127,15 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
-    public List<NoticeListResponseDto> getNoticeList(String sortBy){
-        if(sortBy.equals("date")) {
+    public List<NoticeListResponseDto> getNoticeList(String sort){
+        if(sort.equals("date")) {
             return noticeRepository.findAllByOrderByDateDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
         }
-        else if(sortBy.equals("view")){
+        else if(sort.equals("view")){
             return noticeRepository.findAllByOrderByViewDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
         }
         else{
-            throw new MyNotFoundException(MyErrorCode.WRONG_SORT_TYPE);
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
         }
     }
 
@@ -150,7 +148,7 @@ public class NoticeService {
             return noticeRepository.findAllByCategoryOrderByViewDesc(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
         }
         else{
-            throw new MyNotFoundException(MyErrorCode.WRONG_SORT_TYPE);
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
         }
     }
 

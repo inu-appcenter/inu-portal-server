@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.PostDto;
 import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.PostResponseDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyBadRequestException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotPermittedException;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -253,6 +255,43 @@ public class PostService {
                 .imageCount(post.getImageCount())
                 .scrap(post.getScraps().size())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> searchPost(String query, String option,String sort){
+        if(option.equals("title")) {
+            if (sort == null) {
+                return postRepository.findAllByTitleContainsOrderByCreateDateDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            } else if (sort.equals("view")) {
+                return postRepository.findAllByTitleContainsOrderByViewDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            } else if (sort.equals("like")) {
+                return postRepository.findAllByTitleContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
+            } else if (sort.equals("scrap")) {
+                return postRepository.findAllByTitleContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
+            } else {
+                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            }
+        }
+        else if(option.equals("writer")){
+            return new ArrayList<>();
+        }
+        else if(option.equals("content")){
+            if (sort == null) {
+                return postRepository.findAllByContentContainsOrderByCreateDateDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            } else if (sort.equals("view")) {
+                return postRepository.findAllByContentContainsOrderByViewDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            } else if (sort.equals("like")) {
+                return postRepository.findAllByContentContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
+            } else if (sort.equals("scrap")) {
+                return postRepository.findAllByContentContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
+            } else {
+                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            }
+        }
+        else{
+            throw new MyBadRequestException(MyErrorCode.WRONG_SEARCH_TYPE);
+        }
+
     }
 
 }

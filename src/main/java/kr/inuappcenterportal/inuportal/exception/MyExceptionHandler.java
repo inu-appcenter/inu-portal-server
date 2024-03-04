@@ -25,6 +25,12 @@ public class MyExceptionHandler {
         return new ResponseEntity<>(new ResponseDto<>(-1,ex.getMessage()),HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(MyBadRequestException.class)
+    public ResponseEntity<ResponseDto<Integer>> MyBadRequestException(MyBadRequestException ex){
+        log.error("잘못된 요청 예외 발생 :{}",ex.getErrorCode().getMessage());
+        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
+    }
+
     @ExceptionHandler(MyNotFoundException.class)
     public ResponseEntity<ResponseDto<Integer>> MyNotFoundException(MyNotFoundException ex){
         log.error("존재하지 않는 값 예외 발생 msg:{}",ex.getErrorCode().getMessage());
