@@ -250,6 +250,7 @@ public class PostService {
                 .modifiedDate(post.getModifiedDate())
                 .category(post.getCategory())
                 .writer(writer)
+                .content((post.getContent().length()>50)?post.getContent().substring(0,50)+"...":post.getContent())
                 .title(post.getTitle())
                 .like(post.getPostLikes().size())
                 .imageCount(post.getImageCount())

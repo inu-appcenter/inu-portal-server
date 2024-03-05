@@ -19,6 +19,8 @@ public class PostListResponseDto {
     private String category;
     @Schema(description = "작성자",example = "작성자")
     private String writer;
+    @Schema(description = "내용",example = "내용")
+    private String content;
     @Schema(description = "좋아요")
     private int like;
     @Schema(description = "스크랩")
@@ -31,11 +33,12 @@ public class PostListResponseDto {
     private LocalDate modifiedDate;
 
     @Builder
-    public PostListResponseDto(Long id, String title, String category, String writer, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,int imageCount){
+    public PostListResponseDto(Long id, String title, String category, String writer,String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,int imageCount){
         this.id = id;
         this.title = title;
         this.category = category;
         this.writer = writer;
+        this.content = content;
         this.createDate = createDate;
         this.modifiedDate = modifiedDate;
         this.like = like;
