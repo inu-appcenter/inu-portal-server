@@ -25,6 +25,7 @@ public class MyExceptionHandler {
         return new ResponseEntity<>(new ResponseDto<>(-1,ex.getMessage()),HttpStatus.BAD_REQUEST);
     }
 
+
     @ExceptionHandler(MyBadRequestException.class)
     public ResponseEntity<ResponseDto<Integer>> MyBadRequestException(MyBadRequestException ex){
         log.error("잘못된 요청 예외 발생 :{}",ex.getErrorCode().getMessage());

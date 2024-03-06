@@ -64,8 +64,7 @@ public class MemberController {
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원 닉네임 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "동일한 닉네임이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/nickname")
     public ResponseEntity<ResponseDto<Long>> updateNickname(@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, HttpServletRequest httpServletRequest){
@@ -91,8 +90,7 @@ public class MemberController {
     @Operation(summary = "로그인",description = "바디에 {email,password}을 json 형식으로 보내주세요. {data: 토큰} 형식으로 로그인 성공 시 토큰이 발급됩니다. 토큰 유효시간은 24시간입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "로그인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "401",description = "존재하지 않는 아이디(이메일)입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "401",description = "비밀번호가 일치하지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "401",description = "존재하지 않는 아이디(이메일)입니다. / 비밀번호가 일치하지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
     })
     @PostMapping("/login")
     public ResponseEntity<ResponseDto<String>> login(@Valid @RequestBody MemberLoginDto memberLoginDto){
