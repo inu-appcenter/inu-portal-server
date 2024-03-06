@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.service.PostService;
@@ -14,11 +16,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @Slf4j
+@Validated
 @Tag(name = "Search",description = "게시글 검색 API")
 @RestController
 @RequiredArgsConstructor
@@ -34,7 +38,7 @@ public class SearchController {
             @ApiResponse(responseCode = "400",description = "검색옵션이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/{query}")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> search(@PathVariable String query,@RequestParam(required = false) String sort ){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> search(@PathVariable @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort ){
         return new ResponseEntity<>(new ResponseDto<>(postService.searchPost(query,sort),"게시글 검색 성공"), HttpStatus.OK);
     }
 }
