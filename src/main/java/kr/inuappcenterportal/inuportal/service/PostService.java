@@ -259,40 +259,18 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> searchPost(String query, String option,String sort){
-        if(option.equals("title")) {
+    public List<PostListResponseDto> searchPost(String query,String sort){
             if (sort == null) {
-                return postRepository.findAllByTitleContainsOrderByCreateDateDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+                return postRepository.findAllByTitleContainsOrContentContainsOrderByCreateDateDesc(query,query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
             } else if (sort.equals("view")) {
-                return postRepository.findAllByTitleContainsOrderByViewDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+                return postRepository.findAllByTitleContainsOrContentContainsOrderByViewDesc(query,query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
             } else if (sort.equals("like")) {
-                return postRepository.findAllByTitleContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
+                return postRepository.findAllByTitleContainsOrContentContains(query,query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
             } else if (sort.equals("scrap")) {
-                return postRepository.findAllByTitleContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
+                return postRepository.findAllByTitleContainsOrContentContains(query,query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
             } else {
                 throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
             }
         }
-        else if(option.equals("writer")){
-            return new ArrayList<>();
-        }
-        else if(option.equals("content")){
-            if (sort == null) {
-                return postRepository.findAllByContentContainsOrderByCreateDateDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
-            } else if (sort.equals("view")) {
-                return postRepository.findAllByContentContainsOrderByViewDesc(query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
-            } else if (sort.equals("like")) {
-                return postRepository.findAllByContentContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
-            } else if (sort.equals("scrap")) {
-                return postRepository.findAllByContentContains(query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
-            } else {
-                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
-            }
-        }
-        else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SEARCH_TYPE);
-        }
-
-    }
 
 }

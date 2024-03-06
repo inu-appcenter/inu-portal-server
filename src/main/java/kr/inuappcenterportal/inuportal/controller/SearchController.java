@@ -27,14 +27,14 @@ import java.util.List;
 public class SearchController {
     private final PostService postService;
 
-    @Operation(summary = "게시글 검색",description = "url 파라미터에 검색내용 query , 검색옵션 option(title,content,writer), 정렬기준을 sort(보내지 않을 시 최신순,like,view,scrap) 보내주세요.")
+    @Operation(summary = "게시글 검색",description = "url 파라미터에 검색내용 query , 정렬기준을 sort(보내지 않을 시 최신순,like,view,scrap) 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 검색 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "검색옵션이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/{query}")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> search(@PathVariable String query, @RequestParam String option, @RequestParam(required = false) String sort ){
-        return new ResponseEntity<>(new ResponseDto<>(postService.searchPost(query,option,sort),"게시글 검색 성공"), HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> search(@PathVariable String query,@RequestParam(required = false) String sort ){
+        return new ResponseEntity<>(new ResponseDto<>(postService.searchPost(query,sort),"게시글 검색 성공"), HttpStatus.OK);
     }
 }
