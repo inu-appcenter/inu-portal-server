@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.dto.FolderDto;
 import kr.inuappcenterportal.inuportal.dto.FolderPostDto;
 import kr.inuappcenterportal.inuportal.dto.FolderResponseDto;
 import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyBadRequestException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyDuplicateException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
@@ -12,6 +13,8 @@ import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -82,9 +85,20 @@ public class FolderService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostInFolder(Long folderId){
-        Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
-        return folderPostRepository.findAllByFolder(folder).stream().map(file->postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
+    public List<PostListResponseDto> getPostInFolder(Long folderId, String sort) {
+        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
+        if (sort == null) {
+            return folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
+        }
+        else if (sort.equals("date")){
+            return folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).collect(Collectors.toList());
+        }
+        else if (sort.equals("like")){
+            return folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
+        }
+        else{
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
 
