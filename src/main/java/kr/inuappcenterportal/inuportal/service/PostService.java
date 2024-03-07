@@ -284,7 +284,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostListResponseDto> searchPost(String query,String sort){
             if (sort == null) {
-                return postRepository.findAllByTitleContainsOrContentContainsOrderByCreateDateDesc(query,query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+                return postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
             } else if (sort.equals("view")) {
                 return postRepository.findAllByTitleContainsOrContentContainsOrderByViewDesc(query,query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
             } else if (sort.equals("like")) {
