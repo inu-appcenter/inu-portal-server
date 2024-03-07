@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.dto.ReReplyResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyResponseDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyBadRequestException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyNotPermittedException;
@@ -121,9 +122,17 @@ public class ReplyService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReplyListResponseDto> getReplyByMember(Long memberId){
+    public List<ReplyListResponseDto> getReplyByMember(Long memberId,String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        return replyRepository.findAllByMember(member).stream().map(ReplyListResponseDto::new).collect(Collectors.toList());
+        if(sort==null) {
+            return replyRepository.findAllByMember(member).stream().map(ReplyListResponseDto::new).sorted(Comparator.comparing(ReplyListResponseDto::getId).reversed()).collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            return replyRepository.findAllByMember(member).stream().map(ReplyListResponseDto::new).sorted(Comparator.comparing(ReplyListResponseDto::getLike).reversed()).collect(Collectors.toList());
+        }
+        else{
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
     @Transactional(readOnly = true)
