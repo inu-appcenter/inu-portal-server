@@ -242,15 +242,38 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getLikeByMember(Long memberId){
+    public List<PostListResponseDto> getLikeByMember(Long memberId, String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         List<PostLike> likes = likePostRepository.findAllByMember(member);
+        if(sort==null){
         return likes.stream()
-                .map(scrap -> {
-                    Post post = scrap.getPost();
+                .map(like -> {
+                    Post post = like.getPost();
                     return getPostListResponseDto(post);
                 })
                 .collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            return likes.stream()
+                    .map(like -> {
+                        Post post = like.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .sorted(Comparator.comparing(PostListResponseDto::getLike).reversed())
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("date")){
+            return likes.stream()
+                    .map(like -> {
+                        Post post = like.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
+                    .collect(Collectors.toList());
+        }
+        else{
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
 
