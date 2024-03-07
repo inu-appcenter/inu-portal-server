@@ -224,7 +224,7 @@ public class PostService {
                         Post post = scrap.getPost();
                         return getPostListResponseDto(post);
                     })
-                    .sorted(Comparator.comparing(PostListResponseDto::getCreateDate).reversed())
+                    .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
                     .collect(Collectors.toList());
         }
         else if (sort.equals("like")){
