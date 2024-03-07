@@ -207,15 +207,38 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getScrapsByMember(Long memberId){
+    public List<PostListResponseDto> getScrapsByMember(Long memberId, String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         List<Scrap> scraps = scrapRepository.findAllByMember(member);
+        if(sort ==null){
         return scraps.stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
                     return getPostListResponseDto(post);
                 })
                 .collect(Collectors.toList());
+        }
+        else if (sort.equals("date")){
+            return scraps.stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .sorted(Comparator.comparing(PostListResponseDto::getCreateDate).reversed())
+                    .collect(Collectors.toList());
+        }
+        else if (sort.equals("like")){
+            return scraps.stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .sorted(Comparator.comparing(PostListResponseDto::getLike).reversed())
+                    .collect(Collectors.toList());
+        }
+        else{
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
     @Transactional(readOnly = true)

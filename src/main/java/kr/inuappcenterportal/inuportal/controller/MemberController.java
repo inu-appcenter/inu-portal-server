@@ -140,10 +140,10 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/scraps")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllScrap(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllScrap(HttpServletRequest httpServletRequest, @RequestParam(required = false) String sort){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(postService.getScrapsByMember(id),"회원이 스크랩한 모든 게시글 가져오기 성공"),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(postService.getScrapsByMember(id,sort),"회원이 스크랩한 모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원이 좋아요한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
