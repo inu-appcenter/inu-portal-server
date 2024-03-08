@@ -36,8 +36,8 @@ public class SearchController {
             @ApiResponse(responseCode = "200",description = "게시글 검색 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다. / 검색옵션이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
     })
-    @GetMapping("/{query}")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> search(@PathVariable @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort ){
+    @GetMapping("")
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> search(@RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort ){
         return new ResponseEntity<>(new ResponseDto<>(postService.searchPost(query,sort),"게시글 검색 성공"), HttpStatus.OK);
     }
 }
