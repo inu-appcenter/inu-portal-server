@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.dto.ReplyDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
@@ -36,7 +37,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/{postId}")
-    public ResponseEntity<ResponseDto<Long>> saveReply(HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
+    public ResponseEntity<ResponseDto<Long>> saveReply(HttpServletRequest httpServletRequest, @Valid @RequestBody ReplyDto replyDto, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         log.info("댓글 등록 호출");
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         return new ResponseEntity<>(new ResponseDto<>(replyService.saveReply(memberId, replyDto,postId),"댓글 등록 성공"), HttpStatus.CREATED);
@@ -49,7 +50,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "403",description = "이 댓글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/{replyId}")
-    public ResponseEntity<ResponseDto<Long>> updateReply(HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
+    public ResponseEntity<ResponseDto<Long>> updateReply(HttpServletRequest httpServletRequest, @Valid@RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 수정 호출 id:{}",replyId);
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         return new ResponseEntity<>(new ResponseDto<>(replyService.updateReply(memberId, replyDto,replyId),"댓글 수정 성공"), HttpStatus.OK);
@@ -77,7 +78,7 @@ public class ReplyController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다. / 존재하지 않는 댓글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/{replyId}/re-replies")
-    public ResponseEntity<ResponseDto<Long>> saveReReply(HttpServletRequest httpServletRequest, @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
+    public ResponseEntity<ResponseDto<Long>> saveReReply(HttpServletRequest httpServletRequest, @Valid @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 저장 호출");
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         return new ResponseEntity<>(new ResponseDto<>(replyService.saveReReply(memberId, replyDto,replyId),"대댓글 저장 성공"), HttpStatus.CREATED);

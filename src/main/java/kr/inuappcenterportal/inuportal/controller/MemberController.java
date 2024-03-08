@@ -53,7 +53,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "401",description = "비밀번호가 틀립니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/password")
-    public ResponseEntity<ResponseDto<Long>> updatePassword(@RequestBody MemberUpdatePasswordDto memberUpdatePasswordDto, HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<Long>> updatePassword(@Valid@RequestBody MemberUpdatePasswordDto memberUpdatePasswordDto, HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 비밀번호 변경 호출 id:{}",id);
         Long memberId = memberService.updateMemberPassword(id, memberUpdatePasswordDto);
@@ -67,7 +67,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다. / 닉네임, 횃불이 아이디 모두 공백입니다. / 닉네임이 빈칸 혹은 공백입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("")
-    public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@Valid@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 닉네임 변경 호출 id:{}",id);
         Long memberId = memberService.updateMemberNicknameFireId(id, memberUpdateNicknameDto);
