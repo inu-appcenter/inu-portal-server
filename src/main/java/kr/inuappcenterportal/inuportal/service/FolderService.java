@@ -49,11 +49,11 @@ public class FolderService {
     }
 
     @Transactional
-    public Long insertPost(FolderPostDto folderPostDto){
+    public Long insertInFolder(Long folderId, FolderPostDto folderPostDto){
         if(folderPostDto.getPostId().size()==0){
             throw new MyNotFoundException(MyErrorCode.POST_SCRAP_LIST_NOT_FOUND);
         }
-        Folder folder = folderRepository.findById(folderPostDto.getFolderId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
+        Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
         Member member =memberRepository.findById(folder.getMember().getId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         for(Long id:folderPostDto.getPostId()){
             Post post = postRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
@@ -63,15 +63,15 @@ public class FolderService {
             }
             folderPostRepository.save(FolderPost.builder().post(post).folder(folder).scrap(scrap).build());
         }
-        return folderPostDto.getFolderId();
+        return folder.getId();
     }
 
     @Transactional
-    public void deleteInFolder(FolderPostDto folderPostDto){
+    public void deleteInFolder(Long folderId, FolderPostDto folderPostDto){
         if(folderPostDto.getPostId().size()==0){
             throw new MyNotFoundException(MyErrorCode.POST_SCRAP_LIST_NOT_FOUND);
         }
-        Folder folder = folderRepository.findById(folderPostDto.getFolderId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
+        Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
         for(Long id:folderPostDto.getPostId()){
             Post post = postRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
             folderPostRepository.delete(folderPostRepository.findByFolderAndPost(folder,post).orElseThrow(()->new MyNotFoundException(MyErrorCode.FOLDER_OR_POST_NOT_FOUND)));

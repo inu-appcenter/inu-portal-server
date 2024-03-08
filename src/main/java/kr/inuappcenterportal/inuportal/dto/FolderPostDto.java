@@ -13,17 +13,12 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class FolderPostDto {
-    @Schema(description = "폴더의 데이터베이스 id값",example = "1")
-    @NotNull
-    private Long folderId;
-
     @Schema(description = "게시글의 데이터베이스 id값",example = "[1]")
     @NotNull
     private List<Long> postId;
 
     @Builder
-    public FolderPostDto(Long folderId, List<Long> postId){
-        this.folderId = folderId;
+    public FolderPostDto(List<Long> postId){
         this.postId = postId;
     }
 }
