@@ -125,10 +125,10 @@ public class ReplyService {
     public List<ReplyListResponseDto> getReplyByMember(Long memberId,String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
         if(sort==null) {
-            return replyRepository.findAllByMember(member).stream().map(ReplyListResponseDto::new).sorted(Comparator.comparing(ReplyListResponseDto::getId).reversed()).collect(Collectors.toList());
+            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::new).collect(Collectors.toList());
         }
         else if(sort.equals("like")){
-            return replyRepository.findAllByMember(member).stream().map(ReplyListResponseDto::new).sorted(Comparator.comparing(ReplyListResponseDto::getLike).reversed()).collect(Collectors.toList());
+            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::new).sorted(Comparator.comparing(ReplyListResponseDto::getLike).reversed()).collect(Collectors.toList());
         }
         else{
             throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);

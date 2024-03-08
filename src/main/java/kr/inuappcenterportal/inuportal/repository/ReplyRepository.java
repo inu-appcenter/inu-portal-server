@@ -15,6 +15,7 @@ public interface ReplyRepository extends JpaRepository<Reply,Long> {
     List<Reply> findAllByReply(Reply reply);
     List<Reply> findAllByPost(Post post);
     List<Reply> findAllByMember(Member member);
+    List<Reply> findAllByMemberOrderByIdDesc(Member member);
     boolean existsByReply(Reply reply);
     boolean existsByMember(Member member);
     Optional<Reply> findByMember(Member member);

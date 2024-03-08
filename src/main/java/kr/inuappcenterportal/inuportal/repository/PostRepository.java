@@ -8,7 +8,9 @@ import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post,Long> {
     List<Post> findAllByCategory (String category);
+    List<Post> findAllByCategoryOrderByIdDesc (String category);
     List<Post> findAllByMember(Member member);
+    List<Post> findAllByOrderByIdDesc();
     List<Post> findAllByMemberOrderByIdDesc(Member member);
     List<Post> findAllByTitleContainsOrContentContainsOrderByIdDesc(String title,String content);
     List<Post> findAllByTitleContainsOrContentContainsOrderByViewDesc(String title,String content);

@@ -147,22 +147,43 @@ public class PostService {
 
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getAllPost(){
-        return postRepository.findAll().stream()
-                .map(this::getPostListResponseDto)
-                .collect(Collectors.toList());
+    public List<PostListResponseDto> getAllPost(String sort){
+        if(sort==null) {
+            return postRepository.findAllByOrderByIdDesc().stream()
+                    .map(this::getPostListResponseDto)
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            return postRepository.findAllByOrderByIdDesc().stream()
+                    .map(this::getPostListResponseDto)
+                    .sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed())
+                    .collect(Collectors.toList());
+        }
+        else {
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostByCategory(String category){
+    public List<PostListResponseDto> getPostByCategory(String category, String sort){
         if(!categoryRepository.existsByCategory(category)){
             throw new MyNotFoundException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
-        return postRepository.findAllByCategory(category).stream()
-                .map(this::getPostListResponseDto)
-                .sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed())
-                .collect(Collectors.toList());
+        if(sort==null){
+            return postRepository.findAllByCategoryOrderByIdDesc(category).stream()
+                    .map(this::getPostListResponseDto)
+                    .collect(Collectors.toList());
+        }
+        else if (sort.equals("like")) {
+            return postRepository.findAllByCategoryOrderByIdDesc(category).stream()
+                    .map(this::getPostListResponseDto)
+                    .sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed())
+                    .collect(Collectors.toList());
+        }
+        else {
+            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
     @Transactional

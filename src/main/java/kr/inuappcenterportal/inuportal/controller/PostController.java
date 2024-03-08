@@ -150,23 +150,25 @@ public class PostController {
         return new ResponseEntity<>(new ResponseDto<>(postService.scrapPost(memberId,postId),"스크랩 여부 변경 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "모든 게시글 가져오기",description = "모든 게시글은 최신순으로 보내집니다.")
+    @Operation(summary = "모든 게시글 가져오기",description = "모든 게시글은 최신순으로 보내집니다. 정렬기준 sort(공백일 시 글의 최신순, like)를 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))}
-            )
+            @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
     @GetMapping("/all")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(){
-        return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(),"모든 게시글 가져오기 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String sort){
+        return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(sort),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "카테고리별 모든 게시글 가져오기",description = "url 파라미터에 카테고리를 보내주세요. 게시글은 좋아요 순으로 정렬되어 보내집니다.")
+    @Operation(summary = "카테고리별 모든 게시글 가져오기",description = "url 파라미터에 카테고리를 보내주세요. 정렬기준 sort(공백일 시 글의 최신순, like)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "카테고리별 모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 카테고리입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))}
-    )
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 카테고리입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
     @GetMapping("/all/{category}")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@PathVariable String category){
-        return new ResponseEntity<>(new ResponseDto<>(postService.getPostByCategory(category),"모든 게시글 가져오기 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@PathVariable String category, @RequestParam(required = false) String sort){
+        return new ResponseEntity<>(new ResponseDto<>(postService.getPostByCategory(category,sort),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "게시글의 이미지 가져오기",description = "url 파라미터에 postId, imageId를 보내주세요. imageId는 이미지의 등록 순서이며 이미지의 갯수는 post 에 imageCount 입니다.")
