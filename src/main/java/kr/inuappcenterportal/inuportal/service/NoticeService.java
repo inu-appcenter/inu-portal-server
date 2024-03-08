@@ -106,30 +106,29 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
-    public List<NoticeListResponseDto> getNoticeList(String sort){
-        if(sort==null) {
-            return noticeRepository.findAllByOrderByDateDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
-        }
-        else if(sort.equals("view")){
-            return noticeRepository.findAllByOrderByViewDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+    public List<NoticeListResponseDto> getNoticeList(String category, String sort){
+        if(category==null) {
+            if (sort == null) {
+                return noticeRepository.findAllByOrderByDateDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+            } else if (sort.equals("view")) {
+                return noticeRepository.findAllByOrderByViewDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+            } else {
+                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            }
         }
         else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            if(sort==null) {
+                return noticeRepository.findAllByCategory(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+            }
+            else if(sort.equals("view")){
+                return noticeRepository.findAllByCategoryOrderByViewDesc(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+            }
+            else{
+                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            }
         }
     }
 
-    @Transactional(readOnly = true)
-    public List<NoticeListResponseDto> getNoticeByCategory(String category , String sort){
-        if(sort==null) {
-            return noticeRepository.findAllByCategory(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
-        }
-        else if(sort.equals("view")){
-            return noticeRepository.findAllByCategoryOrderByViewDesc(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
-        }
-        else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
-        }
-    }
 
     public String encoding(String baseUrl)  {
         return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
