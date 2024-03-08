@@ -38,7 +38,9 @@ public enum MyErrorCode {
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED,"만료된 토큰입니다."),
     UNKNOWN_TOKEN_ERROR(HttpStatus.BAD_REQUEST,"토큰의 값이 존재하지 않습니다."),
     WRONG_SORT_TYPE(HttpStatus.BAD_REQUEST,"정렬의 기준값이 올바르지 않습니다."),
-    WRONG_SEARCH_TYPE(HttpStatus.BAD_REQUEST,"검색옵션이 올바르지 않습니다.");
+    WRONG_SEARCH_TYPE(HttpStatus.BAD_REQUEST,"검색옵션이 올바르지 않습니다."),
+    EMPTY_REQUEST(HttpStatus.BAD_REQUEST,"닉네임, 횃불이 아이디 모두 공백입니다."),
+    NOT_BLANK_NICKNAME(HttpStatus.BAD_REQUEST,"닉네임이 빈칸 혹은 공백입니다.");
 
 
     private final HttpStatus status;

@@ -31,6 +31,9 @@ public class Member implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    @Column
+    private Long fireId;
+
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
 
@@ -52,14 +55,22 @@ public class Member implements UserDetails {
         this.password = password;
         this.nickname = nickname;
         this.roles = roles;
+        this.fireId = 1L;
     }
 
     public void updatePassword(String password){
         this.password = password;
     }
 
-    public void updateNickname(String nickname){
+    public void updateNicknameAndFire(String nickname,Long fireId){
         this.nickname = nickname;
+        this.fireId = fireId;
+    }
+    public void updateNickName(String nickname){
+        this.nickname = nickname;
+    }
+    public void updateFire(Long fireId){
+        this.fireId = fireId;
     }
 
     @ElementCollection(fetch = FetchType.EAGER)

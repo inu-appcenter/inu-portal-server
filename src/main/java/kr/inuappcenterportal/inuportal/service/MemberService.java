@@ -53,15 +53,30 @@ public class MemberService {
     }
 
     @Transactional
-    public Long updateMemberNickname(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
+    public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        if(memberUpdateNicknameDto.getNickname().equals(member.getNickname())){
-            throw new MyDuplicateException(MyErrorCode.SAME_NICKNAME_UPDATE);
+        if(memberUpdateNicknameDto.getNickname()!=null) {
+            if (memberUpdateNicknameDto.getNickname().equals(member.getNickname())) {
+                throw new MyDuplicateException(MyErrorCode.SAME_NICKNAME_UPDATE);
+            }
+            if (memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())) {
+                throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_NICKNAME);
+            }
+            if(memberUpdateNicknameDto.getNickname().trim().isEmpty()){
+                throw new MyBadRequestException(MyErrorCode.NOT_BLANK_NICKNAME);
+            }
+            if(memberUpdateNicknameDto.getFireId()!=null){
+                member.updateNicknameAndFire(memberUpdateNicknameDto.getNickname(),memberUpdateNicknameDto.getFireId());
+            }
+            else{
+                member.updateNickName(memberUpdateNicknameDto.getNickname());
+            }
+        }else if(memberUpdateNicknameDto.getFireId()!=null){
+            member.updateFire(memberUpdateNicknameDto.getFireId());
         }
-        if(memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())){
-            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_NICKNAME);
+        else{
+            throw new MyBadRequestException(MyErrorCode.EMPTY_REQUEST);
         }
-        member.updateNickname(memberUpdateNicknameDto.getNickname());
         return member.getId();
     }
 

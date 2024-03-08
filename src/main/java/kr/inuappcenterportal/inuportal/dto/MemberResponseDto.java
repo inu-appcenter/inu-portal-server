@@ -16,11 +16,14 @@ public class MemberResponseDto {
     private String email;
     @Schema(description = "닉네임",example = "인천대팁쟁이")
     private String nickname;
+    @Schema(description = "횃불이 이미지 번호")
+    private Long fireId;
 
     @Builder
     public MemberResponseDto(Member member){
         this.id = member.getId();
         this.email = member.getEmail();
         this.nickname = member.getNickname();
+        this.fireId = member.getFireId();
     }
 }

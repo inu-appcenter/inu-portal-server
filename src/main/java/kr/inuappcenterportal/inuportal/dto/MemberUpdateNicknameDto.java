@@ -13,8 +13,12 @@ public class MemberUpdateNicknameDto {
     @Schema(description = "닉네임",example = "닉네임")
     private String nickname;
 
+    @Schema(description = "횃불이 번호")
+    private Long fireId;
+
     @Builder
-    public MemberUpdateNicknameDto(String nickname){
+    public MemberUpdateNicknameDto(String nickname, Long fireId){
         this.nickname = nickname;
+        this.fireId = fireId;
     }
 }
