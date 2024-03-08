@@ -66,7 +66,7 @@ public class MemberController {
             @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다. / 닉네임, 횃불이 아이디 모두 공백입니다. / 닉네임이 빈칸 혹은 공백입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PutMapping("/nickname")
+    @PutMapping("")
     public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, HttpServletRequest httpServletRequest){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 닉네임 변경 호출 id:{}",id);
