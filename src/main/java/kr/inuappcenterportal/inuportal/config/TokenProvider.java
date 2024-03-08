@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -62,13 +63,13 @@ public class TokenProvider {
             log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
             return info;
         }catch (SignatureException ex){
-            throw new MyJwtException(MyErrorCode.WRONG_TYPE_TOKEN);
+            throw new MyException(MyErrorCode.WRONG_TYPE_TOKEN);
         }catch (MalformedJwtException ex){
-            throw new MyJwtException(MyErrorCode.UNSUPPORTED_TOKEN);
+            throw new MyException(MyErrorCode.UNSUPPORTED_TOKEN);
         }catch (ExpiredJwtException ex){
-            throw new MyJwtException(MyErrorCode.EXPIRED_TOKEN);
+            throw new MyException(MyErrorCode.EXPIRED_TOKEN);
         }catch (IllegalArgumentException ex){
-            throw new MyJwtException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
+            throw new MyException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
         }
 
     }
