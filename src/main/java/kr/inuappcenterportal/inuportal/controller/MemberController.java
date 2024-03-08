@@ -179,7 +179,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "동일한 이메일이 존재합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("/send-mails")
+    @PostMapping("/code")
     public ResponseEntity<ResponseDto<String>> sendMail(@Valid@RequestBody EmailDto emailDto){
         log.info("인증 이메일 보내기 호출 email:{}",emailDto.getEmail());
         return new ResponseEntity<>(new ResponseDto<>(memberService.sendMail(emailDto),"인증 메일 보내기 성공"),HttpStatus.OK);
@@ -190,7 +190,7 @@ public class MemberController {
             @ApiResponse(responseCode = "200",description = "가입 인증번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("/check-mails")
+    @PostMapping("/verify")
     public ResponseEntity<ResponseDto<Boolean>> checkMail(@Valid@RequestBody EmailCheckDto emailCheckDto){
         log.info("가입 인증번호 확인 호출 email:{}",emailCheckDto.getEmail());
         return new ResponseEntity<>(new ResponseDto<>(memberService.checkNumbers(emailCheckDto),"가입 인증번호 일치확인 성공"),HttpStatus.OK);

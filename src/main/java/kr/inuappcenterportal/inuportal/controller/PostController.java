@@ -57,7 +57,7 @@ public class PostController {
             @ApiResponse(responseCode = "201",description = "이미지 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다. / 존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping(value = "/images/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{postId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Long>> saveOnlyImage( @RequestPart List<MultipartFile> images,@PathVariable Long postId, HttpServletRequest httpServletRequest) throws IOException {
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("이미지만 저장 호출 id:{}",postId);
@@ -84,7 +84,7 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PutMapping(value = "/images/{postId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{postId}/images",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Long>> updateOnlyImage(HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 수정 호출 id:{}",postId);
@@ -118,9 +118,9 @@ public class PostController {
     @GetMapping("/{postId}")
     public ResponseEntity<ResponseDto<PostResponseDto>> getPost(HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         log.info("게시글 가져오기 호출 id:{}",postId);
-        Long memberId = -1L;
+        long memberId = -1L;
         if(httpServletRequest.getHeader("Auth")!=null){
-            memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
+            memberId = Long.parseLong(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         }
         return new ResponseEntity<>(new ResponseDto<>(postService.getPost(postId,memberId,httpServletRequest.getHeader("X-Forwarded-For")),"게시글 가져오기 성공"),HttpStatus.OK);
     }
@@ -130,7 +130,7 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "게시글 좋아요 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PutMapping("/like/{postId}")
+    @PutMapping("/{postId}/like")
     public ResponseEntity<ResponseDto<Integer>> likePost(HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 좋아요 여부 변경 호출 id:{}",postId);
@@ -143,7 +143,7 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "게시글 스크랩 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PutMapping("/scrap/{postId}")
+    @PutMapping("/{postId}/scrap")
     public ResponseEntity<ResponseDto<Integer>> scrapPost(HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         Long memberId = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("게시글 스크랩 여부 변경 호출 id:{}",postId);
@@ -155,7 +155,7 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @GetMapping("/all")
+    @GetMapping("")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String sort){
         return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(sort),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
@@ -166,7 +166,7 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 카테고리입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @GetMapping("/all/{category}")
+    @GetMapping("/{category}")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@PathVariable String category, @RequestParam(required = false) String sort){
         return new ResponseEntity<>(new ResponseDto<>(postService.getPostByCategory(category,sort),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
