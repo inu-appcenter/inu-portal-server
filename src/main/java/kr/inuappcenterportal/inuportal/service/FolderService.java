@@ -87,18 +87,8 @@ public class FolderService {
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getPostInFolder(Long folderId, String sort) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
-        if (sort == null) {
-            return folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
-        }
-        else if (sort.equals("date")){
-            return folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).collect(Collectors.toList());
-        }
-        else if (sort.equals("like")){
-            return folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
-        }
-        else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+        List<PostListResponseDto> folderDto = folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).toList();
+        return postService.getPostListByMember(folderDto,sort);
     }
 
 

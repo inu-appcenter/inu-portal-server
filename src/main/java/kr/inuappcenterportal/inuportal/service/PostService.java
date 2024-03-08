@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -206,7 +207,7 @@ public class PostService {
                     .collect(Collectors.toList());
         }
         else if(sort.equals("like")){
-            return postRepository.findAllByMember(member)
+            return postRepository.findAllByMemberOrderByIdDesc(member)
                     .stream()
                     .map(this::getPostListResponseDto)
                     .sorted(Comparator.comparing(PostListResponseDto::getLike).reversed())
@@ -220,68 +221,38 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getScrapsByMember(Long memberId, String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        List<Scrap> scraps = scrapRepository.findAllByMember(member);
-        if(sort ==null){
-        return scraps.stream()
+        List<PostListResponseDto> scraps = scrapRepository.findAllByMember(member).stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
                     return getPostListResponseDto(post);
                 })
+                .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
                 .collect(Collectors.toList());
-        }
-        else if (sort.equals("date")){
-            return scraps.stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
-                    .collect(Collectors.toList());
-        }
-        else if (sort.equals("like")){
-            return scraps.stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .sorted(Comparator.comparing(PostListResponseDto::getLike).reversed())
-                    .collect(Collectors.toList());
-        }
-        else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+        return  getPostListByMember(scraps,sort);
     }
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getLikeByMember(Long memberId, String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        List<PostLike> likes = likePostRepository.findAllByMember(member);
-        if(sort==null){
-        return likes.stream()
+        List<PostListResponseDto> likes = likePostRepository.findAllByMember(member).stream()
                 .map(like -> {
                     Post post = like.getPost();
                     return getPostListResponseDto(post);
                 })
+                .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
                 .collect(Collectors.toList());
+        return getPostListByMember(likes,sort);
+    }
+
+    public List<PostListResponseDto> getPostListByMember(List<PostListResponseDto> dto,String sort){
+        if(sort==null){
+            return dto;
         }
         else if(sort.equals("like")){
-            return likes.stream()
-                    .map(like -> {
-                        Post post = like.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .sorted(Comparator.comparing(PostListResponseDto::getLike).reversed())
-                    .collect(Collectors.toList());
+            dto.sort((o1, o2) -> o2.getLike() - o1.getLike());
+            return dto;
         }
-        else if(sort.equals("date")){
-            return likes.stream()
-                    .map(like -> {
-                        Post post = like.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
-                    .collect(Collectors.toList());
-        }
+
         else{
             throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
         }
