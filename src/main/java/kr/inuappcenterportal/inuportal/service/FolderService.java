@@ -88,7 +88,7 @@ public class FolderService {
     public List<PostListResponseDto> getPostInFolder(Long folderId, String sort) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyNotFoundException(MyErrorCode.FOLDER_NOT_FOUND));
         List<PostListResponseDto> folderDto = folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).collect(Collectors.toList());
-        return postService.getPostListByMember(folderDto,sort);
+        return postService.postListSort(folderDto,sort);
     }
 
 

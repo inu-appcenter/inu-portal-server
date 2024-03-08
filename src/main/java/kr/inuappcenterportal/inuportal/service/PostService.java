@@ -15,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -147,44 +145,25 @@ public class PostService {
 
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getAllPost(String sort){
-        if(sort==null) {
-            return postRepository.findAllByOrderByIdDesc().stream()
+    public List<PostListResponseDto> getAllPost(String category, String sort){
+        if(category==null){
+            List<PostListResponseDto> posts = postRepository.findAllByOrderByIdDesc().stream()
                     .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());
+            return postListSort(posts, sort);
         }
-        else if(sort.equals("like")){
-            return postRepository.findAllByOrderByIdDesc().stream()
+        else{
+            if(!categoryRepository.existsByCategory(category)){
+                throw new MyNotFoundException(MyErrorCode.CATEGORY_NOT_FOUND);
+            }
+            List<PostListResponseDto> posts =  postRepository.findAllByCategoryOrderByIdDesc(category).stream()
                     .map(this::getPostListResponseDto)
-                    .sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed())
                     .collect(Collectors.toList());
+           return postListSort(posts,sort);
         }
-        else {
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+
     }
 
-
-    @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostByCategory(String category, String sort){
-        if(!categoryRepository.existsByCategory(category)){
-            throw new MyNotFoundException(MyErrorCode.CATEGORY_NOT_FOUND);
-        }
-        if(sort==null){
-            return postRepository.findAllByCategoryOrderByIdDesc(category).stream()
-                    .map(this::getPostListResponseDto)
-                    .collect(Collectors.toList());
-        }
-        else if (sort.equals("like")) {
-            return postRepository.findAllByCategoryOrderByIdDesc(category).stream()
-                    .map(this::getPostListResponseDto)
-                    .sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed())
-                    .collect(Collectors.toList());
-        }
-        else {
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
-        }
-    }
 
     @Transactional
     public int likePost(Long memberId, Long postId){
@@ -249,7 +228,7 @@ public class PostService {
                 })
                 .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
                 .collect(Collectors.toList());
-        return  getPostListByMember(scraps,sort);
+        return  postListSort(scraps,sort);
     }
 
     @Transactional(readOnly = true)
@@ -262,16 +241,16 @@ public class PostService {
                 })
                 .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
                 .collect(Collectors.toList());
-        return getPostListByMember(likes,sort);
+        return postListSort(likes,sort);
     }
 
-    public List<PostListResponseDto> getPostListByMember(List<PostListResponseDto> dto,String sort){
+    public List<PostListResponseDto> postListSort(List<PostListResponseDto> posts,String sort){
         if(sort==null){
-            return dto;
+            return posts;
         }
         else if(sort.equals("like")){
-            dto.sort((o1, o2) -> o2.getLike() - o1.getLike());
-            return dto;
+            posts.sort((o1, o2) -> o2.getLike() - o1.getLike());
+            return posts;
         }
 
         else{
