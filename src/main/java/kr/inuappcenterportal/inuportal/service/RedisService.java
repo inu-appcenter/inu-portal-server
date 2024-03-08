@@ -55,6 +55,35 @@ public class RedisService {
         }
     }
 
+    public void saveFireImage(List<MultipartFile> images) throws IOException {
+        for(int i = 0 ; i<images.size();i++){
+            byte[] bytes = images.get(i).getBytes();
+            String key = "fire" + "-" + (i+1);
+            log.info("이미지 저장 key:{}",key);
+            redisTemplateForImage.opsForValue().set(key,bytes);
+        }
+    }
+
+    public byte[] getFireImage(Long id){
+        String key = "fire" + "-" + id;
+        log.info("이미지가져오기 key:{}",key);
+        byte[] image = redisTemplateForImage.opsForValue().get(key);
+        if(image==null){
+            throw new MyNotFoundException(MyErrorCode.IMAGE_NOT_FOUND);
+        }
+        return image;
+    }
+
+    public void deleteFireImage(Long id){
+            String key = "fire" + "-" + id;
+            log.info("이미지 삭제 key:{}",key);
+            if(!redisTemplateForImage.hasKey(key)){
+            throw new MyNotFoundException(MyErrorCode.IMAGE_NOT_FOUND);
+        }
+            redisTemplateForImage.delete(key);
+    }
+
+
     //@Cacheable(cacheNames = "getImage", key = "#postId",cacheManager = "cacheManager")
     public byte[] findImages(Long postId, Long imageId){
         String key = postId + "-" + imageId;
