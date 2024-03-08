@@ -1,10 +1,9 @@
 package kr.inuappcenterportal.inuportal.service;
 
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -69,7 +68,7 @@ public class RedisService {
         log.info("이미지가져오기 key:{}",key);
         byte[] image = redisTemplateForImage.opsForValue().get(key);
         if(image==null){
-            throw new MyNotFoundException(MyErrorCode.IMAGE_NOT_FOUND);
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
         return image;
     }
@@ -78,7 +77,7 @@ public class RedisService {
             String key = "fire" + "-" + id;
             log.info("이미지 삭제 key:{}",key);
             if(!redisTemplateForImage.hasKey(key)){
-            throw new MyNotFoundException(MyErrorCode.IMAGE_NOT_FOUND);
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
             redisTemplateForImage.delete(key);
     }
@@ -90,7 +89,7 @@ public class RedisService {
         log.info("이미지가져오기 key:{}",key);
         byte[] image = redisTemplateForImage.opsForValue().get(key);
         if(image==null){
-            throw new MyNotFoundException(MyErrorCode.IMAGE_NOT_FOUND);
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
         return image;
     }
@@ -123,7 +122,7 @@ public class RedisService {
     public String getNumbers(String email){
         String numbers = redisTemplate.opsForValue().get(email);
         if(numbers==null){
-            throw new MyNotFoundException(MyErrorCode.USER_NOT_CHECK_EMAIL);
+            throw new MyException(MyErrorCode.USER_NOT_CHECK_EMAIL);
         }
         return numbers;
     }

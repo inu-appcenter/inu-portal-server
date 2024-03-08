@@ -5,10 +5,8 @@ import kr.inuappcenterportal.inuportal.dto.ReReplyResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyResponseDto;
-import kr.inuappcenterportal.inuportal.exception.ex.MyBadRequestException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
-import kr.inuappcenterportal.inuportal.exception.ex.MyNotPermittedException;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.LikeReplyRepository;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.repository.PostRepository;
@@ -30,8 +28,8 @@ public class ReplyService {
 
     @Transactional
     public Long saveReply(Long memberId, ReplyDto replyDto, Long postId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         int num = countNumber(member,post);
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
         replyRepository.save(reply);
@@ -40,12 +38,12 @@ public class ReplyService {
 
     @Transactional
     public Long saveReReply(Long memberId, ReplyDto replyDto, Long replyId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(reply.getReply()!=null){
-            throw new MyNotPermittedException(MyErrorCode.NOT_REPLY_ON_REREPLY);
+            throw new MyException(MyErrorCode.NOT_REPLY_ON_REREPLY);
         }
-        Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         int num = countNumber(member,post);
         Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
         return replyRepository.save(reReply).getId();
@@ -56,7 +54,7 @@ public class ReplyService {
         int num = 0;
         if(post.getMember()!=null) {
             if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
-                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyException(MyErrorCode.REPLY_NOT_FOUND));
                 num = preReply.getNumber();
             } else if (!member.getId().equals(post.getMember().getId())) {
                 post.upNumber();
@@ -65,7 +63,7 @@ public class ReplyService {
         }
         else{
             if( replyRepository.existsByMember(member)){
-                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyException(MyErrorCode.REPLY_NOT_FOUND));
                 num = preReply.getNumber();
             }
             else{
@@ -79,9 +77,9 @@ public class ReplyService {
 
     @Transactional
     public Long updateReply(Long memberId, ReplyDto replyDto, Long replyId){
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(!reply.getMember().getId().equals(memberId)){
-            throw new MyNotPermittedException(MyErrorCode.HAS_NOT_REPLY_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_REPLY_AUTHORIZATION);
         }
         else{
             reply.update(replyDto.getContent(), replyDto.getAnonymous());
@@ -91,9 +89,9 @@ public class ReplyService {
 
     @Transactional
     public void delete(Long memberId, Long replyId){
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(!reply.getMember().getId().equals(memberId)){
-            throw new MyNotPermittedException(MyErrorCode.HAS_NOT_REPLY_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_REPLY_AUTHORIZATION);
         }
         else{
             if(replyRepository.existsByReply(reply)) {
@@ -107,10 +105,10 @@ public class ReplyService {
 
     @Transactional
     public int likeReply(Long memberId, Long replyId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyNotFoundException(MyErrorCode.REPLY_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(likeReplyRepository.existsByMemberAndReply(member,reply)){
-            ReplyLike replyLike = likeReplyRepository.findByMemberAndReply(member,reply).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_OR_REPLY_NOT_FOUND));
+            ReplyLike replyLike = likeReplyRepository.findByMemberAndReply(member,reply).orElseThrow(()->new MyException(MyErrorCode.USER_OR_REPLY_NOT_FOUND));
             likeReplyRepository.delete(replyLike);
             return -1;
         }
@@ -123,7 +121,7 @@ public class ReplyService {
 
     @Transactional(readOnly = true)
     public List<ReplyListResponseDto> getReplyByMember(Long memberId,String sort){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(sort==null) {
             return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::new).collect(Collectors.toList());
         }
@@ -131,14 +129,14 @@ public class ReplyService {
             return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::new).sorted(Comparator.comparing(ReplyListResponseDto::getLike).reversed()).collect(Collectors.toList());
         }
         else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
     }
 
     @Transactional(readOnly = true)
     public List<ReplyResponseDto> getReplies(Long postId, Long memberId){
         Member member = memberRepository.findById(memberId).orElse(null);
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> replies = replyRepository.findAllByPostAndReplyIsNull(post);
         return replies.stream().map(reply -> {
             List<ReReplyResponseDto> reReplyResponseDtoList = replyRepository.findAllByReply(reply).stream().map(reReply ->{
@@ -219,7 +217,7 @@ public class ReplyService {
     @Transactional(readOnly = true)
     public List<ReReplyResponseDto> getBestReplies(Long postId,Long memberId){
         Member member = memberRepository.findById(memberId).orElse(null);
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> list = replyRepository.findAllByPost(post);
         List<Reply> likeList= new ArrayList<>();
         for(Reply reply:list){

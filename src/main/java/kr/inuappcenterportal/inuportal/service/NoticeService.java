@@ -3,8 +3,8 @@ package kr.inuappcenterportal.inuportal.service;
 import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.domain.Notice;
 import kr.inuappcenterportal.inuportal.dto.NoticeListResponseDto;
-import kr.inuappcenterportal.inuportal.exception.ex.MyBadRequestException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -113,7 +113,7 @@ public class NoticeService {
             } else if (sort.equals("view")) {
                 return noticeRepository.findAllByOrderByViewDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             } else {
-                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
         }
         else{
@@ -124,7 +124,7 @@ public class NoticeService {
                 return noticeRepository.findAllByCategoryOrderByViewDesc(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             }
             else{
-                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
         }
     }

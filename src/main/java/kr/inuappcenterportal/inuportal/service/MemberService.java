@@ -28,14 +28,14 @@ public class MemberService {
     @Transactional
     public Long join(MemberSaveDto memberSaveDto){
         if(!checkSchoolEmail(memberSaveDto.getEmail())){
-            throw new MyNotPermittedException(MyErrorCode.ONLY_SCHOOL_EMAIL);
+            throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
         }
         String encodedPassword = passwordEncoder.encode(memberSaveDto.getPassword());
         if(memberRepository.existsByEmail(memberSaveDto.getEmail())){
-            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_EMAIL);
+            throw new MyException(MyErrorCode.USER_DUPLICATE_EMAIL);
         }
         if(memberRepository.existsByNickname(memberSaveDto.getNickname())){
-            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_NICKNAME);
+            throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
         }
         Member member= Member.builder().email(memberSaveDto.getEmail()).nickname(memberSaveDto.getNickname()).password(encodedPassword).roles(Collections.singletonList("ROLE_USER")).build();
         return memberRepository.save(member).getId();
@@ -43,9 +43,9 @@ public class MemberService {
 
     @Transactional
     public Long updateMemberPassword(Long id, MemberUpdatePasswordDto memberUpdatePasswordDto){
-       Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+       Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
        if(!passwordEncoder.matches(memberUpdatePasswordDto.getPassword(),member.getPassword())){
-           throw new MyUnauthorizedException(MyErrorCode.PASSWORD_NOT_MATCHED);
+           throw new MyException(MyErrorCode.PASSWORD_NOT_MATCHED);
        }
        String encodedPassword = passwordEncoder.encode(memberUpdatePasswordDto.getNewPassword());
        member.updatePassword(encodedPassword);
@@ -54,16 +54,16 @@ public class MemberService {
 
     @Transactional
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(memberUpdateNicknameDto.getNickname()!=null) {
             if (memberUpdateNicknameDto.getNickname().equals(member.getNickname())) {
-                throw new MyDuplicateException(MyErrorCode.SAME_NICKNAME_UPDATE);
+                throw new MyException(MyErrorCode.SAME_NICKNAME_UPDATE);
             }
             if (memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())) {
-                throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_NICKNAME);
+                throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
             }
             if(memberUpdateNicknameDto.getNickname().trim().isEmpty()){
-                throw new MyBadRequestException(MyErrorCode.NOT_BLANK_NICKNAME);
+                throw new MyException(MyErrorCode.NOT_BLANK_NICKNAME);
             }
             if(memberUpdateNicknameDto.getFireId()!=null){
                 member.updateNicknameAndFire(memberUpdateNicknameDto.getNickname(),memberUpdateNicknameDto.getFireId());
@@ -75,30 +75,30 @@ public class MemberService {
             member.updateFire(memberUpdateNicknameDto.getFireId());
         }
         else{
-            throw new MyBadRequestException(MyErrorCode.EMPTY_REQUEST);
+            throw new MyException(MyErrorCode.EMPTY_REQUEST);
         }
         return member.getId();
     }
 
     @Transactional
     public void delete(Long id){
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         memberRepository.delete(member);
     }
 
     @Transactional
     public String login(MemberLoginDto memberLoginDto){
-        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyUnauthorizedException(MyErrorCode.ID_NOT_FOUND));
+        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyException(MyErrorCode.ID_NOT_FOUND));
 
         if(!passwordEncoder.matches(memberLoginDto.getPassword(),member.getPassword())){
-            throw new MyUnauthorizedException(MyErrorCode.PASSWORD_NOT_MATCHED);
+            throw new MyException(MyErrorCode.PASSWORD_NOT_MATCHED);
         }
         return tokenProvider.createToken(String.valueOf(member.getId()),member.getRoles());
     }
 
     @Transactional(readOnly = true)
     public MemberResponseDto getMember(Long id){
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         return new MemberResponseDto(member);
     }
 
@@ -109,10 +109,10 @@ public class MemberService {
 
     public String sendMail(EmailDto emailDto){
         if(!checkSchoolEmail(emailDto.getEmail())){
-            throw new MyNotPermittedException(MyErrorCode.ONLY_SCHOOL_EMAIL);
+            throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
         }
         if(memberRepository.existsByEmail(emailDto.getEmail())){
-            throw new MyDuplicateException(MyErrorCode.USER_DUPLICATE_EMAIL);
+            throw new MyException(MyErrorCode.USER_DUPLICATE_EMAIL);
         }
         String numbers = createNumber();
         mailService.sendMail(emailDto.getEmail(),numbers);

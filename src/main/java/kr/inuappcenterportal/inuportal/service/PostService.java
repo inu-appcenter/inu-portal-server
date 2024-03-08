@@ -4,10 +4,8 @@ import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.PostDto;
 import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.PostResponseDto;
-import kr.inuappcenterportal.inuportal.exception.ex.MyBadRequestException;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.exception.ex.MyNotFoundException;
-import kr.inuappcenterportal.inuportal.exception.ex.MyNotPermittedException;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,17 +31,17 @@ public class PostService {
 
     @Transactional
     public Long saveOnlyPost(Long id, PostDto postSaveDto) {
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(0).build();
         postRepository.save(post);
         return post.getId();
     }
     @Transactional
     public Long saveOnlyImage(Long memberId, Long postId, List<MultipartFile> imageDto) throws IOException {
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(!post.getMember().getId().equals(member.getId())){
-            throw new MyNotPermittedException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         int imageCount;
         if(imageDto==null){
@@ -61,18 +59,18 @@ public class PostService {
 
     @Transactional
     public void updateOnlyPost(Long memberId, Long postId, PostDto postDto){
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(memberId)){
-            throw new MyNotPermittedException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         post.updateOnlyPost(postDto.getTitle(),postDto.getContent(), postDto.getCategory(),postDto.getAnonymous());
     }
 
     @Transactional
     public void updateOnlyImage(Long memberId, Long postId, List<MultipartFile> images) throws IOException {
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(memberId)){
-            throw new MyNotPermittedException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         redisService.updateImage(postId,images,post.getImageCount());
         post.updateImageCount(images.size());
@@ -80,17 +78,17 @@ public class PostService {
 
     @Transactional
     public void delete(Long memberId, Long postId){
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         redisService.deleteImage(postId,post.getImageCount());
         if(!post.getMember().getId().equals(memberId)){
-            throw new MyNotPermittedException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         postRepository.delete(post);
     }
 
     @Transactional
     public PostResponseDto getPost(Long postId,Long memberId,String address){
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(redisService.isFirstConnect(address,postId)){
             redisService.insertAddress(address,postId);
             post.upViewCount();
@@ -99,7 +97,7 @@ public class PostService {
         boolean isScraped = false;
         boolean hasAuthority = false;
         if(memberId!=-1L){
-            Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+            Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
             if(likePostRepository.existsByMemberAndPost(member,post)){
                 isLiked = true;
             }
@@ -154,7 +152,7 @@ public class PostService {
         }
         else{
             if(!categoryRepository.existsByCategory(category)){
-                throw new MyNotFoundException(MyErrorCode.CATEGORY_NOT_FOUND);
+                throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
             List<PostListResponseDto> posts =  postRepository.findAllByCategoryOrderByIdDesc(category).stream()
                     .map(this::getPostListResponseDto)
@@ -167,10 +165,10 @@ public class PostService {
 
     @Transactional
     public int likePost(Long memberId, Long postId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(likePostRepository.existsByMemberAndPost(member,post)){
-            PostLike postLike = likePostRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_OR_POST_NOT_FOUND));;
+            PostLike postLike = likePostRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));;
             likePostRepository.delete(postLike);
             return -1;
         }
@@ -183,10 +181,10 @@ public class PostService {
 
     @Transactional
     public int scrapPost(Long memberId, Long postId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyNotFoundException(MyErrorCode.POST_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(scrapRepository.existsByMemberAndPost(member,post)){
-            Scrap scrap = scrapRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_OR_POST_NOT_FOUND));
+            Scrap scrap = scrapRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));
             scrapRepository.delete(scrap);
             return -1;
         }
@@ -199,7 +197,7 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getPostByMember(Long memberId, String sort){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(sort==null) {
             return postRepository.findAllByMemberOrderByIdDesc(member)
                     .stream()
@@ -214,13 +212,13 @@ public class PostService {
                     .collect(Collectors.toList());
         }
         else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
     }
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getScrapsByMember(Long memberId, String sort){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         List<PostListResponseDto> scraps = scrapRepository.findAllByMember(member).stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
@@ -233,7 +231,7 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getLikeByMember(Long memberId, String sort){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyNotFoundException(MyErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         List<PostListResponseDto> likes = likePostRepository.findAllByMember(member).stream()
                 .map(like -> {
                     Post post = like.getPost();
@@ -254,7 +252,7 @@ public class PostService {
         }
 
         else{
-            throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
     }
 
@@ -297,7 +295,7 @@ public class PostService {
             } else if (sort.equals("scrap")) {
                 return postRepository.findAllByTitleContainsOrContentContains(query,query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
             } else {
-                throw new MyBadRequestException(MyErrorCode.WRONG_SORT_TYPE);
+                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
         }
 

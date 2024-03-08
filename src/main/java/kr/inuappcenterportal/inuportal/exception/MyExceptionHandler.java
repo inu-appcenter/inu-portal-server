@@ -26,23 +26,13 @@ public class MyExceptionHandler {
     }
 
 
-    @ExceptionHandler(MyBadRequestException.class)
-    public ResponseEntity<ResponseDto<Integer>> MyBadRequestException(MyBadRequestException ex){
-        log.error("잘못된 요청 예외 발생 :{}",ex.getErrorCode().getMessage());
+
+    @ExceptionHandler(MyException.class)
+    public ResponseEntity<ResponseDto<Integer>> MyNotFoundException(MyException ex){
+        log.error("예외 발생 msg:{}",ex.getErrorCode().getMessage());
         return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
     }
 
-    @ExceptionHandler(MyNotFoundException.class)
-    public ResponseEntity<ResponseDto<Integer>> MyNotFoundException(MyNotFoundException ex){
-        log.error("존재하지 않는 값 예외 발생 msg:{}",ex.getErrorCode().getMessage());
-        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
-    }
-
-    @ExceptionHandler(MyDuplicateException.class)
-    public ResponseEntity<ResponseDto<Integer>> MyDuplicateException(MyDuplicateException ex){
-        log.error("중복 값 예외 발생 msg:{}",ex.getErrorCode().getMessage());
-        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
-    }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ResponseDto<Integer>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
         BindingResult bindingResult = ex.getBindingResult();
@@ -52,23 +42,6 @@ public class MyExceptionHandler {
         return new ResponseEntity<>(new ResponseDto<>(-1,message),HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(MyJwtException.class)
-    public ResponseEntity<ResponseDto<Integer>> handleJwtException(MyJwtException ex){
-        log.error("jwt 토큰 예외 발생 msg:{}",ex.getErrorCode().getMessage());
-        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
-    }
-
-    @ExceptionHandler(MyUnauthorizedException.class)
-    public ResponseEntity<ResponseDto<Integer>> MyUnauthorizedException(MyUnauthorizedException ex){
-        log.error("로그인 실패 msg:{}",ex.getErrorCode().getMessage());
-        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
-    }
-
-    @ExceptionHandler(MyNotPermittedException.class)
-    public ResponseEntity<ResponseDto<Integer>> MyNotPermittedException(MyNotPermittedException ex){
-        log.error("다른 사람의 할일 접근 시도 msg:{}",ex.getErrorCode().getMessage());
-        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
-    }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ResponseDto<Integer>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
