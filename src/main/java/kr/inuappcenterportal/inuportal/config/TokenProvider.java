@@ -3,10 +3,12 @@ package kr.inuappcenterportal.inuportal.config;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,21 +16,28 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class TokenProvider {
 
     private final UserDetailsService userDetailsService;
+    @Value("${jwtSecret}")
+    private String secret;
     private Key secretKey;
     private final long tokenValidMillisecond = 1000L * 60 * 60 * 24;//24시간
-   @Autowired
-    public TokenProvider(UserDetailsService userDetailsService){
-        this.userDetailsService =userDetailsService;
-        this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+
+    @PostConstruct
+    protected void init(){
+       log.info("키 생성 암호화 전 키 :{}",secret);
+       secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        log.info("키 생성 암호화 후 키 :{}",secretKey);
     }
 
 
