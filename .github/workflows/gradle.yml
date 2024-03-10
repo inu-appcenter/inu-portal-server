@@ -29,6 +29,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - uses: actions/checkout@v2
+    - run: touch ./src/main/resources/application.properties
+    - run: echo "${{secrets.APPLICATION_PROPERTIES}}" > ./src/main/resources/application.properties
+    - uses: actions/upload-artifact@v2
+      with:
+        name: application.properties
+        path: ./src/main/resources/application.properties
+        
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
