@@ -49,12 +49,12 @@ public class ImageController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
 
     })
-    @GetMapping("/{fireId}")
-    public ResponseEntity<byte[]> getFireImage(@PathVariable Long fireId){
-        log.info("횃불이 이미지 가져오기 호출 id:{}",fireId);
+    @GetMapping("/{id}")
+    public ResponseEntity<byte[]> getFireImage(@PathVariable Long id){
+        log.info("횃불이 이미지 가져오기 호출 id:{}",id);
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.IMAGE_PNG);
-        return new ResponseEntity<>(redisService.getFireImage(fireId),httpHeaders,HttpStatus.OK);
+        return new ResponseEntity<>(redisService.getFireImage(id),httpHeaders,HttpStatus.OK);
     }
 
     @Operation(summary = "횃불이 이미지 삭제",description = "url 변수에 삭제할 횃불이의 번호를 보내주세요")
@@ -62,10 +62,10 @@ public class ImageController {
             @ApiResponse(responseCode = "200",description = "횃불이 삭제 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @DeleteMapping("/{fireId}")
-    public ResponseEntity<ResponseDto<Long>> deleteFireImage(@PathVariable Long fireId){
-        log.info("횃불이 삭제 가져오기 호출 id:{}",fireId);
-        redisService.deleteFireImage(fireId);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseDto<Long>> deleteFireImage(@PathVariable Long id){
+        log.info("횃불이 삭제 가져오기 호출 id:{}",id);
+        redisService.deleteFireImage(id);
         return new ResponseEntity<>(new ResponseDto<>(1L,"횃불이 이미지 삭제 성공"),HttpStatus.OK);
     }
 
