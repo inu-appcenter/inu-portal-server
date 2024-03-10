@@ -166,8 +166,8 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다. / 존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @GetMapping("/images")
-    public ResponseEntity<byte[]> getImages(@RequestParam Long postId, @RequestParam Long imageId){
+    @GetMapping("/{postId}/images/{imageId}")
+    public ResponseEntity<byte[]> getImages(@PathVariable Long postId, @PathVariable Long imageId){
         log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.IMAGE_PNG);
