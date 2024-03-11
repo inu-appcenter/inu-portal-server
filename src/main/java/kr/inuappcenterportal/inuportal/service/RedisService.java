@@ -116,7 +116,7 @@ public class RedisService {
 
     public void storeMail(String email, String numbers){
         redisTemplate.opsForValue().set(email,numbers);
-        redisTemplate.expire(email,30*60*1000L, TimeUnit.SECONDS);
+        redisTemplate.expire(email,30*60, TimeUnit.SECONDS);
     }
 
     public String getNumbers(String email){
