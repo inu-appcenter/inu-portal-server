@@ -8,6 +8,8 @@ import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -143,9 +145,10 @@ public class PostService {
 
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getAllPost(String category, String sort){
+    public List<PostListResponseDto> getAllPost(String category, String sort,int page){
+        Pageable pageable = PageRequest.of(page>0?--page:page,8);
         if(category==null){
-            List<PostListResponseDto> posts = postRepository.findAllByOrderByIdDesc().stream()
+            List<PostListResponseDto> posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
                     .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());
             return postListSort(posts, sort);
@@ -154,7 +157,7 @@ public class PostService {
             if(!categoryRepository.existsByCategory(category)){
                 throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
-            List<PostListResponseDto> posts =  postRepository.findAllByCategoryOrderByIdDesc(category).stream()
+            List<PostListResponseDto> posts =  postRepository.findAllByCategoryOrderByIdDesc(category,pageable).stream()
                     .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());
            return postListSort(posts,sort);
@@ -196,16 +199,17 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostByMember(Long memberId, String sort){
+    public List<PostListResponseDto> getPostByMember(Long memberId, String sort, int page){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        Pageable pageable = PageRequest.of(page>0?--page:page,8);
         if(sort==null) {
-            return postRepository.findAllByMemberOrderByIdDesc(member)
+            return postRepository.findAllByMemberOrderByIdDesc(member,pageable)
                     .stream()
                     .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());
         }
         else if(sort.equals("like")){
-            return postRepository.findAllByMemberOrderByIdDesc(member)
+            return postRepository.findAllByMemberOrderByIdDesc(member,pageable)
                     .stream()
                     .map(this::getPostListResponseDto)
                     .sorted(Comparator.comparing(PostListResponseDto::getLike).reversed())
@@ -217,7 +221,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getScrapsByMember(Long memberId, String sort){
+    public List<PostListResponseDto> getScrapsByMember(Long memberId, String sort,int page){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         List<PostListResponseDto> scraps = scrapRepository.findAllByMember(member).stream()
                 .map(scrap -> {
@@ -226,7 +230,17 @@ public class PostService {
                 })
                 .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
                 .collect(Collectors.toList());
-        return  postListSort(scraps,sort);
+        page--;
+        int startIndex = 0;
+        int endIndex = 0;
+        if(page*5>scraps.size()){
+            scraps.clear();
+        }
+        else{
+            startIndex = page*5;
+            endIndex  = Math.min((page + 1) * 5, scraps.size());
+        }
+        return  postListSort(scraps,sort).subList(startIndex,endIndex);
     }
 
     @Transactional(readOnly = true)
@@ -285,18 +299,19 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> searchPost(String query,String sort){
-            if (sort == null) {
-                return postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
-            } else if (sort.equals("view")) {
-                return postRepository.findAllByTitleContainsOrContentContainsOrderByViewDesc(query,query).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
-            } else if (sort.equals("like")) {
-                return postRepository.findAllByTitleContainsOrContentContains(query,query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
-            } else if (sort.equals("scrap")) {
-                return postRepository.findAllByTitleContainsOrContentContains(query,query).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
-            } else {
-                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-            }
+    public List<PostListResponseDto> searchPost(String query,String sort,int page){
+        Pageable pageable = PageRequest.of(page>0?--page:page,8);
+        if (sort == null) {
+            return postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        } else if (sort.equals("view")) {
+            return postRepository.findAllByTitleContainsOrContentContainsOrderByViewDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        } else if (sort.equals("like")) {
+            return postRepository.findAllByTitleContainsOrContentContains(query,query,pageable).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
+        } else if (sort.equals("scrap")) {
+            return postRepository.findAllByTitleContainsOrContentContains(query,query,pageable).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList());
+        } else {
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
+    }
 
 }

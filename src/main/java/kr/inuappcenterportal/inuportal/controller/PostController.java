@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.service.PostService;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +35,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @RequestMapping("/api/posts")
+@Validated
 public class PostController {
     private final PostService postService;
     private final TokenProvider tokenProvider;
@@ -150,14 +153,15 @@ public class PostController {
         return new ResponseEntity<>(new ResponseDto<>(postService.scrapPost(memberId,postId),"스크랩 여부 변경 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "모든 게시글 가져오기",description = "모든 게시글은 최신순으로 보내집니다. 카테고리(공백일 시 모든 게시글), 정렬기준 sort(공백일 시 글의 최신순, like)를 보내주세요.")
+    @Operation(summary = "모든 게시글 가져오기",description = "모든 게시글은 최신순으로 보내집니다. 카테고리(공백일 시 모든 게시글), 정렬기준 sort(공백일 시 글의 최신순, like), 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false) String sort){
-        return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(category, sort),"모든 게시글 가져오기 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false) String sort
+            ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
+        return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(category, sort,page),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
 
@@ -173,10 +177,5 @@ public class PostController {
         httpHeaders.setContentType(MediaType.IMAGE_PNG);
         return new ResponseEntity<>(redisService.findImages(postId, imageId),httpHeaders,HttpStatus.OK);
     }
-
-
-
-
-
 
 }
