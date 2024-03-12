@@ -148,36 +148,21 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getAllPost(String category, String sort,int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
-        List<PostListResponseDto> posts = new ArrayList<>();
         if(category==null){
-            if(sort!=null&&sort.equals("view")){
-                posts = postRepository.findAllByOrderByViewDesc(pageable).stream()
+            List<PostListResponseDto> posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
                         .map(this::getPostListResponseDto)
                         .collect(Collectors.toList());
-            }
-            else {
-                posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
-            }
+            return postListSort(posts, sort);
         }
         else{
             if(!categoryRepository.existsByCategory(category)){
                 throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
-            if(sort!=null&&sort.equals("view")){
-                posts =  postRepository.findAllByCategoryOrderByViewDesc(category,pageable).stream()
+            List<PostListResponseDto> posts = postRepository.findAllByCategoryOrderByIdDesc(category, pageable).stream()
                         .map(this::getPostListResponseDto)
                         .collect(Collectors.toList());
-            }
-            else {
-                posts = postRepository.findAllByCategoryOrderByIdDesc(category, pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
-            }
+            return postListSort(posts, sort);
         }
-        return postListSort(posts, sort);
-
     }
 
 
@@ -272,7 +257,7 @@ public class PostService {
     }
 
     public List<PostListResponseDto> postListSort(List<PostListResponseDto> posts,String sort){
-        if(sort==null||sort.equals("date")||sort.equals("view")){
+        if(sort==null||sort.equals("date")){
             return posts;
         }
         else if(sort.equals("like")){
@@ -321,8 +306,6 @@ public class PostService {
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
         if (sort == null||sort.equals("date")) {
             return postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
-        } else if (sort.equals("view")) {
-            return postRepository.findAllByTitleContainsOrContentContainsOrderByViewDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         } else if (sort.equals("like")) {
             return postRepository.findAllByTitleContainsOrContentContains(query,query,pageable).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList());
         } else if (sort.equals("scrap")) {

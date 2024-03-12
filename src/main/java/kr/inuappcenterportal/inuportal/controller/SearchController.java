@@ -32,7 +32,7 @@ import java.util.List;
 public class SearchController {
     private final PostService postService;
 
-    @Operation(summary = "게시글 검색",description = "url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,view,scrap)를, 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "게시글 검색",description = "url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,scrap)를, 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글 검색 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다. / 검색옵션이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
