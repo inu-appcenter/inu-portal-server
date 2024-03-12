@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -147,21 +148,35 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getAllPost(String category, String sort,int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
+        List<PostListResponseDto> posts = new ArrayList<>();
         if(category==null){
-            List<PostListResponseDto> posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
-                    .map(this::getPostListResponseDto)
-                    .collect(Collectors.toList());
-            return postListSort(posts, sort);
+            if(sort!=null&&sort.equals("view")){
+                posts = postRepository.findAllByOrderByViewDesc(pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
+            else {
+                posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
         }
         else{
             if(!categoryRepository.existsByCategory(category)){
                 throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
-            List<PostListResponseDto> posts =  postRepository.findAllByCategoryOrderByIdDesc(category,pageable).stream()
-                    .map(this::getPostListResponseDto)
-                    .collect(Collectors.toList());
-           return postListSort(posts,sort);
+            if(sort!=null&&sort.equals("view")){
+                posts =  postRepository.findAllByCategoryOrderByViewDesc(category,pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
+            else {
+                posts = postRepository.findAllByCategoryOrderByIdDesc(category, pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
         }
+        return postListSort(posts, sort);
 
     }
 
@@ -257,14 +272,17 @@ public class PostService {
     }
 
     public List<PostListResponseDto> postListSort(List<PostListResponseDto> posts,String sort){
-        if(sort==null||sort.equals("date")){
+        if(sort==null||sort.equals("date")||sort.equals("view")){
             return posts;
         }
         else if(sort.equals("like")){
             posts.sort((o1, o2) -> o2.getLike() - o1.getLike());
             return posts;
         }
-
+        else if(sort.equals("scrap")){
+            posts.sort((o1, o2) -> o2.getScrap()-o1.getScrap());
+            return posts;
+        }
         else{
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }

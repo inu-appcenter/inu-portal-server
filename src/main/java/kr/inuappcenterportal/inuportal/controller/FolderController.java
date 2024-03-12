@@ -103,7 +103,7 @@ public class FolderController {
         return new ResponseEntity<>(new ResponseDto<>(folderService.getFolder(id),"회원의 모든 스크랩폴더 가져오기 성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "스크랩폴더의 모든 게시글 가져오기",description = "url 파라미터에 스크랩폴더의 id, 정렬기준 sort(date/공백(최신순), like),페이지(공백일 시 1)를 보내주세요. 스크랩폴더의 모든 게시글이 보내집니다.")
+    @Operation(summary = "스크랩폴더의 모든 게시글 가져오기",description = "url 파라미터에 스크랩폴더의 id, 정렬기준 sort(date/공백(최신순), like,scrap),페이지(공백일 시 1)를 보내주세요. 스크랩폴더의 모든 게시글이 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "스크랩폴더의 모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 스크랩폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
