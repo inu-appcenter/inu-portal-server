@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.Post;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,7 +34,7 @@ public class PostListResponseDto {
     private LocalDate modifiedDate;
 
     @Builder
-    public PostListResponseDto(Long id, String title, String category, String writer,String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,int imageCount){
+    private PostListResponseDto(Long id, String title, String category, String writer,String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,int imageCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -44,6 +45,21 @@ public class PostListResponseDto {
         this.like = like;
         this.scrap = scrap;
         this.imageCount = imageCount;
+    }
+
+    public static PostListResponseDto of(Post post, String writer){
+        return PostListResponseDto.builder()
+                .id(post.getId())
+                .createDate(post.getCreateDate())
+                .modifiedDate(post.getModifiedDate())
+                .category(post.getCategory())
+                .writer(writer)
+                .content((post.getContent().length()>50)?post.getContent().substring(0,50)+"...":post.getContent())
+                .title(post.getTitle())
+                .like(post.getPostLikes().size())
+                .imageCount(post.getImageCount())
+                .scrap(post.getScraps().size())
+                .build();
     }
 
 }

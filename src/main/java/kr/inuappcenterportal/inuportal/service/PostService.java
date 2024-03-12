@@ -287,18 +287,7 @@ public class PostService {
                 writer = memberRepository.findById(post.getMember().getId()).get().getNickname();
             }
         }
-        return PostListResponseDto.builder()
-                .id(post.getId())
-                .createDate(post.getCreateDate())
-                .modifiedDate(post.getModifiedDate())
-                .category(post.getCategory())
-                .writer(writer)
-                .content((post.getContent().length()>50)?post.getContent().substring(0,50)+"...":post.getContent())
-                .title(post.getTitle())
-                .like(post.getPostLikes().size())
-                .imageCount(post.getImageCount())
-                .scrap(post.getScraps().size())
-                .build();
+        return PostListResponseDto.of(post,writer);
     }
 
     @Transactional(readOnly = true)
