@@ -122,7 +122,7 @@ public class ReplyService {
     @Transactional(readOnly = true)
     public List<ReplyListResponseDto> getReplyByMember(Long memberId,String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
-        if(sort==null) {
+        if(sort==null||sort.equals("date")) {
             return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::new).collect(Collectors.toList());
         }
         else if(sort.equals("like")){

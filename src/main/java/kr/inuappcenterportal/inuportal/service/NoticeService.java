@@ -108,7 +108,7 @@ public class NoticeService {
     @Transactional(readOnly = true)
     public List<NoticeListResponseDto> getNoticeList(String category, String sort){
         if(category==null) {
-            if (sort == null) {
+            if (sort == null||sort.equals("date")) {
                 return noticeRepository.findAllByOrderByDateDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             } else if (sort.equals("view")) {
                 return noticeRepository.findAllByOrderByViewDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
@@ -117,7 +117,7 @@ public class NoticeService {
             }
         }
         else{
-            if(sort==null) {
+            if(sort==null||sort.equals("date")) {
                 return noticeRepository.findAllByCategory(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             }
             else if(sort.equals("view")){

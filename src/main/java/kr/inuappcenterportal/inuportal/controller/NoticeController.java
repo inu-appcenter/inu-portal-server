@@ -27,7 +27,7 @@ import java.util.List;
 public class NoticeController {
     private final NoticeService noticeService;
 
-    @Operation(summary = "모든 공지사항 가져오기",description = "url 파라미터에 카테고리(빈 값일 시 모든 공지사항), 정렬기준(sort) 을 빈값(최신순), view 둘 중 하나로 보내주세요")
+    @Operation(summary = "모든 공지사항 가져오기",description = "url 파라미터에 카테고리(빈 값일 시 모든 공지사항), 정렬기준(sort) 을 date/공백(최신순), view 둘 중 하나로 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 공지사항 가져오기 성공",content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))

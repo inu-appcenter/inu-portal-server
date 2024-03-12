@@ -202,7 +202,7 @@ public class PostService {
     public List<PostListResponseDto> getPostByMember(Long memberId, String sort, int page){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
-        if(sort==null) {
+        if(sort==null||sort.equals("date")) {
             return postRepository.findAllByMemberOrderByIdDesc(member,pageable)
                     .stream()
                     .map(this::getPostListResponseDto)
@@ -257,7 +257,7 @@ public class PostService {
     }
 
     public List<PostListResponseDto> postListSort(List<PostListResponseDto> posts,String sort){
-        if(sort==null){
+        if(sort==null||sort.equals("date")){
             return posts;
         }
         else if(sort.equals("like")){
@@ -301,7 +301,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostListResponseDto> searchPost(String query,String sort,int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
-        if (sort == null) {
+        if (sort == null||sort.equals("date")) {
             return postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         } else if (sort.equals("view")) {
             return postRepository.findAllByTitleContainsOrContentContainsOrderByViewDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
