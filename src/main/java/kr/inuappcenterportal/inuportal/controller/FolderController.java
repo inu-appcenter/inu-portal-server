@@ -105,12 +105,12 @@ public class FolderController {
 
     @Operation(summary = "스크랩폴더의 모든 게시글 가져오기",description = "url 파라미터에 스크랩폴더의 id, 정렬기준 sort(date/공백(최신순), like,scrap),페이지(공백일 시 1)를 보내주세요. 스크랩폴더의 모든 게시글이 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "스크랩폴더의 모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "스크랩폴더의 모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 스크랩폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/{folderId}")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostInFolder(@PathVariable Long folderId, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto>> getPostInFolder(@PathVariable Long folderId, @RequestParam(required = false) String sort
     ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         log.info("스크랩폴더의 모든 게시글 가져오기 호출 폴더 id:{}",folderId);
         return new ResponseEntity<>(new ResponseDto<>(folderService.getPostInFolder(folderId, sort,page),"스크랩폴더의 모든 게시글 가져오기 성공"), HttpStatus.OK);

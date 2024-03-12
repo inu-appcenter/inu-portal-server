@@ -155,11 +155,11 @@ public class PostController {
 
     @Operation(summary = "모든 게시글 가져오기",description = "모든 게시글은 최신순으로 보내집니다. 카테고리(공백일 시 모든 게시글), 정렬기준 sort(date/공백(최신순), like, scrap), 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false) String sort
             ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(category, sort,page),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }

@@ -9,15 +9,14 @@ import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post,Long> {
     List<Post> findAllByCategoryOrderByIdDesc (String category,Pageable pageable);
-    List<Post> countAllByCategoryOrderByIdDesc (String category);
+    Long countAllByCategory (String category);
     List<Post> findAllByOrderByIdDesc(Pageable pageable);
-    List<Post> countAllByOrderByIdDesc(Pageable pageable);
+    long count();
     List<Post> findAllByMemberOrderByIdDesc(Member member,Pageable pageable);
-    List<Post> countAllByMemberOrderByIdDesc(Member member,Pageable pageable);
     List<Post> findAllByTitleContainsOrContentContainsOrderByIdDesc(String title,String content,Pageable pageable);
-    List<Post> countAllByTitleContainsOrContentContainsOrderByIdDesc(String title,String content,Pageable pageable);
+    Long countAllByTitleContainsOrContentContains(String title,String content);
 
     List<Post> findAllByTitleContainsOrContentContains(String title,String content,Pageable pageable);
-    List<Post> countAllByTitleContainsOrContentContains(String title,String content,Pageable pageable);
+
 
 }

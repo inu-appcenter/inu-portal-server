@@ -1,10 +1,7 @@
 package kr.inuappcenterportal.inuportal.service;
 
 import kr.inuappcenterportal.inuportal.domain.*;
-import kr.inuappcenterportal.inuportal.dto.FolderDto;
-import kr.inuappcenterportal.inuportal.dto.FolderPostDto;
-import kr.inuappcenterportal.inuportal.dto.FolderResponseDto;
-import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
+import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.*;
@@ -83,12 +80,13 @@ public class FolderService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostInFolder(Long folderId, String sort,int page) {
+    public ListResponseDto getPostInFolder(Long folderId, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
         List<PostListResponseDto> folderDto = folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).collect(Collectors.toList());
         page--;
         int startIndex = 0;
         int endIndex = 0;
+        long pages = (long)Math.ceil( (double) folderDto.size() /5);
         if(page*5>folderDto.size()){
             folderDto.clear();
         }
@@ -96,7 +94,7 @@ public class FolderService {
             startIndex = page*5;
             endIndex  = Math.min((page + 1) * 5, folderDto.size());
         }
-        return postService.postListSort(folderDto,sort).subList(startIndex,endIndex);
+        return ListResponseDto.of(pages,postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
     }
 
 

@@ -13,14 +13,21 @@ import java.util.List;
 public class ListResponseDto {
 
     @Schema(description = "총 페이지 수")
-    private Integer pages;
+    private Long pages;
 
     @Schema(description = "게시글 리스트")
     private List<PostListResponseDto> posts;
 
     @Builder
-    public ListResponseDto(int pages, List<PostListResponseDto> posts){
+    private ListResponseDto(long pages, List<PostListResponseDto> posts){
         this.pages = pages;
         this.posts = posts;
+    }
+
+    public static ListResponseDto of(long pages, List<PostListResponseDto> posts){
+        return ListResponseDto.builder()
+                .pages(pages)
+                .posts(posts)
+                .build();
     }
 }
