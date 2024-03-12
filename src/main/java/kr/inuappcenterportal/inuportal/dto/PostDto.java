@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -17,10 +18,12 @@ public class PostDto {
 
     @Schema(description = "제목",example = "제목")
     @NotBlank
+    @Max(255)
     private String title;
 
     @Schema(description = "내용",example = "내용")
     @NotBlank
+    @Max(2000)
     private String content;
 
     @Schema(description = "카테고리",allowableValues = {"수강신청","도서관","대학생활","기숙사","동아리","학사","국제교류원","장학금"})

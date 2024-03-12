@@ -153,7 +153,7 @@ public class PostController {
         return new ResponseEntity<>(new ResponseDto<>(postService.scrapPost(memberId,postId),"스크랩 여부 변경 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "모든 게시글 가져오기",description = "모든 게시글은 최신순으로 보내집니다. 카테고리(공백일 시 모든 게시글), 정렬기준 sort(date/공백(최신순), like, view, date), 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "모든 게시글 가져오기",description = "모든 게시글은 최신순으로 보내집니다. 카테고리(공백일 시 모든 게시글), 정렬기준 sort(date/공백(최신순), like, scrap), 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
