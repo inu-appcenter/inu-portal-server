@@ -95,7 +95,7 @@ public class NoticeService {
                         .url("www.inu.ac.kr/inu/"+category+"/subview.do?enc="+encoding(baseUrl))
                         .writer(ele.select("td.td-write").text())
                         .date(ele.select("td.td-date").text())
-                        .view(Integer.parseInt(ele.select("td.td-access").text()))
+                        .view(Long.parseLong(ele.select("td.td-access").text()))
                         .build());
             }
             i++;

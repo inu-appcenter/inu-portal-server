@@ -17,7 +17,7 @@ public class ReplyListResponseDto {
     @Schema(description = "댓글의 내용")
     private String content;
     @Schema(description = "좋아요")
-    private int like;
+    private Long like;
     @Schema(description = "이 댓글이 달린 게시글의 데이터베이스 id값")
     private Long postId;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
@@ -29,7 +29,7 @@ public class ReplyListResponseDto {
     public ReplyListResponseDto(Reply reply){
         this.id = reply.getId();
         this.content = reply.getContent();
-        this.like = reply.getLikeReplies().size();
+        this.like = (long)reply.getLikeReplies().size();
         this.postId = reply.getPost().getId();
         this.createDate = reply.getCreateDate();
         this.modifiedDate = reply.getModifiedDate();

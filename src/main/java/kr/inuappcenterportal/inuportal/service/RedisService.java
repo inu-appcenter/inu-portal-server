@@ -94,7 +94,7 @@ public class RedisService {
         return image;
     }
 
-    public void updateImage(Long postId, List<MultipartFile> images, Integer imageCount) throws IOException {
+    public void updateImage(Long postId, List<MultipartFile> images, long imageCount) throws IOException {
         for(int i = 0 ; i<imageCount;i++){
             String key = postId + "-" + (i+1);
             redisTemplateForImage.delete(key);
@@ -106,7 +106,7 @@ public class RedisService {
         }
     }
 
-    public void deleteImage(Long postId, Integer imageCount){
+    public void deleteImage(Long postId, long imageCount){
         for(int i = 0 ; i<imageCount;i++){
             String key = postId + "-" + (i+1);
             log.info("이미지 삭제 key:{}",key);

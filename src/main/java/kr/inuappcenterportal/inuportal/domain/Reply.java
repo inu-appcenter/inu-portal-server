@@ -27,7 +27,7 @@ public class Reply extends BaseTimeEntity{
     private Boolean isDeleted;
 
     @Column
-    private Integer number;
+    private Long number;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name ="post_id")
@@ -47,7 +47,7 @@ public class Reply extends BaseTimeEntity{
     private Reply reply;
 
     @Builder
-    public Reply(String content, Post post, Boolean anonymous, Member member, Reply reply,int number){
+    public Reply(String content, Post post, boolean anonymous, Member member, Reply reply,long number){
         this.content = content;
         this.post = post;
         this.member = member;
@@ -57,7 +57,7 @@ public class Reply extends BaseTimeEntity{
         this.number = number;
     }
 
-    public void update(String content, Boolean anonymous){
+    public void update(String content, boolean anonymous){
         this.content =content;
         this.anonymous =anonymous;
     }

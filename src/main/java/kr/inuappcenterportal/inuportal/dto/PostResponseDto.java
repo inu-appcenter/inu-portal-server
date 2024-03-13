@@ -23,9 +23,9 @@ public class PostResponseDto {
     @Schema(description = "내용", example = "내용")
     private String content;
     @Schema(description = "좋아요")
-    private int like;
+    private Long like;
     @Schema(description = "스크랩")
-    private int scrap;
+    private Long scrap;
     @Schema(description = "조회수")
     private Long view;
     @Schema(description = "좋아요 여부",example = "false")
@@ -39,7 +39,7 @@ public class PostResponseDto {
     @Schema(description = "수정일",example = "yyyy-mm-dd")
     private LocalDate modifiedDate;
     @Schema(description = "이미지 갯수")
-    private Integer imageCount;
+    private Long imageCount;
     @Schema(description = "베스트 댓글")
     private List<ReReplyResponseDto> bestReplies;
     @Schema(description = "댓글",example = "댓글들")
@@ -47,7 +47,7 @@ public class PostResponseDto {
 
 
     @Builder
-    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,Boolean isLiked, Boolean isScraped, Long view,Integer imageCount,Boolean hasAuthority){
+    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
         this.id = id;
         this.title = title;
         this.category = category;

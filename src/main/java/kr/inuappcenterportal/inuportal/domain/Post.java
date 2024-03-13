@@ -32,13 +32,19 @@ public class Post extends BaseTimeEntity {
     private Boolean anonymous;
 
     @Column
-    private Integer number;
+    private Long number;
+
+    @Column
+    private Long good;
+
+    @Column
+    private Long scrap;
 
     @Column
     private Long view;
 
     @Column
-    private Integer imageCount;
+    private Long imageCount;
 
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
@@ -59,18 +65,20 @@ public class Post extends BaseTimeEntity {
     private Member member;
 
     @Builder
-    public Post(String title, String content, String category, Boolean anonymous, Member member, Integer imageCount){
+    public Post(String title, String content, String category, boolean anonymous, Member member, long imageCount){
         this.title = title;
         this.content = content;
         this.category = category;
         this.anonymous = anonymous;
         this.member = member;
         this.view = 0L;
-        this.number = 0;
+        this.number = 0L;
         this.imageCount = imageCount;
+        this.good = 0L;
+        this.scrap = 0L;
     }
 
-    public void updateOnlyPost(String title, String content, String category, Boolean anonymous){
+    public void updateOnlyPost(String title, String content, String category, boolean anonymous){
         this.title = title;
         this.content = content;
         this.category = category;
@@ -82,10 +90,26 @@ public class Post extends BaseTimeEntity {
 
     public void upViewCount(){this.view++;}
 
-    public void updateImageCount(Integer imageCount){
+    public void updateImageCount(long imageCount){
         this.imageCount = imageCount;
-
     }
+
+    public void upLike(){
+        this.good++;
+    }
+
+    public void downLike(){
+        this.good--;
+    }
+
+    public void upScrap(){
+        this.scrap++;
+    }
+
+    public void downScrap(){
+        this.scrap--;
+    }
+
 
 
 }

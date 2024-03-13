@@ -36,7 +36,7 @@ public class PostDto {
     private Boolean anonymous;
 
     @Builder
-    public PostDto(String title, String content, String category, Boolean anonymous, List<MultipartFile> images){
+    public PostDto(String title, String content, String category, boolean anonymous){
         this.title = title;
         this.content = content;
         this.category = category;

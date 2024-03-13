@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,7 +47,7 @@ public class PostService {
         if(!post.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
-        int imageCount;
+        long imageCount;
         if(imageDto==null){
             imageCount = 0;
         }
@@ -148,36 +149,71 @@ public class PostService {
     @Transactional(readOnly = true)
     public ListResponseDto getAllPost(String category, String sort, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
+        List<PostListResponseDto> posts = new ArrayList<>();
+        long pages;
         if(category==null){
-            List<PostListResponseDto> posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
+            if(sort==null||sort.equals("date")) {
+                posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
                         .map(this::getPostListResponseDto)
                         .collect(Collectors.toList());
-            return ListResponseDto.of((long)Math.ceil((double) postRepository.count() /8), postListSort(posts, sort));
+            }
+            else if(sort.equals("like")){
+                posts = postRepository.findAllByOrderByGoodDescIdDesc(pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
+            else if(sort.equals("scrap")){
+                posts = postRepository.findAllByOrderByScrapDescIdDesc(pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
+            else{
+                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
+            }
+            pages = (long)Math.ceil((double)postRepository.count()/8);
         }
         else{
             if(!categoryRepository.existsByCategory(category)){
                 throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
-            List<PostListResponseDto> posts = postRepository.findAllByCategoryOrderByIdDesc(category, pageable).stream()
+            if(sort==null||sort.equals("date")) {
+                posts = postRepository.findAllByCategoryOrderByIdDesc(category, pageable).stream()
                         .map(this::getPostListResponseDto)
                         .collect(Collectors.toList());
-            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByCategory(category)/8), postListSort(posts, sort));
+            }
+            else if(sort.equals("like")){
+                posts = postRepository.findAllByCategoryOrderByGoodDescIdDesc(category,pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
+            else if(sort.equals("scrap")){
+                posts = postRepository.findAllByCategoryOrderByScrapDescIdDesc(category,pageable).stream()
+                        .map(this::getPostListResponseDto)
+                        .collect(Collectors.toList());
+            }
+            else{
+                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
+            }
+            pages = (long)Math.ceil((double)postRepository.countAllByCategory(category)/8);
         }
+        return ListResponseDto.of(pages, posts);
     }
 
 
     @Transactional
     public int likePost(Long memberId, Long postId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdWithLock(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(likePostRepository.existsByMemberAndPost(member,post)){
-            PostLike postLike = likePostRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));;
+            PostLike postLike = likePostRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));
             likePostRepository.delete(postLike);
+            post.downLike();
             return -1;
         }
         else {
             PostLike postLike = PostLike.builder().member(member).post(post).build();
             likePostRepository.save(postLike);
+            post.upLike();
             return 1;
         }
     }
@@ -185,15 +221,17 @@ public class PostService {
     @Transactional
     public int scrapPost(Long memberId, Long postId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdWithLock(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(scrapRepository.existsByMemberAndPost(member,post)){
             Scrap scrap = scrapRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));
             scrapRepository.delete(scrap);
+            post.downScrap();
             return -1;
         }
         else{
             Scrap scrap = Scrap.builder().member(member).post(post).build();
             scrapRepository.save(scrap);
+            post.upScrap();
             return 1;
         }
     }
@@ -209,10 +247,15 @@ public class PostService {
                     .collect(Collectors.toList());
         }
         else if(sort.equals("like")){
-            return postRepository.findAllByMemberOrderByIdDesc(member,pageable)
+            return postRepository.findAllByMemberOrderByGoodDescIdDesc(member,pageable)
                     .stream()
                     .map(this::getPostListResponseDto)
-                    .sorted(Comparator.comparing(PostListResponseDto::getLike).reversed())
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("scrap")){
+            return postRepository.findAllByMemberOrderByScrapDescIdDesc(member,pageable)
+                    .stream()
+                    .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());
         }
         else{
@@ -262,11 +305,11 @@ public class PostService {
             return posts;
         }
         else if(sort.equals("like")){
-            posts.sort((o1, o2) -> o2.getLike() - o1.getLike());
+            posts.sort((o1, o2) -> o2.getLike().intValue() - o1.getLike().intValue());
             return posts;
         }
         else if(sort.equals("scrap")){
-            posts.sort((o1, o2) -> o2.getScrap()-o1.getScrap());
+            posts.sort((o1, o2) -> o2.getScrap().intValue()-o1.getScrap().intValue());
             return posts;
         }
         else{
@@ -297,9 +340,9 @@ public class PostService {
         if (sort == null||sort.equals("date")) {
             return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8),postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else if (sort.equals("like")) {
-            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8), postRepository.findAllByTitleContainsOrContentContains(query,query,pageable).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getLike).reversed()).collect(Collectors.toList()));
+            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8), postRepository.findAllByTitleContainsOrContentContainsOrderByGoodDescIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else if (sort.equals("scrap")) {
-            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8), postRepository.findAllByTitleContainsOrContentContains(query,query,pageable).stream().map(this::getPostListResponseDto).sorted(Comparator.comparingInt(PostListResponseDto::getScrap).reversed()).collect(Collectors.toList()));
+            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8), postRepository.findAllByTitleContainsOrContentContainsOrderByScrapDescIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else {
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }

@@ -23,18 +23,18 @@ public class PostListResponseDto {
     @Schema(description = "내용",example = "내용")
     private String content;
     @Schema(description = "좋아요")
-    private int like;
+    private Long like;
     @Schema(description = "스크랩")
-    private int scrap;
+    private Long scrap;
     @Schema(description = "이미지수")
-    private int imageCount;
+    private Long imageCount;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
     private LocalDate modifiedDate;
 
     @Builder
-    private PostListResponseDto(Long id, String title, String category, String writer,String content, LocalDate createDate, LocalDate modifiedDate, int like, int scrap,int imageCount){
+    private PostListResponseDto(Long id, String title, String category, String writer,String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap, long imageCount){
         this.id = id;
         this.title = title;
         this.category = category;

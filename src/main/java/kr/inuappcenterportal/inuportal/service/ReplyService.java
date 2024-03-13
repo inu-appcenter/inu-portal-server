@@ -30,7 +30,7 @@ public class ReplyService {
     public Long saveReply(Long memberId, ReplyDto replyDto, Long postId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        int num = countNumber(member,post);
+        long num = countNumber(member,post);
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
         replyRepository.save(reply);
         return reply.getId();
@@ -44,14 +44,14 @@ public class ReplyService {
             throw new MyException(MyErrorCode.NOT_REPLY_ON_REREPLY);
         }
         Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        int num = countNumber(member,post);
+        long num = countNumber(member,post);
         Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
         return replyRepository.save(reReply).getId();
     }
 
     @Transactional
-    public int countNumber(Member member, Post post){
-        int num = 0;
+    public long countNumber(Member member, Post post){
+        long num = 0;
         if(post.getMember()!=null) {
             if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
                 Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyException(MyErrorCode.REPLY_NOT_FOUND));

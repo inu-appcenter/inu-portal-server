@@ -26,7 +26,7 @@ public class NoticeListResponseDto {
     @Schema(description = "작성일",example = "작성일")
     private String date;
     @Schema(description = "조회수")
-    private Integer view;
+    private Long view;
 
     @Schema(description = "링크 url",example = "url")
     private String url;

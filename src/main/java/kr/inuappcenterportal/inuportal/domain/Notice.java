@@ -27,13 +27,13 @@ public class Notice {
     @Column
     private String date;
 
-    @Column Integer view;
+    @Column Long view;
 
     @Column(length = 512)
     private String url;
 
     @Builder
-    public Notice(String category, String title, String writer, String date, String url,Integer view){
+    public Notice(String category, String title, String writer, String date, String url,long view){
         this.category = category;
         this.title = title;
         this.writer = writer;
