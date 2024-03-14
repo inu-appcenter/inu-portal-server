@@ -149,7 +149,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public ListResponseDto getAllPost(String category, String sort, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
-        List<PostListResponseDto> posts = new ArrayList<>();
+        List<PostListResponseDto> posts;
         long pages;
         if(category==null){
             if(sort==null||sort.equals("date")) {

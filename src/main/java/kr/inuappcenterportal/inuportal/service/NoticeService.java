@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.service;
 import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.domain.Notice;
 import kr.inuappcenterportal.inuportal.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.dto.NoticePageResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.NoticeRepository;
@@ -12,6 +13,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -106,27 +110,34 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
-    public List<NoticeListResponseDto> getNoticeList(String category, String sort){
+    public NoticePageResponseDto getNoticeList(String category, String sort, int page){
+        Pageable pageable = PageRequest.of(page>0?--page:page,8);
+        List<NoticeListResponseDto> notices;
+        long pages;
         if(category==null) {
             if (sort == null||sort.equals("date")) {
-                return noticeRepository.findAllByOrderByDateDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices =  noticeRepository.findAllByOrderByDateDesc(pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             } else if (sort.equals("view")) {
-                return noticeRepository.findAllByOrderByViewDesc().stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices = noticeRepository.findAllByOrderByViewDesc(pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             } else {
                 throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
+            pages = (long)Math.ceil((double)noticeRepository.count()/8);
         }
         else{
             if(sort==null||sort.equals("date")) {
-                return noticeRepository.findAllByCategory(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices = noticeRepository.findAllByCategory(category, pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             }
             else if(sort.equals("view")){
-                return noticeRepository.findAllByCategoryOrderByViewDesc(category).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices = noticeRepository.findAllByCategoryOrderByViewDesc(category, pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
             }
             else{
                 throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
+            pages = (long)Math.ceil((double)noticeRepository.countAllByCategory(category)/8);
+
         }
+        return NoticePageResponseDto.of(pages,notices);
     }
 
 
