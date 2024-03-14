@@ -16,8 +16,12 @@ public class FolderResponseDto {
     private String name;
 
     @Builder
-    public FolderResponseDto(Folder folder){
+    private FolderResponseDto(Folder folder){
         this.id = folder.getId();
         this.name = folder.getName();
+    }
+
+    public static FolderResponseDto of(Folder folder){
+        return FolderResponseDto.builder().folder(folder).build();
     }
 }

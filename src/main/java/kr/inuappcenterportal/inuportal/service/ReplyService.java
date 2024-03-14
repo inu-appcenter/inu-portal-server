@@ -123,10 +123,10 @@ public class ReplyService {
     public List<ReplyListResponseDto> getReplyByMember(Long memberId,String sort){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(sort==null||sort.equals("date")) {
-            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::new).collect(Collectors.toList());
+            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::of).collect(Collectors.toList());
         }
         else if(sort.equals("like")){
-            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::new).sorted(Comparator.comparing(ReplyListResponseDto::getLike).reversed()).collect(Collectors.toList());
+            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::of).sorted(Comparator.comparing(ReplyListResponseDto::getLike).reversed()).collect(Collectors.toList());
         }
         else{
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
@@ -143,34 +143,13 @@ public class ReplyService {
                         String writer = writerName(reReply,post);
                         boolean isLiked = isLiked(member,reReply);
                         boolean hasAuthority = hasAuthority(member,reReply);
-                return ReReplyResponseDto.builder()
-                        .id(reReply.getId())
-                        .writer(writer)
-                        .content(reReply.getContent())
-                        .like(reReply.getLikeReplies().size())
-                        .createDate(reReply.getCreateDate())
-                        .modifiedDate(reReply.getModifiedDate())
-                        .isLiked(isLiked)
-                        .hasAuthority(hasAuthority)
-                        .isAnonymous(reReply.getAnonymous())
-                        .build();
+                return ReReplyResponseDto.of(reReply,writer,isLiked,hasAuthority);
             })
                     .collect(Collectors.toList());
                     String writer = writerName(reply,post);
                     boolean isLiked = isLiked(member,reply);
                     boolean hasAuthority = hasAuthority(member,reply);
-            return ReplyResponseDto.builder()
-                    .id(reply.getId())
-                    .writer(writer)
-                    .content(reply.getContent())
-                    .like(reply.getLikeReplies().size())
-                    .createDate(reply.getCreateDate())
-                    .modifiedDate(reply.getModifiedDate())
-                    .reReplies(reReplyResponseDtoList)
-                    .isLiked(isLiked)
-                    .isAnonymous(reply.getAnonymous())
-                    .hasAuthority(hasAuthority)
-                    .build();
+            return ReplyResponseDto.of(reply, writer,isLiked,hasAuthority,reReplyResponseDtoList);
 
         })
                 .collect(Collectors.toList());
@@ -221,7 +200,7 @@ public class ReplyService {
         List<Reply> list = replyRepository.findAllByPost(post);
         List<Reply> likeList= new ArrayList<>();
         for(Reply reply:list){
-            if(reply.getLikeReplies().size()>0){
+            if(!reply.getLikeReplies().isEmpty()){
                 likeList.add(reply);
             }
         }
@@ -235,17 +214,7 @@ public class ReplyService {
             String writer = writerName(reply,post);
             boolean isLiked = isLiked(member,reply);
             boolean hasAuthority = hasAuthority(member,reply);
-            bestReplies.add(ReReplyResponseDto.builder()
-                    .id(reply.getId())
-                    .writer(writer)
-                    .content(reply.getContent())
-                    .like(reply.getLikeReplies().size())
-                    .createDate(reply.getCreateDate())
-                    .modifiedDate(reply.getModifiedDate())
-                    .isLiked(isLiked)
-                    .isAnonymous(reply.getAnonymous())
-                    .hasAuthority(hasAuthority)
-                    .build());
+            bestReplies.add(ReReplyResponseDto.of(reply,writer,isLiked,hasAuthority));
 
         }
         return bestReplies;

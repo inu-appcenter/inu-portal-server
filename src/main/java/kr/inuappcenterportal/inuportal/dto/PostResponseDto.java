@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.Post;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,7 +48,7 @@ public class PostResponseDto {
 
 
     @Builder
-    public PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
+    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -64,6 +65,27 @@ public class PostResponseDto {
         this.view = view;
         this.imageCount = imageCount;
         this.hasAuthority =hasAuthority;
+    }
+
+    public static PostResponseDto of(Post post,String writer, boolean isLiked, boolean isScraped, boolean hasAuthority, List<ReplyResponseDto> replies , List<ReReplyResponseDto> bestReplies){
+        return PostResponseDto.builder()
+                .id(post.getId())
+                .replies(replies)
+                .bestReplies(bestReplies)
+                .createDate(post.getCreateDate())
+                .modifiedDate(post.getModifiedDate())
+                .category(post.getCategory())
+                .writer(writer)
+                .title(post.getTitle())
+                .content(post.getContent())
+                .like(post.getPostLikes().size())
+                .scrap(post.getScraps().size())
+                .isLiked(isLiked)
+                .isScraped(isScraped)
+                .hasAuthority(hasAuthority)
+                .view(post.getView())
+                .imageCount(post.getImageCount())
+                .build();
     }
 
 }

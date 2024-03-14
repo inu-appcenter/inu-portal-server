@@ -26,12 +26,16 @@ public class ReplyListResponseDto {
     private LocalDate modifiedDate;
 
     @Builder
-    public ReplyListResponseDto(Reply reply){
+    private ReplyListResponseDto(Reply reply){
         this.id = reply.getId();
         this.content = reply.getContent();
         this.like = (long)reply.getLikeReplies().size();
         this.postId = reply.getPost().getId();
         this.createDate = reply.getCreateDate();
         this.modifiedDate = reply.getModifiedDate();
+    }
+
+    public static ReplyListResponseDto of(Reply reply){
+        return ReplyListResponseDto.builder().reply(reply).build();
     }
 }

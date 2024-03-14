@@ -125,24 +125,7 @@ public class PostService {
             }
         }
 
-        return PostResponseDto.builder()
-                .id(post.getId())
-                .replies(replyService.getReplies(postId,memberId))
-                .bestReplies(replyService.getBestReplies(postId,memberId))
-                .createDate(post.getCreateDate())
-                .modifiedDate(post.getModifiedDate())
-                .category(post.getCategory())
-                .writer(writer)
-                .title(post.getTitle())
-                .content(post.getContent())
-                .like(post.getPostLikes().size())
-                .scrap(post.getScraps().size())
-                .isLiked(isLiked)
-                .isScraped(isScraped)
-                .hasAuthority(hasAuthority)
-                .view(post.getView())
-                .imageCount(post.getImageCount())
-                .build();
+        return  PostResponseDto.of(post,writer,isLiked,isScraped,hasAuthority,replyService.getReplies(postId,memberId),replyService.getBestReplies(postId,memberId));
     }
 
 

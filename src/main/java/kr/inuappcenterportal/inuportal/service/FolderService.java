@@ -45,7 +45,7 @@ public class FolderService {
 
     @Transactional
     public Long insertInFolder(Long folderId, FolderPostDto folderPostDto){
-        if(folderPostDto.getPostId().size()==0){
+        if(folderPostDto.getPostId().isEmpty()){
             throw new MyException(MyErrorCode.POST_SCRAP_LIST_NOT_FOUND);
         }
         Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyException(MyErrorCode.FOLDER_NOT_FOUND));
@@ -63,7 +63,7 @@ public class FolderService {
 
     @Transactional
     public void deleteInFolder(Long folderId, FolderPostDto folderPostDto){
-        if(folderPostDto.getPostId().size()==0){
+        if(folderPostDto.getPostId().isEmpty()){
             throw new MyException(MyErrorCode.POST_SCRAP_LIST_NOT_FOUND);
         }
         Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyException(MyErrorCode.FOLDER_NOT_FOUND));
@@ -76,7 +76,7 @@ public class FolderService {
     @Transactional(readOnly = true)
     public List<FolderResponseDto> getFolder(Long memberId){
         Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
-        return folderRepository.findAllByMember(member).stream().map(FolderResponseDto::new).collect(Collectors.toList());
+        return folderRepository.findAllByMember(member).stream().map(FolderResponseDto::of).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

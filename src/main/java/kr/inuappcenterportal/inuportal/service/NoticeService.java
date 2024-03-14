@@ -116,9 +116,9 @@ public class NoticeService {
         long pages;
         if(category==null) {
             if (sort == null||sort.equals("date")) {
-                notices =  noticeRepository.findAllByOrderByDateDesc(pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices =  noticeRepository.findAllByOrderByDateDesc(pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
             } else if (sort.equals("view")) {
-                notices = noticeRepository.findAllByOrderByViewDesc(pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices = noticeRepository.findAllByOrderByViewDesc(pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
             } else {
                 throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
@@ -126,10 +126,10 @@ public class NoticeService {
         }
         else{
             if(sort==null||sort.equals("date")) {
-                notices = noticeRepository.findAllByCategory(category, pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices = noticeRepository.findAllByCategory(category, pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
             }
             else if(sort.equals("view")){
-                notices = noticeRepository.findAllByCategoryOrderByViewDesc(category, pageable).stream().map(NoticeListResponseDto::new).collect(Collectors.toList());
+                notices = noticeRepository.findAllByCategoryOrderByViewDesc(category, pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
             }
             else{
                 throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
@@ -148,7 +148,7 @@ public class NoticeService {
         public boolean isAMonthAgo(String date){
             LocalDate currentDate = LocalDate.now();
             LocalDate formedDate = LocalDate.parse(date,DateTimeFormatter.ofPattern("yyyy.MM.dd"));
-            LocalDate oneMonthAgo = currentDate.minus(1, ChronoUnit.MONTHS);
+            LocalDate oneMonthAgo = currentDate.minusMonths(1);
             return formedDate.isBefore(oneMonthAgo);
         }
 

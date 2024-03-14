@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.Reply;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,7 +35,7 @@ public class ReplyResponseDto {
     private List<ReReplyResponseDto> reReplies;
 
     @Builder
-    public ReplyResponseDto(Long id, String writer, String content, long like, LocalDate createDate, LocalDate modifiedDate, List<ReReplyResponseDto> reReplies, boolean isLiked,boolean isAnonymous,boolean hasAuthority){
+    private ReplyResponseDto(Long id, String writer, String content, long like, LocalDate createDate, LocalDate modifiedDate, List<ReReplyResponseDto> reReplies, boolean isLiked,boolean isAnonymous,boolean hasAuthority){
         this.id = id;
         this.writer =writer;
         this.content =content;
@@ -45,6 +46,21 @@ public class ReplyResponseDto {
         this.isLiked = isLiked;
         this.isAnonymous = isAnonymous;
         this.hasAuthority = hasAuthority;
+    }
+
+    public static ReplyResponseDto of(Reply reply, String writer, boolean isLiked, boolean hasAuthority,List<ReReplyResponseDto> reReplyResponseDtoList){
+        return ReplyResponseDto.builder()
+                .id(reply.getId())
+                .writer(writer)
+                .content(reply.getContent())
+                .like(reply.getLikeReplies().size())
+                .createDate(reply.getCreateDate())
+                .modifiedDate(reply.getModifiedDate())
+                .reReplies(reReplyResponseDtoList)
+                .isLiked(isLiked)
+                .isAnonymous(reply.getAnonymous())
+                .hasAuthority(hasAuthority)
+                .build();
     }
 
 }

@@ -31,7 +31,7 @@ public class ReReplyResponseDto {
     private LocalDate modifiedDate;
 
     @Builder
-    public ReReplyResponseDto(Long id, String writer, String content, long like, LocalDate createDate, LocalDate modifiedDate,boolean isLiked, boolean isAnonymous, boolean hasAuthority ){
+    private ReReplyResponseDto(Long id, String writer, String content, long like, LocalDate createDate, LocalDate modifiedDate,boolean isLiked, boolean isAnonymous, boolean hasAuthority ){
         this.id = id;
         this.writer =writer;
         this.content = content;
@@ -42,6 +42,24 @@ public class ReReplyResponseDto {
         this.isAnonymous = isAnonymous;
         this.hasAuthority = hasAuthority;
     }
+
+    public static ReReplyResponseDto of(Reply reReply, String writer, boolean isLiked, boolean hasAuthority)
+    {
+        return ReReplyResponseDto.builder()
+                .id(reReply.getId())
+                .writer(writer)
+                .content(reReply.getContent())
+                .like(reReply.getLikeReplies().size())
+                .createDate(reReply.getCreateDate())
+                .modifiedDate(reReply.getModifiedDate())
+                .isLiked(isLiked)
+                .hasAuthority(hasAuthority)
+                .isAnonymous(reReply.getAnonymous())
+                .build();
+    }
+
+
+
 
 
 }

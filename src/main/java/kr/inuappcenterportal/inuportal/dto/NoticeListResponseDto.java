@@ -32,7 +32,7 @@ public class NoticeListResponseDto {
     private String url;
 
     @Builder
-    public NoticeListResponseDto(Notice notice){
+    private NoticeListResponseDto(Notice notice){
         this.id =notice.getId();
         this.category = notice.getCategory();
         this.title = notice.getTitle();
@@ -40,5 +40,9 @@ public class NoticeListResponseDto {
         this.date = notice.getDate();
         this.view = notice.getView();
         this.url = notice.getUrl();
+    }
+
+    public static NoticeListResponseDto of(Notice notice){
+        return  NoticeListResponseDto.builder().notice(notice).build();
     }
 }
