@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.NoticePageResponseDto;
+import kr.inuappcenterportal.inuportal.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.service.NoticeService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,15 @@ public class NoticeController {
     , @RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         log.info("모든 공지사항 가져오기 호출");
         return new ResponseEntity<>(new ResponseDto<>(noticeService.getNoticeList(category, sort,page),"모든 공지사항 가져오기 성공"), HttpStatus.OK);
+    }
+
+    @Operation(summary = "상단부 인기 공지 12개 가져오기")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "인기 공지 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+    })
+    @GetMapping("/top")
+    public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getPostForTop( ){
+        return new ResponseEntity<>(new ResponseDto<>(noticeService.getTop(),"인기 공지 가져오기 성공"),HttpStatus.OK);
     }
 
 }

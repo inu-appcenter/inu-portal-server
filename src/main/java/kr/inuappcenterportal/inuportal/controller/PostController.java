@@ -160,7 +160,7 @@ public class PostController {
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<ListResponseDto>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false) String sort
-            ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
+            ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page ){
         return new ResponseEntity<>(new ResponseDto<>(postService.getAllPost(category, sort,page),"모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
@@ -176,6 +176,15 @@ public class PostController {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.IMAGE_PNG);
         return new ResponseEntity<>(redisService.findImages(postId, imageId),httpHeaders,HttpStatus.OK);
+    }
+
+    @Operation(summary = "상단부 인기 게시글 12개 가져오기")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "인기 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+    })
+    @GetMapping("/top")
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForTop( ){
+        return new ResponseEntity<>(new ResponseDto<>(postService.getTop(),"인기 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
 }

@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.repository;
 
 import kr.inuappcenterportal.inuportal.domain.Notice;
+import kr.inuappcenterportal.inuportal.domain.Post;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -27,4 +28,6 @@ public interface NoticeRepository extends JpaRepository<Notice,Long> {
     Long countAllByCategory(String category);
 
     long count();
+    @Query("SELECT n FROM Notice n  ORDER BY n.view DESC LIMIT 12")
+    List<Notice> findTop12();
 }

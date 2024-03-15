@@ -331,4 +331,9 @@ public class PostService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> getTop(){
+        return postRepository.findTop12().stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+    }
+
 }

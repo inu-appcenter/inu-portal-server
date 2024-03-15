@@ -140,17 +140,22 @@ public class NoticeService {
         return NoticePageResponseDto.of(pages,notices);
     }
 
+    @Transactional(readOnly = true)
+    public List<NoticeListResponseDto> getTop(){
+        return noticeRepository.findTop12().stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
+    }
+
 
     public String encoding(String baseUrl)  {
         return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
     }
 
-        public boolean isAMonthAgo(String date){
-            LocalDate currentDate = LocalDate.now();
-            LocalDate formedDate = LocalDate.parse(date,DateTimeFormatter.ofPattern("yyyy.MM.dd"));
-            LocalDate oneMonthAgo = currentDate.minusMonths(1);
-            return formedDate.isBefore(oneMonthAgo);
-        }
+    public boolean isAMonthAgo(String date){
+        LocalDate currentDate = LocalDate.now();
+        LocalDate formedDate = LocalDate.parse(date,DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        LocalDate oneMonthAgo = currentDate.minusMonths(1);
+        return formedDate.isBefore(oneMonthAgo);
+    }
 
 
 }
