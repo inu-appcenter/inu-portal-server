@@ -97,6 +97,24 @@ public class FolderService {
         return ListResponseDto.of(pages,postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
     }
 
+    @Transactional(readOnly = true)
+    public ListResponseDto searchPostInFolder(Long folderId, String query, String sort, int page) {
+        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
+        List<PostListResponseDto> folderDto = folderPostRepository.searchInFolder(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).collect(Collectors.toList());
+        page--;
+        int startIndex = 0;
+        int endIndex = 0;
+        long pages = (long)Math.ceil( (double) folderDto.size() /5);
+        if(page*5>folderDto.size()){
+            folderDto.clear();
+        }
+        else{
+            startIndex = page*5;
+            endIndex  = Math.min((page + 1) * 5, folderDto.size());
+        }
+        return ListResponseDto.of(pages,postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
+    }
+
 
 
 }
