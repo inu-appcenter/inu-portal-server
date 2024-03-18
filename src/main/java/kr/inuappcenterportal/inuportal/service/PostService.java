@@ -336,4 +336,29 @@ public class PostService {
         return postRepository.findTop12().stream().map(this::getPostListResponseDto).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public ListResponseDto searchInScrap(Long memberId, String query,int page, String sort){
+        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        List<PostListResponseDto> scraps = scrapRepository.searchScrap(member,query).stream()
+                .map(scrap -> {
+                    Post post = scrap.getPost();
+                    return getPostListResponseDto(post);
+                })
+                .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
+                .collect(Collectors.toList());
+
+        page--;
+        int startIndex = 0;
+        int endIndex = 0;
+        long pages = (long)Math.ceil( (double) scraps.size() /5);
+        if(page*5>scraps.size()){
+            scraps.clear();
+        }
+        else{
+            startIndex = page*5;
+            endIndex  = Math.min((page + 1) * 5, scraps.size());
+        }
+        return  ListResponseDto.of(pages,postListSort(scraps,sort).subList(startIndex,endIndex));
+    }
+
 }
