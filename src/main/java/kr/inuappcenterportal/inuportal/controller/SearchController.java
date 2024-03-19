@@ -46,7 +46,7 @@ public class SearchController {
         return new ResponseEntity<>(new ResponseDto<>(postService.searchPost(query,sort,page),"게시글 검색 성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "스크랩 게시글 검색",description = "url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,scrap)를, 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "스크랩 게시글 검색",description = "url 헤더에 Auth 토큰, url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,scrap)를, 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "스크랩 게시글 검색 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다. / 검색옵션이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
@@ -59,7 +59,7 @@ public class SearchController {
         return new ResponseEntity<>(new ResponseDto<>(postService.searchInScrap(id,query,page,sort),"스크랩 게시글 검색 성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "스크랩 폴더에서 게시글 검색",description = "url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,scrap)를, 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "스크랩 폴더에서 게시글 검색",description = "url 경로에 폴더의 id, url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,scrap)를, 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "스크랩 폴더에서 게시글 검색 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class))),
             @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다. / 검색옵션이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
