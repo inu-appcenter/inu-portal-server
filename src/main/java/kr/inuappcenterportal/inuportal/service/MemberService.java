@@ -27,16 +27,19 @@ public class MemberService {
 
     @Transactional
     public Long join(MemberSaveDto memberSaveDto){
+        if(!redisService.getIsChecked(memberSaveDto.getEmail())){
+            throw new MyException(MyErrorCode.EMAIL_NOT_AUTHORIZATION);
+        }
         if(!checkSchoolEmail(memberSaveDto.getEmail())){
             throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
         }
-        String encodedPassword = passwordEncoder.encode(memberSaveDto.getPassword());
         if(memberRepository.existsByEmail(memberSaveDto.getEmail())){
             throw new MyException(MyErrorCode.USER_DUPLICATE_EMAIL);
         }
         if(memberRepository.existsByNickname(memberSaveDto.getNickname())){
             throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
         }
+        String encodedPassword = passwordEncoder.encode(memberSaveDto.getPassword());
         Member member= Member.builder().email(memberSaveDto.getEmail()).nickname(memberSaveDto.getNickname()).password(encodedPassword).roles(Collections.singletonList("ROLE_USER")).build();
         return memberRepository.save(member).getId();
     }
@@ -129,7 +132,11 @@ public class MemberService {
     }
 
     public Boolean checkNumbers(EmailCheckDto emailCheckDto){
-        return redisService.getNumbers(emailCheckDto.getEmail()).equals(emailCheckDto.getNumbers());
+        boolean isMatched = redisService.getNumbers(emailCheckDto.getEmail()).equals(emailCheckDto.getNumbers());
+        if(isMatched){
+            redisService.completeCheck(emailCheckDto.getEmail());
+        }
+        return isMatched;
     }
 
     public Boolean checkSchoolEmail(String email){

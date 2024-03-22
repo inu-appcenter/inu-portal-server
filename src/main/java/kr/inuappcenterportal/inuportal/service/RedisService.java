@@ -119,6 +119,22 @@ public class RedisService {
         redisTemplate.expire(email,30*60, TimeUnit.SECONDS);
     }
 
+    public void completeCheck(String email){
+        redisTemplate.opsForValue().set(email,"checked");
+        redisTemplate.expire(email,30*60, TimeUnit.SECONDS);
+    }
+
+    public boolean getIsChecked(String email){
+        if(redisTemplate.opsForValue().get(email)!=null&&redisTemplate.opsForValue().get(email).equals("checked")){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+
+
     public String getNumbers(String email){
         String numbers = redisTemplate.opsForValue().get(email);
         if(numbers==null){
