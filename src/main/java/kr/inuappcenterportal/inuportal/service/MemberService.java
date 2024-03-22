@@ -27,9 +27,9 @@ public class MemberService {
 
     @Transactional
     public Long join(MemberSaveDto memberSaveDto){
-        if(!redisService.getIsChecked(memberSaveDto.getEmail())){
+        /*if(!redisService.getIsChecked(memberSaveDto.getEmail())){
             throw new MyException(MyErrorCode.EMAIL_NOT_AUTHORIZATION);
-        }
+        }*/
         if(!checkSchoolEmail(memberSaveDto.getEmail())){
             throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
         }
