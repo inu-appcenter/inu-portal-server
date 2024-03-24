@@ -70,7 +70,7 @@ public class NoticeService {
         String url = "https://www.inu.ac.kr/inu/" + category + "/subview.do?enc=";
         int i = 1;
         boolean outLoop = false;
-        while (true) {
+        while (!outLoop) {
             String postUrl = "fnct1|@@|%2Fbbs%2Finu%2F2" + categoryNum  + "%2FartclList.do%3Fpage%3D" + i + "%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%267";
             String encodedUrl = url + encoding(postUrl);
             Document document = Jsoup.connect(encodedUrl).get();
@@ -103,9 +103,6 @@ public class NoticeService {
                         .build());
             }
             i++;
-            if(outLoop){
-                break;
-            }
         }
     }
 
