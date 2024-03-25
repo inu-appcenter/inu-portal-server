@@ -98,7 +98,7 @@ public class NoticeService {
                         .title(Objects.requireNonNull(Objects.requireNonNull(ele.select("td.td-subject").first()).selectFirst("strong").text()))
                         .url("www.inu.ac.kr/inu/"+category+"/subview.do?enc="+encoding(baseUrl))
                         .writer(ele.select("td.td-write").text())
-                        .date(ele.select("td.td-date").text())
+                        .createDate(ele.select("td.td-date").text())
                         .view(Long.parseLong(ele.select("td.td-access").text()))
                         .build());
             }
@@ -113,7 +113,7 @@ public class NoticeService {
         long pages;
         if(category==null) {
             if (sort == null||sort.equals("date")) {
-                notices =  noticeRepository.findAllByOrderByDateDesc(pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
+                notices =  noticeRepository.findAllByOrderByCreateDateDesc(pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
             } else if (sort.equals("view")) {
                 notices = noticeRepository.findAllByOrderByViewDesc(pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
             } else {

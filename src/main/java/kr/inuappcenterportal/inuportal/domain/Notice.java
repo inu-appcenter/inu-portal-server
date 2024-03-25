@@ -25,7 +25,7 @@ public class Notice {
     private String writer;
 
     @Column
-    private String date;
+    private String createDate;
 
     @Column Long view;
 
@@ -33,11 +33,11 @@ public class Notice {
     private String url;
 
     @Builder
-    public Notice(String category, String title, String writer, String date, String url,long view){
+    public Notice(String category, String title, String writer, String createDate, String url, long view){
         this.category = category;
         this.title = title;
         this.writer = writer;
-        this.date = date;
+        this.createDate = createDate;
         this.view = view;
         this.url = url;
     }

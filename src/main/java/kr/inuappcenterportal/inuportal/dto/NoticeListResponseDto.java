@@ -24,7 +24,7 @@ public class NoticeListResponseDto {
     private String writer;
 
     @Schema(description = "작성일",example = "작성일")
-    private String date;
+    private String createDate;
     @Schema(description = "조회수")
     private Long view;
 
@@ -37,7 +37,7 @@ public class NoticeListResponseDto {
         this.category = notice.getCategory();
         this.title = notice.getTitle();
         this.writer = notice.getWriter();
-        this.date = notice.getDate();
+        this.createDate = notice.getCreateDate();
         this.view = notice.getView();
         this.url = notice.getUrl();
     }

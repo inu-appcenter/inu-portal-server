@@ -21,7 +21,7 @@ public interface NoticeRepository extends JpaRepository<Notice,Long> {
 
     List<Notice> findAllByCategoryOrderByViewDesc(String category, Pageable pageable);
 
-    List<Notice> findAllByOrderByDateDesc(Pageable pageable);
+    List<Notice> findAllByOrderByCreateDateDesc(Pageable pageable);
 
     List<Notice> findAllByOrderByViewDesc(Pageable pageable);
 
