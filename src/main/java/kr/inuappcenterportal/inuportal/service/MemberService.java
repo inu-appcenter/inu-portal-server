@@ -98,6 +98,7 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public TokenDto refreshToken(String token){
+        tokenProvider.getUsername(token);
         if(!tokenProvider.validateToken(token)){
             throw new MyException(MyErrorCode.EXPIRED_TOKEN);
         }
