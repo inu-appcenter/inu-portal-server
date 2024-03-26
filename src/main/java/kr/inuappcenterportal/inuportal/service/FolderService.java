@@ -25,8 +25,7 @@ public class FolderService {
 
 
     @Transactional
-    public Long createFolder(Long memberId, FolderDto folderDto ){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public Long createFolder(Member member, FolderDto folderDto ){
         return folderRepository.save(Folder.builder().name(folderDto.getName()).member(member).build()).getId();
     }
 
@@ -74,8 +73,7 @@ public class FolderService {
     }
 
     @Transactional(readOnly = true)
-    public List<FolderResponseDto> getFolder(Long memberId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public List<FolderResponseDto> getFolder(Member member){
         return folderRepository.findAllByMember(member).stream().map(FolderResponseDto::of).collect(Collectors.toList());
     }
 

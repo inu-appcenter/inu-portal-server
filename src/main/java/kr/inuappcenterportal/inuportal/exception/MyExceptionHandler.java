@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,8 +25,6 @@ public class MyExceptionHandler {
         log.error("유효성 검사 예외 발생 msg:{}",ex.getMessage());
         return new ResponseEntity<>(new ResponseDto<>(-1,ex.getMessage()),HttpStatus.BAD_REQUEST);
     }
-
-
 
     @ExceptionHandler(MyException.class)
     public ResponseEntity<ResponseDto<Integer>> MyNotFoundException(MyException ex){

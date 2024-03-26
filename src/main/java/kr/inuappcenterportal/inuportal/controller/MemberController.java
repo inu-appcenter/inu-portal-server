@@ -31,7 +31,6 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 @RequestMapping("/api/members")
 public class MemberController {
-    private final TokenProvider tokenProvider;
     private final MemberService memberService;
     private final PostService postService;
     private final ReplyService replyService;
@@ -57,10 +56,9 @@ public class MemberController {
             ,@ApiResponse(responseCode = "401",description = "비밀번호가 틀립니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("/password")
-    public ResponseEntity<ResponseDto<Long>> updatePassword(@Valid@RequestBody MemberUpdatePasswordDto memberUpdatePasswordDto, HttpServletRequest httpServletRequest){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원 비밀번호 변경 호출 id:{}",id);
-        Long memberId = memberService.updateMemberPassword(id, memberUpdatePasswordDto);
+    public ResponseEntity<ResponseDto<Long>> updatePassword(@Valid@RequestBody MemberUpdatePasswordDto memberUpdatePasswordDto, @AuthenticationPrincipal Member member){
+        log.info("회원 비밀번호 변경 호출 id:{}",member.getId());
+        Long memberId = memberService.updateMemberPassword(member, memberUpdatePasswordDto);
         return new ResponseEntity<>(new ResponseDto<>(memberId,"회원 비밀번호 변경 성공"),HttpStatus.OK);
     }
 
@@ -71,10 +69,9 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다. / 닉네임, 횃불이 아이디 모두 공백입니다. / 닉네임이 빈칸 혹은 공백입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("")
-    public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@Valid@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, HttpServletRequest httpServletRequest){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원 닉네임 변경 호출 id:{}",id);
-        Long memberId = memberService.updateMemberNicknameFireId(id, memberUpdateNicknameDto);
+    public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@Valid@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, @AuthenticationPrincipal Member member){
+        log.info("회원 닉네임 변경 호출 id:{}",member.getId());
+        Long memberId = memberService.updateMemberNicknameFireId(member, memberUpdateNicknameDto);
         return new ResponseEntity<>(new ResponseDto<>(memberId,"회원 닉네임/횃불이 이미지 변경 성공"),HttpStatus.OK);
     }
 
@@ -84,10 +81,10 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("")
-    public ResponseEntity<ResponseDto<Long>> delete(HttpServletRequest httpServletRequest){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원 탈퇴 호출 id:{}",id);
-        memberService.delete(id);
+    public ResponseEntity<ResponseDto<Long>> delete(@AuthenticationPrincipal Member member){
+        log.info("회원 탈퇴 호출 id:{}",member.getId());
+        Long id = member.getId();
+        memberService.delete(member);
         return new ResponseEntity<>(new ResponseDto<>(id,"회원삭제성공"), HttpStatus.OK);
     }
 
@@ -120,10 +117,9 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(HttpServletRequest httpServletRequest, @AuthenticationPrincipal Member member){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원 이메일 가져오기 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(memberService.getMember(id),"회원 가져오기 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member){
+        log.info("회원 이메일 가져오기 호출 id:{}",member.getId());
+        return new ResponseEntity<>(new ResponseDto<>(memberService.getMember(member),"회원 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "모든 회원 가져오기")
@@ -142,11 +138,10 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/posts")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(HttpServletRequest httpServletRequest, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort
     ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(postService.getPostByMember(id,sort,page),"회원이 작성한 모든 게시글 가져오기 성공"),HttpStatus.OK);
+        log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",member.getId());
+        return new ResponseEntity<>(new ResponseDto<>(postService.getPostByMember(member,sort,page),"회원이 작성한 모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원이 스크랩한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like, scrap)를, 페이지(공백일 시 1)를 보내주세요.")
@@ -156,11 +151,10 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/scraps")
-    public ResponseEntity<ResponseDto<ListResponseDto>> getAllScrap(HttpServletRequest httpServletRequest, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto>> getAllScrap(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort
     ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(postService.getScrapsByMember(id,sort,page),"회원이 스크랩한 모든 게시글 가져오기 성공"),HttpStatus.OK);
+        log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",member.getId());
+        return new ResponseEntity<>(new ResponseDto<>(postService.getScrapsByMember(member,sort,page),"회원이 스크랩한 모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원이 좋아요한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like,scrap)를 보내주세요.")
@@ -170,10 +164,9 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/likes")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllLike(HttpServletRequest httpServletRequest, @RequestParam(required = false) String sort){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원이 좋아요한 모든 글 가져오기 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(postService.getLikeByMember(id,sort),"회원이 좋아요한 모든 게시글 가져오기 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllLike(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort){
+        log.info("회원이 좋아요한 모든 글 가져오기 호출 id:{}",member.getId());
+        return new ResponseEntity<>(new ResponseDto<>(postService.getLikeByMember(member,sort),"회원이 좋아요한 모든 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원이 작성한 모든 댓글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like)를 보내주세요.")
@@ -183,10 +176,9 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/replies")
-    public ResponseEntity<ResponseDto<List<ReplyListResponseDto>>> getAllReply(HttpServletRequest httpServletRequest, @RequestParam(required = false) String sort){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원이 작성한 모든 댓글 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(replyService.getReplyByMember(id,sort),"회원이 작성한 모든 댓글 가져오기 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<ReplyListResponseDto>>> getAllReply(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort){
+        log.info("회원이 작성한 모든 댓글 호출 id:{}",member.getId());
+        return new ResponseEntity<>(new ResponseDto<>(replyService.getReplyByMember(member,sort),"회원이 작성한 모든 댓글 가져오기 성공"),HttpStatus.OK);
     }
 
 

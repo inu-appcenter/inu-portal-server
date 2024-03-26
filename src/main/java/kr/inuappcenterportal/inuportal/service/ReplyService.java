@@ -27,8 +27,7 @@ public class ReplyService {
     private final LikeReplyRepository likeReplyRepository;
 
     @Transactional
-    public Long saveReply(Long memberId, ReplyDto replyDto, Long postId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public Long saveReply(Member member, ReplyDto replyDto, Long postId){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         long num = countNumber(member,post);
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
@@ -37,8 +36,7 @@ public class ReplyService {
     }
 
     @Transactional
-    public Long saveReReply(Long memberId, ReplyDto replyDto, Long replyId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public Long saveReReply(Member member, ReplyDto replyDto, Long replyId){
         Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(reply.getReply()!=null){
             throw new MyException(MyErrorCode.NOT_REPLY_ON_REREPLY);
@@ -104,8 +102,7 @@ public class ReplyService {
 
 
     @Transactional
-    public int likeReply(Long memberId, Long replyId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public int likeReply(Member member, Long replyId){
         Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(likeReplyRepository.existsByMemberAndReply(member,reply)){
             ReplyLike replyLike = likeReplyRepository.findByMemberAndReply(member,reply).orElseThrow(()->new MyException(MyErrorCode.USER_OR_REPLY_NOT_FOUND));
@@ -120,8 +117,7 @@ public class ReplyService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReplyListResponseDto> getReplyByMember(Long memberId,String sort){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public List<ReplyListResponseDto> getReplyByMember(Member member,String sort){
         if(sort==null||sort.equals("date")) {
             return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::of).collect(Collectors.toList());
         }
@@ -134,8 +130,7 @@ public class ReplyService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReplyResponseDto> getReplies(Long postId, Long memberId){
-        Member member = memberRepository.findById(memberId).orElse(null);
+    public List<ReplyResponseDto> getReplies(Long postId, Member member){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> replies = replyRepository.findAllByPostAndReplyIsNull(post);
         return replies.stream().map(reply -> {
@@ -194,8 +189,7 @@ public class ReplyService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReReplyResponseDto> getBestReplies(Long postId,Long memberId){
-        Member member = memberRepository.findById(memberId).orElse(null);
+    public List<ReReplyResponseDto> getBestReplies(Long postId,Member member){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> list = replyRepository.findAllByPost(post);
         List<Reply> likeList= new ArrayList<>();

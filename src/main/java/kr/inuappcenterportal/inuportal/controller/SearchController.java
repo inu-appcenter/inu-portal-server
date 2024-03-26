@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
+import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.service.FolderService;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,10 +55,9 @@ public class SearchController {
             @ApiResponse(responseCode = "404",description = "존재하지 않는 유저입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/scrap")
-    public ResponseEntity<ResponseDto<ListResponseDto>> searchScrap(HttpServletRequest httpServletRequest, @RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto>> searchScrap(@AuthenticationPrincipal Member member, @RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
             , @RequestParam(required = false,defaultValue = "1") @Min(1) int page){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        return new ResponseEntity<>(new ResponseDto<>(postService.searchInScrap(id,query,page,sort),"스크랩 게시글 검색 성공"), HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(postService.searchInScrap(member,query,page,sort),"스크랩 게시글 검색 성공"), HttpStatus.OK);
     }
 
     @Operation(summary = "스크랩 폴더에서 게시글 검색",description = "url 경로에 폴더의 id, url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,scrap)를, 페이지(공백일 시 1)를 보내주세요.")

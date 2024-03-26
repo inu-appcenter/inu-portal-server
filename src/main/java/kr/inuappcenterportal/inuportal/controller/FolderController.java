@@ -12,12 +12,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
+import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.service.FolderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,10 +40,9 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("")
-    public ResponseEntity<ResponseDto<Long>> createFolder(@Valid @RequestBody FolderDto folderDto, HttpServletRequest httpServletRequest){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("스크랩폴더 생성 호출 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(folderService.createFolder(id,folderDto),"폴더 생성 성공"), HttpStatus.CREATED);
+    public ResponseEntity<ResponseDto<Long>> createFolder(@Valid @RequestBody FolderDto folderDto, @AuthenticationPrincipal Member member){
+        log.info("스크랩폴더 생성 호출 id:{}",member.getId());
+        return new ResponseEntity<>(new ResponseDto<>(folderService.createFolder(member,folderDto),"폴더 생성 성공"), HttpStatus.CREATED);
     }
 
     @Operation(summary = "스크랩폴더명 수정",description = " url 파라미터에 스크랩폴더의 id, 바디에 {name}을 json 형식으로 보내주세요. 성공 시 수정된 스크랩폴더의 데이터베이스 폴더 값이 {data: id}으로 보내집니다.")
@@ -97,10 +98,9 @@ public class FolderController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<List<FolderResponseDto>>> getFolder(HttpServletRequest httpServletRequest){
-        Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
-        log.info("회원의 모든 스크랩폴더 가져오기 호출 폴더 id:{}",id);
-        return new ResponseEntity<>(new ResponseDto<>(folderService.getFolder(id),"회원의 모든 스크랩폴더 가져오기 성공"), HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<FolderResponseDto>>> getFolder(@AuthenticationPrincipal Member member){
+        log.info("회원의 모든 스크랩폴더 가져오기 호출 폴더 id:{}",member.getId());
+        return new ResponseEntity<>(new ResponseDto<>(folderService.getFolder(member),"회원의 모든 스크랩폴더 가져오기 성공"), HttpStatus.OK);
     }
 
     @Operation(summary = "스크랩폴더의 모든 게시글 가져오기",description = "url 파라미터에 스크랩폴더의 id, 정렬기준 sort(date/공백(최신순), like,scrap),페이지(공백일 시 1)를 보내주세요. 스크랩폴더의 모든 게시글이 보내집니다.")

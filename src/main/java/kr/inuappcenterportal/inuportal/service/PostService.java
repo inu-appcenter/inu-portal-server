@@ -34,16 +34,14 @@ public class PostService {
 
 
     @Transactional
-    public Long saveOnlyPost(Long id, PostDto postSaveDto) {
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public Long saveOnlyPost(Member member, PostDto postSaveDto) {
         Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(0).build();
         postRepository.save(post);
         return post.getId();
     }
     @Transactional
-    public Long saveOnlyImage(Long memberId, Long postId, List<MultipartFile> imageDto) throws IOException {
+    public Long saveOnlyImage(Member member, Long postId, List<MultipartFile> imageDto) throws IOException {
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(!post.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
@@ -91,7 +89,7 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponseDto getPost(Long postId,Long memberId,String address){
+    public PostResponseDto getPost(Long postId,Member member,String address){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(redisService.isFirstConnect(address,postId)){
             redisService.insertAddress(address,postId);
@@ -100,8 +98,7 @@ public class PostService {
         boolean isLiked = false;
         boolean isScraped = false;
         boolean hasAuthority = false;
-        if(memberId!=-1L){
-            Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        if(member!=null){
             if(likePostRepository.existsByMemberAndPost(member,post)){
                 isLiked = true;
             }
@@ -125,7 +122,7 @@ public class PostService {
             }
         }
 
-        return  PostResponseDto.of(post,writer,isLiked,isScraped,hasAuthority,replyService.getReplies(postId,memberId),replyService.getBestReplies(postId,memberId));
+        return  PostResponseDto.of(post,writer,isLiked,isScraped,hasAuthority,replyService.getReplies(postId,member),replyService.getBestReplies(postId,member));
     }
 
 
@@ -184,8 +181,7 @@ public class PostService {
 
 
     @Transactional
-    public int likePost(Long memberId, Long postId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public int likePost(Member member, Long postId){
         Post post = postRepository.findByIdWithLock(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(likePostRepository.existsByMemberAndPost(member,post)){
             PostLike postLike = likePostRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));
@@ -202,8 +198,7 @@ public class PostService {
     }
 
     @Transactional
-    public int scrapPost(Long memberId, Long postId){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public int scrapPost(Member member, Long postId){
         Post post = postRepository.findByIdWithLock(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(scrapRepository.existsByMemberAndPost(member,post)){
             Scrap scrap = scrapRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));
@@ -220,8 +215,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostByMember(Long memberId, String sort, int page){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public List<PostListResponseDto> getPostByMember(Member member, String sort, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
         if(sort==null||sort.equals("date")) {
             return postRepository.findAllByMemberOrderByIdDesc(member,pageable)
@@ -247,8 +241,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto getScrapsByMember(Long memberId, String sort,int page){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public ListResponseDto getScrapsByMember(Member member, String sort,int page){
         List<PostListResponseDto> scraps = scrapRepository.findAllByMember(member).stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
@@ -271,8 +264,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getLikeByMember(Long memberId, String sort){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public List<PostListResponseDto> getLikeByMember(Member member, String sort){
         List<PostListResponseDto> likes = likePostRepository.findAllByMember(member).stream()
                 .map(like -> {
                     Post post = like.getPost();
@@ -337,8 +329,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto searchInScrap(Long memberId, String query,int page, String sort){
-        Member member = memberRepository.findById(memberId).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    public ListResponseDto searchInScrap(Member member, String query,int page, String sort){
         List<PostListResponseDto> scraps = scrapRepository.searchScrap(member,query).stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
