@@ -47,6 +47,8 @@ public class TokenProvider {
         log.info("토큰 생성 시작");
         Claims claims = Jwts.claims().setSubject(id);
         claims.put("roles",roles);
+
+        Claims claimsForRefresh = Jwts.claims().setSubject(id);
         Date now = new Date();
 
         String accessToken = Jwts.builder()
@@ -57,9 +59,9 @@ public class TokenProvider {
                 .compact();
 
         String refreshToken = Jwts.builder()
-                .setClaims(claims)
+                .setClaims(claimsForRefresh)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime()+tokenValidMillisecond))
+                .setExpiration(new Date(now.getTime()+refreshValidMillisecond))
                 .signWith(secretKey,SignatureAlgorithm.HS256)
                 .compact();
         log.info("토큰 생성 완료");
