@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
+import kr.inuappcenterportal.inuportal.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,8 @@ public class TokenProvider {
     @Value("${jwtSecret}")
     private String secret;
     private Key secretKey;
-    private final long tokenValidMillisecond = 1000L * 60 * 60 * 24;//24시간
+    private final long tokenValidMillisecond = 1000L * 60 * 15 ;//15분
+    private final long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
 
     @PostConstruct
     protected void init(){
@@ -41,21 +43,29 @@ public class TokenProvider {
     }
 
 
-    public String createToken(String id, List<String> roles){
+    public TokenDto createToken(String id, List<String> roles){
         log.info("토큰 생성 시작");
         Claims claims = Jwts.claims().setSubject(id);
         claims.put("roles",roles);
         Date now = new Date();
 
-        String token = Jwts.builder()
+        String accessToken = Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime()+tokenValidMillisecond))
+                .signWith(secretKey,SignatureAlgorithm.HS256)
+                .compact();
+
+        String refreshToken = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime()+tokenValidMillisecond))
                 .signWith(secretKey,SignatureAlgorithm.HS256)
                 .compact();
         log.info("토큰 생성 완료");
-        return token;
+        return TokenDto.of(accessToken,refreshToken);
     }
+
 
     public Authentication getAuthentication(String token){
         log.info("토큰 인증 정보 조회 시작");

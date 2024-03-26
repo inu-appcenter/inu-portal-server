@@ -20,6 +20,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         },
         security = {
                 @SecurityRequirement(name = "Auth"),
+                @SecurityRequirement(name = "refresh")
         }
 )
 @SecuritySchemes({
@@ -28,6 +29,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 description = "JWT token",
                 in = SecuritySchemeIn.HEADER,
                 paramName = "Auth"),
+        @SecurityScheme(name = "refresh",
+                type = SecuritySchemeType.APIKEY,
+                description = "JWT refresh token",
+                in = SecuritySchemeIn.HEADER,
+                paramName = "refresh")
 })
 @EnableJpaAuditing
 @EnableAsync

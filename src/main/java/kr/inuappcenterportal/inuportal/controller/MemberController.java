@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
+import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.service.MemberService;
 import kr.inuappcenterportal.inuportal.service.PostService;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -89,16 +91,27 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(id,"회원삭제성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "로그인",description = "바디에 {email,password}을 json 형식으로 보내주세요. {data: 토큰} 형식으로 로그인 성공 시 토큰이 발급됩니다. 토큰 유효시간은 24시간입니다.")
+    @Operation(summary = "로그인",description = "바디에 {email,password}을 json 형식으로 보내주세요. 토큰 유효시간은 15분, 리프레시 토큰의 유효시간은 1일입니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "로그인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "200",description = "로그인 성공",content = @Content(schema = @Schema(implementation = TokenDto.class))),
             @ApiResponse(responseCode = "401",description = "존재하지 않는 아이디(이메일)입니다. / 비밀번호가 일치하지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
     })
     @PostMapping("/login")
-    public ResponseEntity<ResponseDto<String>> login(@Valid @RequestBody MemberLoginDto memberLoginDto){
+    public ResponseEntity<ResponseDto<TokenDto>> login(@Valid @RequestBody MemberLoginDto memberLoginDto){
         log.info("로그인 호출");
-        String token = memberService.login(memberLoginDto);
-        return new ResponseEntity<>(new ResponseDto<>(token,"로그인 성공, 토근이 발급되었습니다."),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(memberService.login(memberLoginDto),"로그인 성공, 토근이 발급되었습니다."),HttpStatus.OK);
+    }
+
+    @Operation(summary = "토큰 재발급",description = "헤더에 refresh 토큰을 보내주세요. 토큰 유효시간은 15분, 리프레시 토큰의 유효시간은 1일입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "토큰 재발급 성공",content = @Content(schema = @Schema(implementation = TokenDto.class)))
+            ,@ApiResponse(responseCode = "401",description = "만료된 토큰입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping("/refresh")
+    public ResponseEntity<ResponseDto<TokenDto>> login(HttpServletRequest httpServletRequest){
+        log.info("토큰 재발급 호출");
+        return new ResponseEntity<>(new ResponseDto<>(memberService.refreshToken(httpServletRequest.getHeader("refresh"))," 토근이 재발급 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
@@ -107,7 +120,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(HttpServletRequest httpServletRequest, @AuthenticationPrincipal Member member){
         Long id = Long.valueOf(tokenProvider.getUsername(httpServletRequest.getHeader("Auth")));
         log.info("회원 이메일 가져오기 호출 id:{}",id);
         return new ResponseEntity<>(new ResponseDto<>(memberService.getMember(id),"회원 가져오기 성공"),HttpStatus.OK);

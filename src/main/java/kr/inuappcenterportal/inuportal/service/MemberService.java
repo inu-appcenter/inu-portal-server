@@ -90,7 +90,7 @@ public class MemberService {
     }
 
     @Transactional
-    public String login(MemberLoginDto memberLoginDto){
+    public TokenDto login(MemberLoginDto memberLoginDto){
         Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyException(MyErrorCode.ID_NOT_FOUND));
 
         if(!passwordEncoder.matches(memberLoginDto.getPassword(),member.getPassword())){
@@ -98,6 +98,17 @@ public class MemberService {
         }
         return tokenProvider.createToken(String.valueOf(member.getId()),member.getRoles());
     }
+
+    @Transactional(readOnly = true)
+    public TokenDto refreshToken(String token){
+        if(!tokenProvider.validateToken(token)){
+            throw new MyException(MyErrorCode.EXPIRED_TOKEN);
+        }
+        Long id = Long.valueOf(tokenProvider.getUsername(token));
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        return tokenProvider.createToken(id.toString(),member.getRoles());
+    }
+
 
     @Transactional(readOnly = true)
     public MemberResponseDto getMember(Long id){
