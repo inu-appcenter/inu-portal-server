@@ -98,10 +98,10 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public TokenDto refreshToken(String token){
+        Long id = Long.valueOf(tokenProvider.getUsernameByRefresh(token));
         if(!tokenProvider.validateRefreshToken(token)){
             throw new MyException(MyErrorCode.EXPIRED_TOKEN);
         }
-        Long id = Long.valueOf(tokenProvider.getUsernameByRefresh(token));
         Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         return tokenProvider.createToken(id.toString(),member.getRoles());
     }

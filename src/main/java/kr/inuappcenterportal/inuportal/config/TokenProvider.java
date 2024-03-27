@@ -23,6 +23,7 @@ import java.security.Key;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 @Component
 @Slf4j
@@ -53,10 +54,10 @@ public class TokenProvider {
         log.info("토큰 생성 시작");
         Claims claims = Jwts.claims().setSubject(id);
         claims.put("roles",roles);
-
         Claims claimsForRefresh = Jwts.claims().setSubject(id);
+        TimeZone seoulTimeZone = TimeZone.getTimeZone("Asia/Seoul");
         Date now = new Date();
-
+        now.setTime(now.getTime()+seoulTimeZone.getRawOffset());
         Date accessExpiredTime = new Date(now.getTime()+tokenValidMillisecond);
         Date refreshExpiredTime = new Date(now.getTime()+refreshValidMillisecond);
 
