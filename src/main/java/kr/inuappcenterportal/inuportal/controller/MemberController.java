@@ -108,7 +108,7 @@ public class MemberController {
     @PostMapping("/refresh")
     public ResponseEntity<ResponseDto<TokenDto>> login(HttpServletRequest httpServletRequest){
         log.info("토큰 재발급 호출");
-        return new ResponseEntity<>(new ResponseDto<>(memberService.refreshToken(httpServletRequest.getHeader("refresh"))," 토근이 재발급 성공"),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(memberService.refreshToken(httpServletRequest.getHeader("refresh")),"토큰 재발급 성공"),HttpStatus.OK);
     }
 
     @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
