@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -31,14 +32,19 @@ public class TokenProvider {
     private final UserDetailsService userDetailsService;
     @Value("${jwtSecret}")
     private String secret;
+
+    @Value("${refreshSecret}")
+    private String refreshSecret;
     private Key secretKey;
-    private final long tokenValidMillisecond = 1000L * 60 * 15 ;//15분
+    private Key refreshKey;
+    private final long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
     private final long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
 
     @PostConstruct
     protected void init(){
        log.info("키 생성 암호화 전 키 :{}",secret);
        secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        refreshKey = Keys.hmacShaKeyFor(refreshSecret.getBytes(StandardCharsets.UTF_8));
         log.info("키 생성 암호화 후 키 :{}",secretKey);
     }
 
@@ -51,21 +57,24 @@ public class TokenProvider {
         Claims claimsForRefresh = Jwts.claims().setSubject(id);
         Date now = new Date();
 
+        Date accessExpiredTime = new Date(now.getTime()+tokenValidMillisecond);
+        Date refreshExpiredTime = new Date(now.getTime()+refreshValidMillisecond);
+
         String accessToken = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime()+tokenValidMillisecond))
+                .setExpiration(accessExpiredTime)
                 .signWith(secretKey,SignatureAlgorithm.HS256)
                 .compact();
 
         String refreshToken = Jwts.builder()
                 .setClaims(claimsForRefresh)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime()+refreshValidMillisecond))
-                .signWith(secretKey,SignatureAlgorithm.HS256)
+                .setExpiration(refreshExpiredTime)
+                .signWith(refreshKey,SignatureAlgorithm.HS256)
                 .compact();
         log.info("토큰 생성 완료");
-        return TokenDto.of(accessToken,refreshToken);
+        return TokenDto.of(accessToken,refreshToken,accessExpiredTime,refreshExpiredTime);
     }
 
 
@@ -92,7 +101,23 @@ public class TokenProvider {
         }catch (IllegalArgumentException ex){
             throw new MyException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
         }
+    }
 
+    public String getUsernameByRefresh(String token){
+        log.info("토큰으로 회원 정보 추출");
+        try {
+            String info = Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token).getBody().getSubject();
+            log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
+            return info;
+        }catch (SignatureException ex){
+            throw new MyException(MyErrorCode.WRONG_TYPE_TOKEN);
+        }catch (MalformedJwtException ex){
+            throw new MyException(MyErrorCode.UNSUPPORTED_TOKEN);
+        }catch (ExpiredJwtException ex){
+            throw new MyException(MyErrorCode.EXPIRED_TOKEN);
+        }catch (IllegalArgumentException ex){
+            throw new MyException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
+        }
     }
     public String resolveToken(HttpServletRequest request){
         log.info("헤더에서 토큰 값 추출");
@@ -103,6 +128,17 @@ public class TokenProvider {
         log.info("토큰 유효성 검증 시작");
         try{
             Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
+            return !claims.getBody().getExpiration().before(new Date());
+        }catch (Exception e){
+            log.info("토큰 유효 체크 예외 발생");
+            return false;
+        }
+    }
+
+    public boolean validateRefreshToken(String token){
+        log.info("토큰 유효성 검증 시작");
+        try{
+            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token);
             return !claims.getBody().getExpiration().before(new Date());
         }catch (Exception e){
             log.info("토큰 유효 체크 예외 발생");

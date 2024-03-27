@@ -88,7 +88,7 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(id,"회원삭제성공"), HttpStatus.OK);
     }
 
-    @Operation(summary = "로그인",description = "바디에 {email,password}을 json 형식으로 보내주세요. 토큰 유효시간은 15분, 리프레시 토큰의 유효시간은 1일입니다.")
+    @Operation(summary = "로그인",description = "바디에 {email,password}을 json 형식으로 보내주세요. 토큰 유효시간은 2시간, 리프레시 토큰의 유효시간은 1일입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "로그인 성공",content = @Content(schema = @Schema(implementation = TokenDto.class))),
             @ApiResponse(responseCode = "401",description = "존재하지 않는 아이디(이메일)입니다. / 비밀번호가 일치하지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
@@ -99,7 +99,7 @@ public class MemberController {
         return new ResponseEntity<>(new ResponseDto<>(memberService.login(memberLoginDto),"로그인 성공, 토근이 발급되었습니다."),HttpStatus.OK);
     }
 
-    @Operation(summary = "토큰 재발급",description = "헤더에 refresh 토큰을 보내주세요. 토큰 유효시간은 15분, 리프레시 토큰의 유효시간은 1일입니다.")
+    @Operation(summary = "토큰 재발급",description = "헤더에 refresh 토큰을 보내주세요. 토큰 유효시간은 2시간, 리프레시 토큰의 유효시간은 1일입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "토큰 재발급 성공",content = @Content(schema = @Schema(implementation = TokenDto.class)))
             ,@ApiResponse(responseCode = "401",description = "만료된 토큰입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
