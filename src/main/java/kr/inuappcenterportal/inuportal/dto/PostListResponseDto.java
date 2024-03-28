@@ -55,7 +55,7 @@ public class PostListResponseDto {
                 .category(post.getCategory())
                 .writer(writer)
                 .content((post.getContent().length()>50)?post.getContent().substring(0,50)+"...":post.getContent())
-                .title(post.getTitle())
+                .title((post.getTitle().length()>50)?post.getTitle().substring(0,50)+"...":post.getTitle())
                 .like(post.getPostLikes().size())
                 .imageCount(post.getImageCount())
                 .scrap(post.getScraps().size())
