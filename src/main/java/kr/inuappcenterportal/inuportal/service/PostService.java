@@ -183,6 +183,9 @@ public class PostService {
     @Transactional
     public int likePost(Member member, Long postId){
         Post post = postRepository.findByIdWithLock(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        if(post.getMember()!=null&&post.getMember().getId().equals(member.getId())){
+            throw new MyException(MyErrorCode.NOT_LIKE_MY_POST);
+        }
         if(likePostRepository.existsByMemberAndPost(member,post)){
             PostLike postLike = likePostRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));
             likePostRepository.delete(postLike);

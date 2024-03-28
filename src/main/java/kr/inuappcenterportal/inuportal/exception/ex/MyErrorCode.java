@@ -41,7 +41,9 @@ public enum MyErrorCode {
     WRONG_SEARCH_TYPE(HttpStatus.BAD_REQUEST,"검색옵션이 올바르지 않습니다."),
     EMPTY_REQUEST(HttpStatus.BAD_REQUEST,"닉네임, 횃불이 아이디 모두 공백입니다."),
     NOT_BLANK_NICKNAME(HttpStatus.BAD_REQUEST,"닉네임이 빈칸 혹은 공백입니다."),
-    EMAIL_NOT_AUTHORIZATION(HttpStatus.FORBIDDEN,"인증되지 않은 이메일입니다.");
+    EMAIL_NOT_AUTHORIZATION(HttpStatus.FORBIDDEN,"인증되지 않은 이메일입니다."),
+    NOT_LIKE_MY_POST(HttpStatus.BAD_REQUEST,"자신의 게시글에는 추천을 할 수 없습니다."),
+    NOT_LIKE_MY_REPLY(HttpStatus.BAD_REQUEST,"자신의 댓글에는 추천을 할 수 없습니다.");
 
 
     private final HttpStatus status;
