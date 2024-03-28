@@ -20,7 +20,9 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -55,12 +57,10 @@ public class TokenProvider {
         Claims claims = Jwts.claims().setSubject(id);
         claims.put("roles",roles);
         Claims claimsForRefresh = Jwts.claims().setSubject(id);
-        TimeZone seoulTimeZone = TimeZone.getTimeZone("Asia/Seoul");
-        Date now = new Date();
-        now.setTime(now.getTime()+seoulTimeZone.getRawOffset());
+        LocalDateTime localDateTime = LocalDateTime.now();
+        Date now = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
         Date accessExpiredTime = new Date(now.getTime()+tokenValidMillisecond);
         Date refreshExpiredTime = new Date(now.getTime()+refreshValidMillisecond);
-
         String accessToken = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
@@ -75,7 +75,7 @@ public class TokenProvider {
                 .signWith(refreshKey,SignatureAlgorithm.HS256)
                 .compact();
         log.info("토큰 생성 완료");
-        return TokenDto.of(accessToken,refreshToken,accessExpiredTime,refreshExpiredTime);
+        return TokenDto.of(accessToken,refreshToken, localDateTime.plus(Duration.ofMillis(tokenValidMillisecond)).toString(),localDateTime.plus(Duration.ofMillis(refreshValidMillisecond)).toString());
     }
 
 

@@ -15,24 +15,24 @@ public class TokenDto {
     private String accessToken;
 
     @Schema(description = "엑세스 토큰 만료 시간")
-    private Date accessTokenExpiredTime;
+    private String accessTokenExpiredTime;
 
     @Schema(description = "리프레시 토큰")
     private String refreshToken;
 
     @Schema(description = "리프레쉬 토큰 만료 시간")
-    private Date refreshTokenExpiredTime;
+    private String refreshTokenExpiredTime;
 
 
 
     @Builder
-    private TokenDto(String accessToken,String refreshToken, Date accessTokenExpiredTime, Date refreshTokenExpiredTime){
+    private TokenDto(String accessToken,String refreshToken, String accessTokenExpiredTime, String refreshTokenExpiredTime){
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.accessTokenExpiredTime = accessTokenExpiredTime;
         this.refreshTokenExpiredTime = refreshTokenExpiredTime;
     }
-    public static TokenDto of(String accessToken, String refreshToken, Date accessTokenExpiredTime, Date refreshTokenExpiredTime){
+    public static TokenDto of(String accessToken, String refreshToken, String accessTokenExpiredTime, String refreshTokenExpiredTime){
         return TokenDto.builder().accessToken(accessToken).refreshToken(refreshToken).accessTokenExpiredTime(accessTokenExpiredTime).refreshTokenExpiredTime(refreshTokenExpiredTime).build();
     }
 
