@@ -10,6 +10,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -89,11 +91,15 @@ public class MemberService {
     @Transactional
     public TokenDto login(MemberLoginDto memberLoginDto){
         Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyException(MyErrorCode.ID_NOT_FOUND));
-
         if(!passwordEncoder.matches(memberLoginDto.getPassword(),member.getPassword())){
             throw new MyException(MyErrorCode.PASSWORD_NOT_MATCHED);
         }
-        return tokenProvider.createToken(String.valueOf(member.getId()),member.getRoles());
+        LocalDateTime localDateTime = LocalDateTime.now();
+        long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
+        long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
+        String accessToken = tokenProvider.createToken(member.getId().toString(),member.getRoles(),localDateTime);
+        String refreshToken = tokenProvider.createRefreshToken(member.getId().toString(),localDateTime);
+        return TokenDto.of(accessToken,refreshToken,localDateTime.plus(Duration.ofMillis(tokenValidMillisecond)).toString(),localDateTime.plus(Duration.ofMillis(refreshValidMillisecond)).toString());
     }
 
     @Transactional(readOnly = true)
@@ -103,7 +109,12 @@ public class MemberService {
             throw new MyException(MyErrorCode.EXPIRED_TOKEN);
         }
         Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
-        return tokenProvider.createToken(id.toString(),member.getRoles());
+        LocalDateTime localDateTime = LocalDateTime.now();
+        long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
+        long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
+        String accessToken = tokenProvider.createToken(member.getId().toString(),member.getRoles(),localDateTime);
+        String refreshToken = tokenProvider.createRefreshToken(member.getId().toString(),localDateTime);
+        return TokenDto.of(accessToken,refreshToken,localDateTime.plus(Duration.ofMillis(tokenValidMillisecond)).toString(),localDateTime.plus(Duration.ofMillis(refreshValidMillisecond)).toString());
     }
 
 

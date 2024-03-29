@@ -52,31 +52,37 @@ public class TokenProvider {
     }
 
 
-    public TokenDto createToken(String id, List<String> roles){
+    public String createToken(String id, List<String> roles, LocalDateTime localDateTime){
         log.info("토큰 생성 시작");
         Claims claims = Jwts.claims().setSubject(id);
         claims.put("roles",roles);
-        Claims claimsForRefresh = Jwts.claims().setSubject(id);
-        LocalDateTime localDateTime = LocalDateTime.now();
         Date now = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
         Date accessExpiredTime = new Date(now.getTime()+tokenValidMillisecond);
-        Date refreshExpiredTime = new Date(now.getTime()+refreshValidMillisecond);
         String accessToken = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(accessExpiredTime)
                 .signWith(secretKey,SignatureAlgorithm.HS256)
                 .compact();
+        log.info("토큰 생성 완료");
+        return accessToken;
+    }
 
+    public String createRefreshToken(String id, LocalDateTime localDateTime){
+        log.info("refresh 토큰 생성 시작");
+        Claims claims = Jwts.claims().setSubject(id);
+        Date now = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+        Date refreshExpiredTime = new Date(now.getTime()+refreshValidMillisecond);
         String refreshToken = Jwts.builder()
-                .setClaims(claimsForRefresh)
+                .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(refreshExpiredTime)
                 .signWith(refreshKey,SignatureAlgorithm.HS256)
                 .compact();
-        log.info("토큰 생성 완료");
-        return TokenDto.of(accessToken,refreshToken, localDateTime.plus(Duration.ofMillis(tokenValidMillisecond)).toString(),localDateTime.plus(Duration.ofMillis(refreshValidMillisecond)).toString());
+        log.info("refresh 토큰 생성 완료");
+        return refreshToken;
     }
+
 
 
     public Authentication getAuthentication(String token){
