@@ -58,7 +58,7 @@ public class MemberController {
     @PutMapping("/password")
     public ResponseEntity<ResponseDto<Long>> updatePassword(@Valid@RequestBody MemberUpdatePasswordDto memberUpdatePasswordDto, @AuthenticationPrincipal Member member){
         log.info("회원 비밀번호 변경 호출 id:{}",member.getId());
-        Long memberId = memberService.updateMemberPassword(member, memberUpdatePasswordDto);
+        Long memberId = memberService.updateMemberPassword(member.getId(), memberUpdatePasswordDto);
         return new ResponseEntity<>(new ResponseDto<>(memberId,"회원 비밀번호 변경 성공"),HttpStatus.OK);
     }
 
@@ -71,7 +71,7 @@ public class MemberController {
     @PutMapping("")
     public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@Valid@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, @AuthenticationPrincipal Member member){
         log.info("회원 닉네임 변경 호출 id:{}",member.getId());
-        Long memberId = memberService.updateMemberNicknameFireId(member, memberUpdateNicknameDto);
+        Long memberId = memberService.updateMemberNicknameFireId(member.getId(), memberUpdateNicknameDto);
         return new ResponseEntity<>(new ResponseDto<>(memberId,"회원 닉네임/횃불이 이미지 변경 성공"),HttpStatus.OK);
     }
 

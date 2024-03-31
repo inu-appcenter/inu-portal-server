@@ -47,7 +47,8 @@ public class MemberService {
     }
 
     @Transactional
-    public Long updateMemberPassword(Member member, MemberUpdatePasswordDto memberUpdatePasswordDto){
+    public Long updateMemberPassword(Long id, MemberUpdatePasswordDto memberUpdatePasswordDto){
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
        if(!passwordEncoder.matches(memberUpdatePasswordDto.getPassword(),member.getPassword())){
            throw new MyException(MyErrorCode.PASSWORD_NOT_MATCHED);
        }
@@ -57,7 +58,8 @@ public class MemberService {
     }
 
     @Transactional
-    public Long updateMemberNicknameFireId(Member member, MemberUpdateNicknameDto memberUpdateNicknameDto){
+    public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
+        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(memberUpdateNicknameDto.getNickname()!=null) {
             if (memberUpdateNicknameDto.getNickname().equals(member.getNickname())) {
                 throw new MyException(MyErrorCode.SAME_NICKNAME_UPDATE);
