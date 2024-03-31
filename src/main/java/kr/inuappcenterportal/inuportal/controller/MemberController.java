@@ -106,7 +106,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/refresh")
-    public ResponseEntity<ResponseDto<TokenDto>> login(HttpServletRequest httpServletRequest){
+    public ResponseEntity<ResponseDto<TokenDto>> refresh(HttpServletRequest httpServletRequest){
         log.info("토큰 재발급 호출");
         return new ResponseEntity<>(new ResponseDto<>(memberService.refreshToken(httpServletRequest.getHeader("refresh")),"토큰 재발급 성공"),HttpStatus.OK);
     }
