@@ -13,6 +13,6 @@ public interface FolderPostRepository extends JpaRepository<FolderPost,Long> {
     Optional<FolderPost> findByFolderAndPost(Folder folder, Post post);
     boolean existsByFolderAndPost(Folder folder, Post post);
     List<FolderPost> findAllByFolder(Folder folder);
-    @Query("SELECT f FROM FolderPost f JOIN FETCH f.post WHERE f.folder=:folder and f.post.content LIKE concat('%',:content,'%') or f.post.title LIKE concat('%',:content,'%') ")
+    @Query("SELECT f FROM FolderPost f JOIN FETCH f.post WHERE f.folder=:folder and (f.post.content LIKE concat('%',:content,'%') or f.post.title LIKE concat('%',:content,'%')) ")
     List<FolderPost> searchInFolder(Folder folder,String content);
 }
