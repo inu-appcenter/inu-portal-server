@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Schema(description = "댓글 응답 Dto")
@@ -28,14 +29,14 @@ public class ReplyResponseDto {
     @Schema(description = "수정/삭제 가능 여부")
     private Boolean hasAuthority;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private LocalDate createDate;
+    private String createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private LocalDate modifiedDate;
+    private String  modifiedDate;
     @Schema(description = "대댓글")
     private List<ReReplyResponseDto> reReplies;
 
     @Builder
-    private ReplyResponseDto(Long id, String writer, String content, long like, LocalDate createDate, LocalDate modifiedDate, List<ReReplyResponseDto> reReplies, boolean isLiked,boolean isAnonymous,boolean hasAuthority){
+    private ReplyResponseDto(Long id, String writer, String content, long like, String createDate, String modifiedDate, List<ReReplyResponseDto> reReplies, boolean isLiked,boolean isAnonymous,boolean hasAuthority){
         this.id = id;
         this.writer =writer;
         this.content =content;
@@ -54,8 +55,8 @@ public class ReplyResponseDto {
                 .writer(writer)
                 .content(reply.getContent())
                 .like(reply.getLikeReplies().size())
-                .createDate(reply.getCreateDate())
-                .modifiedDate(reply.getModifiedDate())
+                .createDate(reply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .modifiedDate(reply.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
                 .reReplies(reReplyResponseDtoList)
                 .isLiked(isLiked)
                 .isAnonymous(reply.getAnonymous())

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Schema(description = "회원이 작성한 댓글 리스트 응답 Dto")
 @Getter
@@ -21,9 +22,9 @@ public class ReplyListResponseDto {
     @Schema(description = "이 댓글이 달린 게시글의 데이터베이스 id값")
     private Long postId;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private LocalDate createDate;
+    private String createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private LocalDate modifiedDate;
+    private String  modifiedDate;
 
     @Builder
     private ReplyListResponseDto(Reply reply){
@@ -31,8 +32,8 @@ public class ReplyListResponseDto {
         this.content = reply.getContent();
         this.like = (long)reply.getLikeReplies().size();
         this.postId = reply.getPost().getId();
-        this.createDate = reply.getCreateDate();
-        this.modifiedDate = reply.getModifiedDate();
+        this.createDate = reply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        this.modifiedDate = reply.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
     }
 
     public static ReplyListResponseDto of(Reply reply){

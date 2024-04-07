@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Schema(description = "게시글 리스트 응답Dto")
 @Getter
@@ -29,12 +30,12 @@ public class PostListResponseDto {
     @Schema(description = "이미지수")
     private Long imageCount;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private LocalDate createDate;
+    private String createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private LocalDate modifiedDate;
+    private String modifiedDate;
 
     @Builder
-    private PostListResponseDto(Long id, String title, String category, String writer,String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap, long imageCount){
+    private PostListResponseDto(Long id, String title, String category, String writer,String content, String createDate, String modifiedDate, long like, long scrap, long imageCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -50,8 +51,8 @@ public class PostListResponseDto {
     public static PostListResponseDto of(Post post, String writer){
         return PostListResponseDto.builder()
                 .id(post.getId())
-                .createDate(post.getCreateDate())
-                .modifiedDate(post.getModifiedDate())
+                .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
                 .category(post.getCategory())
                 .writer(writer)
                 .content((post.getContent().length()>50)?post.getContent().substring(0,50)+"...":post.getContent())

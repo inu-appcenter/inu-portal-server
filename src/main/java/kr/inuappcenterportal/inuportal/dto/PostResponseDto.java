@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Schema(description = "게시글 내용 응답Dto")
@@ -36,9 +37,9 @@ public class PostResponseDto {
     @Schema(description = "수정/삭제 가능 여부")
     private Boolean hasAuthority;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private LocalDate createDate;
+    private String createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private LocalDate modifiedDate;
+    private String modifiedDate;
     @Schema(description = "이미지 갯수")
     private Long imageCount;
     @Schema(description = "베스트 댓글")
@@ -48,7 +49,7 @@ public class PostResponseDto {
 
 
     @Builder
-    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
+    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, String createDate, String modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -72,8 +73,8 @@ public class PostResponseDto {
                 .id(post.getId())
                 .replies(replies)
                 .bestReplies(bestReplies)
-                .createDate(post.getCreateDate())
-                .modifiedDate(post.getModifiedDate())
+                .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
                 .category(post.getCategory())
                 .writer(writer)
                 .title(post.getTitle())
