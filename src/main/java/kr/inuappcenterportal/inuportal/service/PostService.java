@@ -327,8 +327,8 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getTop(){
-        return postRepository.findTop12().stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+    public List<PostListResponseDto> getTop(String category){
+        return postRepository.findTop12(category).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

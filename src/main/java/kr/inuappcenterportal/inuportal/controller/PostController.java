@@ -170,13 +170,13 @@ public class PostController {
         return new ResponseEntity<>(redisService.findImages(postId, imageId),httpHeaders,HttpStatus.OK);
     }
 
-    @Operation(summary = "상단부 인기 게시글 12개 가져오기")
+    @Operation(summary = "상단부 인기 게시글 12개 가져오기",description = "기본 호출 시 모든 글에 대한 인기 게시글 12개, 파라미터로 category를 보낼 시 카테고리의 인기글 12개가 호출됩니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "인기 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
     })
     @GetMapping("/top")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForTop( ){
-        return new ResponseEntity<>(new ResponseDto<>(postService.getTop(),"인기 게시글 가져오기 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForTop(@RequestParam(required = false) String category){
+        return new ResponseEntity<>(new ResponseDto<>(postService.getTop(category),"인기 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
 }

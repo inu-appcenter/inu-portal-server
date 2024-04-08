@@ -28,8 +28,8 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     List<Post> findAllByTitleContainsOrContentContainsOrderByGoodDescIdDesc(String title,String content,Pageable pageable);
     List<Post> findAllByTitleContainsOrContentContainsOrderByScrapDescIdDesc(String title,String content,Pageable pageable);
     Long countAllByTitleContainsOrContentContains(String title,String content);
-    @Query("SELECT p FROM Post p WHERE p.good >= 1 ORDER BY p.good DESC ,p.id DESC LIMIT 12")
-    List<Post> findTop12();
+    @Query("SELECT p FROM Post p WHERE p.good >= 1 AND (:category IS NULL OR p.category = :category) ORDER BY p.good DESC ,p.id DESC LIMIT 12")
+    List<Post> findTop12(String category);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Post p WHERE p.id =:id")
