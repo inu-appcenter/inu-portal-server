@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts").permitAll()
                         .requestMatchers("/api/posts/**","/api/posts").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/replies/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers("/api/search","/api/search/**","/api/notices","/api/notices/**").permitAll()
+                        .requestMatchers("/api/search","/api/search/**","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**").permitAll()
                         .requestMatchers("/api/images","/api/images/**","/api/categories").hasRole("ADMIN"));

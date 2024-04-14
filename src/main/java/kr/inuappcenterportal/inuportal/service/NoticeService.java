@@ -41,16 +41,16 @@ public class NoticeService {
     @PostConstruct
     @Transactional
     public void getNotice() throws IOException {
-        getNotices();
+        crawlingNotices();
     }
 
     @Scheduled(cron = "0 0/30 * * * *")
     @Transactional
     public void getNewNotice() throws IOException {
-        getNotices();
+        crawlingNotices();
     }
     @Transactional
-    public void getNotices() throws IOException {
+    public void crawlingNotices() throws IOException {
         noticeRepository.truncateTable();
         int bachelor = 1516;
         int bachelorNum = 46;
