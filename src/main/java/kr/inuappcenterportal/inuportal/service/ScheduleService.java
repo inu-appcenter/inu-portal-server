@@ -31,7 +31,7 @@ public class ScheduleService {
     private String installPath;
 
 
-    @PostConstruct
+    /*@PostConstruct
     @Transactional
     public void initSchedule() throws InterruptedException {
         crawlingSchedule();
@@ -40,7 +40,7 @@ public class ScheduleService {
     @Transactional
     public void renewalSchedule() throws InterruptedException {
         crawlingSchedule();
-    }
+    }*/
 
     @Transactional
     public void crawlingSchedule() throws InterruptedException {
