@@ -1,22 +1,20 @@
-FROM eclipse-temurin:17-jdk
+FROM openjdk:17.0.1-jdk-slim
 
-# 필요한 도구 설치
-RUN apt-get update && apt-get install -y wget gnupg2 unzip curl && \
-    apt-get clean
+RUN apt-get -y update
 
-# Google Chrome 설치
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y ./google-chrome-stable_current_amd64.deb && \
-    rm google-chrome-stable_current_amd64.deb
+RUN apt -y install wget
 
-# Chromedriver 설치
-RUN wget -O /tmp/chromedriver.zip https://storage.googleapis.com/chrome-for-testing-public/123.0.6312.122/linux64/chromedriver-linux64.zip && \
-    unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/ && \
-    rm /tmp/chromedriver.zip
+RUN apt -y install unzip
 
-# 환경변수 설정
-ENV CHROME_BIN=/usr/bin/google-chrome
-ENV CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+RUN apt -y install curl
+
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+
+RUN apt -y install ./google-chrome-stable_current_amd64.deb
+
+RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/` curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip
+
+RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/bi
 
 
 VOLUME /tmp
