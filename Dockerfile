@@ -1,5 +1,16 @@
-FROM centos:7
+# Fedora를 기반 이미지로 시작
+FROM fedora:latest
 
+# JDK 17 설치
+RUN dnf install -y java-17-openjdk-devel && \
+    dnf clean all
+
+# JAVA_HOME 설정
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# JDK 버전 확인
+RUN java -version
 # 크롬 브라우저 설치
 # 크롬 브라우저 설치
 RUN yum install -y wget unzip&& \
