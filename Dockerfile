@@ -1,6 +1,13 @@
 # Fedora를 기반 이미지로 시작
 FROM fedora:latest
+# 필요한 패키지 설치 및 로케일 설정
+RUN dnf install -y glibc-langpack-ko && \
+    dnf clean all
 
+# Locale 환경변수 설정
+ENV LANG=ko_KR.UTF-8
+ENV LANGUAGE=ko_KR:ko
+ENV LC_ALL=ko_KR.UTF-8
 # JDK 17 설치
 RUN dnf install -y java-17-openjdk-devel && \
     dnf clean all
@@ -11,7 +18,6 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # JDK 버전 확인
 RUN java -version
-# 크롬 브라우저 설치
 # 크롬 브라우저 설치
 RUN yum install -y wget unzip&& \
     wget https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-114.0.5735.90-1.x86_64.rpm && \
