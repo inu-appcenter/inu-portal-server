@@ -67,7 +67,7 @@ jobs:
           docker rm ${{ secrets.APPLICATION_NAME }}
           docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
           docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
-          docker run --network=host -d -p ${{ secrets.DEPLOY_PORT }}:8080 -e TZ=Asia/Seoul --name ${{ secrets.APPLICATION_NAME }} -v /home/${{ secrets.SERVER_USERNAME }}/chromedriver-linux64/chromedriver:/bin/chromedriver -v /bin/google-chrome:/usr/bin/google-chrome ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
+          docker run --network=host -d -p ${{ secrets.DEPLOY_PORT }}:8080 -e TZ=Asia/Seoul --name ${{ secrets.APPLICATION_NAME }} -v /home/${{ secrets.SERVER_USERNAME }}/chromedriver-linux64/chromedriver:/bin/chromedriver -v /bin/google-chrome:/bin/google-chrome ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
 
 
 
