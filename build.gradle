@@ -39,6 +39,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.jsoup:jsoup:1.15.3'
     implementation 'org.seleniumhq.selenium:selenium-java:4.1.2'
+
+    implementation 'org.apache.commons:commons-dbcp2:2.9.0'
+    implementation 'com.oracle.database.jdbc:ojdbc11'
 }
 
 tasks.named('test') {
