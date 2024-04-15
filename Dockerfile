@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:17-jdk
 VOLUME /tmp
 ENV PATH="/bin:${PATH}"
 #ARG JAR_FILE = ./build/libs/inu-portal-0.0.1-SNAPSHOT.jar
