@@ -1,6 +1,6 @@
 FROM eclipse-temurin:17-jdk
 VOLUME /tmp
-ENV PATH="/bin:${PATH}"
+ENV PATH="/usr/bin:${PATH}"
 #ARG JAR_FILE = ./build/libs/inu-portal-0.0.1-SNAPSHOT.jar
 COPY ./build/libs/inu-portal-0.0.1-SNAPSHOT.jar app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
