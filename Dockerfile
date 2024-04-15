@@ -1,20 +1,18 @@
 FROM openjdk:17.0.1-jdk-slim
 
-RUN apt-get -y update
+# 패키지 목록 업데이트 및 필요한 패키지 설치
+RUN apt-get -y update && \
+    apt-get -y install wget unzip curl && \
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt -y install ./google-chrome-stable_current_amd64.deb
 
-RUN apt -y install wget
+# ChromeDriver 설치
+RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip && \
+    unzip /tmp/chromedriver.zip -d /usr/bin && \
+    rm /tmp/chromedriver.zip
 
-RUN apt -y install unzip
-
-RUN apt -y install curl
-
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-RUN apt -y install ./google-chrome-stable_current_amd64.deb
-
-RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/` curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip
-
-RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/bi
+# ChromeDriver 실행 권한 부여
+RUN chmod +x /usr/bin/chromedriver
 
 
 VOLUME /tmp
