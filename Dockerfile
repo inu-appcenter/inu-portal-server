@@ -2,7 +2,7 @@ FROM centos:7
 
 # 크롬 브라우저 설치
 # 크롬 브라우저 설치
-RUN yum install -y wget && \
+RUN yum install -y wget unzip&& \
     wget https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-114.0.5735.90-1.x86_64.rpm && \
     yum localinstall -y google-chrome-stable-114.0.5735.90-1.x86_64.rpm && \
     rm google-chrome-stable-114.0.5735.90-1.x86_64.rpm
