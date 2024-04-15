@@ -10,10 +10,11 @@ RUN wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.133
 RUN unzip chrome-linux64.zip -d /opt/chrome
 
 # 압축 해제된 실행 파일에 실행 권한 부여
-RUN chmod +x /opt/chrome/chrome-linux/chrome
+# 수정된 경로: /opt/chrome/chrome 대신 사용
+RUN chmod +x /opt/chrome/chrome
 
 # 환경변수 설정 (선택적)
-ENV PATH="/opt/chrome/chrome-linux:${PATH}"
+ENV PATH="/opt/chrome:${PATH}"
 
 # ChromeDriver 설치
 RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip && \
@@ -22,6 +23,7 @@ RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/11
 
 # ChromeDriver 실행 권한 부여
 RUN chmod +x /usr/bin/chromedriver
+
 
 
 VOLUME /tmp
