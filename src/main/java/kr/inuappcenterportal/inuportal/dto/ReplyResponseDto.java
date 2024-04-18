@@ -18,6 +18,8 @@ public class ReplyResponseDto {
     private Long id;
     @Schema(description = "댓글의 작성자")
     private String writer;
+    @Schema(description = "댓글의 작성자의 프로필 횃불이사진Id값")
+    private Long fireId;
     @Schema(description = "댓글의 내용")
     private String content;
     @Schema(description = "좋아요")
@@ -36,9 +38,10 @@ public class ReplyResponseDto {
     private List<ReReplyResponseDto> reReplies;
 
     @Builder
-    private ReplyResponseDto(Long id, String writer, String content, long like, String createDate, String modifiedDate, List<ReReplyResponseDto> reReplies, boolean isLiked,boolean isAnonymous,boolean hasAuthority){
+    private ReplyResponseDto(Long id, String writer, String content,long fireId, long like, String createDate, String modifiedDate, List<ReReplyResponseDto> reReplies, boolean isLiked,boolean isAnonymous,boolean hasAuthority){
         this.id = id;
         this.writer =writer;
+        this.fireId = fireId;
         this.content =content;
         this.like = like;
         this.createDate = createDate;
@@ -49,10 +52,11 @@ public class ReplyResponseDto {
         this.hasAuthority = hasAuthority;
     }
 
-    public static ReplyResponseDto of(Reply reply, String writer, boolean isLiked, boolean hasAuthority,List<ReReplyResponseDto> reReplyResponseDtoList){
+    public static ReplyResponseDto of(Reply reply,String writer, long fireId, boolean isLiked, boolean hasAuthority,List<ReReplyResponseDto> reReplyResponseDtoList){
         return ReplyResponseDto.builder()
                 .id(reply.getId())
                 .writer(writer)
+                .fireId(fireId)
                 .content(reply.getContent())
                 .like(reply.getLikeReplies().size())
                 .createDate(reply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))

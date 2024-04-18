@@ -22,6 +22,8 @@ public class PostResponseDto {
     private String category;
     @Schema(description = "작성자",example = "작성자")
     private String writer;
+    @Schema(description = "작성자의 프로필 횃불이사진Id값")
+    private Long fireId;
     @Schema(description = "내용", example = "내용")
     private String content;
     @Schema(description = "좋아요")
@@ -49,13 +51,14 @@ public class PostResponseDto {
 
 
     @Builder
-    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, String content, String createDate, String modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
+    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, String createDate, String modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
         this.id = id;
         this.title = title;
         this.category = category;
         this.replies = replies;
         this.bestReplies = bestReplies;
         this.writer = writer;
+        this.fireId = fireId;
         this.createDate = createDate;
         this.modifiedDate = modifiedDate;
         this.content =content;
@@ -68,7 +71,7 @@ public class PostResponseDto {
         this.hasAuthority =hasAuthority;
     }
 
-    public static PostResponseDto of(Post post,String writer, boolean isLiked, boolean isScraped, boolean hasAuthority, List<ReplyResponseDto> replies , List<ReReplyResponseDto> bestReplies){
+    public static PostResponseDto of(Post post,String writer, long fireId, boolean isLiked, boolean isScraped, boolean hasAuthority, List<ReplyResponseDto> replies , List<ReReplyResponseDto> bestReplies){
         return PostResponseDto.builder()
                 .id(post.getId())
                 .replies(replies)
@@ -77,6 +80,7 @@ public class PostResponseDto {
                 .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
                 .category(post.getCategory())
                 .writer(writer)
+                .fireId(fireId)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .like(post.getPostLikes().size())

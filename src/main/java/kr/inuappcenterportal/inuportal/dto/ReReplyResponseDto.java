@@ -15,6 +15,8 @@ public class ReReplyResponseDto {
     private Long id;
     @Schema(description = "댓글의 작성자")
     private String writer;
+    @Schema(description = "댓글의 작성자의 프로필 횃불이사진Id값")
+    private Long fireId;
     @Schema(description = "댓글의 내용")
     private String content;
     @Schema(description = "좋아요")
@@ -31,9 +33,10 @@ public class ReReplyResponseDto {
     private LocalDate modifiedDate;
 
     @Builder
-    private ReReplyResponseDto(Long id, String writer, String content, long like, LocalDate createDate, LocalDate modifiedDate,boolean isLiked, boolean isAnonymous, boolean hasAuthority ){
+    private ReReplyResponseDto(Long id, String writer, long fireId, String content, long like, LocalDate createDate, LocalDate modifiedDate,boolean isLiked, boolean isAnonymous, boolean hasAuthority ){
         this.id = id;
         this.writer =writer;
+        this.fireId = fireId;
         this.content = content;
         this.like = like;
         this.createDate =createDate;
@@ -43,11 +46,12 @@ public class ReReplyResponseDto {
         this.hasAuthority = hasAuthority;
     }
 
-    public static ReReplyResponseDto of(Reply reReply, String writer, boolean isLiked, boolean hasAuthority)
+    public static ReReplyResponseDto of(Reply reReply, String writer,long fireId, boolean isLiked, boolean hasAuthority)
     {
         return ReReplyResponseDto.builder()
                 .id(reReply.getId())
                 .writer(writer)
+                .fireId(fireId)
                 .content(reReply.getContent())
                 .like(reReply.getLikeReplies().size())
                 .createDate(reReply.getCreateDate())

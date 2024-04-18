@@ -141,13 +141,14 @@ public class ReplyService {
                         String writer = writerName(reReply,post);
                         boolean isLiked = isLiked(member,reReply);
                         boolean hasAuthority = hasAuthority(member,reReply);
-                return ReReplyResponseDto.of(reReply,writer,isLiked,hasAuthority);
+                return ReReplyResponseDto.of(reReply,writer,reReply.getMember().getFireId(),isLiked,hasAuthority);
             })
                     .collect(Collectors.toList());
                     String writer = writerName(reply,post);
+                    long fireId = writer.equals("(알수없음")||writer.equals("(삭제됨)")?13: reply.getMember().getFireId();
                     boolean isLiked = isLiked(member,reply);
                     boolean hasAuthority = hasAuthority(member,reply);
-            return ReplyResponseDto.of(reply, writer,isLiked,hasAuthority,reReplyResponseDtoList);
+            return ReplyResponseDto.of(reply, writer, fireId, isLiked,hasAuthority,reReplyResponseDtoList);
 
         })
                 .collect(Collectors.toList());
@@ -166,7 +167,7 @@ public class ReplyService {
         }
         return hasAuthority;
     }
-
+    @Transactional(readOnly = true)
     public String writerName(Reply reply,Post post){
         String writer;
         if(reply.getIsDeleted()){
@@ -185,7 +186,7 @@ public class ReplyService {
                 }
             }
             else{
-                writer = memberRepository.findById(reply.getMember().getId()).get().getNickname();
+                writer = reply.getMember().getNickname();
             }
         }
         return writer;
@@ -209,9 +210,10 @@ public class ReplyService {
                 break;
             count++;
             String writer = writerName(reply,post);
+            long fireId = writer.equals("(알수없음")||writer.equals("(삭제됨)")?13: reply.getMember().getFireId();
             boolean isLiked = isLiked(member,reply);
             boolean hasAuthority = hasAuthority(member,reply);
-            bestReplies.add(ReReplyResponseDto.of(reply,writer,isLiked,hasAuthority));
+            bestReplies.add(ReReplyResponseDto.of(reply,writer,fireId, isLiked,hasAuthority));
 
         }
         return bestReplies;

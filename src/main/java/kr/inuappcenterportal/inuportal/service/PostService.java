@@ -95,6 +95,7 @@ public class PostService {
             redisService.insertAddress(address,postId);
             post.upViewCount();
         }
+        long fireId;
         boolean isLiked = false;
         boolean isScraped = false;
         boolean hasAuthority = false;
@@ -112,17 +113,18 @@ public class PostService {
         String writer;
         if(post.getMember()==null){
             writer="(알수없음)";
+            fireId =13;
         }
         else{
+            fireId = post.getMember().getFireId();
             if (post.getAnonymous()) {
                 writer = "횃불이";
             }
             else{
-                writer = memberRepository.findById(post.getMember().getId()).get().getNickname();
+                writer = post.getMember().getNickname();
             }
         }
-
-        return  PostResponseDto.of(post,writer,isLiked,isScraped,hasAuthority,replyService.getReplies(postId,member),replyService.getBestReplies(postId,member));
+        return  PostResponseDto.of(post,writer,fireId,isLiked,isScraped,hasAuthority,replyService.getReplies(postId,member),replyService.getBestReplies(postId,member));
     }
 
 
