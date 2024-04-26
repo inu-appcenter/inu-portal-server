@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.*;
+import kr.inuappcenterportal.inuportal.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.service.MemberService;
 import kr.inuappcenterportal.inuportal.service.PostService;
 import kr.inuappcenterportal.inuportal.service.ReplyService;
@@ -22,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLException;
 import java.util.List;
 
 @Slf4j
@@ -34,7 +36,7 @@ public class MemberController {
     private final MemberService memberService;
     private final PostService postService;
     private final ReplyService replyService;
-    /*private final SchoolDbDao schoolDbDao;*/
+    private final SchoolLoginRepository schoolLoginRepository;
 
     @Operation(summary = "회원 가입",description = "바디에 {email(@가 들어간 이메일 형식이어야 합니다.),password,nickname}을 json 형식으로 보내주세요. 성공 시 가입한 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
@@ -207,16 +209,15 @@ public class MemberController {
     }
 
 
-    /*@Operation(summary = "로그인 여부 확인",description = "바디에 {학번(id),비밀번호(password}을 json 형식으로 보내주세요. 성공 시 인증번호 일치 여부가 {data:boolean} 형식으로 보내집니다.")
+    @Operation(summary = "테스트용 api 사용 x  ",description = "바디에 {학번(id),비밀번호(password}을 json 형식으로 보내주세요. 성공 시 인증번호 일치 여부가 {data:boolean} 형식으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "가입 인증번호 일치 확인 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/login/school")
-    public ResponseEntity<ResponseDto<Boolean>> checkLogin(@Valid@RequestBody MemberLoginDto memberLoginDto){;
-        return new ResponseEntity<>(new ResponseDto<>(schoolDbDao.loginCheck(memberLoginDto.getEmail(),memberLoginDto.getPassword()),"가입 인증번호 일치확인 성공"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<Boolean>> checkLogin(@Valid@RequestBody MemberLoginDto memberLoginDto) throws SQLException, ClassNotFoundException {;
+        return new ResponseEntity<>(new ResponseDto<>(schoolLoginRepository.loginCheck(memberLoginDto.getEmail(),memberLoginDto.getPassword()),"로그인 성공 여부 테스트"),HttpStatus.OK);
     }
-*/
 
 
 }
