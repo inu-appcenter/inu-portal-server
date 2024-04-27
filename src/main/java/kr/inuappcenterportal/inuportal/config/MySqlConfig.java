@@ -34,7 +34,7 @@ public class MySqlConfig {
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder, @Qualifier("dataSource") DataSource dataSource) {
 
         Map<String, String> properties = new HashMap<String, String>();
-        properties.put("hibernate.hbm2ddl.auto", "none");
+        properties.put("hibernate.hbm2ddl.auto", "update");
 
         return builder.dataSource(dataSource).packages("kr.inuappcenterportal.inuportal.domain").persistenceUnit("primary").properties(properties).build();
     }
