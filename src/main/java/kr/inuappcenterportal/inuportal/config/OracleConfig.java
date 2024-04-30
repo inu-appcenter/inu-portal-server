@@ -24,7 +24,7 @@ public class OracleConfig {
     private String username;
     @Value("${schoolDbPassword}")
     private String password;
-    @Bean(name = "oracleDataSource")
+   /* @Bean(name = "oracleDataSource")
     @ConfigurationProperties(prefix = "school.datasource")
     public DataSource secondDataSource() {
         HikariConfig config = new HikariConfig();
@@ -44,5 +44,5 @@ public class OracleConfig {
     @Autowired
     public JdbcTemplate jdbcTemplate(@Qualifier("oracleDataSource")DataSource dataSource){
         return new JdbcTemplate(dataSource);
-    }
+    }*/
 }
