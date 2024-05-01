@@ -35,7 +35,6 @@ import org.springframework.web.bind.annotation.*;
 public class SearchController {
     private final PostService postService;
     private final FolderService folderService;
-    private final TokenProvider tokenProvider;
 
     @Operation(summary = "게시글 검색",description = "url 파라미터에 검색내용 query , 정렬기준을 sort(date/공백(최신순),like,scrap)를, 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({

@@ -10,7 +10,9 @@ import kr.inuappcenterportal.inuportal.repository.FireRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +71,19 @@ public class FireService {
     public void changeUri(String uri){
         url = uri;
         log.info("uri 변경 완료 변경된 요청 uri: {}",url);
+    }
+
+    @Transactional
+    public Long ratingImage(Long id, int rate){
+        Fire fire = fireRepository.findById(id).orElseThrow(()-> new MyException(MyErrorCode.IMAGE_NOT_FOUND));
+        fire.givePoint(rate);
+        return fire.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Fire> getFireImageList(int page){
+        Pageable pageable = PageRequest.of(page,10);
+        return fireRepository.findAll(pageable);
     }
 
 
