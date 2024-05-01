@@ -30,7 +30,8 @@ public class FireController {
 
     @Operation(summary = "횃불이 ai 그림 그리기",description = "바디에 {param}을 json 형식으로 보내주세요. 성공 시 만들어진 이미지의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201",description = "횃불이 ai 그림 그리기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "201",description = "횃불이 ai 그림 그리기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "400",description = "횃불이 ai 이미지 생성 uri에 문제가 있습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> drawFireAiImage(@Valid@RequestBody FireDto fireDto){
@@ -53,8 +54,7 @@ public class FireController {
 
     @Operation(summary = "ai 생성 요청 uri 변경",description = "바디에 {uri}을 json 형식으로 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "ai 생성 요청 uri 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "400",description = "횃불이 ai 이미지 생성 uri에 문제가 있습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "ai 생성 요청 uri 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/uri")
     public ResponseEntity<ResponseDto<Long>> changeRequestUri(@Valid @RequestBody UriDto uriDto){
