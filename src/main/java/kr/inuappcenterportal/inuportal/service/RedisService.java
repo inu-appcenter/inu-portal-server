@@ -160,6 +160,17 @@ public class RedisService {
         return image;
     }
 
+    public void storeMeal(String cafeteria,int num,String menu){
+        String key = cafeteria+"-"+num;
+        log.info("식단저장 : {}",key);
+        redisTemplate.opsForValue().set(key,menu);
+    }
+
+    public String getMeal(String cafeteria,int num){
+        String key = cafeteria+"-"+num;
+        return redisTemplate.opsForValue().get(key);
+    }
+
 
 
 }
