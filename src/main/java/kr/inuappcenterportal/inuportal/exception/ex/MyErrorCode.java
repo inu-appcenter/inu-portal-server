@@ -43,7 +43,8 @@ public enum MyErrorCode {
     NOT_BLANK_NICKNAME(HttpStatus.BAD_REQUEST,"닉네임이 빈칸 혹은 공백입니다."),
     EMAIL_NOT_AUTHORIZATION(HttpStatus.FORBIDDEN,"인증되지 않은 이메일입니다."),
     NOT_LIKE_MY_POST(HttpStatus.BAD_REQUEST,"자신의 게시글에는 추천을 할 수 없습니다."),
-    NOT_LIKE_MY_REPLY(HttpStatus.BAD_REQUEST,"자신의 댓글에는 추천을 할 수 없습니다.");
+    NOT_LIKE_MY_REPLY(HttpStatus.BAD_REQUEST,"자신의 댓글에는 추천을 할 수 없습니다."),
+    NOT_FOUND_AI_URI(HttpStatus.BAD_REQUEST,"횃불이 ai 이미지 생성 uri에 문제가 있습니다.");
 
 
     private final HttpStatus status;

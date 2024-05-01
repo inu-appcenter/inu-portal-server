@@ -143,6 +143,23 @@ public class RedisService {
         return numbers;
     }
 
+    public void storeFireAiImage(String image,Long id){
+        image = image.substring(2,image.length()-1);
+        String key = "FireAi-" + id;
+        log.info("이미지 저장 key:{}",key);
+        redisTemplate.opsForValue().set(key,image);
+        redisTemplate.expire(key,7, TimeUnit.DAYS);
+    }
+
+    public String getFireAiImage(Long id){
+        String key = "FireAi-" + id;
+        String image = redisTemplate.opsForValue().get(key);
+        if(image==null){
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
+        }
+        return image;
+    }
+
 
 
 }

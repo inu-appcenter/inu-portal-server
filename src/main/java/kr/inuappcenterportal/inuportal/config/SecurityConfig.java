@@ -40,13 +40,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members").permitAll()
                         .requestMatchers("/api/members/all").hasRole("ADMIN")
                         .requestMatchers("/api/members/**","/api/members").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts").permitAll()
-                        .requestMatchers("/api/posts/**","/api/posts").hasAnyRole("USER","ADMIN")
+                        .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/fires").permitAll()
+                        .requestMatchers("/api/posts/**","/api/posts","/api/fires/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/replies/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/search","/api/search/**","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**").permitAll()
-                        .requestMatchers("/api/images","/api/images/**","/api/categories").hasRole("ADMIN"));
+                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/fires/uri").hasRole("ADMIN"));
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler())
