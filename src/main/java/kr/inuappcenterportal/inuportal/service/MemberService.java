@@ -120,12 +120,12 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public MemberResponseDto getMember(Member member){
-        return new MemberResponseDto(member);
+        return MemberResponseDto.of(member);
     }
 
     @Transactional(readOnly = true)
     public List<MemberResponseDto> getAllMember(){
-        return memberRepository.findAll().stream().map(MemberResponseDto::new).collect(Collectors.toList());
+        return memberRepository.findAll().stream().map(MemberResponseDto::of).collect(Collectors.toList());
     }
 
     @Transactional
@@ -141,7 +141,7 @@ public class MemberService {
     }
     @Transactional
     public void createMember(String studentId){
-        Member member = Member.builder().studentId(studentId).nickname("횃불이#"+studentId).roles(Collections.singletonList("ROLE_USER")).build();
+        Member member = Member.builder().studentId(studentId).nickname(studentId).roles(Collections.singletonList("ROLE_USER")).build();
         memberRepository.save(member);
     }
 
