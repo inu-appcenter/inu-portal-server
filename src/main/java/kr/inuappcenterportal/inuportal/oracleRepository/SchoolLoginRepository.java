@@ -14,7 +14,7 @@ import java.sql.*;
 @Slf4j
 public class SchoolLoginRepository {
 
-    /*@Autowired
+    @Autowired
     @Qualifier("oracleJdbc")
     private JdbcTemplate jdbcTemplate;
 
@@ -28,5 +28,5 @@ public class SchoolLoginRepository {
             log.info("데이터베이스 연결 오류 메시지 : {}",e.getMessage());
             return false;
         }
-    }*/
+    }
 }
