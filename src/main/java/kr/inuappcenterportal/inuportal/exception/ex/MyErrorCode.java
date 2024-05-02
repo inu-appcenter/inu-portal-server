@@ -44,7 +44,8 @@ public enum MyErrorCode {
     EMAIL_NOT_AUTHORIZATION(HttpStatus.FORBIDDEN,"인증되지 않은 이메일입니다."),
     NOT_LIKE_MY_POST(HttpStatus.BAD_REQUEST,"자신의 게시글에는 추천을 할 수 없습니다."),
     NOT_LIKE_MY_REPLY(HttpStatus.BAD_REQUEST,"자신의 댓글에는 추천을 할 수 없습니다."),
-    NOT_FOUND_AI_URI(HttpStatus.BAD_REQUEST,"횃불이 ai 이미지 생성 uri에 문제가 있습니다.");
+    NOT_FOUND_AI_URI(HttpStatus.BAD_REQUEST,"횃불이 ai 이미지 생성 uri에 문제가 있습니다."),
+    STUDENT_LOGIN_ERROR(HttpStatus.UNAUTHORIZED,"학번 또는 비밀번호가 틀립니다.");
 
 
     private final HttpStatus status;

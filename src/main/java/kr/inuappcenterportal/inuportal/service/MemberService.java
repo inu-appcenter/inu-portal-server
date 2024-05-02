@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.*;
 import kr.inuappcenterportal.inuportal.exception.ex.*;
+import kr.inuappcenterportal.inuportal.oracleRepository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,12 +27,13 @@ public class MemberService {
     private final TokenProvider tokenProvider;
     private final MailService mailService;
     private final RedisService redisService;
+    private final SchoolLoginRepository schoolLoginRepository;
 
-    @Transactional
+    /*@Transactional
     public Long join(MemberSaveDto memberSaveDto){
-        /*if(!redisService.getIsChecked(memberSaveDto.getEmail())){
+        *//*if(!redisService.getIsChecked(memberSaveDto.getEmail())){
             throw new MyException(MyErrorCode.EMAIL_NOT_AUTHORIZATION);
-        }*/
+        }*//*
         if(!checkSchoolEmail(memberSaveDto.getEmail())){
             throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
         }
@@ -44,9 +46,9 @@ public class MemberService {
         String encodedPassword = passwordEncoder.encode(memberSaveDto.getPassword());
         Member member= Member.builder().email(memberSaveDto.getEmail()).nickname(memberSaveDto.getNickname()).password(encodedPassword).roles(Collections.singletonList("ROLE_USER")).build();
         return memberRepository.save(member).getId();
-    }
+    }*/
 
-    @Transactional
+    /*@Transactional
     public Long updateMemberPassword(Long id, MemberUpdatePasswordDto memberUpdatePasswordDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
        if(!passwordEncoder.matches(memberUpdatePasswordDto.getPassword(),member.getPassword())){
@@ -55,7 +57,7 @@ public class MemberService {
        String encodedPassword = passwordEncoder.encode(memberUpdatePasswordDto.getNewPassword());
        member.updatePassword(encodedPassword);
         return member.getId();
-    }
+    }*/
 
     @Transactional
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
@@ -91,11 +93,7 @@ public class MemberService {
     }
 
     @Transactional
-    public TokenDto login(MemberLoginDto memberLoginDto){
-        Member member = memberRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(()->new MyException(MyErrorCode.ID_NOT_FOUND));
-        if(!passwordEncoder.matches(memberLoginDto.getPassword(),member.getPassword())){
-            throw new MyException(MyErrorCode.PASSWORD_NOT_MATCHED);
-        }
+    public TokenDto login(Member member){
         LocalDateTime localDateTime = LocalDateTime.now();
         long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
         long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
@@ -130,7 +128,24 @@ public class MemberService {
         return memberRepository.findAll().stream().map(MemberResponseDto::new).collect(Collectors.toList());
     }
 
-    public String sendMail(EmailDto emailDto){
+    @Transactional
+    public TokenDto schoolLogin(LoginDto loginDto){
+        if(!schoolLoginRepository.loginCheck(loginDto.getStudentId(), loginDto.getPassword())){
+            throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
+        }
+        if(!memberRepository.existsByStudentId(loginDto.getStudentId())){
+            createMember(loginDto.getStudentId());
+        }
+        Member member = memberRepository.findByStudentId(loginDto.getStudentId()).orElseThrow(()-> new MyException(MyErrorCode.USER_NOT_FOUND));
+        return login(member);
+    }
+    @Transactional
+    public void createMember(String studentId){
+        Member member = Member.builder().studentId(studentId).nickname("횃불이#"+studentId).roles(Collections.singletonList("ROLE_USER")).build();
+        memberRepository.save(member);
+    }
+
+    /*public String sendMail(EmailDto emailDto){
         if(!checkSchoolEmail(emailDto.getEmail())){
             throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
         }
@@ -166,5 +181,7 @@ public class MemberService {
         }
         String domain = email.substring(atIndex + 1);
         return domain.equals("inu.ac.kr");
-    }
+    }*/
+
+
 }

@@ -23,14 +23,11 @@ public class Member implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String email;
+    @Column(nullable = false,name = "student_id")
+    private String studentId;
 
     @Column(nullable = false)
     private String nickname;
-
-    @Column(nullable = false)
-    private String password;
 
     @Column(name = "fire_id")
     private Long fireId;
@@ -51,16 +48,11 @@ public class Member implements UserDetails {
     private List<Reply> replies;
 
     @Builder
-    public Member(String email, String password, String nickname, List<String> roles){
-        this.email = email;
-        this.password = password;
+    public Member(String studentId, String nickname, List<String> roles){
+        this.studentId = studentId;
         this.nickname = nickname;
         this.roles = roles;
         this.fireId = 1L;
-    }
-
-    public void updatePassword(String password){
-        this.password = password;
     }
 
     public void updateNicknameAndFire(String nickname,Long fireId){
@@ -81,6 +73,11 @@ public class Member implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return this.roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
+    }
+
+    @Override
+    public String getPassword() {
+        return null;
     }
 
     @Override
