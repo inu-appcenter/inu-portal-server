@@ -23,6 +23,7 @@ public class SchoolLoginRepository {
         String sql = "SELECT F_LOGIN_CHECK(?, ?) FROM DUAL";
         try {
             String result = jdbcTemplate.queryForObject(sql, String.class, username, password);
+            log.info("학교 디비 조회 결과 : {}",result);
             return "1".equals(result);
         } catch (Exception e) {
             log.info("데이터베이스 연결 오류 메시지 : {}",e.getMessage());
