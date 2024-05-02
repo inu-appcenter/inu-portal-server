@@ -25,7 +25,7 @@ public class Notice {
     @Column
     private String writer;
 
-    @Column
+    @Column(name="create_date")
     private String createDate;
 
     @Column Long view;

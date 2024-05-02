@@ -17,7 +17,7 @@ public class Fire extends BaseTimeEntity{
 
     @Column
     private String duration;
-    @Column
+    @Column(name = "average_duration")
     private String averageDuration;
     @Column
     private Integer point;

@@ -25,7 +25,7 @@ public class Reply extends BaseTimeEntity{
     @Column
     private Boolean anonymous;
 
-    @Column
+    @Column(name = "is_deleted")
     private Boolean isDeleted;
 
     @Column

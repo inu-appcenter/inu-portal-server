@@ -44,7 +44,7 @@ public class Post extends BaseTimeEntity {
     @Column
     private Long view;
 
-    @Column
+    @Column(name="image_count")
     private Long imageCount;
 
 

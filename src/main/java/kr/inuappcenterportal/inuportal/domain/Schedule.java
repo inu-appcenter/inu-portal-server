@@ -17,10 +17,10 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
+    @Column(name="start_date")
     private LocalDate startDate;
 
-    @Column
+    @Column(name="end_date")
     private LocalDate endDate;
 
     @Column
