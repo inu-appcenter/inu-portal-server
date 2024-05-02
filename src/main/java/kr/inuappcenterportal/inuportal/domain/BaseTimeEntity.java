@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.PrePersist;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -16,8 +18,12 @@ import java.time.LocalDate;
 public class BaseTimeEntity {
 
     @CreatedDate
+    @Column(name = "create_date")
     private LocalDate createDate;
 
     @LastModifiedDate
+    @Column(name = "modified_date")
     private LocalDate modifiedDate;
+
+
 }
