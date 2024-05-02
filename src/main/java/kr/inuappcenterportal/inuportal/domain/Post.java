@@ -12,7 +12,7 @@ import java.util.List;
 
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @Table(name = "post")
 public class Post extends BaseTimeEntity {
 
