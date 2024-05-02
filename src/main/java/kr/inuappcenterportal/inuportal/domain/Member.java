@@ -75,6 +75,7 @@ public class Member implements UserDetails {
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "member_roles")
     private List<String> roles;
 
     @Override
