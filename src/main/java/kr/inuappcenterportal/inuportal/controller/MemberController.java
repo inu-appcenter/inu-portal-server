@@ -213,8 +213,8 @@ public class MemberController {
             ,@ApiResponse(responseCode = "404",description = "만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/login/school")
-    public ResponseEntity<ResponseDto<Boolean>> checkLogin(@Valid@RequestBody MemberLoginDto memberLoginDto) throws SQLException, ClassNotFoundException {;
-        return new ResponseEntity<>(new ResponseDto<>(schoolLoginRepository.loginCheck(memberLoginDto.getEmail(),memberLoginDto.getPassword()),"로그인 성공 여부 테스트"),HttpStatus.OK);
+    public ResponseEntity<ResponseDto<Boolean>> checkLogin(@Valid@RequestBody LoginDto loginDto)  {
+        return new ResponseEntity<>(new ResponseDto<>(schoolLoginRepository.loginCheck(loginDto.getNum(),loginDto.getNum()),"로그인 성공 여부 테스트"),HttpStatus.OK);
     }
 
 
