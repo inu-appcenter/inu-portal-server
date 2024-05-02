@@ -20,11 +20,10 @@ public class SchoolLoginRepository {
 
 
     public boolean loginCheck(String username, String password) {
-        String param = "'"+username+"','"+password+"'";
-        String sql = "SELECT F_LOGIN_CHECK("+param+") FROM DUAL";
-        log.info("학교 로그인 조회 :{}",username);
+        String sql = "SELECT F_LOGIN_CHECK(?,?) FROM DUAL";
+        log.info("학교 로그인 조회 id:{}",username);
         try {
-            String result = jdbcTemplate.queryForObject(sql, String.class);
+            String result = jdbcTemplate.queryForObject(sql, String.class,username,password);
             log.info("학교 디비 조회 결과 : {}",result);
             return "Y".equals(result);
         } catch (Exception e) {

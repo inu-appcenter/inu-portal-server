@@ -214,7 +214,7 @@ public class MemberController {
     })
     @PostMapping("/login/school")
     public ResponseEntity<ResponseDto<Boolean>> checkLogin(@Valid@RequestBody LoginDto loginDto)  {
-        return new ResponseEntity<>(new ResponseDto<>(schoolLoginRepository.loginCheck(loginDto.getNum(),loginDto.getNum()),"로그인 성공 여부 테스트"),HttpStatus.OK);
+        return new ResponseEntity<>(new ResponseDto<>(schoolLoginRepository.loginCheck(loginDto.getNum(),loginDto.getPassword()),"로그인 성공 여부 테스트"),HttpStatus.OK);
     }
 
 
