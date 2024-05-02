@@ -32,7 +32,7 @@ public class Member implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    @Column
+    @Column(name = "fire_id")
     private Long fireId;
 
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
