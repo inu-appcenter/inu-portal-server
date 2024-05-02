@@ -25,9 +25,9 @@ public class OracleConfig {
     @Value("${schoolDbPassword}")
     private String password;
     @Bean(name = "oracleDataSource")
-    //@ConfigurationProperties(prefix = "school.datasource")
+    @ConfigurationProperties(prefix = "school.datasource")
     public DataSource secondDataSource() {
-        HikariConfig config = new HikariConfig();
+        /*HikariConfig config = new HikariConfig();
         config.setJdbcUrl(url);
         config.setUsername(username);
         config.setPassword(password);
@@ -37,8 +37,8 @@ public class OracleConfig {
         config.setMinimumIdle(1);
         config.setConnectionTimeout(60000); // milliseconds
         config.setIdleTimeout(600000); // milliseconds
-        return new HikariDataSource(config);
-        //return DataSourceBuilder.create().type(HikariDataSource.class).build();
+        return new HikariDataSource(config);*/
+        return DataSourceBuilder.create().type(HikariDataSource.class).build();
     }
 
     @Bean(name = "oracleJdbc")

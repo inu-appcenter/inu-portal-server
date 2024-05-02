@@ -19,7 +19,7 @@ import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
-/*@Configuration
+@Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(basePackages = {"kr.inuappcenterportal.inuportal.repository"})
 public class MySqlConfig {
@@ -44,4 +44,4 @@ public class MySqlConfig {
     PlatformTransactionManager transactionManager(@Qualifier("entityManagerFactory") EntityManagerFactory entityManagerFactory) {
         return new JpaTransactionManager(entityManagerFactory);
     }
-}*/
+}
