@@ -69,7 +69,8 @@ public class FireController {
     @Operation(summary = "횃불이 ai 이미지 별점 추가",description = "url 변수에 횃불이 ai 이미지 데이터베이스id값을, 바디에 {rating}을 json 형식으로 보내주세요.성공시 횃불이 이미지의 데이터베이스id값이 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "횃불이 별점 추가 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "404",description = "존재하지 않는 이미지 번호입니다. / 평점은 1~5이어야 합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "404",description = "존재하지 않는 이미지 번호입니다. / 평점은 1~5이어야 합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "400",description = "이미 평가된 이미지입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/rating/{id}")
     public ResponseEntity<ResponseDto<Long>> ratingAiImage(@PathVariable Long id, @Valid@RequestBody FireRatingDto fireRatingDto){

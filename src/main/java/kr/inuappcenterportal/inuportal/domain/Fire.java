@@ -21,15 +21,19 @@ public class Fire extends BaseTimeEntity{
     private String averageDuration;
     @Column
     private Integer point;
+    @Column(name = "is_rated")
+    private Boolean isRated;
 
     @Builder
     public Fire(String duration, String averageDuration){
         this.duration = duration;
         this.averageDuration = averageDuration;
         this.point = -1;
+        this.isRated = false;
     }
 
     public void givePoint(int point){
         this.point = point;
+        this.isRated = true;
     }
 }
