@@ -47,45 +47,55 @@ public class CafeteriaService {
             Thread.sleep(1500);
 
             List<WebElement> foods = webDriver.findElements(By.className("con"));
-            redisService.storeMeal("학생식당",1,foods.get(1).getText());
-            redisService.storeMeal("학생식당",2,foods.get(2).getText());
-            redisService.storeMeal("학생식당",3,foods.get(3).getText());
+            if(!foods.isEmpty()) {
+                redisService.storeMeal("학생식당", 1, foods.get(1).getText());
+                redisService.storeMeal("학생식당", 2, foods.get(2).getText());
+                redisService.storeMeal("학생식당", 3, foods.get(3).getText());
+            }
 
             WebElement linkElement = webDriver.findElement(By.xpath("//a[span[text()='제1기숙사식당']]"));
             linkElement.click();
             Thread.sleep(1500);
 
             foods = webDriver.findElements(By.className("con"));
-            redisService.storeMeal("제1기숙사식당",1,foods.get(0).getText());
-            redisService.storeMeal("제1기숙사식당",2,foods.get(1).getText());
-            redisService.storeMeal("제1기숙사식당",3,foods.get(2).getText());
+            if(!foods.isEmpty()) {
+                redisService.storeMeal("제1기숙사식당", 1, foods.get(0).getText());
+                redisService.storeMeal("제1기숙사식당", 2, foods.get(1).getText());
+                redisService.storeMeal("제1기숙사식당", 3, foods.get(2).getText());
+            }
 
             linkElement = webDriver.findElement(By.xpath("//a[span[text()='2호관(교직원)식당']]"));
             linkElement.click();
             Thread.sleep(1500);
 
             foods = webDriver.findElements(By.className("con"));
-            redisService.storeMeal("2호관(교직원)식당",1,"-");
-            redisService.storeMeal("2호관(교직원)식당",2,foods.get(0).getText());
-            redisService.storeMeal("2호관(교직원)식당",3,foods.get(1).getText());
+            if(!foods.isEmpty()) {
+                redisService.storeMeal("2호관(교직원)식당", 1, "-");
+                redisService.storeMeal("2호관(교직원)식당", 2, foods.get(0).getText());
+                redisService.storeMeal("2호관(교직원)식당", 3, foods.get(1).getText());
+            }
 
             linkElement = webDriver.findElement(By.xpath("//a[span[text()='27호관식당']]"));
             linkElement.click();
             Thread.sleep(1500);
 
             foods = webDriver.findElements(By.className("con"));
-            redisService.storeMeal("27호관식당",1,foods.get(0).getText());
-            redisService.storeMeal("27호관식당",2,foods.get(1).getText());
-            redisService.storeMeal("27호관식당",3,foods.get(2).getText());
+            if(!foods.isEmpty()) {
+                redisService.storeMeal("27호관식당", 1, foods.get(0).getText());
+                redisService.storeMeal("27호관식당", 2, foods.get(1).getText());
+                redisService.storeMeal("27호관식당", 3, foods.get(2).getText());
+            }
 
             linkElement = webDriver.findElement(By.xpath("//a[span[text()='사범대식당']]"));
             linkElement.click();
             Thread.sleep(1500);
 
             foods = webDriver.findElements(By.className("con"));
-            redisService.storeMeal("사범대식당",1,"-");
-            redisService.storeMeal("사범대식당",2,foods.get(0).getText());
-            redisService.storeMeal("사범대식당",3,foods.get(1).getText());
+            if(!foods.isEmpty()) {
+                redisService.storeMeal("사범대식당", 1, "-");
+                redisService.storeMeal("사범대식당", 2, foods.get(0).getText());
+                redisService.storeMeal("사범대식당", 3, foods.get(1).getText());
+            }
 
         } finally {
             webDriver.quit();
