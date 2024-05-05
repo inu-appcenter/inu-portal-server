@@ -171,6 +171,25 @@ public class RedisService {
         return redisTemplate.opsForValue().get(key);
     }
 
+    public void storeSky(String sky){
+        log.info("날씨저장 하늘 : {}",sky);
+        redisTemplate.opsForValue().set("sky",sky);
+    }
+
+    public void storeTemperature(String temperature){
+        log.info("기온 저장 온도 : {}",temperature);
+        redisTemplate.opsForValue().set("temperature",temperature);
+    }
+
+    public String getSky(){
+        return redisTemplate.opsForValue().get("sky");
+    }
+
+    public String getTemperature(){
+        return redisTemplate.opsForValue().get("temperature");
+    }
+
+
 
 
 }
