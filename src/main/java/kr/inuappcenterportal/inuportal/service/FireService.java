@@ -58,7 +58,7 @@ public class FireService {
                 .bodyToMono(FireResponseDto.class)
                 .block();
         log.info("횃불이 ai 이미지 생성완료 걸린시간 :{}", fireResponseDto.getDuration());
-        Fire fire = Fire.builder().duration(fireResponseDto.getDuration()).averageDuration(fireResponseDto.getAverage_duration()).build();
+        Fire fire = Fire.builder().duration(fireResponseDto.getDuration()).averageDuration(fireResponseDto.getAverage_duration()).param(param).build();
         Long id = fireRepository.save(fire).getId();
         redisService.storeFireAiImage(fireResponseDto.getData().get(0),id);
         return id;

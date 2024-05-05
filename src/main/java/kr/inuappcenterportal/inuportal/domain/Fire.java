@@ -14,6 +14,8 @@ public class Fire extends BaseTimeEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column
+    private String param;
 
     @Column
     private String duration;
@@ -25,11 +27,12 @@ public class Fire extends BaseTimeEntity{
     private Boolean isRated;
 
     @Builder
-    public Fire(String duration, String averageDuration){
+    public Fire(String duration, String averageDuration, String param){
         this.duration = duration;
         this.averageDuration = averageDuration;
         this.point = -1;
         this.isRated = false;
+        this.param = param;
     }
 
     public void givePoint(int point){
