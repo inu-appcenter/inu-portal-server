@@ -52,6 +52,9 @@ public class CafeteriaService {
                 redisService.storeMeal("학생식당", 2, foods.get(2).getText());
                 redisService.storeMeal("학생식당", 3, foods.get(3).getText());
             }
+            else{
+                weekend("학생식당");
+            }
 
             WebElement linkElement = webDriver.findElement(By.xpath("//a[span[text()='제1기숙사식당']]"));
             linkElement.click();
@@ -62,6 +65,8 @@ public class CafeteriaService {
                 redisService.storeMeal("제1기숙사식당", 1, foods.get(0).getText());
                 redisService.storeMeal("제1기숙사식당", 2, foods.get(1).getText());
                 redisService.storeMeal("제1기숙사식당", 3, foods.get(2).getText());
+            }else{
+                weekend("제1기숙사식당");
             }
 
             linkElement = webDriver.findElement(By.xpath("//a[span[text()='2호관(교직원)식당']]"));
@@ -73,6 +78,8 @@ public class CafeteriaService {
                 redisService.storeMeal("2호관(교직원)식당", 1, "-");
                 redisService.storeMeal("2호관(교직원)식당", 2, foods.get(0).getText());
                 redisService.storeMeal("2호관(교직원)식당", 3, foods.get(1).getText());
+            }else{
+                weekend("2호관(교직원)식당");
             }
 
             linkElement = webDriver.findElement(By.xpath("//a[span[text()='27호관식당']]"));
@@ -84,6 +91,8 @@ public class CafeteriaService {
                 redisService.storeMeal("27호관식당", 1, foods.get(0).getText());
                 redisService.storeMeal("27호관식당", 2, foods.get(1).getText());
                 redisService.storeMeal("27호관식당", 3, foods.get(2).getText());
+            }else{
+                weekend("27호관식당");
             }
 
             linkElement = webDriver.findElement(By.xpath("//a[span[text()='사범대식당']]"));
@@ -95,6 +104,8 @@ public class CafeteriaService {
                 redisService.storeMeal("사범대식당", 1, "-");
                 redisService.storeMeal("사범대식당", 2, foods.get(0).getText());
                 redisService.storeMeal("사범대식당", 3, foods.get(1).getText());
+            }else{
+                weekend("사범대식당");
             }
 
         } finally {
@@ -108,5 +119,11 @@ public class CafeteriaService {
             menu.add(redisService.getMeal(cafeteria,i));
         }
         return menu;
+    }
+
+    public void weekend(String cafeteria){
+        redisService.storeMeal(cafeteria,1,"-");
+        redisService.storeMeal(cafeteria,2,"-");
+        redisService.storeMeal(cafeteria,3,"-");
     }
 }
