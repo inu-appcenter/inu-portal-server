@@ -12,24 +12,25 @@ import java.time.format.DateTimeFormatter;
 @Getter
 @NoArgsConstructor
 public class ScheduleResponseDto {
-    @Schema(description = "시작날짜",example = "yyyy.mm.dd")
-    private String startDate;
-    @Schema(description = "종료날짜",example = "yyyy.mm.dd")
-    private String endDate;
     @Schema(description = "내용",example = "수강신청")
-    private String content;
+    private String title;
+    @Schema(description = "시작날짜",example = "yyyy-mm-dd")
+    private String start;
+    @Schema(description = "종료날짜",example = "yyyy-mm-dd")
+    private String end;
+
 
     @Builder
-    private ScheduleResponseDto (String startDate, String endDate, String content){
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.content = content;
+    private ScheduleResponseDto (String start, String end, String title){
+        this.start = start;
+        this.end = end;
+        this.title = title;
     }
     public static ScheduleResponseDto of(Schedule schedule){
         return ScheduleResponseDto.builder()
-                .startDate(schedule.getStartDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .endDate(schedule.getEndDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .content(schedule.getContent())
+                .start(schedule.getStartDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .end(schedule.getEndDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                .title(schedule.getContent())
                 .build();
     }
 }
