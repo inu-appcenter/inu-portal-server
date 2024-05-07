@@ -39,7 +39,7 @@ public class WeatherService {
     }
 
 
-    @Scheduled(cron = "0 10 * * * *")
+    @Scheduled(cron = "0 5 * * * *")
     public void getTem(){
         getTemperature();
     }
@@ -167,7 +167,7 @@ public class WeatherService {
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
                 .bodyToMono(String.class)
                 .block();
-
+        log.info("data : {}",result);
         JsonObject jsonObject = JsonParser.parseString(result).getAsJsonObject();
         JsonObject body = jsonObject.getAsJsonObject("response").getAsJsonObject("body");
         JsonArray itemList = body.getAsJsonObject("items").getAsJsonArray("item");
