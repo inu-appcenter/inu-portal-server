@@ -39,7 +39,7 @@ public class WeatherService {
     }
 
 
-    @Scheduled(cron = "0 5 * * * *")
+    @Scheduled(cron = "0 10 * * * *")
     public void getTem(){
         getTemperature();
     }
