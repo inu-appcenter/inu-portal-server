@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.service;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -45,6 +46,8 @@ public class CafeteriaService {
         try{
             webDriver.get(url);
             Thread.sleep(1500);
+            int index;
+            String menu;
 
             List<WebElement> foods = webDriver.findElements(By.className("con"));
             if(!foods.isEmpty()) {
@@ -62,9 +65,44 @@ public class CafeteriaService {
 
             foods = webDriver.findElements(By.className("con"));
             if(!foods.isEmpty()) {
-                redisService.storeMeal("제1기숙사식당", 1, foods.get(0).getText());
-                redisService.storeMeal("제1기숙사식당", 2, foods.get(1).getText());
-                redisService.storeMeal("제1기숙사식당", 3, foods.get(2).getText());
+                menu = foods.get(0).getText();
+                index = menu.indexOf("*");
+                if(index!=-1){
+                    index++;
+                    menu = menu.substring(index);
+                    index = menu.indexOf("*");
+                    index = index+2;
+                    menu = menu.substring(index);
+                }
+                redisService.storeMeal("제1기숙사식당", 1, menu);
+                menu = foods.get(1).getText();
+                index = menu.indexOf("*");
+                if(index!=-1){
+                    index++;
+                    menu = menu.substring(index);
+                    index = menu.indexOf("*");
+                    index = index+2;
+                    menu = menu.substring(index);
+                }
+                index = menu.indexOf("=");
+                if(index!=-1){
+                    menu = menu.substring(0,index);
+                }
+                redisService.storeMeal("제1기숙사식당", 2, menu);
+                menu = foods.get(2).getText();
+                index = menu.indexOf("*");
+                if(index!=-1){
+                    index++;
+                    menu = menu.substring(index);
+                    index = menu.indexOf("*");
+                    index = index+2;
+                    menu = menu.substring(index);
+                }
+                index = menu.indexOf("=");
+                if(index!=-1){
+                    menu = menu.substring(0,index);
+                }
+                redisService.storeMeal("제1기숙사식당", 3, menu);
             }else{
                 weekend("제1기숙사식당");
             }
@@ -76,8 +114,18 @@ public class CafeteriaService {
             foods = webDriver.findElements(By.className("con"));
             if(!foods.isEmpty()) {
                 redisService.storeMeal("2호관(교직원)식당", 1, "-");
-                redisService.storeMeal("2호관(교직원)식당", 2, foods.get(0).getText());
-                redisService.storeMeal("2호관(교직원)식당", 3, foods.get(1).getText());
+                menu = foods.get(0).getText();
+                index =  menu.indexOf('-');
+                if(index!=-1){
+                    menu = menu.substring(0,index);
+                }
+                redisService.storeMeal("2호관(교직원)식당", 2, menu);
+                menu = foods.get(1).getText();
+                index =  menu.indexOf('-');
+                if(index!=-1){
+                    menu = menu.substring(0,index);
+                }
+                redisService.storeMeal("2호관(교직원)식당", 3, menu);
             }else{
                 weekend("2호관(교직원)식당");
             }
@@ -102,8 +150,19 @@ public class CafeteriaService {
             foods = webDriver.findElements(By.className("con"));
             if(!foods.isEmpty()) {
                 redisService.storeMeal("사범대식당", 1, "-");
-                redisService.storeMeal("사범대식당", 2, foods.get(0).getText());
-                redisService.storeMeal("사범대식당", 3, foods.get(1).getText());
+                menu = foods.get(0).getText();
+                index =  menu.indexOf('-');
+                if(index!=-1){
+                    menu = menu.substring(0,index);
+                }
+                redisService.storeMeal("사범대식당", 2, menu);
+
+                menu = foods.get(1).getText();
+                index =  menu.indexOf('-');
+                if(index!=-1){
+                    menu = menu.substring(0,index);
+                }
+                redisService.storeMeal("사범대식당", 3, menu);
             }else{
                 weekend("사범대식당");
             }

@@ -167,10 +167,15 @@ public class WeatherService {
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
                 .bodyToMono(String.class)
                 .block();
-        JsonObject jsonObject = JsonParser.parseString(result).getAsJsonObject();
-        JsonObject body = jsonObject.getAsJsonObject("response").getAsJsonObject("body");
-        JsonArray itemList = body.getAsJsonObject("items").getAsJsonArray("item");
-        return itemList;
+        try {
+            JsonObject jsonObject = JsonParser.parseString(result).getAsJsonObject();
+            JsonObject body = jsonObject.getAsJsonObject("response").getAsJsonObject("body");
+            JsonArray itemList = body.getAsJsonObject("items").getAsJsonArray("item");
+            return itemList;
+        }
+        catch (Exception e){
+            return new JsonArray();
+        }
     }
 
     public WeatherResponseDto getWeather(){
