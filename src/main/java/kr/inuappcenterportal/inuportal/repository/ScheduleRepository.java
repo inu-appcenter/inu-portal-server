@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ScheduleRepository extends JpaRepository<Schedule,Long> {
     @Modifying
@@ -16,6 +17,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule,Long> {
 
     @Query("SELECT s FROM Schedule s WHERE (YEAR(s.startDate) = :year AND MONTH(s.startDate) = :month) OR (YEAR(s.endDate) = :year AND MONTH(s.endDate) = :month)")
     List<Schedule> findAllByStartDateOrEndDateMonth(int year, int month);
+
+    boolean existsByContent(String content);
 
 
 }

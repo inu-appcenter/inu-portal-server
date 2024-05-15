@@ -76,6 +76,9 @@ public class ScheduleService {
                             isNoData = true;
                             break;
                         }
+                        else if(scheduleRepository.existsByContent(content)){
+                            continue;
+                        }
                         WebElement dateElement = row.findElement(By.tagName("th"));
                         String date = dateElement.getText();
 
