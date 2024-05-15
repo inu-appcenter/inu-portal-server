@@ -85,7 +85,7 @@ public class WeatherService {
             }
         }
         log.info("PTY : {}, SKY :{} ",pty,sky);
-        String weather= null;
+        String weather= "맑음";
         if(pty.equals("0")){
             if(sky.equals("1")){
                 weather="맑음";
@@ -123,7 +123,7 @@ public class WeatherService {
 
         JsonArray itemList = getJsonData(url);
 
-        String temperature = null;
+        String temperature = "20";
 
         String pty = null;
         int index = 0;
@@ -144,7 +144,7 @@ public class WeatherService {
                 break;
             }
         }
-        String weather=null;
+        String weather="맑음";
         redisService.storeTemperature(temperature);
         if(!pty.equals("0")){
             if(pty.equals("1")||pty.equals("5")){
