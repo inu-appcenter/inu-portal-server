@@ -27,8 +27,8 @@ RUN yum install -y wget unzip&& \
 
 # 크롬 드라이버 설치
 RUN wget https://storage.googleapis.com/chrome-for-testing-public/125.0.6422.60/linux64/chrome-linux64.zip && \
-    unzip chromedriver_linux64.zip -d /usr/bin/ && \
-    rm chromedriver_linux64.zip
+    unzip chrome-linux64.zip -d /usr/bin/ && \
+    rm chrome-linux64.zip
 
 # 환경변수 PATH에 크롬 드라이버 경로 추가
 ENV PATH="/usr/bin:${PATH}"
