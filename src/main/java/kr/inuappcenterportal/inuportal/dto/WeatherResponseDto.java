@@ -13,14 +13,26 @@ public class WeatherResponseDto {
     private String sky;
     @Schema(description = "기온",example = "15.2")
     private String temperature;
+    @Schema(description = "미세먼지 농도",example = "5.3")
+    private String pm10Value;
+    @Schema(description = "미세먼지 등급",example = "좋음")
+    private String pm10Grade;
+    @Schema(description = "초미세먼지 농도",example = "5.3")
+    private String pm25Value;
+    @Schema(description = "초미세먼지 등급",example = "좋음")
+    private String pm25Grade;
 
     @Builder
-    private WeatherResponseDto(String sky,String temperature){
+    private WeatherResponseDto(String sky,String temperature,String pm10Value,String pm10Grade,String pm25Value,String pm25Grade){
         this.sky = sky;
         this.temperature = temperature;
+        this.pm10Value=pm10Value;
+        this.pm10Grade=pm10Grade;
+        this.pm25Value=pm25Value;
+        this.pm25Grade=pm25Grade;
     }
 
-    public static WeatherResponseDto of(String sky, String temperature){
-        return WeatherResponseDto.builder().sky(sky).temperature(temperature).build();
+    public static WeatherResponseDto of(String sky, String temperature,String pm10Value,String pm10Grade,String pm25Value,String pm25Grade){
+        return WeatherResponseDto.builder().sky(sky).temperature(temperature).pm10Value(pm10Value).pm10Grade(pm10Grade).pm25Value(pm25Value).pm25Grade(pm25Grade).build();
     }
 }

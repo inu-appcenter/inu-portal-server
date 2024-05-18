@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -42,10 +43,14 @@ public class WeatherService {
     @Scheduled(cron = "0 15 * * * *")
     public void getTem(){
         getTemperature();
+        getDust();
     }
+
+
 
     @PostConstruct
     public void initWeather(){
+        getDust();
         getWeatherSky();
         getTemperature();
     }
@@ -64,8 +69,8 @@ public class WeatherService {
                 + "&ny=" + y;
 
         JsonArray itemList = getJsonData(url);
-        String sky = null;
-        String pty = null;
+        String sky = "";
+        String pty = "";
         int index = 0;
         for (int i = 0; i < itemList.size(); i++) {
             JsonObject item = itemList.get(i).getAsJsonObject();
@@ -85,7 +90,7 @@ public class WeatherService {
             }
         }
         log.info("PTY : {}, SKY :{} ",pty,sky);
-        String weather= "맑음";
+        String weather= "";
         if(pty.equals("0")){
             if(sky.equals("1")){
                 weather="맑음";
@@ -94,7 +99,7 @@ public class WeatherService {
                 weather="구름";
             }
         }
-        else {
+        else{
             if(pty.equals("1")||pty.equals("5")){
                 weather="비";
             }
@@ -125,7 +130,7 @@ public class WeatherService {
 
         String temperature = "20";
 
-        String pty = null;
+        String pty = "";
         int index = 0;
         for (int i = 0; i < itemList.size(); i++) {
             JsonObject item = itemList.get(i).getAsJsonObject();
@@ -144,7 +149,7 @@ public class WeatherService {
                 break;
             }
         }
-        String weather="맑음";
+        String weather="";
         redisService.storeTemperature(temperature);
         if(!pty.equals("0")){
             if(pty.equals("1")||pty.equals("5")){
@@ -158,6 +163,67 @@ public class WeatherService {
             }
             redisService.storeSky(weather);
         }
+    }
+
+    public void getDust(){
+        String url = "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty"+
+                "?serviceKey="+weatherKey+
+                "&returnType=json"+
+                "&numOfRows=100"+
+                "&pageNo=1"+
+                "&sidoName=%EC%9D%B8%EC%B2%9C"+
+                "&ver=1.0";
+
+        JsonObject item = getSongdoInformation(url);
+        String pm10Value = item.get("pm10Value").getAsString();
+        String pm10Grade = getGrade(item.get("pm10Grade").getAsString());
+        String pm25Value = item.get("pm25Value").getAsString();
+        String pm25Grade = getGrade(item.get("pm25Grade").getAsString());
+        redisService.storeDust(pm10Value,pm10Grade,pm25Value,pm25Grade);
+    }
+    public String getGrade(String level){
+        String grade="";
+        if(level.equals("1")){
+            grade="좋음";
+        }
+        else if(level.equals("2")){
+            grade="보통";
+        }
+        else if(level.equals("3")){
+            grade="나쁨";
+        }
+        else if(level.equals("4")){
+            grade="매우나쁨";
+        }
+        return grade;
+    }
+
+
+    public JsonObject getSongdoInformation(String url) {
+        String result = webClient.get()
+                .uri(url)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
+                .bodyToMono(String.class)
+                .block();
+        JsonArray itemList;
+        try {
+            JsonObject jsonObject = JsonParser.parseString(result).getAsJsonObject();
+            JsonObject body = jsonObject.getAsJsonObject("response").getAsJsonObject("body");
+            itemList = body.getAsJsonArray("items");
+        }
+        catch (Exception e){
+            itemList = new JsonArray();
+        }
+        log.info("{}",itemList);
+        for (int i = 0; i < itemList.size(); i++) {
+            JsonObject item = itemList.get(i).getAsJsonObject();
+            if ("송도".equals(item.get("stationName").getAsString())) {
+
+                return item;
+            }
+        }
+        return null;
     }
 
     public JsonArray getJsonData(String url){
@@ -178,10 +244,13 @@ public class WeatherService {
         }
     }
 
+
+
     public WeatherResponseDto getWeather(){
         String sky = redisService.getSky();
         String temperature = redisService.getTemperature();
-        return WeatherResponseDto.of(sky,temperature);
+        Map<String,String> dusts = redisService.getDust();
+        return WeatherResponseDto.of(sky,temperature,dusts.get("pm10Value"),dusts.get("pm10Grade"),dusts.get("pm25Value"),dusts.get("pm25Grade"));
     }
 
 

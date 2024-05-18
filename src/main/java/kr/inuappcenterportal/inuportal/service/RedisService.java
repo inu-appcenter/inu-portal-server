@@ -11,7 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -187,6 +190,22 @@ public class RedisService {
 
     public String getTemperature(){
         return redisTemplate.opsForValue().get("temperature");
+    }
+
+    public void storeDust(String pm10Value, String pm10Grade,String pm25Value,String pm25Grade){
+        redisTemplate.opsForValue().set("pm10Value",pm10Value);
+        redisTemplate.opsForValue().set("pm10Grade",pm10Grade);
+        redisTemplate.opsForValue().set("pm25Value",pm25Value);
+        redisTemplate.opsForValue().set("pm25Grade",pm25Grade);
+    }
+
+    public Map<String,String> getDust(){
+        Map<String,String> dusts = new HashMap<>();
+        dusts.put("pm10Value",redisTemplate.opsForValue().get("pm10Value"));
+        dusts.put("pm10Grade",redisTemplate.opsForValue().get("pm10Grade"));
+        dusts.put("pm25Value",redisTemplate.opsForValue().get("pm25Value"));
+        dusts.put("pm25Grade",redisTemplate.opsForValue().get("pm25Grade"));
+        return dusts;
     }
 
 
