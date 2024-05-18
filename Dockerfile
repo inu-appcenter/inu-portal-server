@@ -26,7 +26,7 @@ RUN yum install -y wget unzip&& \
 
 
 # 크롬 드라이버 설치
-RUN wget https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip && \
+RUN wget https://storage.googleapis.com/chrome-for-testing-public/125.0.6422.60/linux64/chrome-linux64.zip && \
     unzip chromedriver_linux64.zip -d /usr/bin/ && \
     rm chromedriver_linux64.zip
 
