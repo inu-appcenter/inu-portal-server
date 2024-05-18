@@ -19,7 +19,8 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 # JDK 버전 확인
 RUN java -version
 # 크롬 브라우저 설치
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm && \
+RUN yum install -y wget unzip&& \
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm && \
     yum localinstall -y google-chrome-stable_current_x86_64.rpm && \
     rm google-chrome-stable_current_x86_64.rpm
 
