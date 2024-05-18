@@ -215,7 +215,6 @@ public class WeatherService {
         catch (Exception e){
             itemList = new JsonArray();
         }
-        log.info("{}",itemList);
         for (int i = 0; i < itemList.size(); i++) {
             JsonObject item = itemList.get(i).getAsJsonObject();
             if ("송도".equals(item.get("stationName").getAsString())) {
