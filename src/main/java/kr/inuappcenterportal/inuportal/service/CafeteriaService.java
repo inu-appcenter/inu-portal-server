@@ -53,7 +53,9 @@ public class CafeteriaService {
             if(!foods.isEmpty()) {
                 redisService.storeMeal("학생식당", 1, foods.get(1).getText());
                 redisService.storeMeal("학생식당", 2, foods.get(2).getText());
-                redisService.storeMeal("학생식당", 3, foods.get(3).getText());
+                menu = foods.get(3).getText();
+                menu = menu.replace("\"","");
+                redisService.storeMeal("학생식당", 3, menu);
             }
             else{
                 weekend("학생식당");

@@ -43,8 +43,13 @@ public class WeatherService {
     @Scheduled(cron = "0 15 * * * *")
     public void getTem(){
         getTemperature();
+    }
+    @Scheduled(cron = "0 30 * * * *")
+    public void getCrawlDust(){
         getDust();
     }
+
+
 
 
 
