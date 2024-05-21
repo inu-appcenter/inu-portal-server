@@ -1,16 +1,15 @@
 package kr.inuappcenterportal.inuportal.service;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.annotation.PostConstruct;
-import kr.inuappcenterportal.inuportal.dto.FireResponseDto;
 import kr.inuappcenterportal.inuportal.dto.WeatherResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import oracle.jdbc.proxy.annotation.Post;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,8 +30,8 @@ public class WeatherService {
     @Value("${weatherKey}")
     private String weatherKey;
 
-    private String x = "54";
-    private String y = "123";
+    private final String x = "54";
+    private final String y = "123";
 
     @Scheduled(cron = "0 45 * * * *")
     public void getSky(){
@@ -180,10 +179,31 @@ public class WeatherService {
                 "&ver=1.0";
 
         JsonObject item = getSongdoInformation(url);
-        String pm10Value = item.get("pm10Value").getAsString();
-        String pm10Grade = getGrade(item.get("pm10Grade").getAsString());
-        String pm25Value = item.get("pm25Value").getAsString();
-        String pm25Grade = getGrade(item.get("pm25Grade").getAsString());
+        log.info("item : {}",item);
+        String pm10Value = "-1";
+        String pm10Grade = "보통";
+        String pm25Value = "-1";
+        String pm25Grade = "보통";
+
+        JsonElement pm10ValueElement = item.get("pm10Value");
+        if (pm10ValueElement != null && !pm10ValueElement.isJsonNull()) {
+            pm10Value = pm10ValueElement.getAsString();
+        }
+
+        JsonElement pm10GradeElement = item.get("pm10Grade");
+        if (pm10GradeElement != null && !pm10GradeElement.isJsonNull()) {
+            pm10Grade = getGrade(pm10GradeElement.getAsString());
+        }
+
+        JsonElement pm25ValueElement = item.get("pm25Value");
+        if (pm25ValueElement != null && !pm25ValueElement.isJsonNull()) {
+            pm25Value = pm25ValueElement.getAsString();
+        }
+
+        JsonElement pm25GradeElement = item.get("pm25Grade");
+        if (pm25GradeElement != null && !pm25GradeElement.isJsonNull()) {
+            pm25Grade = getGrade(pm25GradeElement.getAsString());
+        }
         redisService.storeDust(pm10Value,pm10Grade,pm25Value,pm25Grade);
     }
     public String getGrade(String level){
@@ -223,7 +243,6 @@ public class WeatherService {
         for (int i = 0; i < itemList.size(); i++) {
             JsonObject item = itemList.get(i).getAsJsonObject();
             if ("송도".equals(item.get("stationName").getAsString())) {
-
                 return item;
             }
         }
