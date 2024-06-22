@@ -30,7 +30,7 @@ public enum MyErrorCode {
     ID_NOT_FOUND(HttpStatus.UNAUTHORIZED,"아이디가 존재하지 않습니다."),
     PASSWORD_NOT_MATCHED(HttpStatus.UNAUTHORIZED,"비밀번호가 틀립니다."),
     HAS_NOT_POST_AUTHORIZATION(HttpStatus.FORBIDDEN,"이 게시글의 수정/삭제에 대한 권한이 없습니다."),
-    HAS_NOT_REPLY_AUTHORIZATION(HttpStatus.FORBIDDEN,"이 게시글의 수정/삭제에 대한 권한이 없습니다."),
+    HAS_NOT_REPLY_AUTHORIZATION(HttpStatus.FORBIDDEN,"이 댓글의 수정/삭제에 대한 권한이 없습니다."),
     NOT_MULTIPLE_LIKE(HttpStatus.CONFLICT,"이미 좋아요를 눌렀습니다."),
     NOT_MULTIPLE_DISLIKE(HttpStatus.CONFLICT,"이미 싫어요를 눌렀습니다."),
     WRONG_TYPE_TOKEN(HttpStatus.UNAUTHORIZED,"토큰의 서명이 유효하지 않습니다."),
