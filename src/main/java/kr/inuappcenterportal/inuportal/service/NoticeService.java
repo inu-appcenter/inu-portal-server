@@ -13,6 +13,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -45,6 +47,7 @@ public class NoticeService {
     }
 
     @Scheduled(cron = "0 0/30 * * * *")
+    @CacheEvict(value = "noticeCache",cacheManager = "cacheManager")
     @Transactional
     public void getNewNotice() throws IOException {
         crawlingNotices();
@@ -138,6 +141,7 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "noticeCache",cacheManager = "cacheManager")
     public List<NoticeListResponseDto> getTop(){
         return noticeRepository.findTop12().stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
     }

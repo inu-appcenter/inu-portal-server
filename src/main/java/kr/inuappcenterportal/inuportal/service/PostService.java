@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -329,8 +330,15 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "topPost", key = "#category != null ? #category : 'default'",cacheManager = "cacheManager")
     public List<PostListResponseDto> getTop(String category){
         return postRepository.findTop12(category).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = "randomPost", cacheManager = "cacheManager")
+    public List<PostListResponseDto> getRandomTop(){
+        return postRepository.findRandomTop().stream().map(this::getPostListResponseDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

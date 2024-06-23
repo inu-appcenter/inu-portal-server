@@ -31,6 +31,9 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     @Query("SELECT p FROM Post p WHERE p.good >= 1 AND (:category IS NULL OR p.category = :category) ORDER BY p.good DESC ,p.id DESC LIMIT 12")
     List<Post> findTop12(String category);
 
+    @Query("SELECT p FROM Post p WHERE p.good>= 1 ORDER BY RAND() LIMIT 7")
+    List<Post> findRandomTop();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Post p WHERE p.id =:id")
     Optional<Post> findByIdWithLock(Long id);
