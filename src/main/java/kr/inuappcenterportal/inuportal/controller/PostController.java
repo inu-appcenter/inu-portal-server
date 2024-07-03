@@ -179,7 +179,7 @@ public class PostController {
         return new ResponseEntity<>(new ResponseDto<>(postService.getTop(category),"인기 게시글 가져오기 성공"),HttpStatus.OK);
     }
 
-    @Operation(summary = "메인 페이지 게시글 7개 가져오기",description = "좋아요가 1개 이상인 게시글 7개의 리스트가 3시간 간격으로 랜덤으로 바뀝니다")
+    @Operation(summary = "메인 페이지 게시글 7개 가져오기",description = "좋아요가 1개 이상인 게시글 9개의 리스트가 3시간 간격으로 랜덤으로 바뀝니다")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "메인 페이지 게시글 7개 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
     })
