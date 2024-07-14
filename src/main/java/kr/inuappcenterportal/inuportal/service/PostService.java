@@ -10,6 +10,7 @@ import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -132,54 +133,46 @@ public class PostService {
     @Transactional(readOnly = true)
     public ListResponseDto getAllPost(String category, String sort, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
-        List<PostListResponseDto> posts;
-        long pages;
+        Page<Post> dto;
         if(category==null){
             if(sort==null||sort.equals("date")) {
-                posts = postRepository.findAllByOrderByIdDesc(pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
+                dto = postRepository.findAllByOrderByIdDesc(pageable);
             }
             else if(sort.equals("like")){
-                posts = postRepository.findAllByOrderByGoodDescIdDesc(pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
+                dto = postRepository.findAllByOrderByGoodDescIdDesc(pageable);
             }
             else if(sort.equals("scrap")){
-                posts = postRepository.findAllByOrderByScrapDescIdDesc(pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
+                dto = postRepository.findAllByOrderByScrapDescIdDesc(pageable);
             }
             else{
                 throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
-            pages = (long)Math.ceil((double)postRepository.count()/8);
         }
         else{
             if(!categoryRepository.existsByCategory(category)){
                 throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
             if(sort==null||sort.equals("date")) {
-                posts = postRepository.findAllByCategoryOrderByIdDesc(category, pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
+                dto = postRepository.findAllByCategoryOrderByIdDesc(category, pageable);
             }
             else if(sort.equals("like")){
-                posts = postRepository.findAllByCategoryOrderByGoodDescIdDesc(category,pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
+                dto = postRepository.findAllByCategoryOrderByGoodDescIdDesc(category,pageable);
+
             }
             else if(sort.equals("scrap")){
-                posts = postRepository.findAllByCategoryOrderByScrapDescIdDesc(category,pageable).stream()
-                        .map(this::getPostListResponseDto)
-                        .collect(Collectors.toList());
+                dto = postRepository.findAllByCategoryOrderByScrapDescIdDesc(category,pageable);
+
             }
             else{
                 throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
             }
-            pages = (long)Math.ceil((double)postRepository.countAllByCategory(category)/8);
         }
-        return ListResponseDto.of(pages, posts);
+        long total = dto.getTotalElements();
+        long pages = dto.getTotalPages();
+        List<PostListResponseDto> posts = dto.stream()
+                .map(this::getPostListResponseDto)
+                .collect(Collectors.toList());
+        return ListResponseDto.of(pages, total, posts);
     }
 
 
@@ -266,7 +259,7 @@ public class PostService {
             startIndex = page*5;
             endIndex  = Math.min((page + 1) * 5, scraps.size());
         }
-        return  ListResponseDto.of(pages,postListSort(scraps,sort).subList(startIndex,endIndex));
+        return  ListResponseDto.of(pages,scraps.size(),postListSort(scraps,sort).subList(startIndex,endIndex));
     }
 
     @Transactional(readOnly = true)
@@ -319,11 +312,14 @@ public class PostService {
     public ListResponseDto searchPost(String query,String sort,int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
         if (sort == null||sort.equals("date")) {
-            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8),postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
+            Page<Post> dto = postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query,pageable);
+            return ListResponseDto.of(dto.getTotalPages(),dto.getTotalElements(),dto.stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else if (sort.equals("like")) {
-            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8), postRepository.findAllByTitleContainsOrContentContainsOrderByGoodDescIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
+            Page<Post> dto = postRepository.findAllByTitleContainsOrContentContainsOrderByGoodDescIdDesc(query,query,pageable);
+            return ListResponseDto.of(dto.getTotalPages(), dto.getTotalElements(), dto.stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else if (sort.equals("scrap")) {
-            return ListResponseDto.of((long)Math.ceil((double)postRepository.countAllByTitleContainsOrContentContains(query,query)/8), postRepository.findAllByTitleContainsOrContentContainsOrderByScrapDescIdDesc(query,query,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
+            Page<Post> dto = postRepository.findAllByTitleContainsOrContentContainsOrderByScrapDescIdDesc(query,query,pageable);
+            return ListResponseDto.of(dto.getTotalPages(), dto.getTotalElements(),dto.stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else {
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
@@ -362,7 +358,7 @@ public class PostService {
             startIndex = page*5;
             endIndex  = Math.min((page + 1) * 5, scraps.size());
         }
-        return  ListResponseDto.of(pages,postListSort(scraps,sort).subList(startIndex,endIndex));
+        return  ListResponseDto.of(pages,scraps.size(),postListSort(scraps,sort).subList(startIndex,endIndex));
     }
 
 }

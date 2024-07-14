@@ -92,7 +92,7 @@ public class FolderService {
             startIndex = page*5;
             endIndex  = Math.min((page + 1) * 5, folderDto.size());
         }
-        return ListResponseDto.of(pages,postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
+        return ListResponseDto.of(pages,folderDto.size(),postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
     }
 
     @Transactional(readOnly = true)
@@ -110,7 +110,7 @@ public class FolderService {
             startIndex = page*5;
             endIndex  = Math.min((page + 1) * 5, folderDto.size());
         }
-        return ListResponseDto.of(pages,postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
+        return ListResponseDto.of(pages,folderDto.size(),postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
     }
 
 
