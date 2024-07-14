@@ -23,41 +23,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MemberService {
     private final MemberRepository memberRepository;
-    private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
-    private final MailService mailService;
-    private final RedisService redisService;
     private final SchoolLoginRepository schoolLoginRepository;
 
-    /*@Transactional
-    public Long join(MemberSaveDto memberSaveDto){
-        *//*if(!redisService.getIsChecked(memberSaveDto.getEmail())){
-            throw new MyException(MyErrorCode.EMAIL_NOT_AUTHORIZATION);
-        }*//*
-        if(!checkSchoolEmail(memberSaveDto.getEmail())){
-            throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
-        }
-        if(memberRepository.existsByEmail(memberSaveDto.getEmail())){
-            throw new MyException(MyErrorCode.USER_DUPLICATE_EMAIL);
-        }
-        if(memberRepository.existsByNickname(memberSaveDto.getNickname())){
-            throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
-        }
-        String encodedPassword = passwordEncoder.encode(memberSaveDto.getPassword());
-        Member member= Member.builder().email(memberSaveDto.getEmail()).nickname(memberSaveDto.getNickname()).password(encodedPassword).roles(Collections.singletonList("ROLE_USER")).build();
-        return memberRepository.save(member).getId();
-    }*/
-
-    /*@Transactional
-    public Long updateMemberPassword(Long id, MemberUpdatePasswordDto memberUpdatePasswordDto){
-        Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
-       if(!passwordEncoder.matches(memberUpdatePasswordDto.getPassword(),member.getPassword())){
-           throw new MyException(MyErrorCode.PASSWORD_NOT_MATCHED);
-       }
-       String encodedPassword = passwordEncoder.encode(memberUpdatePasswordDto.getNewPassword());
-       member.updatePassword(encodedPassword);
-        return member.getId();
-    }*/
 
     @Transactional
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
@@ -144,44 +112,5 @@ public class MemberService {
         Member member = Member.builder().studentId(studentId).nickname(studentId).roles(Collections.singletonList("ROLE_USER")).build();
         memberRepository.save(member);
     }
-
-    /*public String sendMail(EmailDto emailDto){
-        if(!checkSchoolEmail(emailDto.getEmail())){
-            throw new MyException(MyErrorCode.ONLY_SCHOOL_EMAIL);
-        }
-        if(memberRepository.existsByEmail(emailDto.getEmail())){
-            throw new MyException(MyErrorCode.USER_DUPLICATE_EMAIL);
-        }
-        String numbers = createNumber();
-        mailService.sendMail(emailDto.getEmail(),numbers);
-        redisService.storeMail(emailDto.getEmail(),numbers);
-        return emailDto.getEmail();
-    }
-    public String createNumber(){
-        StringBuilder sb = new StringBuilder();
-        Random random = new Random();
-        for(int i = 0 ; i < 6 ; i++){
-            sb.append(random.nextInt(10));
-        }
-        return sb.toString();
-    }
-
-    public Boolean checkNumbers(EmailCheckDto emailCheckDto){
-        boolean isMatched = redisService.getNumbers(emailCheckDto.getEmail()).equals(emailCheckDto.getNumbers());
-        if(isMatched){
-            redisService.completeCheck(emailCheckDto.getEmail());
-        }
-        return isMatched;
-    }
-
-    public Boolean checkSchoolEmail(String email){
-        int atIndex = email.indexOf("@");
-        if (atIndex == -1) {
-            return false;
-        }
-        String domain = email.substring(atIndex + 1);
-        return domain.equals("inu.ac.kr");
-    }*/
-
 
 }

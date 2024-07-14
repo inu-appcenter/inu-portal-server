@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReplyService {
     private final ReplyRepository replyRepository;
-    private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final LikeReplyRepository likeReplyRepository;
 
