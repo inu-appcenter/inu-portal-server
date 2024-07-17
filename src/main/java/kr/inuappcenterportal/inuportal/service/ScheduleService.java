@@ -98,13 +98,13 @@ public class ScheduleService {
                         Schedule schedule = Schedule.builder().startDate(start).endDate(end).content(content).build();
                         scheduleRepository.save(schedule);
                     }
-                    log.info("학사일정 크롤링 {}월 완료",month);
                     month++;
                 }
                 WebElement link = webDriver.findElement(By.xpath("//*[@id=\"schdulWrap\"]/div[1]/div[1]/a[2]"));
                 link.click();
                 Thread.sleep(1500);
             }
+            log.info("학사일정 크롤링 완료");
 
         }
         finally {

@@ -49,9 +49,6 @@ public class WeatherService {
     }
 
 
-
-
-
     @PostConstruct
     public void initWeather(){
         getDust();
@@ -93,7 +90,6 @@ public class WeatherService {
                 break;
             }
         }
-        log.info("PTY : {}, SKY :{} ",pty,sky);
         String weather= "";
         if(pty.equals("0")){
             if(sky.equals("1")){
@@ -179,7 +175,6 @@ public class WeatherService {
                 "&ver=1.0";
 
         JsonObject item = getSongdoInformation(url);
-        log.info("item : {}",item);
         String pm10Value = "-1";
         String pm10Grade = "보통";
         String pm25Value = "-1";

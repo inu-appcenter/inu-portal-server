@@ -85,7 +85,6 @@ public class RedisService {
     }
 
 
-    //@Cacheable(cacheNames = "getImage", key = "#postId",cacheManager = "cacheManager")
     public byte[] findImages(Long postId, Long imageId){
         String key = postId + "-" + imageId;
         log.info("이미지가져오기 key:{}",key);
@@ -116,34 +115,6 @@ public class RedisService {
         }
     }
 
-    public void storeMail(String email, String numbers){
-        redisTemplate.opsForValue().set(email,numbers);
-        redisTemplate.expire(email,30*60, TimeUnit.SECONDS);
-    }
-
-    public void completeCheck(String email){
-        redisTemplate.opsForValue().set(email,"checked");
-        redisTemplate.expire(email,30*60, TimeUnit.SECONDS);
-    }
-
-    public boolean getIsChecked(String email){
-        if(redisTemplate.opsForValue().get(email)!=null&&redisTemplate.opsForValue().get(email).equals("checked")){
-            return true;
-        }
-        else{
-            return false;
-        }
-    }
-
-
-
-    public String getNumbers(String email){
-        String numbers = redisTemplate.opsForValue().get(email);
-        if(numbers==null){
-            throw new MyException(MyErrorCode.USER_NOT_CHECK_EMAIL);
-        }
-        return numbers;
-    }
 
     public void storeFireAiImage(String image,Long id){
         image = image.substring(2,image.length()-1);
@@ -162,14 +133,13 @@ public class RedisService {
         return image;
     }
 
-    public void storeMeal(String cafeteria,int num,String menu){
-        String key = cafeteria+"-"+num;
-        log.info("식단저장 : {}",key);
+    public void storeMeal(String cafeteria,int day, int num,String menu){
+        String key = cafeteria+"-"+day+"-"+num;
         redisTemplate.opsForValue().set(key,menu);
     }
 
-    public String getMeal(String cafeteria,int num){
-        String key = cafeteria+"-"+num;
+    public String getMeal(String cafeteria,int day, int num){
+        String key = cafeteria+"-"+day+"-"+num;
         return redisTemplate.opsForValue().get(key);
     }
 

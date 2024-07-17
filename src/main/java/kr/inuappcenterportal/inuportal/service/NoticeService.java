@@ -56,15 +56,19 @@ public class NoticeService {
         int bachelor = 1516;
         int bachelorNum = 46;
         getNoticeByCategory(bachelor, bachelorNum,"학사");
+        log.info("학사공지 크롤링 완료");
         int recruitment = 1518;
         int recruitmentNum = 611;
         getNoticeByCategory(recruitment, recruitmentNum,"모집");
+        log.info("모집공지 크롤링 완료");
         int exchange = 1517;
         int exchangeNum = 47;
         getNoticeByCategory(exchange, exchangeNum,"학점교류");
+        log.info("학점교류공지 크롤링 완료");
         int test = 1530;
         int testNum = 52;
         getNoticeByCategory(test, testNum,"교육시험");
+        log.info("교육시험공지 크롤링 완료");
     }
 
     public void getNoticeByCategory(int category,int categoryNum,String categoryName) throws IOException {
@@ -76,7 +80,6 @@ public class NoticeService {
             String encodedUrl = url + encoding(postUrl);
             Document document = Jsoup.connect(encodedUrl).get();
             Elements notice = document.select("tr");
-            log.info("가져온 크기 :{}, 게시판 번호 : {} , 현재 인덱스 : {}",notice.size(), category,i);
             for (Element ele : notice){
                 if(ele.select("td.td-num").text().equals("일반공지")||ele.select("th.th-num").text().equals("NO")){
                     continue;
