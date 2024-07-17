@@ -25,12 +25,12 @@ import java.util.List;
 @RequestMapping("/api/cafeterias")
 public class CafeteriaController {
     private final CafeteriaService cafeteriaService;
-    @Operation(summary = "학식 메뉴 가져오기",description = "url 파라미터에 식당 이름을 보내주세요.(학생식당, 제1기숙사식당, 2호관(교직원)식당, 27호관식당, 사범대식당)")
+    @Operation(summary = "학식 메뉴 가져오기",description = "url 파라미터에 식당 이름(학생식당, 제1기숙사식당, 2호관(교직원)식당, 27호관식당, 사범대식당)과 요일(월요일 : 1 ~ 일요일 : 7)을 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "학식 메뉴 가져오기 성공",content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))),
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<List<String>>> getMenu(@RequestParam String cafeteria){
-        return new ResponseEntity<>(new ResponseDto<>(cafeteriaService.getCafeteria(cafeteria),"학식 메뉴 가져오기 성공"), HttpStatus.OK);
+    public ResponseEntity<ResponseDto<List<String>>> getMenu(@RequestParam String cafeteria,@RequestParam(defaultValue = "0") Integer day){
+        return new ResponseEntity<>(new ResponseDto<>(cafeteriaService.getCafeteria(cafeteria,day),"학식 메뉴 가져오기 성공"), HttpStatus.OK);
     }
 }
