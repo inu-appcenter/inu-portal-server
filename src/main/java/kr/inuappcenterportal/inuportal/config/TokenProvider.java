@@ -88,8 +88,8 @@ public class TokenProvider {
     public Authentication getAuthentication(String token){
         //log.info("토큰 인증 정보 조회 시작");
         UserDetails userDetails = userDetailsService.loadUserByUsername(this.getUsername(token));
-        log.info("토큰 인증 정보 조회 완료 user:{}",userDetails.getUsername());
-        log.info("토큰 인증 정보 조회 완료 user:{}",userDetails.getAuthorities());
+        //log.info("토큰 인증 정보 조회 완료 user:{}",userDetails.getUsername());
+        //log.info("토큰 인증 정보 조회 완료 user:{}",userDetails.getAuthorities());
         return new UsernamePasswordAuthenticationToken(userDetails,"",userDetails.getAuthorities());
     }
 
@@ -111,10 +111,10 @@ public class TokenProvider {
     }
 
     public String getUsernameByRefresh(String token){
-        log.info("리프래쉬 토큰으로 회원 정보 추출");
+        //log.info("리프래쉬 토큰으로 회원 정보 추출");
         try {
             String info = Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token).getBody().getSubject();
-            log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
+            //log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
             return info;
         }catch (SignatureException ex){
             throw new MyException(MyErrorCode.WRONG_TYPE_TOKEN);
@@ -143,7 +143,7 @@ public class TokenProvider {
     }
 
     public boolean validateRefreshToken(String token){
-        log.info("리프래쉬 토큰 유효성 검증 시작");
+        //log.info("리프래쉬 토큰 유효성 검증 시작");
         try{
             Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token);
             return !claims.getBody().getExpiration().before(new Date());
