@@ -22,13 +22,13 @@ public class MyExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ResponseDto<Integer>> handleConstraintViolationException(ConstraintViolationException ex){
         log.error("유효성 검사 예외 발생 msg:{}",ex.getMessage());
-        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getMessage()),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResponseDto.of(-1,ex.getMessage()),HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MyException.class)
     public ResponseEntity<ResponseDto<Integer>> MyException(MyException ex){
         log.error("예외 발생 msg:{}",ex.getErrorCode().getMessage());
-        return new ResponseEntity<>(new ResponseDto<>(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
+        return new ResponseEntity<>(ResponseDto.of(-1,ex.getErrorCode().getMessage()),ex.getErrorCode().getStatus());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -37,14 +37,14 @@ public class MyExceptionHandler {
         FieldError fieldError = bindingResult.getFieldError();
         String message = fieldError.getDefaultMessage();
         log.error("유효성 검사 예외 발생 msg:{}",message);
-        return new ResponseEntity<>(new ResponseDto<>(-1,message),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResponseDto.of(-1,message),HttpStatus.BAD_REQUEST);
     }
 
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ResponseDto<Integer>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         String errorMessage = "요청한 JSON 데이터를 읽을 수 없습니다: " + ex.getMessage();
-        return new ResponseEntity<>(new ResponseDto<>(-1,errorMessage), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResponseDto.of(-1,errorMessage), HttpStatus.BAD_REQUEST);
     }
 
 }

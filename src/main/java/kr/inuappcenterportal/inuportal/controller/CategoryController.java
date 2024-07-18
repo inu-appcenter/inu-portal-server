@@ -36,7 +36,7 @@ public class CategoryController {
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> addCategory(@Valid @RequestBody CategoryDto categoryDto){
         log.info("카테고리 추가 호출 카테고리명 :{}", categoryDto.getCategory());
-        return new ResponseEntity<>(new ResponseDto<>(categoryService.addCategory(categoryDto),"카테고리 추가 성공"), HttpStatus.CREATED);
+        return new ResponseEntity<>(ResponseDto.of(categoryService.addCategory(categoryDto),"카테고리 추가 성공"), HttpStatus.CREATED);
     }
 
     @Operation(summary = "카테고리명 변경",description = "바디에 {category, newCategory}을 json 형식으로 보내주세요. 성공 시 등록한 카테고리의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
@@ -48,7 +48,7 @@ public class CategoryController {
     @PutMapping("")
     public ResponseEntity<ResponseDto<Long>> updateCategory(@Valid@RequestBody CategoryUpdateDto categoryUpdateDto){
         log.info("카테고리 변경 호출 카테고리명:{}",categoryUpdateDto.getCategory());
-        return new ResponseEntity<>(new ResponseDto<>(categoryService.changeCategoryName(categoryUpdateDto),"카테고리명 변경 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(categoryService.changeCategoryName(categoryUpdateDto),"카테고리명 변경 성공"));
     }
 
     @Operation(summary = "카테고리 삭제",description = "바디에 {category}을 json 형식으로 보내주세요. 성공 시 등록한 카테고리의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
@@ -61,7 +61,7 @@ public class CategoryController {
     public ResponseEntity<ResponseDto<String>> deleteCategory(@Valid@RequestBody CategoryDto categoryDto){
         log.info("카테고리 삭제 호출 카테고리명:{}", categoryDto.getCategory());
         categoryService.deleteCategory(categoryDto.getCategory());
-        return new ResponseEntity<>(new ResponseDto<>(categoryDto.getCategory(),"카테고리 삭제 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(categoryDto.getCategory(),"카테고리 삭제 성공"));
     }
 
     @Operation(summary = "모든 카테고리 가져오기")
@@ -70,7 +70,6 @@ public class CategoryController {
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<List<String>>> getCategoryList(){
-        log.info("모든 카테고리 호출");
-        return new ResponseEntity<>(new ResponseDto<>(categoryService.getCategories(),"모든 카테고리 가져오기 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(categoryService.getCategories(),"모든 카테고리 가져오기 성공"));
     }
 }

@@ -39,7 +39,7 @@ public class FireController {
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> drawFireAiImage(@Valid@RequestBody FireDto fireDto){
         log.info("횃불이 그림 그리기 호출 파라미터 :{}",fireDto.getParam());
-        return new ResponseEntity<>(new ResponseDto<>(fireService.drawImage(fireDto.getParam()),"횃불이 ai 그림 그리기 성공"), HttpStatus.CREATED);
+        return new ResponseEntity<>(ResponseDto.of(fireService.drawImage(fireDto.getParam()),"횃불이 ai 그림 그리기 성공"), HttpStatus.CREATED);
     }
 
     @Operation(summary = "횃불이 ai 이미지 가져오기",description = "url 변수에 가져올 이미지 번호를 보내주세요.")
@@ -52,7 +52,7 @@ public class FireController {
         log.info("횃불이 ai 이미지 가져오기 호출 id : {}",id);
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.IMAGE_PNG);
-        return new ResponseEntity<>(fireService.getFireAiImage(id),httpHeaders,HttpStatus.OK);
+        return ResponseEntity.ok().headers(httpHeaders).body(fireService.getFireAiImage(id));
     }
 
     @Operation(summary = "ai 생성 요청 uri 변경",description = "바디에 {uri}을 json 형식으로 보내주세요.")
@@ -63,7 +63,7 @@ public class FireController {
     public ResponseEntity<ResponseDto<Long>> changeRequestUri(@Valid @RequestBody UriDto uriDto){
         log.info("횃불이 ai 이미지 요청 uri 변경 호출 uri :{}",uriDto.getUri());
         fireService.changeUri(uriDto.getUri());
-        return new ResponseEntity<>(new ResponseDto<>(1L,"ai 생성 요청 uri 변경 성공"),HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(1L,"ai 생성 요청 uri 변경 성공"));
     }
 
     @Operation(summary = "횃불이 ai 이미지 별점 추가",description = "url 변수에 횃불이 ai 이미지 데이터베이스id값을, 바디에 {rating}을 json 형식으로 보내주세요.성공시 횃불이 이미지의 데이터베이스id값이 보내집니다.")
@@ -75,7 +75,7 @@ public class FireController {
     @PostMapping("/rating/{id}")
     public ResponseEntity<ResponseDto<Long>> ratingAiImage(@PathVariable Long id, @Valid@RequestBody FireRatingDto fireRatingDto){
         log.info("횃불이 ai 이미지 별점 부여 이미지 번호 : {}, 별점 : {}",id,fireRatingDto.getRating());
-        return new ResponseEntity<>(new ResponseDto<>(fireService.ratingImage(id, fireRatingDto.getRating()),"횃불이 별점 추가 성공"),HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(fireService.ratingImage(id, fireRatingDto.getRating()),"횃불이 별점 추가 성공"));
     }
 
     @Operation(summary = "횃불이 ai 이미지 정보들 가져오기",description = "url 파라미터에 페이지 번호를 보내주세요. 보내지 않을 시 첫 페이지가 보내집니다. 한 페이지의 크기는 10입니다.")
@@ -84,7 +84,7 @@ public class FireController {
     })
     @GetMapping("/rating")
     public ResponseEntity<ResponseDto<Page<Fire>>> getFireRating(@RequestParam(required = false,defaultValue = "0") int page){
-        return new ResponseEntity<>(new ResponseDto<>(fireService.getFireImageList(page),"횃불이 ai 이미지 정보들 가져오기 성공"),HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(fireService.getFireImageList(page),"횃불이 ai 이미지 정보들 가져오기 성공"));
     }
 
 

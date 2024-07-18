@@ -31,6 +31,6 @@ public class WeatherController {
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<WeatherResponseDto>> getWeather(){
-        return new ResponseEntity<>(new ResponseDto<>(weatherService.getWeather(),"날씨 가져오기 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(weatherService.getWeather(),"날씨 가져오기 성공"));
     }
 }

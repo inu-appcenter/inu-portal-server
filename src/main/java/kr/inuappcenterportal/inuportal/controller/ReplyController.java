@@ -9,9 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.ReplyDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
@@ -30,7 +28,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ReplyController {
-    private final TokenProvider tokenProvider;
     private final ReplyService replyService;
 
     @Operation(summary = "댓글 등록",description = "헤더 Auth에 발급받은 토큰을,url 파라미터에 게시글의 id, 바디에 {content,bool 형태의 anonymous}을 json 형식으로 보내주세요. 성공 시 작성된 댓글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
@@ -41,7 +38,7 @@ public class ReplyController {
     @PostMapping("/{postId}")
     public ResponseEntity<ResponseDto<Long>> saveReply(@AuthenticationPrincipal Member member, @Valid @RequestBody ReplyDto replyDto, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         log.info("댓글 등록 호출");
-        return new ResponseEntity<>(new ResponseDto<>(replyService.saveReply(member, replyDto,postId),"댓글 등록 성공"), HttpStatus.CREATED);
+        return new ResponseEntity<>(ResponseDto.of(replyService.saveReply(member, replyDto,postId),"댓글 등록 성공"), HttpStatus.CREATED);
     }
 
     @Operation(summary = "댓글 수정",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 댓글의 id, 바디에 {content, bool 형태의 anonymous}을 json 형식으로 보내주세요. 성공 시 작성된 댓글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
@@ -53,7 +50,7 @@ public class ReplyController {
     @PutMapping("/{replyId}")
     public ResponseEntity<ResponseDto<Long>> updateReply(@AuthenticationPrincipal Member member, @Valid@RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 수정 호출 id:{}",replyId);
-        return new ResponseEntity<>(new ResponseDto<>(replyService.updateReply(member.getId(), replyDto,replyId),"댓글 수정 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(replyService.updateReply(member.getId(), replyDto,replyId),"댓글 수정 성공"));
 
     }
 
@@ -67,7 +64,7 @@ public class ReplyController {
     public ResponseEntity<ResponseDto<Long>> deleteReply(@AuthenticationPrincipal Member member, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 삭제 호출 id:{}",replyId);
         replyService.delete(member.getId(), replyId);
-        return new ResponseEntity<>(new ResponseDto<>(replyId,"댓글 삭제 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(replyId,"댓글 삭제 성공"));
 
     }
 
@@ -79,7 +76,7 @@ public class ReplyController {
     @PostMapping("/{replyId}/re-replies")
     public ResponseEntity<ResponseDto<Long>> saveReReply(@AuthenticationPrincipal Member member, @Valid @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 저장 호출");
-        return new ResponseEntity<>(new ResponseDto<>(replyService.saveReReply(member, replyDto,replyId),"대댓글 저장 성공"), HttpStatus.CREATED);
+        return new ResponseEntity<>(ResponseDto.of(replyService.saveReReply(member, replyDto,replyId),"대댓글 저장 성공"), HttpStatus.CREATED);
     }
 
     @Operation(summary = "댓글 좋아요 여부 변경",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 댓글의 id를 보내주세요. 좋아요 시 {data:1}, 좋아요 취소 시 {data:-1}입니다.")
@@ -91,7 +88,7 @@ public class ReplyController {
     @PutMapping("/{replyId}/like")
     public ResponseEntity<ResponseDto<Integer>> likePost(@AuthenticationPrincipal Member member, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 좋아요 여부 변경 호출 id:{}",replyId);
-        return new ResponseEntity<>(new ResponseDto<>(replyService.likeReply(member,replyId),"게시글 좋아요 여부 변경성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(replyService.likeReply(member,replyId),"게시글 좋아요 여부 변경성공"));
     }
 
 }

@@ -35,7 +35,6 @@ public class ScheduleController {
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<List<ScheduleResponseDto>>> getScheduleByMonth(@RequestParam int year,@RequestParam int month){
-        log.info("학사일정 가져오기 호출 월: {}",month);
-        return new ResponseEntity<>(new ResponseDto<>(scheduleService.getScheduleByMonth(year,month),"학사일정 가져오기 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(scheduleService.getScheduleByMonth(year,month),"학사일정 가져오기 성공"));
     }
 }

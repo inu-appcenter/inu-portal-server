@@ -17,7 +17,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         response.setCharacterEncoding("UTF-8");
         Gson gson = new Gson();
-        String result = gson.toJson(new ResponseDto<>(401,"인증이 실패하였습니다."));
+        String result = gson.toJson(ResponseDto.of(401,"인증이 실패하였습니다."));
         response.setStatus(401);
         response.getWriter().write(result);
     }

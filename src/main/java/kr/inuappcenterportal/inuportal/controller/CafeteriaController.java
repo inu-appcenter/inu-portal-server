@@ -11,7 +11,6 @@ import kr.inuappcenterportal.inuportal.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.service.CafeteriaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +30,6 @@ public class CafeteriaController {
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<List<String>>> getMenu(@RequestParam String cafeteria,@RequestParam(defaultValue = "0") Integer day){
-        return new ResponseEntity<>(new ResponseDto<>(cafeteriaService.getCafeteria(cafeteria,day),"학식 메뉴 가져오기 성공"), HttpStatus.OK);
+        return ResponseEntity.ok(ResponseDto.of(cafeteriaService.getCafeteria(cafeteria,day),"학식 메뉴 가져오기 성공"));
     }
 }
