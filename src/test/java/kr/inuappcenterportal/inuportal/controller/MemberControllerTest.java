@@ -1,7 +1,6 @@
-package kr.inuappcenterportal.inuportal.controllerTest;
+package kr.inuappcenterportal.inuportal.controller;
 
 import com.google.gson.Gson;
-import kr.inuappcenterportal.inuportal.controller.MemberController;
 import kr.inuappcenterportal.inuportal.dto.LoginDto;
 import kr.inuappcenterportal.inuportal.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.service.MemberService;
@@ -23,7 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
