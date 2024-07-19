@@ -38,7 +38,7 @@ public class ReplyController {
     @PostMapping("/{postId}")
     public ResponseEntity<ResponseDto<Long>> saveReply(@AuthenticationPrincipal Member member, @Valid @RequestBody ReplyDto replyDto, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         log.info("댓글 등록 호출");
-        return new ResponseEntity<>(ResponseDto.of(replyService.saveReply(member, replyDto,postId),"댓글 등록 성공"), HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(replyService.saveReply(member, replyDto,postId),"댓글 등록 성공"));
     }
 
     @Operation(summary = "댓글 수정",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 댓글의 id, 바디에 {content, bool 형태의 anonymous}을 json 형식으로 보내주세요. 성공 시 작성된 댓글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
@@ -76,7 +76,7 @@ public class ReplyController {
     @PostMapping("/{replyId}/re-replies")
     public ResponseEntity<ResponseDto<Long>> saveReReply(@AuthenticationPrincipal Member member, @Valid @RequestBody ReplyDto replyDto, @Parameter(name = "replyId",description = "댓글의 id",in = ParameterIn.PATH)@PathVariable Long replyId){
         log.info("댓글 저장 호출");
-        return new ResponseEntity<>(ResponseDto.of(replyService.saveReReply(member, replyDto,replyId),"대댓글 저장 성공"), HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(replyService.saveReReply(member, replyDto,replyId),"대댓글 저장 성공"));
     }
 
     @Operation(summary = "댓글 좋아요 여부 변경",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 댓글의 id를 보내주세요. 좋아요 시 {data:1}, 좋아요 취소 시 {data:-1}입니다.")

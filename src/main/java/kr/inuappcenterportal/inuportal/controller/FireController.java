@@ -39,7 +39,7 @@ public class FireController {
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> drawFireAiImage(@Valid@RequestBody FireDto fireDto){
         log.info("횃불이 그림 그리기 호출 파라미터 :{}",fireDto.getParam());
-        return new ResponseEntity<>(ResponseDto.of(fireService.drawImage(fireDto.getParam()),"횃불이 ai 그림 그리기 성공"), HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(fireService.drawImage(fireDto.getParam()),"횃불이 ai 그림 그리기 성공"));
     }
 
     @Operation(summary = "횃불이 ai 이미지 가져오기",description = "url 변수에 가져올 이미지 번호를 보내주세요.")

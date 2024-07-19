@@ -38,7 +38,7 @@ public class ImageController {
     public ResponseEntity<ResponseDto<Long>> saveOnlyImage(@RequestPart List<MultipartFile> images) throws IOException {
         log.info("횃불이 이미지 저장 호출");
         redisService.saveFireImage(images);
-        return new ResponseEntity<>(ResponseDto.of(1L,"이미지 등록 성공"), HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(1L,"이미지 등록 성공"));
     }
 
     @Operation(summary = "횃불이 이미지 가져오기",description = "url 변수에 가져올 횃불이의 번호를 보내주세요")

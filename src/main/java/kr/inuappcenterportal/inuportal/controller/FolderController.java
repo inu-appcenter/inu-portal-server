@@ -39,7 +39,7 @@ public class FolderController {
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> createFolder(@Valid @RequestBody FolderDto folderDto, @AuthenticationPrincipal Member member){
         log.info("스크랩폴더 생성 호출 id:{}",member.getId());
-        return new ResponseEntity<>(ResponseDto.of(folderService.createFolder(member,folderDto),"폴더 생성 성공"), HttpStatus.CREATED);
+        return ResponseEntity.status( HttpStatus.CREATED).body(ResponseDto.of(folderService.createFolder(member,folderDto),"폴더 생성 성공"));
     }
 
     @Operation(summary = "스크랩폴더명 수정",description = " url 파라미터에 스크랩폴더의 id, 바디에 {name}을 json 형식으로 보내주세요. 성공 시 수정된 스크랩폴더의 데이터베이스 폴더 값이 {data: id}으로 보내집니다.")

@@ -52,7 +52,7 @@ public class PostController {
     public ResponseEntity<ResponseDto<Long>> saveOnlyPost(@Valid@RequestBody PostDto postSaveDto, @AuthenticationPrincipal Member member) {
         log.info("게시글만 저장 호출 id:{}",member.getId());
         Long postId = postService.saveOnlyPost(member,postSaveDto);
-        return new ResponseEntity<>(ResponseDto.of(postId,"게시글 등록 성공"), HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postId,"게시글 등록 성공"));
     }
 
     @Operation(summary = "이미지 등록",description = "파라미터에 게시글의 id, images에 이미지 파일들을 보내주세요. 성공 시 게시글의 데이터베이 아이디값이 {data: id}으로 보내집니다.")
@@ -63,7 +63,7 @@ public class PostController {
     @PostMapping(value = "/{postId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Long>> saveOnlyImage( @RequestPart List<MultipartFile> images,@PathVariable Long postId, @AuthenticationPrincipal Member member) throws IOException {
         log.info("이미지만 저장 호출 id:{}",postId);
-        return new ResponseEntity<>(ResponseDto.of(postService.saveOnlyImage(member,postId,images),"이미지 등록 성공"), HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postService.saveOnlyImage(member,postId,images),"이미지 등록 성공"));
     }
 
 
