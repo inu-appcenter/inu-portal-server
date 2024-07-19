@@ -113,11 +113,11 @@ public class CafeteriaService {
                     if(menu.equals("")){
                         menu = "오늘은 쉽니다";
                     }
-                    menu = menu.replace("\"","");
+                    menu = menu.replace("\"", "");
                     redisService.storeMeal("학생식당", day, i,menu);
                 }
                 else {
-                    redisService.storeMeal("학생식당", day, i, foods.get(0).getText());
+                    redisService.storeMeal("학생식당", day, i, foods.get(0).getText().equals("")?"오늘은 쉽니다":foods.get(0).getText());
                 }
             }
             day++;
