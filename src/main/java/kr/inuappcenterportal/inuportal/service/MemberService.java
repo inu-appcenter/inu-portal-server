@@ -98,14 +98,21 @@ public class MemberService {
 
     @Transactional
     public TokenDto schoolLogin(LoginDto loginDto){
-        if(!schoolLoginRepository.loginCheck(loginDto.getStudentId(), loginDto.getPassword())){
-            throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
+        //서버 관련 문제로 일시적 관리자 로그인 추가
+        if(memberRepository.existsByStudentId(loginDto.getStudentId())&&memberRepository.findByStudentId(loginDto.getStudentId()).get().getRoles().equals("ROLE_ADMIN")){
+            Member member = memberRepository.findByStudentId(loginDto.getStudentId()).get();
+            return login(member);
         }
-        if(!memberRepository.existsByStudentId(loginDto.getStudentId())){
-            createMember(loginDto.getStudentId());
+        else {
+            if (!schoolLoginRepository.loginCheck(loginDto.getStudentId(), loginDto.getPassword())) {
+                throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
+            }
+            if (!memberRepository.existsByStudentId(loginDto.getStudentId())) {
+                createMember(loginDto.getStudentId());
+            }
+            Member member = memberRepository.findByStudentId(loginDto.getStudentId()).orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+            return login(member);
         }
-        Member member = memberRepository.findByStudentId(loginDto.getStudentId()).orElseThrow(()-> new MyException(MyErrorCode.USER_NOT_FOUND));
-        return login(member);
     }
     @Transactional
     public void createMember(String studentId){
