@@ -12,7 +12,6 @@
 
 https://inu-portal-web.pages.dev/
 
-https://portal.inuappcenter.kr/swagger-ui/index.html
 
 # ERD
 
