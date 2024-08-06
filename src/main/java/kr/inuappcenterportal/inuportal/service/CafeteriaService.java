@@ -109,7 +109,7 @@ public class CafeteriaService {
             for (int i = 1; i < 4; i++) {
                 List<WebElement> foods = rows.get(i).findElements(By.tagName("td"));
                 if(i==2){
-                    String menu = foods.get(0).getText();
+                    String menu = foods.get(0).getText().equals("")?"오늘은 쉽니다":foods.get(0).getText();
                     menu = menu.replace("\\", "");
                     menu = menu.replace("\"", "");
                     redisService.storeMeal("학생식당", day, i,menu);
