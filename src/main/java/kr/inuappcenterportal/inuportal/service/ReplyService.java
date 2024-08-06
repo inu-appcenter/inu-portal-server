@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.service;
 
+import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.ReReplyResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReplyDto;
@@ -8,7 +9,6 @@ import kr.inuappcenterportal.inuportal.dto.ReplyResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.LikeReplyRepository;
-import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.repository.PostRepository;
 import kr.inuappcenterportal.inuportal.repository.ReplyRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +26,21 @@ public class ReplyService {
     private final LikeReplyRepository likeReplyRepository;
 
     @Transactional
+    public void setReplyCount(){
+        List<Post> posts = postRepository.findAll();
+        for(Post post :posts){
+            long size = post.getReplies().size();
+            post.setReplyCount(size);
+        }
+    }
+
+    @Transactional
     public Long saveReply(Member member, ReplyDto replyDto, Long postId){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         long num = countNumber(member,post);
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
         replyRepository.save(reply);
+        post.upReplyCount();
         return reply.getId();
     }
 
@@ -43,6 +53,7 @@ public class ReplyService {
         Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         long num = countNumber(member,post);
         Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
+        post.upReplyCount();
         return replyRepository.save(reReply).getId();
     }
 
@@ -87,10 +98,12 @@ public class ReplyService {
     @Transactional
     public void delete(Long memberId, Long replyId){
         Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
+        Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!reply.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_REPLY_AUTHORIZATION);
         }
         else{
+            post.downReplyCount();
             if(replyRepository.existsByReply(reply)) {
                 reply.onDelete("삭제된 댓글입니다.", null);
             }

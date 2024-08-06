@@ -15,6 +15,11 @@ import java.time.format.DateTimeFormatter;
 public class ReplyListResponseDto {
     @Schema(description = "댓글의 데이터베이스 id 값")
     private Long id;
+
+    @Schema(description = "게시글의 제목")
+    private String title;
+    @Schema(description = "게시글의 댓글 수")
+    private Long replyCount;
     @Schema(description = "댓글의 내용")
     private String content;
     @Schema(description = "좋아요")
@@ -29,6 +34,8 @@ public class ReplyListResponseDto {
     @Builder
     private ReplyListResponseDto(Reply reply){
         this.id = reply.getId();
+        this.title = reply.getPost().getTitle();
+        this.replyCount = reply.getPost().getReplyCount();
         this.content = reply.getContent();
         this.like = (long)reply.getLikeReplies().size();
         this.postId = reply.getPost().getId();

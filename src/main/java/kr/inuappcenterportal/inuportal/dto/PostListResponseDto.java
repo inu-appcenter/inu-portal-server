@@ -27,6 +27,8 @@ public class PostListResponseDto {
     private Long like;
     @Schema(description = "스크랩")
     private Long scrap;
+    @Schema(description = "댓글수")
+    private Long replyCount;
     @Schema(description = "이미지수")
     private Long imageCount;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
@@ -35,7 +37,7 @@ public class PostListResponseDto {
     private String modifiedDate;
 
     @Builder
-    private PostListResponseDto(Long id, String title, String category, String writer,String content, String createDate, String modifiedDate, long like, long scrap, long imageCount){
+    private PostListResponseDto(Long id, String title, String category, String writer,String content, String createDate, String modifiedDate, long like, long scrap, long imageCount, long replyCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -46,6 +48,7 @@ public class PostListResponseDto {
         this.like = like;
         this.scrap = scrap;
         this.imageCount = imageCount;
+        this.replyCount = replyCount;
     }
 
     public static PostListResponseDto of(Post post, String writer){
@@ -60,6 +63,7 @@ public class PostListResponseDto {
                 .like(post.getGood())
                 .imageCount(post.getImageCount())
                 .scrap(post.getScrap())
+                .replyCount(post.getReplyCount())
                 .build();
     }
 

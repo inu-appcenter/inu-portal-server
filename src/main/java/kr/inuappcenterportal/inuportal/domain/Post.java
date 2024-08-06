@@ -47,6 +47,9 @@ public class Post extends BaseTimeEntity {
     @Column(name="image_count")
     private Long imageCount;
 
+    @Column(name = "reply_count")
+    private Long replyCount;
+
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
@@ -77,6 +80,7 @@ public class Post extends BaseTimeEntity {
         this.imageCount = imageCount;
         this.good = 0L;
         this.scrap = 0L;
+        this.replyCount = 0L;
     }
 
     public void updateOnlyPost(String title, String content, String category, boolean anonymous){
@@ -109,6 +113,11 @@ public class Post extends BaseTimeEntity {
 
     public void downScrap(){
         this.scrap--;
+    }
+    public void upReplyCount(){this.replyCount++;}
+    public void downReplyCount(){this.replyCount--;}
+    public void setReplyCount(long count){
+        this.replyCount = count;
     }
 
 

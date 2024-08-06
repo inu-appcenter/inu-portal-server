@@ -32,6 +32,8 @@ public class PostResponseDto {
     private Long scrap;
     @Schema(description = "조회수")
     private Long view;
+    @Schema(description = "댓글수")
+    private Long replyCount;
     @Schema(description = "좋아요 여부",example = "false")
     private Boolean isLiked;
     @Schema(description = "스크랩 여부",example = "false")
@@ -51,7 +53,7 @@ public class PostResponseDto {
 
 
     @Builder
-    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, String createDate, String modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority){
+    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, String createDate, String modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority,long replyCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -69,6 +71,7 @@ public class PostResponseDto {
         this.view = view;
         this.imageCount = imageCount;
         this.hasAuthority =hasAuthority;
+        this.replyCount = replyCount;
     }
 
     public static PostResponseDto of(Post post,String writer, long fireId, boolean isLiked, boolean isScraped, boolean hasAuthority, List<ReplyResponseDto> replies , List<ReReplyResponseDto> bestReplies){
@@ -90,6 +93,7 @@ public class PostResponseDto {
                 .hasAuthority(hasAuthority)
                 .view(post.getView())
                 .imageCount(post.getImageCount())
+                .replyCount(post.getReplyCount())
                 .build();
     }
 
