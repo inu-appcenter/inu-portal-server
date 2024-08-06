@@ -26,15 +26,6 @@ public class ReplyService {
     private final LikeReplyRepository likeReplyRepository;
 
     @Transactional
-    public void setReplyCount(){
-        List<Post> posts = postRepository.findAll();
-        for(Post post :posts){
-            long size = post.getReplies().size();
-            post.setReplyCount(size);
-        }
-    }
-
-    @Transactional
     public Long saveReply(Member member, ReplyDto replyDto, Long postId){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         long num = countNumber(member,post);

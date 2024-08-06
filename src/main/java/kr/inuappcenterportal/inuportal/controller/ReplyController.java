@@ -91,9 +91,4 @@ public class ReplyController {
         return ResponseEntity.ok(ResponseDto.of(replyService.likeReply(member,replyId),"게시글 좋아요 여부 변경성공"));
     }
 
-    @GetMapping("/set")
-    public void setReplyCount(){
-        replyService.setReplyCount();
-    }
-
 }
