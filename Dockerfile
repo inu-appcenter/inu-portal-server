@@ -19,16 +19,17 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 # JDK 버전 확인
 RUN java -version
 # 크롬 브라우저 설치
-RUN yum install -y wget unzip&& \
+RUN yum install -y wget unzip && \
     wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm && \
     yum localinstall -y google-chrome-stable_current_x86_64.rpm && \
     rm google-chrome-stable_current_x86_64.rpm
 
-
-# 크롬 드라이버 설치
-RUN wget https://storage.googleapis.com/chrome-for-testing-public/128.0.6613.84/linux64/chromedriver-linux64.zip && \
-    unzip chromedriver-linux64.zip -d /usr/bin/ && \
-    rm chromedriver-linux64.zip
+# 크롬 버전 확인 및 해당 버전에 맞는 크롬 드라이버 다운로드 및 설치
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+\.[0-9]+\.[0-9]+') && \
+    echo "Chrome version: $CHROME_VERSION" && \
+    wget https://chromedriver.storage.googleapis.com/$CHROME_VERSION/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip -d /usr/bin/ && \
+    rm chromedriver_linux64.zip
 
 # 환경변수 PATH에 크롬 드라이버 경로 추가
 ENV PATH="/usr/bin/chromedriver-linux64:${PATH}"
