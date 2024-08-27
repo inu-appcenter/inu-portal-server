@@ -70,6 +70,7 @@ public class WeatherService {
                 + "&ny=" + y;
 
         JsonArray itemList = getJsonData(url);
+        log.info(itemList.toString());
         String sky = "";
         String pty = "";
         int index = 0;
@@ -90,7 +91,7 @@ public class WeatherService {
                 break;
             }
         }
-        String weather= "";
+        String weather= "맑음";
         if(pty.equals("0")){
             if(sky.equals("1")){
                 weather="맑음";
