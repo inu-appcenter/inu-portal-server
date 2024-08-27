@@ -28,8 +28,8 @@ RUN yum install -y wget unzip && \
 RUN CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+') && \
     echo "Chrome version: $CHROME_VERSION" && \
     wget https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip && \
-    unzip chromedriver_linux64.zip -d /usr/bin/ && \
-    rm chromedriver_linux64.zip
+    unzip chromedriver-linux64.zip -d /usr/bin/ && \
+    rm chromedriver-linux64.zip
 
 # 환경변수 PATH에 크롬 드라이버 경로 추가
 ENV PATH="/usr/bin/chromedriver-linux64:${PATH}"
