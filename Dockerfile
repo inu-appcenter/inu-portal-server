@@ -27,7 +27,7 @@ RUN yum install -y wget unzip && \
 # 크롬 버전 확인 및 해당 버전에 맞는 크롬 드라이버 다운로드 및 설치
 RUN CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+') && \
     echo "Chrome version: $CHROME_VERSION" && \
-    wget https://chromedriver.storage.googleapis.com/$CHROME_VERSION/chromedriver_linux64.zip && \
+    wget https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip && \
     unzip chromedriver_linux64.zip -d /usr/bin/ && \
     rm chromedriver_linux64.zip
 
