@@ -33,13 +33,13 @@ public class WeatherService {
     private final String x = "54";
     private final String y = "123";
 
-    @Scheduled(cron = "0 45 * * * *")
+    @Scheduled(cron = "0 35 * * * *")
     public void getSky(){
         getWeatherSky();
     }
 
 
-    @Scheduled(cron = "0 15 * * * *")
+    @Scheduled(cron = "0 35 * * * *")
     public void getTem(){
         getTemperature();
     }
