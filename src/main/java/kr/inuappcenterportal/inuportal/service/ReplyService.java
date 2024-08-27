@@ -144,11 +144,12 @@ public class ReplyService {
                         String writer = writerName(reReply,post);
                         boolean isLiked = isLiked(member,reReply);
                         boolean hasAuthority = hasAuthority(member,reReply);
-                return ReReplyResponseDto.of(reReply,writer,reReply.getMember().getFireId(),isLiked,hasAuthority);
+                        long fireId = writer.equals("(알수없음)")||writer.equals("(삭제됨)")?13: reReply.getMember().getFireId();
+                return ReReplyResponseDto.of(reReply,writer,fireId,isLiked,hasAuthority);
             })
                     .collect(Collectors.toList());
                     String writer = writerName(reply,post);
-                    long fireId = writer.equals("(알수없음")||writer.equals("(삭제됨)")?13: reply.getMember().getFireId();
+                    long fireId = writer.equals("(알수없음)")||writer.equals("(삭제됨)")?13: reply.getMember().getFireId();
                     boolean isLiked = isLiked(member,reply);
                     boolean hasAuthority = hasAuthority(member,reply);
             return ReplyResponseDto.of(reply, writer, fireId, isLiked,hasAuthority,reReplyResponseDtoList);
