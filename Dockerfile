@@ -1,5 +1,5 @@
-# OpenJDK 17을 기본 이미지로 사용
-FROM openjdk:17
+# Debian 기반의 OpenJDK 17 이미지 사용
+FROM openjdk:17-jdk-slim
 
 # 필요한 패키지 설치 및 로케일 설정
 RUN apt-get update && \
@@ -32,4 +32,5 @@ COPY ./build/libs/inu-portal-0.0.1-SNAPSHOT.jar app.jar
 
 # 애플리케이션 실행
 ENTRYPOINT ["java", "-jar", "/app.jar"]
+
 
