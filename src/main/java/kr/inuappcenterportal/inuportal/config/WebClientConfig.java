@@ -15,7 +15,7 @@ public class WebClientConfig {
     DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory();
 
     HttpClient httpClient = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000); // 10초
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 20000); // 20초
 
     @Bean
     public WebClient webClient() {
