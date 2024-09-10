@@ -251,7 +251,6 @@ public class WeatherService {
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
                 .bodyToMono(String.class)
                 .block();
-        log.info(result.toString());
         try {
             JsonObject jsonObject = JsonParser.parseString(result).getAsJsonObject();
             JsonObject body = jsonObject.getAsJsonObject("response").getAsJsonObject("body");
