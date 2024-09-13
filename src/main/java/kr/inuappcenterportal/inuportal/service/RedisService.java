@@ -177,6 +177,11 @@ public class RedisService {
         return dusts;
     }
 
+    public void storeSun(String sunrise, String sunset){
+        redisTemplate.opsForValue().set("sunrise",sunrise);
+        redisTemplate.opsForValue().set("sunset",sunset);
+    }
+
 
 
 

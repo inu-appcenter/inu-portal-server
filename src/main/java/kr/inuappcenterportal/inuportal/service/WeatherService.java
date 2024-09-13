@@ -15,8 +15,17 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import reactor.core.publisher.Mono;
 
+
+import org.w3c.dom.Element;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -34,23 +43,21 @@ public class WeatherService {
     private final String y = "123";
 
     @Scheduled(cron = "0 35 * * * *")
-    public void getSky(){
+    public void getWeatherAPI(){
         getWeatherSky();
-    }
-
-
-    @Scheduled(cron = "0 35 * * * *")
-    public void getTem(){
         getTemperature();
-    }
-    @Scheduled(cron = "0 30 * * * *")
-    public void getCrawlDust(){
         getDust();
+    }
+
+    @Scheduled(cron = "0 5 0 * * *")
+    public void getDay() {
+        getDayData();
     }
 
 
     @PostConstruct
     public void initWeather(){
+        getDayData();
         getDust();
         getWeatherSky();
         getTemperature();
@@ -201,6 +208,7 @@ public class WeatherService {
         }
         redisService.storeDust(pm10Value,pm10Grade,pm25Value,pm25Grade);
     }
+
     public String getGrade(String level){
         String grade="";
         if(level.equals("1")){
@@ -262,6 +270,42 @@ public class WeatherService {
             return new JsonArray();
         }
     }
+
+    public void getDayData(){
+        LocalDateTime t = LocalDateTime.now();
+        String url = "http://apis.data.go.kr/B090041/openapi/service/RiseSetInfoService/getAreaRiseSetInfo" +
+                "?location=%EC%9D%B8%EC%B2%9C"+
+                "&locdate="+t.format(DateTimeFormatter.ofPattern("yyyyMMdd"))+
+                "&serviceKey="+weatherKey;
+        String result = webClient.get()
+                .uri(url)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
+                .bodyToMono(String.class)
+                .block();
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+
+            Document document = builder.parse(new InputSource(new StringReader(result)));
+            document.getDocumentElement().normalize();
+            NodeList itemList = document.getElementsByTagName("item");
+            Element item = (Element) itemList.item(0);
+
+            NodeList sunriseList = item.getElementsByTagName("sunrise");
+            Node sunriseNode = sunriseList.item(0);
+            String sunrise = sunriseNode.getTextContent();
+
+            NodeList sunsetList = item.getElementsByTagName("sunset");
+            Node sunsetNode = sunsetList.item(0);
+            String sunset = sunsetNode.getTextContent();
+
+            redisService.storeSun(sunrise,sunset);
+        } catch (Exception e) {
+            log.info("일출일몰 api 문제 발생");
+        }
+    }
+
 
 
 
