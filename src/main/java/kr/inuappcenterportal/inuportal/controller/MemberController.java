@@ -93,7 +93,7 @@ public class MemberController {
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member){
-        log.info("회원 이메일 가져오기 호출 id:{}",member.getId());
+        log.info("회원 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(memberService.getMember(member),"회원 가져오기 성공"));
     }
 
