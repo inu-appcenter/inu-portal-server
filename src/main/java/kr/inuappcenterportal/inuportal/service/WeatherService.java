@@ -27,6 +27,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
@@ -313,7 +314,17 @@ public class WeatherService {
         String sky = redisService.getSky();
         String temperature = redisService.getTemperature();
         Map<String,String> dusts = redisService.getDust();
-        return WeatherResponseDto.of(sky,temperature,dusts.get("pm10Value"),dusts.get("pm10Grade"),dusts.get("pm25Value"),dusts.get("pm25Grade"));
+        Map<String,String > sun = redisService.getSun();
+        String day = isDaytime(sun.get("sunrise"),sun.get("sunset"))?"day":"night";
+        return WeatherResponseDto.of(sky,temperature,dusts.get("pm10Value"),dusts.get("pm10Grade"),dusts.get("pm25Value"),dusts.get("pm25Grade"),day);
+    }
+
+    public boolean isDaytime(String sunrise, String sunset) {
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmm");
+        LocalTime sunriseTime = LocalTime.parse(sunrise, timeFormatter);
+        LocalTime sunsetTime = LocalTime.parse(sunset, timeFormatter);
+        LocalTime now = LocalTime.now();
+        return (now.isAfter(sunriseTime) && now.isBefore(sunsetTime));
     }
 
 

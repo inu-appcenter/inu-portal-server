@@ -178,8 +178,15 @@ public class RedisService {
     }
 
     public void storeSun(String sunrise, String sunset){
-        redisTemplate.opsForValue().set("sunrise",sunrise);
-        redisTemplate.opsForValue().set("sunset",sunset);
+        redisTemplate.opsForValue().set("sunrise",sunrise.trim());
+        redisTemplate.opsForValue().set("sunset",sunset.trim());
+    }
+
+    public Map<String,String> getSun(){
+        Map<String,String> sun = new HashMap<>();
+        sun.put("sunrise",redisTemplate.opsForValue().get("sunrise"));
+        sun.put("sunset",redisTemplate.opsForValue().get("sunset"));
+        return sun;
     }
 
 

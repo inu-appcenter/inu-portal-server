@@ -21,18 +21,21 @@ public class WeatherResponseDto {
     private String pm25Value;
     @Schema(description = "초미세먼지 등급",example = "좋음")
     private String pm25Grade;
+    @Schema(description = "낮과 밤의 상태",example = "낮")
+    private String day;
 
     @Builder
-    private WeatherResponseDto(String sky,String temperature,String pm10Value,String pm10Grade,String pm25Value,String pm25Grade){
+    private WeatherResponseDto(String sky,String temperature,String pm10Value,String pm10Grade,String pm25Value,String pm25Grade, String day){
         this.sky = sky;
         this.temperature = temperature;
         this.pm10Value=pm10Value;
         this.pm10Grade=pm10Grade;
         this.pm25Value=pm25Value;
         this.pm25Grade=pm25Grade;
+        this.day = day;
     }
 
-    public static WeatherResponseDto of(String sky, String temperature,String pm10Value,String pm10Grade,String pm25Value,String pm25Grade){
-        return WeatherResponseDto.builder().sky(sky).temperature(temperature).pm10Value(pm10Value).pm10Grade(pm10Grade).pm25Value(pm25Value).pm25Grade(pm25Grade).build();
+    public static WeatherResponseDto of(String sky, String temperature,String pm10Value,String pm10Grade,String pm25Value,String pm25Grade, String day){
+        return WeatherResponseDto.builder().sky(sky).temperature(temperature).pm10Value(pm10Value).pm10Grade(pm10Grade).pm25Value(pm25Value).pm25Grade(pm25Grade).day(day).build();
     }
 }
