@@ -32,7 +32,7 @@ jobs:
     - uses: actions/checkout@v2
     - run: touch ./src/main/resources/application.properties
     - run: echo "${{secrets.APPLICATION_PROPERTIES}}" > ./src/main/resources/application.properties
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: application.properties
         path: ./src/main/resources/application.properties
