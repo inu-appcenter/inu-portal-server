@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class WeatherController {
     private final WeatherService weatherService;
 
-    @Operation(summary = "날씨 가져오기",description = "날씨의 종류에는 맑음, 구름, 비, 눈, 진눈깨비가 있습니다. 미세먼지의 상태에는 좋음, 보통, 나쁨, 매우나쁨이 있습니다.")
+    @Operation(summary = "날씨 가져오기",description = "날씨의 종류에는 맑음, 구름, 비, 눈, 진눈깨비가 있습니다. 미세먼지의 상태에는 좋음, 보통, 나쁨, 매우나쁨이 있습니다.낮,밤의 경우 day,night로 구분됩니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "날씨 가져오기 성공",content = @Content(schema = @Schema(implementation = WeatherResponseDto.class))),
     })
