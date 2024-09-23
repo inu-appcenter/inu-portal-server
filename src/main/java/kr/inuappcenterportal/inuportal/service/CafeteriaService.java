@@ -31,7 +31,7 @@ public class CafeteriaService {
         crawlCafeteria();
     }
 
-    @Scheduled(cron = "0 5 0 ? * MON-SAT")
+    @Scheduled(cron = "0 10 0 ? * MON-SAT")
     public void jobCafeteria() throws InterruptedException {
         crawlCafeteria();
     }
