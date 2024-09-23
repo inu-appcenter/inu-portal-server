@@ -37,6 +37,9 @@ public class PostService {
 
     @Transactional
     public Long saveOnlyPost(Member member, PostDto postSaveDto) {
+        if(!categoryRepository.existsByCategory(postSaveDto.getCategory())){
+            throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
+        }
         Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(0).build();
         postRepository.save(post);
         return post.getId();
@@ -64,6 +67,9 @@ public class PostService {
     @Transactional
     public void updateOnlyPost(Long memberId, Long postId, PostDto postDto){
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        if(!categoryRepository.existsByCategory(postDto.getCategory())){
+            throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
+        }
         if(!post.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
