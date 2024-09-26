@@ -367,4 +367,22 @@ public class PostService {
         return  ListResponseDto.of(pages,scraps.size(),postListSort(scraps,sort).subList(startIndex,endIndex));
     }
 
+
+    @Transactional(readOnly = true)
+    public List<PostListResponseDto> getPostForInf(Long lastPostId,String category){
+        Pageable pageable = PageRequest.of(0,8);
+        if(lastPostId==null&&category==null){
+            return postRepository.findAllByOrderByIdDesc(pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        }
+        else if(lastPostId == null){
+            return postRepository.findAllByCategoryOrderByIdDesc(category,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        }
+        else if(category!=null){
+           return postRepository.findByCategoryAndIdLessThanOrderByIdDesc(category,lastPostId,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        }
+        else {
+            return postRepository.findAllByIdLessThanOrderByIdDesc(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        }
+    }
+
 }

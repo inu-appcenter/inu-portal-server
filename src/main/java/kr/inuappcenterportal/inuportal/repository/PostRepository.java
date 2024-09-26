@@ -7,7 +7,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -17,10 +16,11 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     Page<Post> findAllByCategoryOrderByIdDesc (String category,Pageable pageable);
     Page<Post> findAllByCategoryOrderByGoodDescIdDesc (String category,Pageable pageable);
     Page<Post> findAllByCategoryOrderByScrapDescIdDesc (String category,Pageable pageable);
-    Long countAllByCategory (String category);
     Page<Post> findAllByOrderByIdDesc(Pageable pageable);
     Page<Post> findAllByOrderByGoodDescIdDesc(Pageable pageable);
     Page<Post> findAllByOrderByScrapDescIdDesc(Pageable pageable);
+    List<Post> findAllByIdLessThanOrderByIdDesc(Long id, Pageable pageable);
+    List<Post> findByCategoryAndIdLessThanOrderByIdDesc(String category,Long id,Pageable pageable);
     long count();
     Page<Post> findAllByMemberOrderByIdDesc(Member member,Pageable pageable);
     Page<Post> findAllByMemberOrderByGoodDescIdDesc(Member member,Pageable pageable);

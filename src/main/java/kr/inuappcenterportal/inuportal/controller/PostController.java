@@ -188,4 +188,13 @@ public class PostController {
         return ResponseEntity.ok(ResponseDto.of(postService.getRandomTop(),"메인 페이지 게시글 7개 가져오기 성공"));
     }
 
+    @Operation(summary = "모바일용 게시글 리스트 가져오기",description = "이전 페이지의 마지막 게시글의 id값을 파라미터로(첫 페이지는 보내지마세요), 카테고리가 없을 시 전체입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "모바일용 게시글 리스트 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+    })
+    @GetMapping("/mobile")
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForMobile(@RequestParam(required = false) Long lastPostId, @RequestParam(required = false) String category){
+        return ResponseEntity.ok(ResponseDto.of(postService.getPostForInf(lastPostId,category),"모바일용 게시글 리스트 가져오기 성공"));
+    }
+
 }
