@@ -318,13 +318,13 @@ public class PostService {
     public ListResponseDto searchPost(String query,String sort,int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
         if (sort == null||sort.equals("date")) {
-            Page<Post> dto = postRepository.findAllByTitleContainsOrContentContainsOrderByIdDesc(query,query,pageable);
+            Page<Post> dto = postRepository.searchByKeyword(query,pageable);
             return ListResponseDto.of(dto.getTotalPages(),dto.getTotalElements(),dto.stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else if (sort.equals("like")) {
-            Page<Post> dto = postRepository.findAllByTitleContainsOrContentContainsOrderByGoodDescIdDesc(query,query,pageable);
+            Page<Post> dto = postRepository.searchByKeywordOrderByLikes(query,pageable);
             return ListResponseDto.of(dto.getTotalPages(), dto.getTotalElements(), dto.stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else if (sort.equals("scrap")) {
-            Page<Post> dto = postRepository.findAllByTitleContainsOrContentContainsOrderByScrapDescIdDesc(query,query,pageable);
+            Page<Post> dto = postRepository.searchByKeywordOrderByScraps(query,pageable);
             return ListResponseDto.of(dto.getTotalPages(), dto.getTotalElements(),dto.stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else {
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);

@@ -25,10 +25,13 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     Page<Post> findAllByMemberOrderByIdDesc(Member member,Pageable pageable);
     Page<Post> findAllByMemberOrderByGoodDescIdDesc(Member member,Pageable pageable);
     Page<Post> findAllByMemberOrderByScrapDescIdDesc(Member member,Pageable pageable);
-    Page<Post> findAllByTitleContainsOrContentContainsOrderByIdDesc(String title, String content, Pageable pageable);
-    Page<Post> findAllByTitleContainsOrContentContainsOrderByGoodDescIdDesc(String title,String content,Pageable pageable);
-    Page<Post> findAllByTitleContainsOrContentContainsOrderByScrapDescIdDesc(String title,String content,Pageable pageable);
-    Long countAllByTitleContainsOrContentContains(String title,String content);
+    @Query(value = "SELECT * FROM post WHERE MATCH(title, content) AGAINST(?1 IN NATURAL LANGUAGE MODE)", nativeQuery = true)
+    Page<Post> searchByKeyword(String keyword,Pageable pageable);
+    @Query(value = "SELECT * FROM post WHERE MATCH(title, content) AGAINST(?1 IN BOOLEAN MODE) ORDER BY good DESC", nativeQuery = true)
+    Page<Post> searchByKeywordOrderByLikes(String keyword, Pageable pageable);
+
+    @Query(value = "SELECT * FROM post WHERE MATCH(title, content) AGAINST(?1 IN BOOLEAN MODE) ORDER BY scrap DESC", nativeQuery = true)
+    Page<Post> searchByKeywordOrderByScraps(String keyword, Pageable pageable);
     @Query("SELECT p FROM Post p WHERE p.good >= 1 AND (:category IS NULL OR p.category = :category) ORDER BY p.good DESC ,p.id DESC LIMIT 12")
     List<Post> findTop12(String category);
 
