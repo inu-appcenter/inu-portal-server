@@ -66,7 +66,6 @@ public class MemberController {
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "로그인 성공, 토근이 발급되었습니다.",content = @Content(schema = @Schema(implementation = TokenDto.class))),
             @ApiResponse(responseCode = "401",description = "학번 또는 비밀번호가 틀립니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/login")
     public ResponseEntity<ResponseDto<TokenDto>> login(@Valid @RequestBody LoginDto loginDto){
