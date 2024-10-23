@@ -65,7 +65,7 @@ public class MemberControllerTest {
     @Test
     @DisplayName("로그인 성공 테스트")
     void loginSuccessTest() throws Exception{
-        TokenDto tokenDto = TokenDto.of("123","456","15","18");
+        TokenDto tokenDto = TokenDto.of("testToken","testRefreshToken","testExpiredTime","testExpiredTime");
         LoginDto loginDto = LoginDto.builder().studentId("201901591").password("12345").build();
         given(memberService.schoolLogin(any(LoginDto.class))).willReturn(tokenDto);
         String body = objectMapper.writeValueAsString(loginDto);
@@ -88,8 +88,22 @@ public class MemberControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.msg").value("학번 또는 비밀번호가 틀립니다."))
                 .andDo(print());
-
+        verify(memberService).schoolLogin(any(LoginDto.class));
     }
+
+    @Test
+    @DisplayName("토큰 재발급 성공 테스트")
+    void refreshSuccessTest() throws Exception{
+        TokenDto tokenDto = TokenDto.of("testToken","testRefreshToken","testExpiredTime","testExpiredTime");
+        when(memberService.refreshToken(any(String.class))).thenReturn(tokenDto);
+        mockMvc.perform(post("/api/members/refresh").header("refresh", "testRefreshToken").with(csrf()).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.msg").value("토큰 재발급 성공"))
+                .andDo(print());
+        verify(memberService).refreshToken(any(String.class));
+    }
+
+
 
 
 
