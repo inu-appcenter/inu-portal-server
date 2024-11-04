@@ -38,7 +38,7 @@ public class MemberController {
 
     @Operation(summary = "회원 닉네임/횃불이 이미지 변경",description = "url 헤더에 Auth 토큰,바디에 {nickname,fireId(횃불이 이미지 번호)}을 json 형식으로 보내주세요.성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원 닉네임 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "200",description = "회원 닉네임/횃불이 이미지 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다. / 닉네임, 횃불이 아이디 모두 공백입니다. / 닉네임이 빈칸 혹은 공백입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
@@ -77,7 +77,6 @@ public class MemberController {
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "토큰 재발급 성공",content = @Content(schema = @Schema(implementation = TokenDto.class)))
             ,@ApiResponse(responseCode = "401",description = "만료된 토큰입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping("/refresh")
     public ResponseEntity<ResponseDto<TokenDto>> refresh(HttpServletRequest httpServletRequest){
@@ -87,8 +86,7 @@ public class MemberController {
 
     @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원가져오기성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "회원 가져오기 성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member){
