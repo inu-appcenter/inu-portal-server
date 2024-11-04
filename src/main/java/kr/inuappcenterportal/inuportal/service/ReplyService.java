@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,10 +25,13 @@ public class ReplyService {
     private final ReplyRepository replyRepository;
     private final PostRepository postRepository;
     private final LikeReplyRepository likeReplyRepository;
+    private final RedisService redisService;
 
     @Transactional
-    public Long saveReply(Member member, ReplyDto replyDto, Long postId){
+    public Long saveReply(Member member, ReplyDto replyDto, Long postId) throws NoSuchAlgorithmException {
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        String hash = member.getId() + replyDto.getContent();
+        redisService.blockRepeat(hash);
         long num = countNumber(member,post);
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
         replyRepository.save(reply);
@@ -36,8 +40,10 @@ public class ReplyService {
     }
 
     @Transactional
-    public Long saveReReply(Member member, ReplyDto replyDto, Long replyId){
+    public Long saveReReply(Member member, ReplyDto replyDto, Long replyId) throws NoSuchAlgorithmException {
         Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
+        String hash = member.getId() + replyDto.getContent();
+        redisService.blockRepeat(hash);
         if(reply.getReply()!=null){
             throw new MyException(MyErrorCode.NOT_REPLY_ON_REREPLY);
         }

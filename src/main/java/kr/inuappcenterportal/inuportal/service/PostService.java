@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.service;
 
+import jakarta.xml.bind.DatatypeConverter;
 import kr.inuappcenterportal.inuportal.domain.*;
 import kr.inuappcenterportal.inuportal.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.PostDto;
@@ -18,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,10 +40,12 @@ public class PostService {
 
 
     @Transactional
-    public Long saveOnlyPost(Member member, PostDto postSaveDto) {
+    public Long saveOnlyPost(Member member, PostDto postSaveDto) throws NoSuchAlgorithmException {
         if(!categoryRepository.existsByCategory(postSaveDto.getCategory())){
             throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
+        String hash = postSaveDto.getTitle()+postSaveDto.getContent();
+        redisService.blockRepeat(hash);
         Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(0).build();
         postRepository.save(post);
         return post.getId();
@@ -384,5 +390,7 @@ public class PostService {
             return postRepository.findAllByIdLessThanOrderByIdDesc(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
     }
+
+
 
 }

@@ -1,0 +1,62 @@
+package kr.inuappcenterportal.inuportal.service;
+
+import kr.inuappcenterportal.inuportal.domain.Member;
+import kr.inuappcenterportal.inuportal.domain.Post;
+import kr.inuappcenterportal.inuportal.dto.PostDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.repository.CategoryRepository;
+import kr.inuappcenterportal.inuportal.repository.PostRepository;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+
+import static org.mockito.BDDMockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+
+@ExtendWith(MockitoExtension.class)
+public class PostServiceTest {
+
+    @InjectMocks
+    private PostService postService;
+
+    @Mock
+    private PostRepository postRepository;
+
+    @Mock
+    private RedisService redisService;
+    @Mock
+    private CategoryRepository categoryRepository;
+
+
+
+    @Test
+    @DisplayName("게시글 저장 테스트")
+    public void saveOnlyPostTest() throws Exception{
+        Member member = Member.builder().nickname("testMember").studentId("201900000").roles(Collections.singletonList("ROLE_USER")).build();
+        PostDto postDto = PostDto.builder().title("title").content("content").anonymous(true).category("수강신청").build();
+        when(categoryRepository.existsByCategory(any(String.class))).thenReturn(true);
+        postService.saveOnlyPost(member,postDto);
+        verify(categoryRepository).existsByCategory(any(String.class));
+        verify(redisService).blockRepeat(any(String.class));
+        verify(postRepository).save(any(Post.class));
+    }
+
+    /*@Test
+    @DisplayName("게시글 도배 테스트")
+    public void postAttackTest() throws Exception{
+        Member member = Member.builder().nickname("testMember").studentId("201900000").roles(Collections.singletonList("ROLE_USER")).build();
+        PostDto postDto = PostDto.builder().title("title").content("content").anonymous(true).category("수강신청").build();
+        doThrow(new MyException(MyErrorCode.BLOCK_MANY_SAME_POST_REPLY)).when(redisService).blockRepeat(any(String.class));
+        Assertions.assertThrows(MyException.class, ()->postService.saveOnlyPost(member,postDto));
+    }*/
+}

@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.service;
 
+import jakarta.xml.bind.DatatypeConverter;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -187,6 +191,19 @@ public class RedisService {
         sun.put("sunrise",redisTemplate.opsForValue().get("sunrise"));
         sun.put("sunset",redisTemplate.opsForValue().get("sunset"));
         return sun;
+    }
+
+    public void blockRepeat(String hash) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] digest = md.digest(hash.getBytes(StandardCharsets.UTF_8));
+        String sha256 = DatatypeConverter.printHexBinary(digest).toLowerCase();
+        if(redisTemplate.hasKey(hash)){
+            throw new MyException(MyErrorCode.BLOCK_MANY_SAME_POST_REPLY);
+        }
+        else{
+            redisTemplate.opsForValue().set(hash,"hash");
+            redisTemplate.expire(hash,20, TimeUnit.SECONDS);
+        }
     }
 
 
