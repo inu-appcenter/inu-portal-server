@@ -120,13 +120,6 @@ public class RedisService {
     }
 
 
-    public void storeFireAiImage(String image,Long id){
-        image = image.substring(2,image.length()-1);
-        String key = "FireAi-" + id;
-        log.info("이미지 저장 key:{}",key);
-        redisTemplate.opsForValue().set(key,image);
-        redisTemplate.expire(key,7, TimeUnit.DAYS);
-    }
 
     public String getFireAiImage(Long id){
         String key = "FireAi-" + id;
@@ -205,8 +198,5 @@ public class RedisService {
             redisTemplate.expire(hash,20, TimeUnit.SECONDS);
         }
     }
-
-
-
 
 }

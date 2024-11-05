@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
 public class FireDto {
     @Schema(description = "그림의 파라미터",example = "swimming")
     @NotBlank
-    private String param;
+    private String prompt;
 
     @Builder
-    public FireDto(String param){
-        this.param = param;
+    public FireDto(String prompt) {
+        this.prompt = prompt;
     }
 }

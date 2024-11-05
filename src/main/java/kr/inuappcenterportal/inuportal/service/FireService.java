@@ -1,8 +1,11 @@
 package kr.inuappcenterportal.inuportal.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.xml.bind.DatatypeConverter;
 import kr.inuappcenterportal.inuportal.domain.Fire;
+import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.FireResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
@@ -29,7 +32,6 @@ import java.util.Map;
 @Slf4j
 public class FireService {
     private final WebClient webClient;
-    private final RedisService redisService;
     private final FireRepository fireRepository;
 
     @Value("${aiUrl}")
@@ -42,36 +44,27 @@ public class FireService {
         url = initAiUrl;
         log.info("ai 이미지 요청 url init url : {}",url);
     }
+
     @Transactional
-    public Long drawImage(String param){
-        List<String> body = new ArrayList<>();
-        body.add(param);
-        Map<String, List<String>> requestBody = new HashMap<>();
-        requestBody.put("data", body);
-        log.info("횃불이 ai 이미지 생성 요청 파라미터 :{}",param);
+    public FireResponseDto drawImage(Long id, String prompt) throws JsonProcessingException {
+        HashMap<String,Object > body = new HashMap<>();
+        body.put("u_id",id);
+        body.put("prompt",prompt);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String requestBody = objectMapper.writeValueAsString(body);
+        log.info("횃불이 ai 이미지 생성 요청 파라미터 :{}",prompt);
         FireResponseDto fireResponseDto =webClient.post()
                 .uri(url)
                 .headers(httpHeaders -> httpHeaders.set("Content-Type","application/json"))
                 .bodyValue(requestBody)
                 .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.NOT_FOUND_AI_URI)))
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI)))
                 .bodyToMono(FireResponseDto.class)
                 .block();
-        log.info("횃불이 ai 이미지 생성완료 걸린시간 :{}", fireResponseDto.getDuration());
-        Fire fire = Fire.builder().duration(fireResponseDto.getDuration()).averageDuration(fireResponseDto.getAverage_duration()).param(param).build();
-        Long id = fireRepository.save(fire).getId();
-        redisService.storeFireAiImage(fireResponseDto.getData().get(0),id);
-        return id;
+        return fireResponseDto;
     }
 
-    public byte[] getFireAiImage(Long id){
-        return DatatypeConverter.parseBase64Binary(redisService.getFireAiImage(id));
-    }
 
-    public void changeUri(String uri){
-        url = uri;
-        log.info("uri 변경 완료 변경된 요청 uri: {}",url);
-    }
 
     @Transactional
     public Long ratingImage(Long id, int rate){

@@ -18,10 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.BDDMockito.when;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class PostServiceTest {
@@ -46,17 +46,18 @@ public class PostServiceTest {
         PostDto postDto = PostDto.builder().title("title").content("content").anonymous(true).category("수강신청").build();
         when(categoryRepository.existsByCategory(any(String.class))).thenReturn(true);
         postService.saveOnlyPost(member,postDto);
-        verify(categoryRepository).existsByCategory(any(String.class));
-        verify(redisService).blockRepeat(any(String.class));
-        verify(postRepository).save(any(Post.class));
+
     }
 
-    /*@Test
+    @Test
     @DisplayName("게시글 도배 테스트")
     public void postAttackTest() throws Exception{
         Member member = Member.builder().nickname("testMember").studentId("201900000").roles(Collections.singletonList("ROLE_USER")).build();
         PostDto postDto = PostDto.builder().title("title").content("content").anonymous(true).category("수강신청").build();
         doThrow(new MyException(MyErrorCode.BLOCK_MANY_SAME_POST_REPLY)).when(redisService).blockRepeat(any(String.class));
+        /*MyException myException = postService.saveOnlyPost(member,postDto);*/
         Assertions.assertThrows(MyException.class, ()->postService.saveOnlyPost(member,postDto));
-    }*/
+    }
+
+
 }

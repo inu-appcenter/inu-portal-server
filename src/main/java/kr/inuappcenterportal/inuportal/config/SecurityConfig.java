@@ -39,15 +39,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members").permitAll()
 
-                        .requestMatchers("/api/members/all","/api/fires").hasRole("ADMIN")
+                        .requestMatchers("/api/members/all").hasRole("ADMIN")
                         .requestMatchers("/api/members/**","/api/members").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/fires/**","/api/cafeterias","/api/weathers").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/cafeterias","/api/weathers").permitAll()
                         .requestMatchers("/api/posts/**","/api/posts","/api/fires/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/replies/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/search","/api/search/**","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**").permitAll()
-                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/fires/uri").hasRole("ADMIN"));
+                        .requestMatchers("/api/images","/api/images/**","/api/categories").hasRole("ADMIN"));
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler())

@@ -44,11 +44,12 @@ public enum MyErrorCode {
     EMAIL_NOT_AUTHORIZATION(HttpStatus.FORBIDDEN,"인증되지 않은 이메일입니다."),
     NOT_LIKE_MY_POST(HttpStatus.BAD_REQUEST,"자신의 게시글에는 추천을 할 수 없습니다."),
     NOT_LIKE_MY_REPLY(HttpStatus.BAD_REQUEST,"자신의 댓글에는 추천을 할 수 없습니다."),
-    NOT_FOUND_AI_URI(HttpStatus.BAD_REQUEST,"횃불이 ai 이미지 생성 uri에 문제가 있습니다."),
+    BAD_REQUEST_FIRE_AI(HttpStatus.BAD_REQUEST,"횃불이 이미지가 생성 중 입니다."),
     STUDENT_LOGIN_ERROR(HttpStatus.UNAUTHORIZED,"학번 또는 비밀번호가 틀립니다."),
     RATED_IMAGE(HttpStatus.BAD_REQUEST,"이미 평가된 이미지입니다."),
     WEATHER_REQUEST_ERROR(HttpStatus.BAD_REQUEST,"날씨 요청에 문제가 있습니다."),
-    BLOCK_MANY_SAME_POST_REPLY(HttpStatus.BAD_REQUEST,"일정 시간 동안 같은 게시글이나 댓글을 작성할 수 없습니다.");
+    BLOCK_MANY_SAME_POST_REPLY(HttpStatus.BAD_REQUEST,"일정 시간 동안 같은 게시글이나 댓글을 작성할 수 없습니다."),
+    NOT_GENERATE_FIRE_AI_IMAGE(HttpStatus.BAD_REQUEST,"");
 
 
     private final HttpStatus status;

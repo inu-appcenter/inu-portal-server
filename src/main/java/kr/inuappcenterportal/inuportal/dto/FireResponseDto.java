@@ -10,9 +10,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FireResponseDto {
-    private List<String> data;
-    private boolean is_generating;
-    private String duration;
-    private String average_duration;
+    private String status;
+    private String request_id;
+    private Integer request_head;
+    private Integer eta;
 
 }
