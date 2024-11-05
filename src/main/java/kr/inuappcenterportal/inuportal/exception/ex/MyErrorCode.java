@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 public enum MyErrorCode {
 
     USER_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 유저입니다."),
-    USER_NOT_CHECK_EMAIL(HttpStatus.NOT_FOUND,"만료된 이메일이거나, 인증 요청을 하지 않은 이메일입니다."),
     IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 이미지 번호입니다."),
     POST_SCRAP_LIST_NOT_FOUND(HttpStatus.NOT_FOUND,"게시글 리스트가 비어있습니다."),
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND,"스크랩하지 않은 게시물입니다."),
@@ -49,7 +48,7 @@ public enum MyErrorCode {
     RATED_IMAGE(HttpStatus.BAD_REQUEST,"이미 평가된 이미지입니다."),
     WEATHER_REQUEST_ERROR(HttpStatus.BAD_REQUEST,"날씨 요청에 문제가 있습니다."),
     BLOCK_MANY_SAME_POST_REPLY(HttpStatus.BAD_REQUEST,"일정 시간 동안 같은 게시글이나 댓글을 작성할 수 없습니다."),
-    NOT_GENERATE_FIRE_AI_IMAGE(HttpStatus.BAD_REQUEST,"");
+    NOT_GENERATE_FIRE_AI_IMAGE(HttpStatus.BAD_REQUEST,"횃불이 이미지가 생성 중 입니다.");
 
 
     private final HttpStatus status;
