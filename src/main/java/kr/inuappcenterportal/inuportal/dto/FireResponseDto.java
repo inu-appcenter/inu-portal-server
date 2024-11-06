@@ -15,4 +15,9 @@ public class FireResponseDto {
     private Integer request_head;
     private Integer eta;
 
+    public void setTimePlus2(){
+        this.eta +=2;
+    }
+
+
 }

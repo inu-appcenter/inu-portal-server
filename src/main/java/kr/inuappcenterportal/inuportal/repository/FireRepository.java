@@ -7,5 +7,5 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface FireRepository extends JpaRepository<Fire,Long> {
-    Page<Fire> findByMemberOrderByIdDesc(Member member, Pageable pageable);
+    Page<Fire> findByMemberIdOrderByIdDesc(Long member_id, Pageable pageable);
 }

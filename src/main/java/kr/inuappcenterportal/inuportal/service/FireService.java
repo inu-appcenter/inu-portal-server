@@ -55,8 +55,9 @@ public class FireService {
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI)))
                 .bodyToMono(FireResponseDto.class)
                 .block();
-        Fire fire = Fire.builder().requestId(fireResponseDto.getRequest_id()).prompt(prompt).member(member).build();
+        Fire fire = Fire.builder().requestId(fireResponseDto.getRequest_id()).prompt(prompt).memberId(member.getId()).build();
         fireRepository.save(fire);
+        fireResponseDto.setTimePlus2();
         return fireResponseDto;
     }
 
@@ -65,7 +66,7 @@ public class FireService {
     @Transactional(readOnly = true)
     public FirePageResponseDto getFireImageList(Member member, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,4);
-        Page<Fire> fires = fireRepository.findByMemberOrderByIdDesc(member,pageable);
+        Page<Fire> fires = fireRepository.findByMemberIdOrderByIdDesc(member.getId(),pageable);
         List<FireListResponseDto> fireListResponseDto = fires.getContent().stream().map(FireListResponseDto::of).toList();
         return FirePageResponseDto.of(fires.getTotalPages(), fires.getTotalElements(), fireListResponseDto);
     }

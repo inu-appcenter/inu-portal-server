@@ -22,16 +22,16 @@ public class Fire extends BaseTimeEntity{
     @Column(name = "request_id")
     private String requestId;
 
-    @ManyToOne(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+
     @JoinColumn(name = "member_id")
-    private Member member;
+    private Long memberId;
 
 
     @Builder
-    public Fire(String prompt, String requestId, Member member) {
+    public Fire(String prompt, String requestId, Long memberId) {
         this.prompt = prompt;
         this.requestId = requestId;
-        this.member = member;
+        this.memberId = memberId;
     }
 
 }
