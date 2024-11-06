@@ -28,9 +28,10 @@ public class Fire extends BaseTimeEntity{
 
 
     @Builder
-    public Fire(String prompt, String requestId) {
+    public Fire(String prompt, String requestId, Member member) {
         this.prompt = prompt;
         this.requestId = requestId;
+        this.member = member;
     }
 
 }

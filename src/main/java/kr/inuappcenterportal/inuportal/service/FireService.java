@@ -22,10 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
 
 @Service
 @RequiredArgsConstructor
@@ -35,20 +33,12 @@ public class FireService {
     private final FireRepository fireRepository;
 
     @Value("${aiUrl}")
-    private String initAiUrl;
-
-    private static String url;
-
-    @PostConstruct
-    public void initAiUrl(){
-        url = initAiUrl;
-        log.info("ai 이미지 요청 url init url : {}",url);
-    }
+    private String url;
 
     @Transactional
-    public FireResponseDto drawImage(Long id, String prompt) throws JsonProcessingException {
+    public FireResponseDto drawImage(Member member, String prompt) throws JsonProcessingException {
         HashMap<String,Object > body = new HashMap<>();
-        body.put("u_id",id);
+        body.put("u_id",member.getId());
         body.put("prompt",prompt);
         ObjectMapper objectMapper = new ObjectMapper();
         String requestBody = objectMapper.writeValueAsString(body);
@@ -61,15 +51,17 @@ public class FireService {
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI)))
                 .bodyToMono(FireResponseDto.class)
                 .block();
+        Fire fire = Fire.builder().requestId(fireResponseDto.getRequest_id()).prompt(prompt).member(member).build();
+        fireRepository.save(fire);
         return fireResponseDto;
     }
 
 
 
     @Transactional(readOnly = true)
-    public Page<Fire> getFireImageList(int page){
-        Pageable pageable = PageRequest.of(page,10);
-        return fireRepository.findAll(pageable);
+    public Page<Fire> getFireImageList(Member member, int page){
+        Pageable pageable = PageRequest.of(page>0?--page:page,4);
+        return fireRepository.findByMemberOrderByIdDesc(member,pageable);
     }
 
 

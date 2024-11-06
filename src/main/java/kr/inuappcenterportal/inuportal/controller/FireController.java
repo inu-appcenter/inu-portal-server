@@ -39,17 +39,17 @@ public class FireController {
     @PostMapping("/predict")
     public ResponseEntity<ResponseDto<FireResponseDto>> drawFireAiImage(@Valid@RequestBody FireDto fireDto, @AuthenticationPrincipal Member member) throws JsonProcessingException {
         log.info("횃불이 그림 그리기 호출 파라미터 :{}",fireDto.getPrompt());
-        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(fireService.drawImage(member.getId(),fireDto.getPrompt()),"횃불이 ai 그림 요청이 큐에 성공적으로 추가됨."));
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(fireService.drawImage(member,fireDto.getPrompt()),"횃불이 ai 그림 요청이 큐에 성공적으로 추가됨."));
     }
 
 
-    @Operation(summary = "횃불이 ai 이미지 정보들 가져오기",description = "url 파라미터에 페이지 번호를 보내주세요. 보내지 않을 시 첫 페이지가 보내집니다. 한 페이지의 크기는 10입니다.")
+    @Operation(summary = "횃불이 ai 이미지 정보들 가져오기",description = "url 파라미터에 페이지 번호를 보내주세요. 보내지 않을 시 첫 페이지가 보내집니다. 한 페이지의 크기는 4입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "횃불이 ai 이미지 정보들 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<Page<Fire>>> getFireRating(@AuthenticationPrincipal Member member,@RequestParam(required = false,defaultValue = "0") int page){
-        return ResponseEntity.ok(ResponseDto.of(fireService.getFireImageList(page),"횃불이 ai 이미지 정보들 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(fireService.getFireImageList(member,page),"횃불이 ai 이미지 정보들 가져오기 성공"));
     }
 
 
