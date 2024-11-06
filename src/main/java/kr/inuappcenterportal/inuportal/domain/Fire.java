@@ -23,7 +23,7 @@ public class Fire extends BaseTimeEntity{
     private String requestId;
 
 
-    @JoinColumn(name = "member_id")
+    @Column(name = "member_id")
     private Long memberId;
 
 
