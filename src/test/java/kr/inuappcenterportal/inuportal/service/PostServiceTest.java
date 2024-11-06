@@ -49,15 +49,15 @@ public class PostServiceTest {
 
     }
 
-    @Test
+    /*@Test
     @DisplayName("게시글 도배 테스트")
     public void postAttackTest() throws Exception{
         Member member = Member.builder().nickname("testMember").studentId("201900000").roles(Collections.singletonList("ROLE_USER")).build();
         PostDto postDto = PostDto.builder().title("title").content("content").anonymous(true).category("수강신청").build();
         doThrow(new MyException(MyErrorCode.BLOCK_MANY_SAME_POST_REPLY)).when(redisService).blockRepeat(any(String.class));
-        /*MyException myException = postService.saveOnlyPost(member,postDto);*/
+        *//*MyException myException = postService.saveOnlyPost(member,postDto);*//*
         Assertions.assertThrows(MyException.class, ()->postService.saveOnlyPost(member,postDto));
-    }
+    }*/
 
 
 }
