@@ -66,16 +66,6 @@ public class FireService {
 
 
 
-    @Transactional
-    public Long ratingImage(Long id, int rate){
-        Fire fire = fireRepository.findById(id).orElseThrow(()-> new MyException(MyErrorCode.IMAGE_NOT_FOUND));
-        if(fire.getIsRated()){
-            throw new MyException(MyErrorCode.RATED_IMAGE);
-        }
-        fire.givePoint(rate);
-        return fire.getId();
-    }
-
     @Transactional(readOnly = true)
     public Page<Fire> getFireImageList(int page){
         Pageable pageable = PageRequest.of(page,10);
