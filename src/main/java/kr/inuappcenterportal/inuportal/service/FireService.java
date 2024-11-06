@@ -6,6 +6,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.xml.bind.DatatypeConverter;
 import kr.inuappcenterportal.inuportal.domain.Fire;
 import kr.inuappcenterportal.inuportal.domain.Member;
+import kr.inuappcenterportal.inuportal.dto.FireListResponseDto;
+import kr.inuappcenterportal.inuportal.dto.FirePageResponseDto;
 import kr.inuappcenterportal.inuportal.dto.FireResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
@@ -23,6 +25,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -59,9 +63,11 @@ public class FireService {
 
 
     @Transactional(readOnly = true)
-    public Page<Fire> getFireImageList(Member member, int page){
+    public FirePageResponseDto getFireImageList(Member member, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,4);
-        return fireRepository.findByMemberOrderByIdDesc(member,pageable);
+        Page<Fire> fires = fireRepository.findByMemberOrderByIdDesc(member,pageable);
+        List<FireListResponseDto> fireListResponseDto = fires.getContent().stream().map(FireListResponseDto::of).toList();
+        return FirePageResponseDto.of(fires.getTotalPages(), fires.getTotalElements(), fireListResponseDto);
     }
 
 

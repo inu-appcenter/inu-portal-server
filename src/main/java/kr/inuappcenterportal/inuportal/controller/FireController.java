@@ -45,10 +45,10 @@ public class FireController {
 
     @Operation(summary = "횃불이 ai 이미지 정보들 가져오기",description = "url 파라미터에 페이지 번호를 보내주세요. 보내지 않을 시 첫 페이지가 보내집니다. 한 페이지의 크기는 4입니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "횃불이 ai 이미지 정보들 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "200",description = "횃불이 ai 이미지 정보들 가져오기 성공",content = @Content(schema = @Schema(implementation = FirePageResponseDto.class))),
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<Page<Fire>>> getFireRating(@AuthenticationPrincipal Member member,@RequestParam(required = false,defaultValue = "0") int page){
+    public ResponseEntity<ResponseDto<FirePageResponseDto>> getFireRating(@AuthenticationPrincipal Member member,@RequestParam(required = false,defaultValue = "0") int page){
         return ResponseEntity.ok(ResponseDto.of(fireService.getFireImageList(member,page),"횃불이 ai 이미지 정보들 가져오기 성공"));
     }
 
