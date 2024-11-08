@@ -38,7 +38,6 @@ public class FireController {
     })
     @PostMapping("/predict")
     public ResponseEntity<ResponseDto<FireResponseDto>> drawFireAiImage(@Valid@RequestBody FireDto fireDto, @AuthenticationPrincipal Member member) throws JsonProcessingException {
-        log.info("횃불이 그림 그리기 호출 파라미터 :{}",fireDto.getPrompt());
         return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(fireService.drawImage(member,fireDto.getPrompt()),"횃불이 ai 그림 요청이 큐에 성공적으로 추가됨."));
     }
 
@@ -50,6 +49,17 @@ public class FireController {
     @GetMapping("")
     public ResponseEntity<ResponseDto<FirePageResponseDto>> getFireRating(@AuthenticationPrincipal Member member,@RequestParam(required = false,defaultValue = "0") int page){
         return ResponseEntity.ok(ResponseDto.of(fireService.getFireImageList(member,page),"횃불이 ai 이미지 정보들 가져오기 성공"));
+    }
+
+    @Operation(summary = "횃불이 ai 그림 평점 부여",description = "헤더에 인증토큰을, 바디에 {req_id,rating,comment(필수아님)}을 json 형식으로 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "횃불이 그림 평점 부여 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "400",description = "횃불이 이미지 관련 요청에 문제가 있습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping("/rating")
+    public ResponseEntity<ResponseDto<Long>> ratingImage(@AuthenticationPrincipal Member member, @Valid@RequestBody FireRatingDto fireRatingDto) throws JsonProcessingException {
+        fireService.rating(member,fireRatingDto);
+        return ResponseEntity.ok(ResponseDto.of(1L,"횃불이 그림 평점 부여 성공"));
     }
 
 

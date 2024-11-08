@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.Fire;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.FireListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.FirePageResponseDto;
+import kr.inuappcenterportal.inuportal.dto.FireRatingDto;
 import kr.inuappcenterportal.inuportal.dto.FireResponseDto;
 import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
@@ -36,8 +37,11 @@ public class FireService {
     private final WebClient webClient;
     private final FireRepository fireRepository;
 
-    @Value("${aiUrl}")
-    private String url;
+    @Value("${aiGenerateUrl}")
+    private String generateUrl;
+
+    @Value("${aiRatingUrl}")
+    private String ratingUrl;
 
     @Transactional
     public FireResponseDto drawImage(Member member, String prompt) throws JsonProcessingException {
@@ -48,11 +52,11 @@ public class FireService {
         String requestBody = objectMapper.writeValueAsString(body);
         log.info("횃불이 ai 이미지 생성 요청 파라미터 :{}",prompt);
         FireResponseDto fireResponseDto =webClient.post()
-                .uri(url)
+                .uri(generateUrl)
                 .headers(httpHeaders -> httpHeaders.set("Content-Type","application/json"))
                 .bodyValue(requestBody)
                 .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI)))
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.AI_IMAGE_GENERATING)))
                 .bodyToMono(FireResponseDto.class)
                 .block();
         Fire fire = Fire.builder().requestId(fireResponseDto.getRequest_id()).prompt(prompt).memberId(member.getId()).build();
@@ -69,6 +73,26 @@ public class FireService {
         Page<Fire> fires = fireRepository.findByMemberIdOrderByIdDesc(member.getId(),pageable);
         List<FireListResponseDto> fireListResponseDto = fires.getContent().stream().map(FireListResponseDto::of).toList();
         return FirePageResponseDto.of(fires.getTotalPages(), fires.getTotalElements(), fireListResponseDto);
+    }
+
+    @Transactional
+    public void rating(Member member, FireRatingDto fireRatingDto) throws JsonProcessingException {
+        Fire fire = fireRepository.findByRequestId(fireRatingDto.getReq_id()).orElseThrow(()->new MyException(MyErrorCode.IMAGE_NOT_FOUND));
+        if(fire.getIsRated()){
+            throw new MyException(MyErrorCode.RATED_IMAGE);
+        }
+        fire.rate();
+        fireRatingDto.setU_id(member.getId());
+        ObjectMapper objectMapper = new ObjectMapper();
+        String body = objectMapper.writeValueAsString(fireRatingDto);
+        webClient.post()
+                .uri(ratingUrl)
+                .headers(httpHeaders -> httpHeaders.set("Content-Type","application/json"))
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI)))
+                .bodyToMono(String.class)
+                .block();
     }
 
 

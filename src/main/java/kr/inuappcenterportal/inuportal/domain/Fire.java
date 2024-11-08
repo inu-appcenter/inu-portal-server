@@ -26,12 +26,23 @@ public class Fire extends BaseTimeEntity{
     @Column(name = "member_id")
     private Long memberId;
 
+    @Column(name = "is_rated")
+    private Boolean isRated;
+
+    @Column(name = "good_count")
+    private Integer goodCount;
 
     @Builder
     public Fire(String prompt, String requestId, Long memberId) {
         this.prompt = prompt;
         this.requestId = requestId;
         this.memberId = memberId;
+        this.isRated = false;
+        this.goodCount = 0;
+    }
+
+    public void rate(){
+        this.isRated = true;
     }
 
 }
