@@ -1,5 +1,9 @@
 package kr.inuappcenterportal.inuportal.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.inuappcenterportal.inuportal.dto.ResponseDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,15 +26,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String token = tokenProvider.resolveToken(request);
-        //log.info("토큰 값 추출 token:{}",token);
-        //log.info("토큰 값 유효성 체크 시작");
-        if (token != null && tokenProvider.validateToken(token)) {
-            Authentication authentication = tokenProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            String token = tokenProvider.resolveToken(request);
+            if (token!=null&&tokenProvider.validateToken(token)) {
+                Authentication authentication = tokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+            filterChain.doFilter(request, response);
         }
-        //log.info("토큰 값 유효성 체크 완료");
-        filterChain.doFilter(request, response);
+        catch (MyException e){
+            String msg = e.getErrorCode().getMessage();
+            if(MyErrorCode.WRONG_TYPE_TOKEN.getMessage().equals(msg)){
+                setResponse(response,MyErrorCode.WRONG_TYPE_TOKEN);
+            }
+            else if(MyErrorCode.UNSUPPORTED_TOKEN.getMessage().equals(msg)){
+                setResponse(response,MyErrorCode.UNSUPPORTED_TOKEN);
+            }
+            else if(MyErrorCode.EXPIRED_TOKEN.getMessage().equals(msg)){
+                setResponse(response,MyErrorCode.EXPIRED_TOKEN);
+            }
+            else if(MyErrorCode.UNKNOWN_TOKEN_ERROR.getMessage().equals(msg)){
+                setResponse(response,MyErrorCode.UNKNOWN_TOKEN_ERROR);
+            }
+            else if(MyErrorCode.USER_NOT_FOUND.getMessage().equals(msg)){
+                setResponse(response,MyErrorCode.USER_NOT_FOUND);
+            }
+        }
+    }
+
+    private void setResponse(HttpServletResponse response, MyErrorCode myErrorCode) throws IOException {
+            ObjectMapper objectMapper = new ObjectMapper();
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(myErrorCode.getStatus().value());
+            response.getWriter().print(objectMapper.writeValueAsString(ResponseDto.of(-1,myErrorCode.getMessage())));
     }
 
 }

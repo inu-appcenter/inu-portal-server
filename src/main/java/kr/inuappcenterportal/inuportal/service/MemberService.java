@@ -72,17 +72,12 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public TokenDto refreshToken(String token){
-        Long id = Long.valueOf(tokenProvider.getUsernameByRefresh(token));
         if(!tokenProvider.validateRefreshToken(token)){
             throw new MyException(MyErrorCode.EXPIRED_TOKEN);
         }
+        Long id = Long.valueOf(tokenProvider.getUsernameByRefresh(token));
         Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
-        LocalDateTime localDateTime = LocalDateTime.now();
-        long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
-        long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
-        String accessToken = tokenProvider.createToken(member.getId().toString(),member.getRoles(),localDateTime);
-        String refreshToken = tokenProvider.createRefreshToken(member.getId().toString(),localDateTime);
-        return TokenDto.of(accessToken,refreshToken,localDateTime.plus(Duration.ofMillis(tokenValidMillisecond)).toString(),localDateTime.plus(Duration.ofMillis(refreshValidMillisecond)).toString());
+        return login(member);
     }
 
 

@@ -94,64 +94,44 @@ public class TokenProvider {
     }
 
     public String getUsername(String token){
-        //log.info("토큰으로 회원 정보 추출");
-        try {
+            //log.info("토큰으로 회원 정보 추출");
             String info = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody().getSubject();
             log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
             return info;
-        }catch (SignatureException ex){
-            throw new MyException(MyErrorCode.WRONG_TYPE_TOKEN);
-        }catch (MalformedJwtException ex){
-            throw new MyException(MyErrorCode.UNSUPPORTED_TOKEN);
-        }catch (ExpiredJwtException ex){
-            throw new MyException(MyErrorCode.EXPIRED_TOKEN);
-        }catch (IllegalArgumentException ex){
-            throw new MyException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
-        }
+
     }
 
     public String getUsernameByRefresh(String token){
-        //log.info("리프래쉬 토큰으로 회원 정보 추출");
-        try {
-            String info = Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token).getBody().getSubject();
-            //log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
-            return info;
-        }catch (SignatureException ex){
-            throw new MyException(MyErrorCode.WRONG_TYPE_TOKEN);
-        }catch (MalformedJwtException ex){
-            throw new MyException(MyErrorCode.UNSUPPORTED_TOKEN);
-        }catch (ExpiredJwtException ex){
-            throw new MyException(MyErrorCode.EXPIRED_TOKEN);
-        }catch (IllegalArgumentException ex){
-            throw new MyException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
-        }
+        return Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token).getBody().getSubject();
     }
     public String resolveToken(HttpServletRequest request){
-        //log.info("헤더에서 토큰 값 추출");
         return request.getHeader("Auth");
     }
 
     public boolean validateToken(String token){
         //log.info("토큰 유효성 검증 시작");
-        try{
-            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
-            return !claims.getBody().getExpiration().before(new Date());
-        }catch (Exception e){
-            log.info("토큰 유효 체크 예외 발생");
-            return false;
-        }
+        return valid(secretKey,token);
     }
 
     public boolean validateRefreshToken(String token){
         //log.info("리프래쉬 토큰 유효성 검증 시작");
+        return valid(refreshKey,token);
+    }
+    private boolean valid(Key key, String token){
         try{
-            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token);
+            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return !claims.getBody().getExpiration().before(new Date());
-        }catch (Exception e){
-            log.info("토큰 유효 체크 예외 발생");
-            return false;
+        }catch (SignatureException ex){
+            throw new MyException(MyErrorCode.WRONG_TYPE_TOKEN);
+        }catch (MalformedJwtException ex){
+            throw new MyException(MyErrorCode.UNSUPPORTED_TOKEN);
+        }catch (ExpiredJwtException ex){
+            throw new MyException(MyErrorCode.EXPIRED_TOKEN);
+        }catch (IllegalArgumentException ex){
+            throw new MyException(MyErrorCode.UNKNOWN_TOKEN_ERROR);
         }
     }
+
 
 
 
