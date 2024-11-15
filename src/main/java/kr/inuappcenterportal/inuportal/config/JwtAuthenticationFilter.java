@@ -19,9 +19,11 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
+    private final ObjectMapper objectMapper;
 
-    public JwtAuthenticationFilter(TokenProvider tokenProvider){
+    public JwtAuthenticationFilter(TokenProvider tokenProvider, ObjectMapper objectMapper){
         this.tokenProvider = tokenProvider;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -55,7 +57,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void setResponse(HttpServletResponse response, MyErrorCode myErrorCode) throws IOException {
-            ObjectMapper objectMapper = new ObjectMapper();
             response.setContentType("application/json;charset=UTF-8");
             response.setStatus(myErrorCode.getStatus().value());
             response.getWriter().print(objectMapper.writeValueAsString(ResponseDto.of(-1,myErrorCode.getMessage())));

@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.inuappcenterportal.inuportal.exception.CustomAccessDeniedHandler;
 import kr.inuappcenterportal.inuportal.exception.CustomAuthenticationEntryPoint;
@@ -24,10 +25,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final TokenProvider tokenProvider;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public SecurityConfig(TokenProvider tokenProvider){
+    public SecurityConfig(TokenProvider tokenProvider, ObjectMapper objectMapper){
         this.tokenProvider = tokenProvider;
+        this.objectMapper = objectMapper;
     }
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
@@ -49,9 +52,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**").permitAll()
                         .requestMatchers("/api/images","/api/images/**","/api/categories").hasRole("ADMIN"));
         httpSecurity
-                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler())
-                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint()));
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))
+                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint(objectMapper)));
 
         return httpSecurity.build();
     }
