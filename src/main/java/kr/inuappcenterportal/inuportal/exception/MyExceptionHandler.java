@@ -1,8 +1,9 @@
 package kr.inuappcenterportal.inuportal.exception;
 
 
+import jakarta.validation.ConstraintViolationException;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
-import kr.inuappcenterportal.inuportal.exception.ex.*;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,8 +13,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import jakarta.validation.ConstraintViolationException;
 
 @Slf4j
 @RestControllerAdvice

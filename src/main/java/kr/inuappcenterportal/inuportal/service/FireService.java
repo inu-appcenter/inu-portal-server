@@ -2,8 +2,6 @@ package kr.inuappcenterportal.inuportal.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
-import jakarta.xml.bind.DatatypeConverter;
 import kr.inuappcenterportal.inuportal.domain.Fire;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.dto.FireListResponseDto;
@@ -27,7 +25,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 @Service

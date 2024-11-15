@@ -5,7 +5,6 @@ import kr.inuappcenterportal.inuportal.domain.Fire;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.domain.Page;
 
 @Getter
 @NoArgsConstructor

@@ -1,8 +1,8 @@
 package kr.inuappcenterportal.inuportal.repository;
 
-import kr.inuappcenterportal.inuportal.domain.PostLike;
 import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.domain.Post;
+import kr.inuappcenterportal.inuportal.domain.PostLike;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

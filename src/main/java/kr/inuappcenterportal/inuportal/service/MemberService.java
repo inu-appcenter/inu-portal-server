@@ -2,12 +2,15 @@ package kr.inuappcenterportal.inuportal.service;
 
 import kr.inuappcenterportal.inuportal.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.domain.Member;
-import kr.inuappcenterportal.inuportal.dto.*;
-import kr.inuappcenterportal.inuportal.exception.ex.*;
+import kr.inuappcenterportal.inuportal.dto.LoginDto;
+import kr.inuappcenterportal.inuportal.dto.MemberResponseDto;
+import kr.inuappcenterportal.inuportal.dto.MemberUpdateNicknameDto;
+import kr.inuappcenterportal.inuportal.dto.TokenDto;
+import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.oracleRepository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +18,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 
