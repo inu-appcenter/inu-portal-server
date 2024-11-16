@@ -171,6 +171,19 @@ public class PostController {
         return ResponseEntity.ok().headers(httpHeaders).body(postService.getImage(postId, imageId));
     }
 
+    @Operation(summary = "게시글의 이미지 백업",description = "url 파라미터에 postId, imageId를 보내주세요. imageId는 이미지의 등록 순번입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다. / 존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @GetMapping("/{postId}/images/{imageId}/back")
+    public ResponseEntity<byte[]> getImagesBackup(@PathVariable Long postId, @PathVariable Long imageId) throws IOException {
+        log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.IMAGE_PNG);
+        return ResponseEntity.ok().headers(httpHeaders).body(redisService.findImages(postId, imageId));
+    }
+
     @Operation(summary = "상단부 인기 게시글 12개 가져오기",description = "기본 호출 시 모든 글에 대한 인기 게시글 12개, 파라미터로 category를 보낼 시 카테고리의 인기글 12개가 호출됩니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "인기 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
