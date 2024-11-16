@@ -12,6 +12,7 @@ import kr.inuappcenterportal.inuportal.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.List;
@@ -37,6 +41,9 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final RedisService redisService;
 
+    @Value("${imagePath}")
+    private String path;
+
 
     @Transactional
     public Long saveOnlyPost(Member member, PostDto postSaveDto) throws NoSuchAlgorithmException {
@@ -49,24 +56,31 @@ public class PostService {
         postRepository.save(post);
         return post.getId();
     }
+
+
     @Transactional
-    public Long saveOnlyImage(Member member, Long postId, List<MultipartFile> imageDto) throws IOException {
+    public Long saveImageLocal(Member member, Long postId, List<MultipartFile> images ) throws IOException {
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         long imageCount;
-        if(imageDto==null){
-            imageCount = 0;
+        if (images != null) {
+            imageCount = images.size();
+            for (int i = 1; i < imageCount + 1; i++) {
+                MultipartFile file = images.get(i - 1);
+                String fileName = postId + "-" + i;
+                Path filePath = Paths.get(path, fileName);
+                Files.write(filePath, file.getBytes());
+            }
         }
-        else{
-            imageCount = imageDto.size();
-        }
-        if(imageDto!=null) {
-            redisService.saveImage(post.getId(), imageDto);
-        }
-        post.updateImageCount(imageCount);
-        return post.getId();
+        return postId;
+    }
+
+    public byte[] getImage(Long postId, Long imageId) throws IOException {
+        String fileName = postId+"-"+imageId;
+        Path filePath = Paths.get(path, fileName);
+        return Files.readAllBytes(filePath);
     }
 
     @Transactional
@@ -81,22 +95,40 @@ public class PostService {
         post.updateOnlyPost(postDto.getTitle(),postDto.getContent(), postDto.getCategory(),postDto.getAnonymous());
     }
 
+
     @Transactional
-    public void updateOnlyImage(Long memberId, Long postId, List<MultipartFile> images) throws IOException {
+    public void updateImageLocal(Long memberId, Long postId, List<MultipartFile> images) throws IOException{
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
-        redisService.updateImage(postId,images,post.getImageCount());
-        post.updateImageCount(images.size());
+        if(images!=null){
+            for(int i = 1 ; i < post.getImageCount() ; i++){
+                String fileName = postId + "-" + i;
+                Path filePath = Paths.get(path, fileName);
+                Files.deleteIfExists(filePath);
+            }
+            for(int i = 1 ; i < images.size()+1;i++){
+                MultipartFile file = images.get(i - 1);
+                String fileName = postId + "-" + i;
+                Path filePath = Paths.get(path, fileName);
+                Files.write(filePath, file.getBytes());
+            }
+            post.updateImageCount(images.size());
+        }
     }
 
     @Transactional
-    public void delete(Long memberId, Long postId){
+    public void delete(Long memberId, Long postId) throws IOException {
         Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        redisService.deleteImage(postId,post.getImageCount());
         if(!post.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+        }
+        redisService.deleteImage(postId,post.getImageCount());
+        for(int i = 1 ; i < post.getImageCount()+1;i++){
+            String fileName = postId + "-" + i;
+            Path filePath = Paths.get(path, fileName);
+            Files.deleteIfExists(filePath);
         }
         postRepository.delete(post);
     }

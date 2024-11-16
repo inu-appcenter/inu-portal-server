@@ -64,7 +64,7 @@ public class PostController {
     @PostMapping(value = "/{postId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Long>> saveOnlyImage( @RequestPart List<MultipartFile> images,@PathVariable Long postId, @AuthenticationPrincipal Member member) throws IOException {
         log.info("이미지만 저장 호출 id:{}",postId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postService.saveOnlyImage(member,postId,images),"이미지 등록 성공"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postService.saveImageLocal(member,postId,images),"이미지 등록 성공"));
     }
 
 
@@ -92,7 +92,7 @@ public class PostController {
         if(images==null){
             images = new ArrayList<>();
         }
-        postService.updateOnlyImage(member.getId(),postId,images);
+        postService.updateImageLocal(member.getId(),postId,images);
         return ResponseEntity.ok(ResponseDto.of(postId,"게시글 수정 성공"));
     }
 
@@ -103,7 +103,7 @@ public class PostController {
             ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("/{postId}")
-    public ResponseEntity<ResponseDto<Long>> deletePost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId){
+    public ResponseEntity<ResponseDto<Long>> deletePost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId) throws IOException {
         log.info("게시글 삭제 호출 id:{}",postId);
         postService.delete(member.getId(),postId);
         return ResponseEntity.ok(ResponseDto.of(postId,"게시글 삭제 성공"));
@@ -164,11 +164,11 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다. / 존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/{postId}/images/{imageId}")
-    public ResponseEntity<byte[]> getImages(@PathVariable Long postId, @PathVariable Long imageId){
+    public ResponseEntity<byte[]> getImages(@PathVariable Long postId, @PathVariable Long imageId) throws IOException {
         log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.IMAGE_PNG);
-        return ResponseEntity.ok().headers(httpHeaders).body(redisService.findImages(postId, imageId));
+        return ResponseEntity.ok().headers(httpHeaders).body(postService.getImage(postId, imageId));
     }
 
     @Operation(summary = "상단부 인기 게시글 12개 가져오기",description = "기본 호출 시 모든 글에 대한 인기 게시글 12개, 파라미터로 category를 보낼 시 카테고리의 인기글 12개가 호출됩니다.")

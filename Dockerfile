@@ -27,6 +27,8 @@ RUN CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\
 # 환경변수 PATH에 크롬 드라이버 경로 추가
 ENV PATH="/usr/bin/chromedriver-linux64:${PATH}"
 
+RUN mkdir -p /app/images
+
 # 애플리케이션 JAR 파일 복사
 COPY ./build/libs/inu-portal-0.0.1-SNAPSHOT.jar app.jar
 
