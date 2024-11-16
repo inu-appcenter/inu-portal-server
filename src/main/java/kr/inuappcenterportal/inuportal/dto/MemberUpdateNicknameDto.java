@@ -1,6 +1,8 @@
 package kr.inuappcenterportal.inuportal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,6 +16,8 @@ public class MemberUpdateNicknameDto {
     private String nickname;
 
     @Schema(description = "횃불이 번호")
+    @Min(1)
+    @Max(12)
     private Long fireId;
 
     @Builder
