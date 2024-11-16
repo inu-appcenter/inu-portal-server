@@ -67,6 +67,7 @@ public class PostService {
         long imageCount;
         if (images != null) {
             imageCount = images.size();
+            post.updateImageCount(imageCount);
             for (int i = 1; i < imageCount + 1; i++) {
                 MultipartFile file = images.get(i - 1);
                 String fileName = postId + "-" + i;
