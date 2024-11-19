@@ -22,9 +22,9 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     List<Post> findAllByIdLessThanOrderByIdDesc(Long id, Pageable pageable);
     List<Post> findByCategoryAndIdLessThanOrderByIdDesc(String category,Long id,Pageable pageable);
     long count();
-    Page<Post> findAllByMemberOrderByIdDesc(Member member,Pageable pageable);
-    Page<Post> findAllByMemberOrderByGoodDescIdDesc(Member member,Pageable pageable);
-    Page<Post> findAllByMemberOrderByScrapDescIdDesc(Member member,Pageable pageable);
+    List<Post> findAllByMemberOrderByIdDesc(Member member);
+    List<Post> findAllByMemberOrderByGoodDescIdDesc(Member member);
+    List<Post> findAllByMemberOrderByScrapDescIdDesc(Member member);
     @Query(value = "SELECT * FROM post WHERE MATCH(title, content) AGAINST(?1 IN NATURAL LANGUAGE MODE)", nativeQuery = true)
     Page<Post> searchByKeyword(String keyword,Pageable pageable);
     @Query(value = "SELECT * FROM post WHERE MATCH(title, content) AGAINST(?1 IN BOOLEAN MODE) ORDER BY good DESC", nativeQuery = true)

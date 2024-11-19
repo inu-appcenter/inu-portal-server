@@ -258,22 +258,21 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostByMember(Member member, String sort, int page){
-        Pageable pageable = PageRequest.of(page>0?--page:page,8);
+    public List<PostListResponseDto> getPostByMember(Member member, String sort){
         if(sort==null||sort.equals("date")) {
-            return postRepository.findAllByMemberOrderByIdDesc(member,pageable)
+            return postRepository.findAllByMemberOrderByIdDesc(member)
                     .stream()
                     .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());
         }
         else if(sort.equals("like")){
-            return postRepository.findAllByMemberOrderByGoodDescIdDesc(member,pageable)
+            return postRepository.findAllByMemberOrderByGoodDescIdDesc(member)
                     .stream()
                     .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());
         }
         else if(sort.equals("scrap")){
-            return postRepository.findAllByMemberOrderByScrapDescIdDesc(member,pageable)
+            return postRepository.findAllByMemberOrderByScrapDescIdDesc(member)
                     .stream()
                     .map(this::getPostListResponseDto)
                     .collect(Collectors.toList());

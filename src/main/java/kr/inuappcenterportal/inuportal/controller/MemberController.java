@@ -107,10 +107,9 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/posts")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort
-    ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort){
         log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",member.getId());
-        return ResponseEntity.ok(ResponseDto.of(postService.getPostByMember(member,sort,page),"회원이 작성한 모든 게시글 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(postService.getPostByMember(member,sort),"회원이 작성한 모든 게시글 가져오기 성공"));
     }
 
     @Operation(summary = "회원이 스크랩한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like, scrap)를, 페이지(공백일 시 1)를 보내주세요.")
