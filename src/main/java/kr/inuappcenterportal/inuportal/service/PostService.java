@@ -292,6 +292,7 @@ public class PostService {
                 })
                 .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
                 .collect(Collectors.toList());
+        int total = scraps.size();
         page--;
         int startIndex = 0;
         int endIndex = 0;
@@ -303,7 +304,7 @@ public class PostService {
             startIndex = page*5;
             endIndex  = Math.min((page + 1) * 5, scraps.size());
         }
-        return  ListResponseDto.of(pages,scraps.size(),postListSort(scraps,sort).subList(startIndex,endIndex));
+        return  ListResponseDto.of(pages,total,postListSort(scraps,sort).subList(startIndex,endIndex));
     }
 
     @Transactional(readOnly = true)
