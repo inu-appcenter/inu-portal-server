@@ -26,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -284,41 +283,69 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public ListResponseDto getScrapsByMember(Member member, String sort,int page){
-        List<PostListResponseDto> scraps = scrapRepository.findAllByMember(member).stream()
-                .map(scrap -> {
-                    Post post = scrap.getPost();
-                    return getPostListResponseDto(post);
-                })
-                .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
-                .collect(Collectors.toList());
-        int total = scraps.size();
-        page--;
-        int startIndex = 0;
-        int endIndex = 0;
-        long pages = (long)Math.ceil( (double) scraps.size() /5);
-        if(page*5>scraps.size()){
-            scraps.clear();
+        List<PostListResponseDto> scraps;
+        if(sort==null||sort.equals("date")) {
+            scraps = scrapRepository.findAllByMember(member).stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            scraps = scrapRepository.findAllByMemberOrderByGood(member).stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("scrap")){
+            scraps = scrapRepository.findAllByMemberOrderByScrap(member).stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
         }
         else{
-            startIndex = page*5;
-            endIndex  = Math.min((page + 1) * 5, scraps.size());
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
-        return  ListResponseDto.of(pages,total,postListSort(scraps,sort).subList(startIndex,endIndex));
+        return pagingFetchJoin(page,scraps);
     }
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getLikeByMember(Member member, String sort){
-        List<PostListResponseDto> likes = likePostRepository.findAllByMember(member).stream()
-                .map(like -> {
-                    Post post = like.getPost();
-                    return getPostListResponseDto(post);
-                })
-                .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
-                .collect(Collectors.toList());
-        return postListSort(likes,sort);
+        if(sort==null||sort.equals("date")){
+            return likePostRepository.findAllByMember(member).stream()
+                    .map(like -> {
+                        Post post = like.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            return likePostRepository.findAllByMemberOrderByGood(member).stream()
+                    .map(like -> {
+                        Post post = like.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("scrap")){
+            return likePostRepository.findAllByMemberOrderByScrap(member).stream()
+                    .map(like -> {
+                        Post post = like.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
+        }
+        else{
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
-    public List<PostListResponseDto> postListSort(List<PostListResponseDto> posts,String sort){
+   /* public List<PostListResponseDto> postListSort(List<PostListResponseDto> posts,String sort){
         if(sort==null||sort.equals("date")){
             return posts;
         }
@@ -333,7 +360,7 @@ public class PostService {
         else{
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
-    }
+    }*/
 
 
     public PostListResponseDto getPostListResponseDto(Post post) {
@@ -383,26 +410,36 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public ListResponseDto searchInScrap(Member member, String query,int page, String sort){
-        List<PostListResponseDto> scraps = scrapRepository.searchScrap(member,query).stream()
-                .map(scrap -> {
-                    Post post = scrap.getPost();
-                    return getPostListResponseDto(post);
-                })
-                .sorted(Comparator.comparing(PostListResponseDto::getId).reversed())
-                .collect(Collectors.toList());
-
-        page--;
-        int startIndex = 0;
-        int endIndex = 0;
-        long pages = (long)Math.ceil( (double) scraps.size() /5);
-        if(page*5>scraps.size()){
-            scraps.clear();
+        List<PostListResponseDto> scraps;
+        if(sort==null||sort.equals("date")){
+            scraps = scrapRepository.searchScrap(member,query).stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            scraps = scrapRepository.searchScrapOrderByGood(member,query).stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
+        }
+        else if(sort.equals("scrap")){
+            scraps = scrapRepository.searchScrapOrderByScrap(member,query).stream()
+                    .map(scrap -> {
+                        Post post = scrap.getPost();
+                        return getPostListResponseDto(post);
+                    })
+                    .collect(Collectors.toList());
         }
         else{
-            startIndex = page*5;
-            endIndex  = Math.min((page + 1) * 5, scraps.size());
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
-        return  ListResponseDto.of(pages,scraps.size(),postListSort(scraps,sort).subList(startIndex,endIndex));
+
+        return pagingFetchJoin(page,scraps);
     }
 
 
@@ -421,6 +458,22 @@ public class PostService {
         else {
             return postRepository.findAllByIdLessThanOrderByIdDesc(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
+    }
+
+    public ListResponseDto pagingFetchJoin(int page, List<PostListResponseDto> dto){
+        int total = dto.size();
+        page--;
+        int startIndex = 0;
+        int endIndex = 0;
+        long pages = (long)Math.ceil( (double) dto.size() /5);
+        if(page*5>dto.size()){
+            dto.clear();
+        }
+        else{
+            startIndex = page*5;
+            endIndex  = Math.min((page + 1) * 5, dto.size());
+        }
+        return  ListResponseDto.of(pages,total,dto.subList(startIndex,endIndex));
     }
 
 

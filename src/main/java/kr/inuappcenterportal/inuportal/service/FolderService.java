@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -80,37 +79,40 @@ public class FolderService {
     @Transactional(readOnly = true)
     public ListResponseDto getPostInFolder(Long folderId, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
-        List<PostListResponseDto> folderDto = folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).collect(Collectors.toList());
-        page--;
-        int startIndex = 0;
-        int endIndex = 0;
-        long pages = (long)Math.ceil( (double) folderDto.size() /5);
-        if(page*5>folderDto.size()){
-            folderDto.clear();
+        List<PostListResponseDto> folderDto;
+        if(sort==null||sort.equals("date")){
+            folderDto = folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            folderDto = folderPostRepository.findAllByFolderOrderByGood(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
+        }
+        else if(sort.equals("scrap")){
+            folderDto = folderPostRepository.findAllByFolderOrderByScrap(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         }
         else{
-            startIndex = page*5;
-            endIndex  = Math.min((page + 1) * 5, folderDto.size());
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
-        return ListResponseDto.of(pages,folderDto.size(),postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
+
+        return postService.pagingFetchJoin(page,folderDto);
     }
 
     @Transactional(readOnly = true)
     public ListResponseDto searchPostInFolder(Long folderId, String query, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
-        List<PostListResponseDto> folderDto = folderPostRepository.searchInFolder(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).sorted(Comparator.comparing(PostListResponseDto::getId).reversed()).collect(Collectors.toList());
-        page--;
-        int startIndex = 0;
-        int endIndex = 0;
-        long pages = (long)Math.ceil( (double) folderDto.size() /5);
-        if(page*5>folderDto.size()){
-            folderDto.clear();
+        List<PostListResponseDto> folderDto;
+        if(sort==null||sort.equals("date")){
+            folderDto = folderPostRepository.searchInFolder(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
+        }
+        else if(sort.equals("like")){
+            folderDto = folderPostRepository.searchInFolderOrderByGood(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
+        }
+        else if(sort.equals("scrap")){
+            folderDto = folderPostRepository.searchInFolderOrderByScrap(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         }
         else{
-            startIndex = page*5;
-            endIndex  = Math.min((page + 1) * 5, folderDto.size());
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
-        return ListResponseDto.of(pages,folderDto.size(),postService.postListSort(folderDto,sort).subList(startIndex,endIndex));
+        return postService.pagingFetchJoin(page,folderDto);
     }
 
 
