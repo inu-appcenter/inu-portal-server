@@ -224,7 +224,7 @@ public class ReplyService {
                 break;
             count++;
             String writer = writerName(reply,post);
-            long fireId = writer.equals("(알수없음")||writer.equals("(삭제됨)")?13: reply.getMember().getFireId();
+            long fireId = writer.equals("(알수없음)")||writer.equals("(삭제됨)")?13: reply.getMember().getFireId();
             boolean isLiked = isLiked(member,reply);
             boolean hasAuthority = hasAuthority(member,reply);
             bestReplies.add(ReReplyResponseDto.of(reply,writer,fireId, isLiked,hasAuthority));
