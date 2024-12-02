@@ -17,6 +17,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -175,40 +176,16 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public ListResponseDto getAllPost(String category, String sort, int page){
-        Pageable pageable = PageRequest.of(page>0?--page:page,8);
+        Pageable pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
         Page<Post> dto;
         if(category==null){
-            if(sort==null||sort.equals("date")) {
-                dto = postRepository.findAllByOrderByIdDesc(pageable);
-            }
-            else if(sort.equals("like")){
-                dto = postRepository.findAllByOrderByGoodDescIdDesc(pageable);
-            }
-            else if(sort.equals("scrap")){
-                dto = postRepository.findAllByOrderByScrapDescIdDesc(pageable);
-            }
-            else{
-                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-            }
+            dto = postRepository.findAllBy(pageable);
         }
         else{
             if(!categoryRepository.existsByCategory(category)){
                 throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
-            if(sort==null||sort.equals("date")) {
-                dto = postRepository.findAllByCategoryOrderByIdDesc(category, pageable);
-            }
-            else if(sort.equals("like")){
-                dto = postRepository.findAllByCategoryOrderByGoodDescIdDesc(category,pageable);
-
-            }
-            else if(sort.equals("scrap")){
-                dto = postRepository.findAllByCategoryOrderByScrapDescIdDesc(category,pageable);
-
-            }
-            else{
-                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-            }
+            dto = postRepository.findAllByCategory(category, pageable);
         }
         long total = dto.getTotalElements();
         long pages = dto.getTotalPages();
@@ -258,109 +235,33 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getPostByMember(Member member, String sort){
-        if(sort==null||sort.equals("date")) {
-            return postRepository.findAllByMemberOrderByIdDesc(member)
-                    .stream()
-                    .map(this::getPostListResponseDto)
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("like")){
-            return postRepository.findAllByMemberOrderByGoodDescIdDesc(member)
-                    .stream()
-                    .map(this::getPostListResponseDto)
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("scrap")){
-            return postRepository.findAllByMemberOrderByScrapDescIdDesc(member)
-                    .stream()
-                    .map(this::getPostListResponseDto)
-                    .collect(Collectors.toList());
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+        return postRepository.findAllByMember(member,sortData(sort))
+                .stream()
+                .map(this::getPostListResponseDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public ListResponseDto getScrapsByMember(Member member, String sort,int page){
-        List<PostListResponseDto> scraps;
-        if(sort==null||sort.equals("date")) {
-            scraps = scrapRepository.findAllByMember(member).stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("like")){
-            scraps = scrapRepository.findAllByMemberOrderByGood(member).stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("scrap")){
-            scraps = scrapRepository.findAllByMemberOrderByScrap(member).stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+        List<PostListResponseDto> scraps = scrapRepository.findAllByMember(member, sortFetchJoin(sort)).stream()
+                .map(scrap -> {
+                    Post post = scrap.getPost();
+                    return getPostListResponseDto(post);
+                })
+                .collect(Collectors.toList());
         return pagingFetchJoin(page,scraps);
     }
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getLikeByMember(Member member, String sort){
-        if(sort==null||sort.equals("date")){
-            return likePostRepository.findAllByMember(member).stream()
-                    .map(like -> {
-                        Post post = like.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("like")){
-            return likePostRepository.findAllByMemberOrderByGood(member).stream()
-                    .map(like -> {
-                        Post post = like.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("scrap")){
-            return likePostRepository.findAllByMemberOrderByScrap(member).stream()
-                    .map(like -> {
-                        Post post = like.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+        return likePostRepository.findAllByMember(member, sortFetchJoin(sort)).stream()
+                .map(like -> {
+                    Post post = like.getPost();
+                    return getPostListResponseDto(post);
+                })
+                .collect(Collectors.toList());
     }
 
-   /* public List<PostListResponseDto> postListSort(List<PostListResponseDto> posts,String sort){
-        if(sort==null||sort.equals("date")){
-            return posts;
-        }
-        else if(sort.equals("like")){
-            posts.sort((o1, o2) -> o2.getLike().intValue() - o1.getLike().intValue());
-            return posts;
-        }
-        else if(sort.equals("scrap")){
-            posts.sort((o1, o2) -> o2.getScrap().intValue()-o1.getScrap().intValue());
-            return posts;
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
-    }*/
 
 
     public PostListResponseDto getPostListResponseDto(Post post) {
@@ -382,7 +283,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public ListResponseDto searchPost(String query,String sort,int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
-        if (sort == null||sort.equals("date")) {
+        if (sort.equals("date")) {
             Page<Post> dto = postRepository.searchByKeyword(query,pageable);
             return ListResponseDto.of(dto.getTotalPages(),dto.getTotalElements(),dto.stream().map(this::getPostListResponseDto).collect(Collectors.toList()));
         } else if (sort.equals("like")) {
@@ -410,53 +311,30 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public ListResponseDto searchInScrap(Member member, String query,int page, String sort){
-        List<PostListResponseDto> scraps;
-        if(sort==null||sort.equals("date")){
-            scraps = scrapRepository.searchScrap(member,query).stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("like")){
-            scraps = scrapRepository.searchScrapOrderByGood(member,query).stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else if(sort.equals("scrap")){
-            scraps = scrapRepository.searchScrapOrderByScrap(member,query).stream()
-                    .map(scrap -> {
-                        Post post = scrap.getPost();
-                        return getPostListResponseDto(post);
-                    })
-                    .collect(Collectors.toList());
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
-
+        List<PostListResponseDto> scraps  = scrapRepository.searchScrap(member,query, sortFetchJoin(sort)).stream()
+                .map(scrap -> {
+                    Post post = scrap.getPost();
+                    return getPostListResponseDto(post);
+                })
+                .collect(Collectors.toList());
         return pagingFetchJoin(page,scraps);
     }
 
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getPostForInf(Long lastPostId,String category){
-        Pageable pageable = PageRequest.of(0,8);
+        Pageable pageable = PageRequest.of(0,8,sortData("date"));
         if(lastPostId==null&&category==null){
-            return postRepository.findAllByOrderByIdDesc(pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findAll(pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else if(lastPostId == null){
-            return postRepository.findAllByCategoryOrderByIdDesc(category,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findAllByCategory(category,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else if(category!=null){
-           return postRepository.findByCategoryAndIdLessThanOrderByIdDesc(category,lastPostId,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+           return postRepository.findByCategoryAndIdLessThan(category,lastPostId,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else {
-            return postRepository.findAllByIdLessThanOrderByIdDesc(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findAllByIdLessThan(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
     }
 
@@ -476,6 +354,33 @@ public class PostService {
         return  ListResponseDto.of(pages,total,dto.subList(startIndex,endIndex));
     }
 
-
+    public Sort sortFetchJoin(String sort){
+        if(sort.equals("date")){
+            return Sort.by(Sort.Direction.DESC, "post.id");
+        }
+        else if(sort.equals("like")){
+            return Sort.by(Sort.Direction.DESC, "post.good","post.id");
+        }
+        else if(sort.equals("scrap")){
+            return Sort.by(Sort.Direction.DESC, "post.scrap","post.id");
+        }
+        else{
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
+        }
+    }
+    public Sort sortData(String sort){
+        if(sort.equals("date")){
+            return Sort.by(Sort.Direction.DESC, "id");
+        }
+        else if(sort.equals("like")){
+            return Sort.by(Sort.Direction.DESC, "good","id");
+        }
+        else if(sort.equals("scrap")){
+            return Sort.by(Sort.Direction.DESC, "scrap","id");
+        }
+        else{
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
+        }
+    }
 
 }

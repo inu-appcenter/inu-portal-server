@@ -79,39 +79,14 @@ public class FolderService {
     @Transactional(readOnly = true)
     public ListResponseDto getPostInFolder(Long folderId, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
-        List<PostListResponseDto> folderDto;
-        if(sort==null||sort.equals("date")){
-            folderDto = folderPostRepository.findAllByFolder(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
-        }
-        else if(sort.equals("like")){
-            folderDto = folderPostRepository.findAllByFolderOrderByGood(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
-        }
-        else if(sort.equals("scrap")){
-            folderDto = folderPostRepository.findAllByFolderOrderByScrap(folder).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
-
+        List<PostListResponseDto> folderDto = folderPostRepository.findAllByFolder(folder,postService.sortFetchJoin(sort)).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         return postService.pagingFetchJoin(page,folderDto);
     }
 
     @Transactional(readOnly = true)
     public ListResponseDto searchPostInFolder(Long folderId, String query, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
-        List<PostListResponseDto> folderDto;
-        if(sort==null||sort.equals("date")){
-            folderDto = folderPostRepository.searchInFolder(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
-        }
-        else if(sort.equals("like")){
-            folderDto = folderPostRepository.searchInFolderOrderByGood(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
-        }
-        else if(sort.equals("scrap")){
-            folderDto = folderPostRepository.searchInFolderOrderByScrap(folder,query).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+        List<PostListResponseDto> folderDto = folderPostRepository.searchInFolder(folder,query,postService.sortFetchJoin(sort)).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         return postService.pagingFetchJoin(page,folderDto);
     }
 

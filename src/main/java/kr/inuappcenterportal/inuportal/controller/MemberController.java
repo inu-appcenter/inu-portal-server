@@ -107,7 +107,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/posts")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
         log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getPostByMember(member,sort),"회원이 작성한 모든 게시글 가져오기 성공"));
     }
@@ -119,7 +119,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/scraps")
-    public ResponseEntity<ResponseDto<ListResponseDto>> getAllScrap(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto>> getAllScrap(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort
     ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getScrapsByMember(member,sort,page),"회원이 스크랩한 모든 게시글 가져오기 성공"));
@@ -132,7 +132,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/likes")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllLike(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort){
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllLike(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
         log.info("회원이 좋아요한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getLikeByMember(member,sort),"회원이 좋아요한 모든 게시글 가져오기 성공"));
     }
@@ -144,7 +144,7 @@ public class MemberController {
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/replies")
-    public ResponseEntity<ResponseDto<List<ReplyListResponseDto>>> getAllReply(@AuthenticationPrincipal Member member, @RequestParam(required = false) String sort){
+    public ResponseEntity<ResponseDto<List<ReplyListResponseDto>>> getAllReply(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
         log.info("회원이 작성한 모든 댓글 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(replyService.getReplyByMember(member,sort),"회원이 작성한 모든 댓글 가져오기 성공"));
     }

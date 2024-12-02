@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.Member;
 import kr.inuappcenterportal.inuportal.domain.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -13,18 +14,15 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post,Long> {
-    Page<Post> findAllByCategoryOrderByIdDesc (String category,Pageable pageable);
-    Page<Post> findAllByCategoryOrderByGoodDescIdDesc (String category,Pageable pageable);
-    Page<Post> findAllByCategoryOrderByScrapDescIdDesc (String category,Pageable pageable);
-    Page<Post> findAllByOrderByIdDesc(Pageable pageable);
-    Page<Post> findAllByOrderByGoodDescIdDesc(Pageable pageable);
-    Page<Post> findAllByOrderByScrapDescIdDesc(Pageable pageable);
-    List<Post> findAllByIdLessThanOrderByIdDesc(Long id, Pageable pageable);
-    List<Post> findByCategoryAndIdLessThanOrderByIdDesc(String category,Long id,Pageable pageable);
+    Page<Post> findAllByCategory (String category,Pageable pageable);
+
+    Page<Post> findAllBy(Pageable pageable);
+
+    List<Post> findAllByIdLessThan(Long id, Pageable pageable);
+    List<Post> findByCategoryAndIdLessThan(String category,Long id,Pageable pageable);
     long count();
-    List<Post> findAllByMemberOrderByIdDesc(Member member);
-    List<Post> findAllByMemberOrderByGoodDescIdDesc(Member member);
-    List<Post> findAllByMemberOrderByScrapDescIdDesc(Member member);
+    List<Post> findAllByMember(Member member, Sort sort);
+
     @Query(value = "SELECT * FROM post WHERE MATCH(title, content) AGAINST(?1 IN NATURAL LANGUAGE MODE)", nativeQuery = true)
     Page<Post> searchByKeyword(String keyword,Pageable pageable);
     @Query(value = "SELECT * FROM post WHERE MATCH(title, content) AGAINST(?1 IN BOOLEAN MODE) ORDER BY good DESC", nativeQuery = true)
