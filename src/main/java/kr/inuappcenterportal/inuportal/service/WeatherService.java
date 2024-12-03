@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -43,6 +44,7 @@ public class WeatherService {
     private final String y = "123";
 
     @Scheduled(cron = "0 35 * * * *")
+    @Transactional
     public void getWeatherAPI(){
         getWeatherSky();
         getTemperature();
@@ -50,12 +52,14 @@ public class WeatherService {
     }
 
     @Scheduled(cron = "0 5 0 * * *")
+    @Transactional
     public void getDay() {
         getDayData();
     }
 
 
     @PostConstruct
+    @Transactional
     public void initWeather(){
         getDayData();
         getDust();
@@ -97,7 +101,7 @@ public class WeatherService {
                 break;
             }
         }
-        String weather= "";
+        String weather= redisService.getSky()==null?"맑음":redisService.getSky();
         if(pty.equals("0")){
             if(sky.equals("1")){
                 weather="맑음";
@@ -135,7 +139,7 @@ public class WeatherService {
 
         JsonArray itemList = getJsonData(url);
 
-        String temperature = "20";
+        String temperature = "";
 
         String pty = "";
         int index = 0;

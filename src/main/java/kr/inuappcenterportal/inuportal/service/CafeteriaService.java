@@ -11,6 +11,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -27,11 +28,13 @@ public class CafeteriaService {
     private String installPath;
 
     @PostConstruct
+    @Transactional
     public void initCafeteria() throws InterruptedException {
         crawlCafeteria();
     }
 
     @Scheduled(cron = "0 10 0 ? * MON-SAT")
+    @Transactional
     public void jobCafeteria() throws InterruptedException {
         crawlCafeteria();
     }

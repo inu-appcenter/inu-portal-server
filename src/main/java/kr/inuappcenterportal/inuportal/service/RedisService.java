@@ -51,14 +51,6 @@ public class RedisService {
         redisTemplate.expire(key,expireTime, TimeUnit.SECONDS);
     }
 
-    public void saveImage(Long postId, List<MultipartFile> images) throws IOException {
-        for(int i = 0 ; i<images.size();i++){
-            byte[] bytes = images.get(i).getBytes();
-            String key = postId + "-" + (i+1);
-            log.info("이미지 저장 key:{}",key);
-            redisTemplateForImage.opsForValue().set(key,bytes);
-        }
-    }
 
     public void saveFireImage(List<MultipartFile> images) throws IOException {
         for(int i = 0 ; i<images.size();i++){
@@ -121,14 +113,6 @@ public class RedisService {
 
 
 
-    public String getFireAiImage(Long id){
-        String key = "FireAi-" + id;
-        String image = redisTemplate.opsForValue().get(key);
-        if(image==null){
-            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
-        }
-        return image;
-    }
 
     public void storeMeal(String cafeteria,int day, int num,String menu){
         String key = cafeteria+"-"+day+"-"+num;
