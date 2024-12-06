@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.lang.reflect.Field;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
@@ -54,12 +55,10 @@ public class ReportServiceTest {
 
     @Test
     @DisplayName("신고 목록 가져오기 테스트")
-    public void getReportList(){
-        // Given
+    public void getReportList() throws NoSuchFieldException, IllegalAccessException {
         int page = 1;
         Pageable pageable = PageRequest.of(0, 8);
 
-        // Mock 데이터 생성
         Report report1 = Report.builder()
                 .reason("잘못된 정보")
                 .comment("7호관은 도서관이 아닙니다.")
@@ -80,6 +79,12 @@ public class ReportServiceTest {
                 .postId(105L)
                 .memberId(3L)
                 .build();
+        Class<?> c = report1.getClass();
+        Field createDate = c.getSuperclass().getDeclaredField("createDate");
+        createDate.setAccessible(true);
+        createDate.set(report1, LocalDate.now());
+        createDate.set(report2,LocalDate.now());
+        createDate.set(report3,LocalDate.now());
 
         List<Report> reportList = Arrays.asList(report1, report2,report3);
         Page<Report> mockPage = new PageImpl<>(reportList, pageable, reportList.size());
