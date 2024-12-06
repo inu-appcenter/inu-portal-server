@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Schema(description = "신고 리스트 응답Dto")
 @Getter
@@ -21,16 +22,19 @@ public class ReportListResponseDto {
     private Long total;
 
     @Schema(description = "신고 리스트")
-    private List<Report> reports;
+    private List<ReportResponseDto> reports;
 
     @Builder
-    private ReportListResponseDto(int pages, long total, List<Report> reports){
+    private ReportListResponseDto(int pages, long total, List<ReportResponseDto> reports){
         this.pages = pages;
         this.total = total;
         this.reports = reports;
     }
 
     public static ReportListResponseDto of(Page<Report> reportPage){
-        return ReportListResponseDto.builder().pages(reportPage.getTotalPages()).total(reportPage.getTotalElements()).reports(reportPage.getContent()).build();
+        return ReportListResponseDto.builder()
+                .pages(reportPage.getTotalPages())
+                .total(reportPage.getTotalElements())
+                .reports(reportPage.getContent().stream().map(ReportResponseDto::of).collect(Collectors.toList())).build();
     }
 }

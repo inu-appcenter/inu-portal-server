@@ -35,8 +35,8 @@ public class SecurityConfig {
         httpSecurity
                 .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members").permitAll()
-
-                        .requestMatchers("/api/members/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,"/api/reports/**").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/members/all","/api/reports").hasRole("ADMIN")
                         .requestMatchers("/api/members/**","/api/members").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/cafeterias","/api/weathers").permitAll()
                         .requestMatchers("/api/posts/**","/api/posts","/api/fires/**").hasAnyRole("USER","ADMIN")

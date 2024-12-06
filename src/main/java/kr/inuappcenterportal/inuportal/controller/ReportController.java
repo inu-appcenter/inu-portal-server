@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.Member;
+import kr.inuappcenterportal.inuportal.dto.ReportListResponseDto;
 import kr.inuappcenterportal.inuportal.dto.ReportRequestDto;
 import kr.inuappcenterportal.inuportal.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.service.ReportService;
@@ -35,11 +37,13 @@ public class ReportController {
             , @AuthenticationPrincipal Member member, @Valid@RequestBody ReportRequestDto reportRequestDto){
         return ResponseEntity.ok(ResponseDto.of(reportService.saveReport(reportRequestDto,postId,member.getId()),"신고하기 성공"));
     }
-/*
     @Operation(summary = "신고목록 가져오기")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "신고목록 가져오기 성공",content = @Content(schema = @Schema(implementation = ReportListResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<ReportListResponseDto>> getReportList()*/
+    public ResponseEntity<ResponseDto<ReportListResponseDto>> getReportList(@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
+        return ResponseEntity.ok().body(ResponseDto.of(reportService.getReportList(page),"신고목록 가져오기 성공"));
+    }
+
 }
