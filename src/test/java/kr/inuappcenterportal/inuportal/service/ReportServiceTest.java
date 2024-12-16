@@ -1,9 +1,11 @@
 package kr.inuappcenterportal.inuportal.service;
 
-import kr.inuappcenterportal.inuportal.domain.Report;
-import kr.inuappcenterportal.inuportal.dto.ReportListResponseDto;
-import kr.inuappcenterportal.inuportal.dto.ReportRequestDto;
-import kr.inuappcenterportal.inuportal.repository.ReportRepository;
+
+import kr.inuappcenterportal.inuportal.domain.report.dto.ReportListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.report.dto.ReportRequestDto;
+import kr.inuappcenterportal.inuportal.domain.report.model.Report;
+import kr.inuappcenterportal.inuportal.domain.report.repository.ReportRepository;
+import kr.inuappcenterportal.inuportal.domain.report.service.ReportService;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
