@@ -36,7 +36,7 @@ public class NoticeController {
 
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<NoticePageResponseDto>> getAllNotice(@RequestParam(required = false) String category, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<NoticePageResponseDto>> getAllNotice(@RequestParam(required = false) String category, @RequestParam(required = false,defaultValue = "date") String sort
     , @RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         return ResponseEntity.ok(ResponseDto.of(noticeService.getNoticeList(category, sort,page),"모든 공지사항 가져오기 성공"));
     }

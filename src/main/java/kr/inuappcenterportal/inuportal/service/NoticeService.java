@@ -15,8 +15,10 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class NoticeService {
     private final NoticeRepository noticeRepository;
+    private static long id = 0;
 
     @PostConstruct
     @Transactional
@@ -52,7 +55,8 @@ public class NoticeService {
     }
     @Transactional
     public void crawlingNotices() throws IOException {
-        noticeRepository.truncateTable();
+        id = 0;
+        //noticeRepository.truncateTable();
         int bachelor = 1516;
         int bachelorNum = 46;
         getNoticeByCategory(bachelor, bachelorNum,"학사");
@@ -73,10 +77,10 @@ public class NoticeService {
 
     public void getNoticeByCategory(int category,int categoryNum,String categoryName) throws IOException {
         String url = "https://www.inu.ac.kr/inu/" + category + "/subview.do?enc=";
-        int i = 1;
+        int index = 1;
         boolean outLoop = false;
         while (!outLoop) {
-            String postUrl = "fnct1|@@|%2Fbbs%2Finu%2F2" + categoryNum  + "%2FartclList.do%3Fpage%3D" + i + "%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%267";
+            String postUrl = "fnct1|@@|%2Fbbs%2Finu%2F2" + categoryNum  + "%2FartclList.do%3Fpage%3D" + index + "%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%267";
             String encodedUrl = url + encoding(postUrl);
             Document document = Jsoup.connect(encodedUrl).get();
             Elements notice = document.select("tr");
@@ -104,41 +108,24 @@ public class NoticeService {
                         .writer(ele.select("td.td-write").text())
                         .createDate(ele.select("td.td-date").text())
                         .view(Long.parseLong(ele.select("td.td-access").text()))
+                        .id(++id)
                         .build());
             }
-            i++;
+            index++;
         }
     }
 
     @Transactional(readOnly = true)
     public NoticePageResponseDto getNoticeList(String category, String sort, int page){
-        Pageable pageable = PageRequest.of(page>0?--page:page,8);
-        List<NoticeListResponseDto> notices;
-        long pages;
+        Pageable pageable = PageRequest.of(page>0?--page:page,8,sort(sort));
+        Page<Notice> notices;
         if(category==null) {
-            if (sort == null||sort.equals("date")) {
-                notices =  noticeRepository.findAllByOrderByCreateDateDesc(pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
-            } else if (sort.equals("view")) {
-                notices = noticeRepository.findAllByOrderByViewDesc(pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
-            } else {
-                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-            }
-            pages = (long)Math.ceil((double)noticeRepository.count()/8);
+            notices = noticeRepository.findAllBy(pageable);
         }
         else{
-            if(sort==null||sort.equals("date")) {
-                notices = noticeRepository.findAllByCategory(category, pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
-            }
-            else if(sort.equals("view")){
-                notices = noticeRepository.findAllByCategoryOrderByViewDesc(category, pageable).stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
-            }
-            else{
-                throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-            }
-            pages = (long)Math.ceil((double)noticeRepository.countAllByCategory(category)/8);
-
+            notices = noticeRepository.findAllByCategory(category, pageable);
         }
-        return NoticePageResponseDto.of(pages,notices);
+        return NoticePageResponseDto.of(notices.getTotalPages(),notices.getTotalElements(),notices.getContent().stream().map(NoticeListResponseDto::of).collect(Collectors.toList()));
     }
 
     @Transactional(readOnly = true)
@@ -157,6 +144,18 @@ public class NoticeService {
         LocalDate formedDate = LocalDate.parse(date,DateTimeFormatter.ofPattern("yyyy.MM.dd"));
         LocalDate oneMonthAgo = currentDate.minusMonths(1);
         return formedDate.isBefore(oneMonthAgo);
+    }
+
+    private Sort sort(String sort){
+        if(sort.equals("date")){
+            return Sort.by(Sort.Direction.DESC, "createDate","id");
+        }
+        else if(sort.equals("view")) {
+            return Sort.by(Sort.Direction.DESC, "view", "id");
+        }
+        else{
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
 

@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 public class Notice {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column
@@ -34,7 +33,8 @@ public class Notice {
     private String url;
 
     @Builder
-    public Notice(String category, String title, String writer, String createDate, String url, long view){
+    public Notice(String category, String title, String writer, String createDate, String url, long view, Long id){
+        this.id = id;
         this.category = category;
         this.title = title;
         this.writer = writer;
