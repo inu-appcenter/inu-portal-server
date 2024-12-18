@@ -35,6 +35,9 @@ public class Reply extends BaseTimeEntity {
     @Column
     private Long number;
 
+    @Column
+    private Long good;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name ="post_id")
     private Post post;
@@ -61,6 +64,7 @@ public class Reply extends BaseTimeEntity {
         this.reply =reply;
         this.isDeleted = false;
         this.number = number;
+        this.good = 0L;
     }
 
     public void update(String content, boolean anonymous){
@@ -68,9 +72,14 @@ public class Reply extends BaseTimeEntity {
         this.anonymous =anonymous;
     }
 
-    public void onDelete(String content, Member member){
-        this.content =content;
-        this.member = member;
+    public void onDelete(){
         this.isDeleted = true;
+    }
+    public void upLike(){
+        this.good++;
+    }
+
+    public void downLike(){
+        this.good--;
     }
 }
