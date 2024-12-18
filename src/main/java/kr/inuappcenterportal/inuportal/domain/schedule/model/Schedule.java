@@ -14,7 +14,6 @@ import java.time.LocalDate;
 @Table(name = "schedule")
 public class Schedule {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name="start_date")
@@ -27,7 +26,8 @@ public class Schedule {
     private String content;
 
     @Builder
-    public Schedule (LocalDate startDate, LocalDate endDate, String content){
+    public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content){
+        this.id = id;
         this.startDate =startDate;
         this.endDate = endDate;
         this.content = content;

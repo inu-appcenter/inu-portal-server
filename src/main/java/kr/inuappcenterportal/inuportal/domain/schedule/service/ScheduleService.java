@@ -29,6 +29,7 @@ public class ScheduleService {
     private final String url = "https://www.inu.ac.kr/inu/651/subview.do";
     @Value("${installPath}")
     private String installPath;
+    private static long id = 0L;
 
 
     @PostConstruct
@@ -44,7 +45,7 @@ public class ScheduleService {
 
     @Transactional
     public void crawlingSchedule() throws InterruptedException {
-        scheduleRepository.truncateTable();
+        id = 0;
         System.setProperty("webdriver.chrome.driver",installPath);
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--remote-allow-origins=*");
@@ -95,7 +96,7 @@ public class ScheduleService {
                         }
                         LocalDate start = LocalDate.parse(startDate,formatter);
                         LocalDate end = LocalDate.parse(endDate,formatter);
-                        Schedule schedule = Schedule.builder().startDate(start).endDate(end).content(content).build();
+                        Schedule schedule = Schedule.builder().id(++id).startDate(start).endDate(end).content(content).build();
                         scheduleRepository.save(schedule);
                     }
                     month++;
