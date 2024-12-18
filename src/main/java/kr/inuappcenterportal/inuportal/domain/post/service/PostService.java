@@ -66,7 +66,7 @@ public class PostService {
 
     @Transactional
     public Long saveImageLocal(Member member, Long postId, List<MultipartFile> images ) throws IOException {
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
@@ -92,7 +92,10 @@ public class PostService {
 
     @Transactional
     public void updateOnlyPost(Long memberId, Long postId, PostDto postDto){
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        if(post.getIsDeleted()){
+            throw new MyException(MyErrorCode.POST_NOT_FOUND);
+        }
         if(!categoryRepository.existsByCategory(postDto.getCategory())){
             throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
@@ -105,7 +108,7 @@ public class PostService {
 
     @Transactional
     public void updateImageLocal(Long memberId, Long postId, List<MultipartFile> images) throws IOException{
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
@@ -127,22 +130,16 @@ public class PostService {
 
     @Transactional
     public void delete(Long memberId, Long postId) throws IOException {
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
-        redisService.deleteImage(postId,post.getImageCount());
-        for(int i = 1 ; i < post.getImageCount()+1;i++){
-            String fileName = postId + "-" + i;
-            Path filePath = Paths.get(path, fileName);
-            Files.deleteIfExists(filePath);
-        }
-        postRepository.delete(post);
+        post.delete();
     }
 
     @Transactional
     public PostResponseDto getPost(Long postId,Member member,String address){
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalseWithPostMember(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(redisService.isFirstConnect(address,postId)){
             redisService.insertAddress(address,postId);
             post.upViewCount();
@@ -185,13 +182,13 @@ public class PostService {
         Pageable pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
         Page<Post> dto;
         if(category==null){
-            dto = postRepository.findAllBy(pageable);
+            dto = postRepository.findAllByIsDeletedFalse(pageable);
         }
         else{
             if(!categoryRepository.existsByCategory(category)){
                 throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
             }
-            dto = postRepository.findAllByCategory(category, pageable);
+            dto = postRepository.findAllByCategoryAndIsDeletedFalse(category, pageable);
         }
         long total = dto.getTotalElements();
         long pages = dto.getTotalPages();
@@ -205,6 +202,9 @@ public class PostService {
     @Transactional
     public int likePost(Member member, Long postId){
         Post post = postRepository.findByIdWithLock(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        if(post.getIsDeleted()){
+            throw new MyException(MyErrorCode.POST_NOT_FOUND);
+        }
         if(post.getMember()!=null&&post.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.NOT_LIKE_MY_POST);
         }
@@ -225,6 +225,9 @@ public class PostService {
     @Transactional
     public int scrapPost(Member member, Long postId){
         Post post = postRepository.findByIdWithLock(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        if(post.getIsDeleted()){
+            throw new MyException(MyErrorCode.POST_NOT_FOUND);
+        }
         if(scrapRepository.existsByMemberAndPost(member,post)){
             Scrap scrap = scrapRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.USER_OR_POST_NOT_FOUND));
             scrapRepository.delete(scrap);
@@ -241,7 +244,7 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostListResponseDto> getPostByMember(Member member, String sort){
-        return postRepository.findAllByMember(member,sortData(sort))
+        return postRepository.findAllByMemberAndIsDeletedFalse(member,sortData(sort))
                 .stream()
                 .map(this::getPostListResponseDto)
                 .collect(Collectors.toList());
@@ -334,13 +337,13 @@ public class PostService {
             return postRepository.findAll(pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else if(lastPostId == null){
-            return postRepository.findAllByCategory(category,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findAllByCategoryAndIsDeletedFalse(category,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else if(category!=null){
-           return postRepository.findByCategoryAndIdLessThan(category,lastPostId,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findByCategoryAndIdLessThanAndIsDeletedFalse(category,lastPostId,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else {
-            return postRepository.findAllByIdLessThan(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findAllByIdLessThanAndIsDeletedFalse(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
     }
 
@@ -374,7 +377,7 @@ public class PostService {
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
     }
-    public Sort sortData(String sort){
+    private Sort sortData(String sort){
         if(sort.equals("date")){
             return Sort.by(Sort.Direction.DESC, "id");
         }

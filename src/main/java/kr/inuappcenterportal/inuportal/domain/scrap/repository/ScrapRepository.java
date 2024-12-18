@@ -15,10 +15,10 @@ public interface ScrapRepository extends JpaRepository<Scrap,Long> {
     Optional<Scrap> findByMemberAndPost(Member member, Post post);
 
 
-    @Query("SELECT s FROM Scrap s JOIN FETCH s.post p WHERE s.member=:member")
+    @Query("SELECT s FROM Scrap s JOIN FETCH s.post p WHERE s.member=:member AND p.isDeleted = false")
     List<Scrap> findAllByMember(Member member, Sort sort);
 
-    @Query("SELECT s FROM Scrap s JOIN FETCH s.post p WHERE s.member=:member and (s.post.title  LIKE CONCAT('%',:content,'%') or s.post.content LIKE CONCAT('%',:content,'%'))")
+    @Query("SELECT s FROM Scrap s JOIN FETCH s.post p WHERE s.member=:member and (s.post.title  LIKE CONCAT('%',:content,'%') or s.post.content LIKE CONCAT('%',:content,'%')) AND p.isDeleted = false")
     List<Scrap> searchScrap(Member member, String content,Sort sort);
 
 

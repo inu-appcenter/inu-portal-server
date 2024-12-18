@@ -19,7 +19,9 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "post")
+@Table(name = "post", indexes = {
+        @Index(name = "idx_is_deleted", columnList = "is_deleted")
+})
 public class Post extends BaseTimeEntity {
 
     @Id
@@ -56,6 +58,9 @@ public class Post extends BaseTimeEntity {
     @Column(name = "reply_count")
     private Long replyCount;
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted;
+
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
@@ -87,6 +92,8 @@ public class Post extends BaseTimeEntity {
         this.good = 0L;
         this.scrap = 0L;
         this.replyCount = 0L;
+        this.isDeleted = false;
+
     }
 
     public void updateOnlyPost(String title, String content, String category, boolean anonymous){
@@ -122,10 +129,9 @@ public class Post extends BaseTimeEntity {
     }
     public void upReplyCount(){this.replyCount++;}
     public void downReplyCount(){this.replyCount--;}
-    public void setReplyCount(long count){
-        this.replyCount = count;
+    public void delete(){
+        this.isDeleted = true;
     }
-
 
 
 }
