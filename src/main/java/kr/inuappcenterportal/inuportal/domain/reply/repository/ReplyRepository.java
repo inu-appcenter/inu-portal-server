@@ -4,6 +4,7 @@ import io.lettuce.core.dynamic.annotation.Param;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.domain.reply.model.Reply;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -12,7 +13,7 @@ import java.util.Optional;
 
 public interface ReplyRepository extends JpaRepository<Reply,Long> {
 
-    List<Reply> findAllByMemberOrderByIdDesc(Member member);
+    List<Reply> findAllByMemberAndIsDeletedFalse(Member member, Sort sort);
     boolean existsByMember(Member member);
 
     Optional<Reply> findFirstByMember(Member member);

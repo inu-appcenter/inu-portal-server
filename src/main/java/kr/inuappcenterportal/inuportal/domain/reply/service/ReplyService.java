@@ -16,6 +16,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -133,15 +134,7 @@ public class ReplyService {
 
     @Transactional(readOnly = true)
     public List<ReplyListResponseDto> getReplyByMember(Member member,String sort){
-        if(sort==null||sort.equals("date")) {
-            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::of).collect(Collectors.toList());
-        }
-        else if(sort.equals("like")){
-            return replyRepository.findAllByMemberOrderByIdDesc(member).stream().map(ReplyListResponseDto::of).sorted(Comparator.comparing(ReplyListResponseDto::getLike).reversed()).collect(Collectors.toList());
-        }
-        else{
-            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
-        }
+        return replyRepository.findAllByMemberAndIsDeletedFalse(member,sortReply(sort)).stream().map(ReplyListResponseDto::of).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -168,14 +161,6 @@ public class ReplyService {
                 .collect(Collectors.toList());
     }
 
-
-    public boolean isLiked(Member member,Reply reply){
-        boolean isLiked = false;
-        if(!reply.getIsDeleted()&&member!=null&&likeReplyRepository.existsByMemberAndReply(member,reply)){
-            isLiked = true;
-        }
-        return isLiked;
-    }
     public boolean hasAuthority(Member member, Reply reply){
         boolean hasAuthority = false;
         if(!reply.getIsDeleted()&&member!=null&&reply.getMember()!=null&&reply.getMember().getId().equals(member.getId())){
@@ -232,6 +217,18 @@ public class ReplyService {
             likedReplyIds.addAll(likeReplyRepository.findLikedReplyIdsByMember(member, replyIds));
         }
         return likedReplyIds;
+    }
+
+    private Sort sortReply(String sort){
+        if(sort.equals("date")){
+            return Sort.by(Sort.Direction.DESC, "id");
+        }
+        else if(sort.equals("like")){
+            return Sort.by(Sort.Direction.DESC, "good","id");
+        }
+        else{
+            throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
+        }
     }
 
 }
