@@ -95,9 +95,9 @@ public class MemberService {
 
     @Transactional
     public TokenDto schoolLogin(LoginDto loginDto){
-        /*if (!schoolLoginRepository.loginCheck(loginDto.getStudentId(), loginDto.getPassword())) {
+        if (!schoolLoginRepository.loginCheck(loginDto.getStudentId(), loginDto.getPassword())) {
             throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
-        }*/
+        }
         if (!memberRepository.existsByStudentId(loginDto.getStudentId())) {
             createMember(loginDto.getStudentId());
         }
