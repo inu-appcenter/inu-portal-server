@@ -12,11 +12,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReplyRepository extends JpaRepository<Reply,Long> {
+    Optional<Reply> findByIdAndIsDeletedFalse(Long id);
 
     List<Reply> findAllByMemberAndIsDeletedFalse(Member member, Sort sort);
-    boolean existsByMember(Member member);
-
-    Optional<Reply> findFirstByMember(Member member);
+    Optional<Reply> findFirstByMemberAndPost(Member member, Post post);
 
 
     @Query("SELECT r FROM Reply r LEFT JOIN FETCH r.member m WHERE r.post = :post AND (r.isDeleted = false OR EXISTS ( SELECT 1 FROM Reply rr WHERE rr.reply = r AND rr.isDeleted = false )) ")

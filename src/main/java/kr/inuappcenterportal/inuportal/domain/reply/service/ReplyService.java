@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class ReplyService {
     private final ReplyRepository replyRepository;
     private final PostRepository postRepository;
@@ -35,7 +36,7 @@ public class ReplyService {
 
     @Transactional
     public Long saveReply(Member member, ReplyDto replyDto, Long postId) throws NoSuchAlgorithmException {
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         String hash = member.getId() + replyDto.getContent();
         redisService.blockRepeat(hash);
         long num = countAnonymousNumber(member,post);
@@ -47,48 +48,40 @@ public class ReplyService {
 
     @Transactional
     public Long saveReReply(Member member, ReplyDto replyDto, Long replyId) throws NoSuchAlgorithmException {
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
+        Reply reply = replyRepository.findByIdAndIsDeletedFalse(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         String hash = member.getId() + replyDto.getContent();
         redisService.blockRepeat(hash);
         if(reply.getReply()!=null){
             throw new MyException(MyErrorCode.NOT_REPLY_ON_REREPLY);
         }
-        Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         long num = countAnonymousNumber(member,post);
         Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
         post.upReplyCount();
         return replyRepository.save(reReply).getId();
     }
 
-    @Transactional
-    public long countAnonymousNumber(Member member, Post post){
-        long num = 0;
-        if(post.getMember()!=null) {
-            if (!member.getId().equals(post.getMember().getId()) && replyRepository.existsByMember(member)) {
-                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyException(MyErrorCode.REPLY_NOT_FOUND));
-                num = preReply.getNumber();
-            } else if (!member.getId().equals(post.getMember().getId())) {
-                post.upNumber();
-                num = post.getNumber();
-            }
+
+    private long countAnonymousNumber(Member member, Post post){
+        if (isSamePostAuthor(post,member)) {
+            return 0;
         }
-        else{
-            if( replyRepository.existsByMember(member)){
-                Reply preReply = replyRepository.findFirstByMember(member).orElseThrow(() -> new MyException(MyErrorCode.REPLY_NOT_FOUND));
-                num = preReply.getNumber();
-            }
-            else{
-                post.upNumber();
-                num = post.getNumber();
-            }
-        }
-        return  num;
+        return replyRepository.findFirstByMemberAndPost(member, post)
+                .map(Reply::getNumber)
+                .orElseGet(() -> {
+                    post.upNumber();
+                    return post.getNumber();
+                });
+    }
+
+    private boolean isSamePostAuthor(Post post, Member member) {
+        return post.getMember() != null && member.getId().equals(post.getMember().getId());
     }
 
 
     @Transactional
     public Long updateReply(Long memberId, ReplyDto replyDto, Long replyId){
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
+        Reply reply = replyRepository.findByIdAndIsDeletedFalse(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(!reply.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_REPLY_AUTHORIZATION);
         }
@@ -100,8 +93,8 @@ public class ReplyService {
 
     @Transactional
     public void delete(Long memberId, Long replyId){
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
-        Post post = postRepository.findById(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Reply reply = replyRepository.findByIdAndIsDeletedFalse(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(reply.getPost().getId()).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!reply.getMember().getId().equals(memberId)){
             throw new MyException(MyErrorCode.HAS_NOT_REPLY_AUTHORIZATION);
         }
@@ -114,7 +107,7 @@ public class ReplyService {
 
     @Transactional
     public int likeReply(Member member, Long replyId){
-        Reply reply = replyRepository.findById(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
+        Reply reply = replyRepository.findByIdAndIsDeletedFalse(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(reply.getMember()!=null&&reply.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.NOT_LIKE_MY_REPLY);
         }
@@ -132,27 +125,18 @@ public class ReplyService {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<ReplyListResponseDto> getReplyByMember(Member member,String sort){
         return replyRepository.findAllByMemberAndIsDeletedFalse(member,sortReply(sort)).stream().map(ReplyListResponseDto::of).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
     public List<ReplyResponseDto> getReplies(Long postId, Member member) {
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> replies = replyRepository.findAllNonDeletedOrHavingChildren(post);
         Set<Long> likedReplyIds = getMemberLikedIds(replies,member);
         return replies.stream()
                 .filter(reply -> reply.getReply() == null)
                 .map(reply -> {
-                    List<ReReplyResponseDto> reReplies = replies.stream()
-                            .filter(reReply -> reReply.getReply() != null && reReply.getReply().getId().equals(reply.getId()))
-                            .map(reReply -> {
-                                boolean isLiked = likedReplyIds.contains(reReply.getId());
-                                String writer = writerName(reReply,post);
-                                long fireId = writer.equals("(알수없음)") ? 13 : reReply.getMember().getFireId();
-                                return ReReplyResponseDto.of(reReply, writer, fireId, isLiked, hasAuthority(member, reReply));
-                            }).collect(Collectors.toList());
+                    List<ReReplyResponseDto> reReplies = getReReplies(replies,reply,likedReplyIds,post,member);
                     boolean isLiked = likedReplyIds.contains(reply.getId());
                     String writer = writerName(reply,post);
                     long fireId = writer.equals("(알수없음)") ? 13 : reply.getMember().getFireId();
@@ -161,42 +145,49 @@ public class ReplyService {
                 .collect(Collectors.toList());
     }
 
-    public boolean hasAuthority(Member member, Reply reply){
+    private List<ReReplyResponseDto> getReReplies(List<Reply> replies, Reply reply, Set<Long> likedReplyIds, Post post, Member member){
+        return  replies.stream()
+                .filter(reReply -> reReply.getReply() != null && reReply.getReply().getId().equals(reply.getId()))
+                .map(reReply -> {
+                    boolean isLiked = likedReplyIds.contains(reReply.getId());
+                    String writer = writerName(reReply,post);
+                    long fireId = writer.equals("(알수없음)") ? 13 : reReply.getMember().getFireId();
+                    return ReReplyResponseDto.of(reReply, writer, fireId, isLiked, hasAuthority(member, reReply));
+                }).collect(Collectors.toList());
+    }
+
+
+
+    private boolean hasAuthority(Member member, Reply reply){
         boolean hasAuthority = false;
         if(!reply.getIsDeleted()&&member!=null&&reply.getMember()!=null&&reply.getMember().getId().equals(member.getId())){
             hasAuthority = true;
         }
         return hasAuthority;
     }
-    @Transactional(readOnly = true)
-    public String writerName(Reply reply,Post post){
-        String writer;
+    private String writerName(Reply reply,Post post){
         if(reply.getIsDeleted()){
-            writer="(삭제됨)";
+            return "(삭제됨)";
         }
-        else if(reply.getMember()==null){
-            writer="(알수없음)";
+        if(reply.getMember()==null){
+            return "(알수없음)";
+        }
+        if (reply.getAnonymous()) {
+             if(reply.getMember().equals(post.getMember())){
+                 return "횃불이(글쓴이)";
+             }
+             else {
+                 return  "횃불이" + reply.getNumber();
+             }
         }
         else{
-            if (reply.getAnonymous()) {
-                if(reply.getMember().equals(post.getMember())){
-                    writer = "횃불이(글쓴이)";
-                }
-                else {
-                    writer = "횃불이"+reply.getNumber();
-                }
-            }
-            else{
-                writer = reply.getMember().getNickname();
-            }
+            return reply.getMember().getNickname();
         }
-        return writer;
     }
 
 
-    @Transactional(readOnly = true)
     public List<ReReplyResponseDto> getBestReplies(Long postId,Member member){
-        Post post = postRepository.findById(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> replies = replyRepository.findBestReplies(post);
         Set<Long> likedReplyIds = getMemberLikedIds(replies,member);
         return replies.stream().map(reply -> {
