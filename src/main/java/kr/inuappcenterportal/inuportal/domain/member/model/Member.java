@@ -53,9 +53,9 @@ public class Member implements UserDetails {
     private List<Reply> replies;
 
     @Builder
-    public Member(String studentId, String nickname, List<String> roles){
+    public Member(String studentId, List<String> roles){
         this.studentId = studentId;
-        this.nickname = nickname;
+        this.nickname = studentId;
         this.roles = roles;
         this.fireId = 1L;
     }

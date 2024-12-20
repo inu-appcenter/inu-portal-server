@@ -9,7 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import kr.inuappcenterportal.inuportal.global.oracleRepository.SchoolLoginRepository;
+import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MemberService {
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
@@ -62,7 +63,6 @@ public class MemberService {
         memberRepository.delete(member);
     }
 
-    @Transactional
     public TokenDto login(Member member){
         LocalDateTime localDateTime = LocalDateTime.now();
         long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
@@ -72,7 +72,6 @@ public class MemberService {
         return TokenDto.of(accessToken,refreshToken,localDateTime.plus(Duration.ofMillis(tokenValidMillisecond)).toString(),localDateTime.plus(Duration.ofMillis(refreshValidMillisecond)).toString());
     }
 
-    @Transactional(readOnly = true)
     public TokenDto refreshToken(String token){
         if(!tokenProvider.validateRefreshToken(token)){
             throw new MyException(MyErrorCode.EXPIRED_TOKEN);
@@ -83,12 +82,10 @@ public class MemberService {
     }
 
 
-    @Transactional(readOnly = true)
     public MemberResponseDto getMember(Member member){
         return MemberResponseDto.of(member);
     }
 
-    @Transactional(readOnly = true)
     public List<MemberResponseDto> getAllMember(){
         return memberRepository.findAll().stream().map(MemberResponseDto::of).collect(Collectors.toList());
     }
@@ -107,7 +104,7 @@ public class MemberService {
     }
     @Transactional
     public void createMember(String studentId){
-        Member member = Member.builder().studentId(studentId).nickname(studentId).roles(Collections.singletonList("ROLE_USER")).build();
+        Member member = Member.builder().studentId(studentId).roles(Collections.singletonList("ROLE_USER")).build();
         memberRepository.save(member);
     }
 

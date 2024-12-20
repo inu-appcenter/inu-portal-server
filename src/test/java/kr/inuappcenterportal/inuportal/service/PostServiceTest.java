@@ -38,7 +38,7 @@ public class PostServiceTest {
     @Test
     @DisplayName("게시글 저장 테스트")
     public void saveOnlyPostTest() throws Exception{
-        Member member = Member.builder().nickname("testMember").studentId("201900000").roles(Collections.singletonList("ROLE_USER")).build();
+        Member member = Member.builder().studentId("201900000").roles(Collections.singletonList("ROLE_USER")).build();
         PostDto postDto = PostDto.builder().title("title").content("content").anonymous(true).category("수강신청").build();
         when(categoryRepository.existsByCategory(any(String.class))).thenReturn(true);
         postService.saveOnlyPost(member,postDto);
