@@ -129,7 +129,7 @@ public class MemberControllerTest {
                 .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
 
-        Member member = Member.builder().studentId("123456789").nickname("testUser").build();
+        Member member = Member.builder().studentId("123456789").build();
         MemberResponseDto memberResponseDto = MemberResponseDto.of(member);
         when(memberService.getMember(any(Member.class))).thenReturn(memberResponseDto);
         mockMvc.perform(get("/api/members").header("Auth",token).contentType(MediaType.APPLICATION_JSON))
