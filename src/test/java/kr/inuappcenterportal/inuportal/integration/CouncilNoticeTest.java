@@ -9,11 +9,13 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.service.CouncilNotic
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -45,6 +49,7 @@ import static org.mockito.BDDMockito.when;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@ActiveProfiles("test")
 public class CouncilNoticeTest {
     @MockBean
     WeatherService weatherService;
@@ -56,6 +61,10 @@ public class CouncilNoticeTest {
     CafeteriaService cafeteriaService;
     @MockBean
     ImageService imageService;
+    @MockBean
+    SchoolLoginRepository schoolLoginRepository;
+    @MockBean
+    RedisService redisService;
 
 
     @Autowired
