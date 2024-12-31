@@ -29,14 +29,14 @@ public class RedisService {
     private final RedisTemplate<String,String> redisTemplate;
 
 
-    public boolean isFirstConnect(String address, Long postId){
-        String key = address + "&"+ postId;
+    public boolean isFirstConnect(String address, Long postId, String board){
+        String key = board + ":" + address + "&"+ postId;
         log.info("check isFirstConnect key:{}",key);
         return !redisTemplate.hasKey(key);
     }
 
-    public void insertAddress(String address, Long postId){
-        String key = address + "&" + postId;
+    public void insertAddress(String address, Long postId,String board){
+        String key = board + ":" + address + "&"+ postId;
         LocalDateTime currentTime = LocalDateTime.now();
         LocalDateTime endTime = currentTime
                 .plusDays(1)
