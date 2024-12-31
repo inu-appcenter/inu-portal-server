@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import kr.inuappcenterportal.inuportal.domain.folder.service.FolderService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -39,7 +40,7 @@ public class SearchController {
             @ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다. / 검색옵션이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<ListResponseDto>> search(@RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> search(@RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
     , @RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         return ResponseEntity.ok(ResponseDto.of(postService.searchPost(query,sort,page),"게시글 검색 성공"));
     }
@@ -51,7 +52,7 @@ public class SearchController {
             @ApiResponse(responseCode = "404",description = "존재하지 않는 유저입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/scrap")
-    public ResponseEntity<ResponseDto<ListResponseDto>> searchScrap(@AuthenticationPrincipal Member member, @RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> searchScrap(@AuthenticationPrincipal Member member, @RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
             , @RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         return ResponseEntity.ok(ResponseDto.of(postService.searchInScrap(member,query,page,sort),"스크랩 게시글 검색 성공"));
     }
@@ -63,7 +64,7 @@ public class SearchController {
             @ApiResponse(responseCode = "404",description = "존재하지 않는 스크랩폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/folder/{folderId}")
-    public ResponseEntity<ResponseDto<ListResponseDto>> searchInFolder(@RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> searchInFolder(@RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
             , @RequestParam(required = false,defaultValue = "1") @Min(1) int page, @PathVariable Long folderId){
         return ResponseEntity.ok(ResponseDto.of(folderService.searchPostInFolder(folderId,query,sort,page),"스크랩 폴더에서 게시글 검색 성공"));
     }

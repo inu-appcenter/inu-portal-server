@@ -2,9 +2,9 @@ package kr.inuappcenterportal.inuportal.domain.notice.service;
 
 import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticePageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeRepository;
+import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -117,7 +117,7 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
-    public NoticePageResponseDto getNoticeList(String category, String sort, int page){
+    public ListResponseDto<NoticeListResponseDto> getNoticeList(String category, String sort, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8,sort(sort));
         Page<Notice> notices;
         if(category==null) {
@@ -126,7 +126,7 @@ public class NoticeService {
         else{
             notices = noticeRepository.findAllByCategory(category, pageable);
         }
-        return NoticePageResponseDto.of(notices.getTotalPages(),notices.getTotalElements(),notices.getContent().stream().map(NoticeListResponseDto::of).collect(Collectors.toList()));
+        return ListResponseDto.of(notices.getTotalPages(),notices.getTotalElements(),notices.getContent().stream().map(NoticeListResponseDto::of).collect(Collectors.toList()));
     }
 
     @Transactional(readOnly = true)

@@ -9,9 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticePageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
+import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,14 +36,14 @@ public class NoticeController {
 
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<NoticePageResponseDto>> getAllNotice(@RequestParam(required = false) String category, @RequestParam(required = false,defaultValue = "date") String sort
+    public ResponseEntity<ResponseDto<ListResponseDto<NoticeListResponseDto>>> getAllNotice(@RequestParam(required = false) String category, @RequestParam(required = false,defaultValue = "date") String sort
     , @RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         return ResponseEntity.ok(ResponseDto.of(noticeService.getNoticeList(category, sort,page),"모든 공지사항 가져오기 성공"));
     }
 
     @Operation(summary = "상단부 인기 공지 12개 가져오기")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "인기 공지 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "인기 공지 가져오기 성공",content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class)))
     })
     @GetMapping("/top")
     public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getPostForTop( ){

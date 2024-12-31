@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.global.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,7 +10,7 @@ import java.util.List;
 @Schema(description = "게시글, 페이지수 리스트 응답Dto")
 @Getter
 @NoArgsConstructor
-public class ListResponseDto {
+public class ListResponseDto<T>{
 
     @Schema(description = "총 페이지 수")
     private Long pages;
@@ -20,19 +19,19 @@ public class ListResponseDto {
     private Long total;
 
     @Schema(description = "게시글 리스트")
-    private List<PostListResponseDto> posts;
+    private List<T> contents;
 
     @Builder
-    private ListResponseDto(long pages, long total, List<PostListResponseDto> posts){
+    private ListResponseDto(long pages, long total, List<T> contents){
         this.pages = pages;
-        this.posts = posts;
+        this.contents = contents;
         this.total = total;
     }
 
-    public static ListResponseDto of(long pages, long total, List<PostListResponseDto> posts){
-        return ListResponseDto.builder()
+    public static <T>ListResponseDto<T> of(long pages, long total, List<T> contents){
+        return ListResponseDto.<T>builder()
                 .pages(pages)
-                .posts(posts)
+                .contents(contents)
                 .total(total)
                 .build();
     }

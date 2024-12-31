@@ -90,14 +90,14 @@ public class FolderService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto getPostInFolder(Long folderId, String sort, int page) {
+    public ListResponseDto<PostListResponseDto> getPostInFolder(Long folderId, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
         List<PostListResponseDto> folderDto = folderPostRepository.findAllByFolder(folder,postService.sortFetchJoin(sort)).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         return postService.pagingFetchJoin(page,folderDto);
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto searchPostInFolder(Long folderId, String query, String sort, int page) {
+    public ListResponseDto<PostListResponseDto> searchPostInFolder(Long folderId, String query, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
         List<PostListResponseDto> folderDto = folderPostRepository.searchInFolder(folder,query,postService.sortFetchJoin(sort)).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         return postService.pagingFetchJoin(page,folderDto);

@@ -16,6 +16,7 @@ import kr.inuappcenterportal.inuportal.domain.scrap.repository.ScrapRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,8 +47,9 @@ public class PostService {
     private final ReplyService replyService;
     private final CategoryRepository categoryRepository;
     private final RedisService redisService;
+    private final ImageService imageService;
 
-    @Value("${imagePath}")
+    @Value("${postImagePath}")
     private String path;
 
 
@@ -70,24 +72,15 @@ public class PostService {
         if(!post.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
-        long imageCount;
         if (images != null) {
-            imageCount = images.size();
-            post.updateImageCount(imageCount);
-            for (int i = 1; i < imageCount + 1; i++) {
-                MultipartFile file = images.get(i - 1);
-                String fileName = postId + "-" + i;
-                Path filePath = Paths.get(path, fileName);
-                Files.write(filePath, file.getBytes());
-            }
+            post.updateImageCount(images.size());
+            imageService.saveImage(post.getId(),images,path);
         }
         return postId;
     }
 
-    public byte[] getImage(Long postId, Long imageId) throws IOException {
-        String fileName = postId+"-"+imageId;
-        Path filePath = Paths.get(path, fileName);
-        return Files.readAllBytes(filePath);
+    public byte[] getPostImage(Long postId, Long imageId){
+        return imageService.getImage(postId,imageId,path);
     }
 
     @Transactional
@@ -113,17 +106,7 @@ public class PostService {
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         if(images!=null){
-            for(int i = 1 ; i < post.getImageCount() ; i++){
-                String fileName = postId + "-" + i;
-                Path filePath = Paths.get(path, fileName);
-                Files.deleteIfExists(filePath);
-            }
-            for(int i = 1 ; i < images.size()+1;i++){
-                MultipartFile file = images.get(i - 1);
-                String fileName = postId + "-" + i;
-                Path filePath = Paths.get(path, fileName);
-                Files.write(filePath, file.getBytes());
-            }
+            imageService.updateImage(postId,post.getImageCount(),images,path);
             post.updateImageCount(images.size());
         }
     }
@@ -140,8 +123,8 @@ public class PostService {
     @Transactional
     public PostResponseDto getPost(Long postId,Member member,String address){
         Post post = postRepository.findByIdAndIsDeletedFalseWithPostMember(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        if(redisService.isFirstConnect(address,postId)){
-            redisService.insertAddress(address,postId);
+        if(redisService.isFirstConnect(address,postId,"post")){
+            redisService.insertAddress(address,postId,"post");
             post.upViewCount();
         }
         long fireId;
@@ -178,7 +161,7 @@ public class PostService {
 
 
     @Transactional(readOnly = true)
-    public ListResponseDto getAllPost(String category, String sort, int page){
+    public ListResponseDto<PostListResponseDto> getAllPost(String category, String sort, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
         Page<Post> dto;
         if(category==null){
@@ -251,7 +234,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto getScrapsByMember(Member member, String sort,int page){
+    public ListResponseDto<PostListResponseDto> getScrapsByMember(Member member, String sort,int page){
         List<PostListResponseDto> scraps = scrapRepository.findAllByMember(member, sortFetchJoin(sort)).stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
@@ -290,7 +273,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto searchPost(String query,String sort,int page){
+    public ListResponseDto<PostListResponseDto> searchPost(String query,String sort,int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8);
         if (sort.equals("date")) {
             Page<Post> dto = postRepository.searchByKeyword(query,pageable);
@@ -319,7 +302,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto searchInScrap(Member member, String query,int page, String sort){
+    public ListResponseDto<PostListResponseDto> searchInScrap(Member member, String query,int page, String sort){
         List<PostListResponseDto> scraps  = scrapRepository.searchScrap(member,query, sortFetchJoin(sort)).stream()
                 .map(scrap -> {
                     Post post = scrap.getPost();
@@ -347,7 +330,7 @@ public class PostService {
         }
     }
 
-    public ListResponseDto pagingFetchJoin(int page, List<PostListResponseDto> dto){
+    public ListResponseDto<PostListResponseDto> pagingFetchJoin(int page, List<PostListResponseDto> dto){
         int total = dto.size();
         page--;
         int startIndex = 0;
