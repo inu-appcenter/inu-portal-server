@@ -15,10 +15,6 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeLis
 import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeRequestDto;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeResponseDto;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.service.CouncilNoticeService;
-import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.post.dto.PostDto;
-import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
-import kr.inuappcenterportal.inuportal.domain.post.dto.PostResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +23,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
