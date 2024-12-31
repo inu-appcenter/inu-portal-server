@@ -89,7 +89,7 @@ public class CouncilNoticeController {
             images = new ArrayList<>();
         }
         councilNoticeService.updateCouncilNoticeImage(councilNoticeId,images);
-        return ResponseEntity.ok(ResponseDto.of(councilNoticeId,"총학생회 공지사항 수정 성공"));
+        return ResponseEntity.ok(ResponseDto.of(councilNoticeId,"총학생회 공지사항 이미지 수정 성공"));
     }
 
     @Operation(summary = "총학생회 공지사항 삭제",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id를 보내주세요. 성공 시 삭제된 공지사항의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
@@ -127,15 +127,15 @@ public class CouncilNoticeController {
         return ResponseEntity.ok().headers(httpHeaders).body(councilNoticeService.getCouncilNoticeImage(councilNoticeId, imageId));
     }
 
-    @Operation(summary = "모든 총학생회 공지사항 가져오기",description = "정렬기준 sort(date/공백(최신순), view), 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "총학생회 공지사항 리스트 가져오기",description = "정렬기준 sort(date/공백(최신순), view), 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "모든 총학생회 공지사항 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "총학생회 공지사항 리스트 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<ListResponseDto<CouncilNoticeListDto>>> getAllPost(@RequestParam(required = false,defaultValue = "date") String sort
             , @RequestParam(required = false,defaultValue = "1") @Min(1) int page ){
-        return ResponseEntity.ok(ResponseDto.of(councilNoticeService.getCouncilNoticeList(sort,page),"모든 총학생회 공지사항 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(councilNoticeService.getCouncilNoticeList(sort,page),"총학생회 공지사항 리스트 가져오기 성공"));
     }
 
 
