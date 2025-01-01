@@ -317,7 +317,7 @@ public class PostService {
     public List<PostListResponseDto> getPostForInf(Long lastPostId,String category){
         Pageable pageable = PageRequest.of(0,8,sortData("date"));
         if(lastPostId==null&&category==null){
-            return postRepository.findAll(pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findAllByIsDeletedFalse(pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else if(lastPostId == null){
             return postRepository.findAllByCategoryAndIsDeletedFalse(category,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
