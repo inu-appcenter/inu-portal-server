@@ -267,8 +267,8 @@ public class MemberServiceTest {
     }
 
     @Test
-    @DisplayName("회원 정보 가져오기 테스트")
-    public void getMemberTest() throws NoSuchFieldException, IllegalAccessException {
+    @DisplayName("회원 정보 가져오기 테스트 - 일반회원")
+    public void getMemberUserTest() throws NoSuchFieldException, IllegalAccessException {
         //given
         Long fire = 3L;
         String studentId = "20231234";
@@ -282,9 +282,31 @@ public class MemberServiceTest {
         assertAll(
                 ()->assertEquals(memberResponseDto.getFireId(),fire),
                 ()->assertEquals(memberResponseDto.getId(),1L),
-                ()->assertEquals(memberResponseDto.getNickname(),studentId)
+                ()->assertEquals(memberResponseDto.getNickname(),studentId),
+                ()->assertEquals(memberResponseDto.getRole(),"user")
         );
+    }
 
+    @Test
+    @DisplayName("회원 정보 가져오기 테스트 - 관리자")
+    public void getMemberAdminTest() throws NoSuchFieldException, IllegalAccessException {
+        //given
+        Long fire = 3L;
+        String studentId = "20231234";
+        Member member = createMember(studentId);
+        ReflectionTestUtils.setField(member,"roles",Collections.singletonList("ROLE_ADMIN"));
+        member.updateFire(fire);
+
+        //when
+        MemberResponseDto memberResponseDto = memberService.getMember(member);
+
+        //given
+        assertAll(
+                ()->assertEquals(memberResponseDto.getFireId(),fire),
+                ()->assertEquals(memberResponseDto.getId(),1L),
+                ()->assertEquals(memberResponseDto.getNickname(),studentId),
+                ()->assertEquals(memberResponseDto.getRole(),"admin")
+        );
     }
 
 
