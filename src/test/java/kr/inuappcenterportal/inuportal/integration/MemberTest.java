@@ -140,18 +140,34 @@ public class MemberTest {
     }
 
     @Test
-    @DisplayName("회원 정보 가져오기 테스트")
-    public void getMemberTest() throws Exception {
+    @DisplayName("회원 정보 가져오기 테스트 - 일반 회원")
+    public void getMemberUserTest() throws Exception {
         String studentId= "20241234";
         Member member = saveMember(studentId);
         TokenDto tokenDto = memberService.login(member);
-
         mockMvc.perform(get("/api/members").header("Auth",tokenDto.getAccessToken()).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("회원 가져오기 성공"))
                 .andExpect(jsonPath("$.data.id").value(member.getId()))
                 .andExpect(jsonPath("$.data.nickname").value(studentId))
                 .andExpect(jsonPath("$.data.fireId").value(1L))
+                .andExpect(jsonPath("$.data.role").value("user"))
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("회원 정보 가져오기 테스트 - 관리자")
+    public void getMemberAdminTest() throws Exception {
+        String studentId= "20241234";
+        Member member = saveAdminMember(studentId);
+        TokenDto tokenDto = memberService.login(member);
+        mockMvc.perform(get("/api/members").header("Auth",tokenDto.getAccessToken()).with(csrf()).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.msg").value("회원 가져오기 성공"))
+                .andExpect(jsonPath("$.data.id").value(member.getId()))
+                .andExpect(jsonPath("$.data.nickname").value(studentId))
+                .andExpect(jsonPath("$.data.fireId").value(1L))
+                .andExpect(jsonPath("$.data.role").value("admin"))
                 .andDo(print());
     }
 
@@ -274,6 +290,9 @@ public class MemberTest {
 
     private Member saveMember(String studentId){
         return memberRepository.save(Member.builder().studentId(studentId).roles(Collections.singletonList("ROLE_USER")).build());
+    }
+    private Member saveAdminMember(String studentId){
+        return memberRepository.save(Member.builder().studentId(studentId).roles(Collections.singletonList("ROLE_ADMIN")).build());
     }
 
     private String makeLoginBody(String studentId, String password) throws JsonProcessingException {

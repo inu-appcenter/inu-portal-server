@@ -57,7 +57,7 @@ public class NoticeService {
     @Transactional
     public void crawlingNotices() throws IOException {
         id = 0;
-        //noticeRepository.truncateTable();
+        noticeRepository.deleteAllInBatch();
         int bachelor = 1516;
         int bachelorNum = 46;
         getNoticeByCategory(bachelor, bachelorNum,"학사");
@@ -76,7 +76,7 @@ public class NoticeService {
         log.info("교육시험공지 크롤링 완료");
     }
 
-    public void getNoticeByCategory(int category,int categoryNum,String categoryName) throws IOException {
+    private void getNoticeByCategory(int category,int categoryNum,String categoryName) throws IOException {
         String url = "https://www.inu.ac.kr/inu/" + category + "/subview.do?enc=";
         int index = 1;
         boolean outLoop = false;
@@ -136,11 +136,11 @@ public class NoticeService {
     }
 
 
-    public String encoding(String baseUrl)  {
+    private String encoding(String baseUrl)  {
         return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
     }
 
-    public boolean isAMonthAgo(String date){
+    private boolean isAMonthAgo(String date){
         LocalDate currentDate = LocalDate.now();
         LocalDate formedDate = LocalDate.parse(date,DateTimeFormatter.ofPattern("yyyy.MM.dd"));
         LocalDate oneMonthAgo = currentDate.minusMonths(1);

@@ -83,11 +83,16 @@ public class MemberService {
 
 
     public MemberResponseDto getMember(Member member){
-        return MemberResponseDto.of(member);
+        if(member.getRoles().contains("ROLE_ADMIN")){
+            return MemberResponseDto.adminMember(member);
+        }
+        else {
+            return MemberResponseDto.userMember(member);
+        }
     }
 
     public List<MemberResponseDto> getAllMember(){
-        return memberRepository.findAll().stream().map(MemberResponseDto::of).collect(Collectors.toList());
+        return memberRepository.findAll().stream().map(this::getMember).collect(Collectors.toList());
     }
 
     @Transactional

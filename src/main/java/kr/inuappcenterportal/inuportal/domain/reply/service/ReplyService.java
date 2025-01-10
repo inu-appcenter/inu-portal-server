@@ -107,7 +107,7 @@ public class ReplyService {
 
     @Transactional
     public int likeReply(Member member, Long replyId){
-        Reply reply = replyRepository.findByIdAndIsDeletedFalse(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
+        Reply reply = replyRepository.findByIdWithLock(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
         if(reply.getMember()!=null&&reply.getMember().getId().equals(member.getId())){
             throw new MyException(MyErrorCode.NOT_LIKE_MY_REPLY);
         }
