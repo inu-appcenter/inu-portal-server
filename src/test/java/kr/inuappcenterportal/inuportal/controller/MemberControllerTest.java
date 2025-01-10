@@ -118,8 +118,8 @@ public class MemberControllerTest {
     }
 
     @Test
-    @DisplayName("회원정보 가져오기 테스트")
-    void getMemberTest() throws Exception {
+    @DisplayName("회원정보 가져오기 테스트 - 일반 회원")
+    void getMemberUserTest() throws Exception {
         Member authMember = mock(Member.class);
         when(authMember.getId()).thenReturn(1L);
         String token = "testToken";
@@ -130,12 +130,37 @@ public class MemberControllerTest {
 
 
         Member member = Member.builder().studentId("123456789").build();
-        MemberResponseDto memberResponseDto = MemberResponseDto.of(member);
+        MemberResponseDto memberResponseDto = MemberResponseDto.userMember(member);
         when(memberService.getMember(any(Member.class))).thenReturn(memberResponseDto);
         mockMvc.perform(get("/api/members").header("Auth",token).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("회원 가져오기 성공"))
                 .andExpect(jsonPath("$.data.nickname").value(memberResponseDto.getNickname()))
+                .andExpect(jsonPath("$.data.role").value("user"))
+                .andDo(print());
+        verify(memberService).getMember(any(Member.class));
+    }
+
+    @Test
+    @DisplayName("회원정보 가져오기 테스트 - 관리자")
+    void getMemberAdminTest() throws Exception {
+        Member authMember = mock(Member.class);
+        when(authMember.getId()).thenReturn(1L);
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+
+
+        Member member = Member.builder().studentId("123456789").build();
+        MemberResponseDto memberResponseDto = MemberResponseDto.adminMember(member);
+        when(memberService.getMember(any(Member.class))).thenReturn(memberResponseDto);
+        mockMvc.perform(get("/api/members").header("Auth",token).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.msg").value("회원 가져오기 성공"))
+                .andExpect(jsonPath("$.data.nickname").value(memberResponseDto.getNickname()))
+                .andExpect(jsonPath("$.data.role").value("admin"))
                 .andDo(print());
         verify(memberService).getMember(any(Member.class));
     }
