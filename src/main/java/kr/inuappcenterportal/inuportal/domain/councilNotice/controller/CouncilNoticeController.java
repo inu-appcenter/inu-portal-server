@@ -99,7 +99,7 @@ public class CouncilNoticeController {
         return ResponseEntity.ok(ResponseDto.of(councilNoticeId,"총학생회 공지사항 삭제 성공"));
     }
 
-    @Operation(summary = "총학생회 공지사항 가져오기",description = "url 파라미터에 게시글의 id를 보내주세요")
+    @Operation(summary = "총학생회 공지사항 가져오기",description = "url 파라미터에 총학생회 공지사항의 id를 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "총학생회 공지사항 가져오기 성공",content = @Content(schema = @Schema(implementation = CouncilNoticeResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 총학생회 공지사항입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))

@@ -94,7 +94,7 @@ public class CouncilNoticeService {
 
     private Sort sort(String sort){
         if(sort.equals("date")){
-            return Sort.by(Sort.Direction.DESC, "createDate","id");
+            return Sort.by(Sort.Direction.DESC, "id");
         }
         else if(sort.equals("view")) {
             return Sort.by(Sort.Direction.DESC, "view", "id");
