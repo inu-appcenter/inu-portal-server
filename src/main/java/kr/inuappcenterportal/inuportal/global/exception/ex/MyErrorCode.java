@@ -50,8 +50,8 @@ public enum MyErrorCode {
     WEATHER_REQUEST_ERROR(HttpStatus.BAD_REQUEST,"날씨 요청에 문제가 있습니다."),
     BLOCK_MANY_SAME_POST_REPLY(HttpStatus.BAD_REQUEST,"일정 시간 동안 같은 게시글이나 댓글을 작성할 수 없습니다."),
     NOT_GENERATE_FIRE_AI_IMAGE(HttpStatus.BAD_REQUEST,"횃불이 이미지가 생성 중 입니다."),
-    NOT_FOUND_COUNCIL_NOTICE(HttpStatus.NOT_FOUND,"존재하지 않는 총학생회 공지사항입니다.");
-
+    NOT_FOUND_COUNCIL_NOTICE(HttpStatus.NOT_FOUND,"존재하지 않는 총학생회 공지사항입니다."),
+    BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 책입니다.");
 
     private final HttpStatus status;
     private final String message;
