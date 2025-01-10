@@ -277,7 +277,7 @@ public class PetitionServiceTest {
         when(petitionRepository.findByIdWithMember(petitionId)).thenReturn(Optional.ofNullable(petition));
 
         //when
-        MyException exception = assertThrows(MyException.class,()->petitionService.getPetition(petitionId,address,member));
+        MyException exception = assertThrows(MyException.class,()->petitionService.getPetition(petitionId,address,null));
 
         //then
         assertEquals(exception.getErrorCode().getMessage(),"비밀글입니다.");
