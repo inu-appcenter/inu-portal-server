@@ -104,7 +104,7 @@ public class PetitionService {
     @Transactional(readOnly = true)
     public PetitionResponseDto getPetition(Long petitionId, String address, Member member){
         Petition petition = petitionRepository.findByIdWithMember(petitionId).orElseThrow(()->new MyException(MyErrorCode.NOT_FOUND_PETITION));
-        if (petition.getIsPrivate() && !petition.getMember().equals(member)&&(member!=null&&!member.getRoles().contains("ROLE_ADMIN"))) {
+        if (petition.getIsPrivate() && (member==null||(!petition.getMember().equals(member) && !member.getRoles().contains("ROLE_ADMIN")))) {
             throw new MyException(MyErrorCode.SECRET_PETITION);
         }
         if(redisService.isFirstConnect(address,petitionId,"petition")){
