@@ -7,10 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
-
 @Getter
-@Schema(description = "책 등록 Dto")
-public class BookRegister {
+@Schema(description = "책 수정 Dto")
+public class BookUpdate {
 
     @NotBlank
     @Schema(description = "제목",example = "제목")
@@ -28,7 +27,4 @@ public class BookRegister {
     @Min(value = 0)
     @Schema(description = "가격",example = "2000")
     private int price;
-
-
 }
-

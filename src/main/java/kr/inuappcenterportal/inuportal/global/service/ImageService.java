@@ -19,8 +19,6 @@ import java.util.stream.Stream;
 @Service
 public class ImageService {
 
-    @Value("${bookImagePath}")
-    private String bookImagePath;
 
     public void saveImage(Long id, List<MultipartFile> images,String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
@@ -55,9 +53,9 @@ public class ImageService {
         }
     }
 
-    public byte[] getThumbnail(Long bookId){
+    public byte[] getThumbnail(Long bookId, String path){
         String fileName = bookId+"-1";
-        Path filePath = Paths.get(bookImagePath, fileName);
+        Path filePath = Paths.get(path, fileName);
         try {
             return Files.readAllBytes(filePath);
         }
@@ -66,18 +64,9 @@ public class ImageService {
         }
     }
 
-    public void saveBookImage(Long id, List<MultipartFile> images) throws IOException {
-        for (int i = 1; i < images.size() + 1; i++) {
-            MultipartFile file = images.get(i - 1);
-            String fileName = id + "-" + i;
-            Path filePath = Paths.get(bookImagePath, fileName);
-            Files.write(filePath, file.getBytes());
-        }
-    }
-
-    public List<byte[]> getImages(Long id) {
+    public List<byte[]> getImages(Long id, String path) {
         List<byte[]> images = new ArrayList<>();
-        try (Stream<Path> paths = Files.list(Paths.get(bookImagePath))) {
+        try (Stream<Path> paths = Files.list(Paths.get(path))) {
             for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id + "-"))
                     .sorted()
                     .toList()) {
@@ -89,6 +78,22 @@ public class ImageService {
         return images;
     }
 
+    public void deleteImages(Long id, String path) {
+        try (Stream<Path> paths = Files.list(Paths.get(path))) {
+            for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id + "-"))
+                    .toList()) {
+                Files.delete(filePath);
+            }
+        } catch (IOException e) {
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
+        }
+    }
+
+    public void updateImages(Long id, List<MultipartFile> images,String path) throws IOException {
+        deleteImages(id, path);
+        if (images == null) images = new ArrayList<>();
+        saveImage(id, images, path);
+    }
 
 
 

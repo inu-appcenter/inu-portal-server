@@ -36,29 +36,23 @@ public class Book extends BaseTimeEntity {
     @Column(nullable = false,length = 2000)
     private String content;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    private Member member;
 
     @Builder
-    public Book(String name, String author, int price, TransactionStatus transactionStatus, String content, Member member) {
+    public Book(String name, String author, int price, TransactionStatus transactionStatus, String content) {
         this.name = name;
         this.author = author;
         this.price = price;
         this.transactionStatus = transactionStatus;
         this.content = content;
-        this.member = member;
     }
 
-    public static Book create(String name, String author, int price, String content, Member member) {
+    public static Book create(String name, String author, int price, String content) {
         return Book.builder()
                 .name(name)
                 .author(author)
                 .price(price)
                 .transactionStatus(TransactionStatus.AVAILABLE)
                 .content(content)
-                .member(member)
                 .build();
     }
 
@@ -66,5 +60,14 @@ public class Book extends BaseTimeEntity {
        transactionStatus = transactionStatus.toggle();
     }
 
+    public void delete() {
+        transactionStatus = transactionStatus.delete();
+    }
 
+    public void update(String name, String author, int price, String content) {
+        this.name = name;
+        this.author = author;
+        this.price = price;
+        this.content = content;
+    }
 }

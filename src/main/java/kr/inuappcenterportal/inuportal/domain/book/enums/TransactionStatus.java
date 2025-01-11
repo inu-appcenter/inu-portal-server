@@ -10,4 +10,6 @@ public enum TransactionStatus {
     public TransactionStatus toggle() {
         return this == COMPLETED ? AVAILABLE : COMPLETED;
     }
+
+    public TransactionStatus delete() { return DELETED; }
 }

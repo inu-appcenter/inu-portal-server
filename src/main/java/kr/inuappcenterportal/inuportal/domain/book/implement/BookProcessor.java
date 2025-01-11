@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.book.implement;
 
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookDetail;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookPreview;
+import kr.inuappcenterportal.inuportal.domain.book.dto.BookUpdate;
 import kr.inuappcenterportal.inuportal.domain.book.enums.TransactionStatus;
 import kr.inuappcenterportal.inuportal.domain.book.model.Book;
 import kr.inuappcenterportal.inuportal.domain.book.repository.BookRepository;
@@ -36,25 +37,24 @@ public class BookProcessor {
         return bookRepository.findAll(PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
     }
 
-    public ListResponseDto<BookPreview> getListWithThumbnails(Page<Book> books) {
+    public ListResponseDto<BookPreview> getListWithThumbnails(Page<Book> books, String path) {
         List<BookPreview> bookPreviews = books.stream()
-                .map(book -> BookPreview.of(book, Base64.getEncoder().encodeToString(imageService.getThumbnail(book.getId())))).toList();
+                .map(book -> BookPreview.of(book, Base64.getEncoder().encodeToString(imageService.getThumbnail(book.getId(), path)))).toList();
         long total = books.getTotalElements();
         long pages = books.getTotalPages();
         return ListResponseDto.of(pages, total, bookPreviews);
     }
 
-    public BookDetail getDetail(Long bookId) {
+    public BookDetail getDetail(Long bookId, String path) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
-        List<byte[]> images = imageService.getImages(bookId);
+        List<byte[]> images = imageService.getImages(bookId, path);
         return BookDetail.of(book, images);
     }
 
     @Transactional
-    public Long toggleTransactionStatus(Long bookId) {
+    public void toggleTransactionStatus(Long bookId) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
         book.toggleTransactionStatus();
-        return bookId;
     }
 
     @Transactional(readOnly = true)
@@ -62,5 +62,15 @@ public class BookProcessor {
         return bookRepository.findAllByTransactionStatus(TransactionStatus.AVAILABLE,PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
     }
 
+    @Transactional
+    public void delete(Long bookId) {
+        Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
+        book.delete();
+    }
 
+    @Transactional
+    public void update(BookUpdate bookUpdate, Long bookId) {
+        Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
+        book.update(bookUpdate.getName(), bookUpdate.getAuthor(), bookUpdate.getPrice(), bookUpdate.getContent());
+    }
 }
