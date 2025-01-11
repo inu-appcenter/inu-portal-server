@@ -17,10 +17,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -162,7 +162,7 @@ public class CouncilServiceTest {
         CouncilNotice councilNotice2 = createCouncilNotice("제목2","내용2");
         CouncilNotice councilNotice3 = createCouncilNotice("제목3","내용3");
         List<CouncilNotice> councilNotices = Arrays.asList(councilNotice1,councilNotice2,councilNotice3);
-        Pageable pageable = PageRequest.of(0, 8, Sort.by(Sort.Direction.DESC, "createDate","id"));
+        Pageable pageable = PageRequest.of(0, 8, Sort.by(Sort.Direction.DESC, "id"));
         Page<CouncilNotice> mockPage = new PageImpl<>(councilNotices,pageable,councilNotices.size());
         when(councilRepository.findAllBy(pageable)).thenReturn(mockPage);
 
@@ -191,19 +191,9 @@ public class CouncilServiceTest {
                 .title(title)
                 .content(content)
                 .build();
-        Class<?> c = councilNotice.getClass();
-        Field filed = c.getDeclaredField("id");
-        filed.setAccessible(true);
-        filed.set(councilNotice,1L);
-
-        Class<?> c2 = councilNotice.getClass().getSuperclass();
-        Field f2 = c2.getDeclaredField("createDate");
-        f2.setAccessible(true);
-        f2.set(councilNotice,LocalDate.now());
-
-        Field f3 = c2.getDeclaredField("modifiedDate");
-        f3.setAccessible(true);
-        f3.set(councilNotice,LocalDate.now());
+        ReflectionTestUtils.setField(councilNotice,"id",1L);
+        ReflectionTestUtils.setField(councilNotice,"createDate",LocalDate.now());
+        ReflectionTestUtils.setField(councilNotice,"modifiedDate",LocalDate.now());
         return councilNotice;
     }
 

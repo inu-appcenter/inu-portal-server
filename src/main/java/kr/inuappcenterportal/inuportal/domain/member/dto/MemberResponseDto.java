@@ -16,15 +16,21 @@ public class MemberResponseDto {
     private String nickname;
     @Schema(description = "횃불이 이미지 번호")
     private Long fireId;
+    @Schema(description = "회원의 권한")
+    private String role;
 
     @Builder
-    private MemberResponseDto(Member member){
+    private MemberResponseDto(Member member, String role){
         this.id = member.getId();
         this.nickname = member.getNickname();
         this.fireId = member.getFireId();
+        this.role = role;
     }
 
-    public static MemberResponseDto of(Member member){
-        return MemberResponseDto.builder().member(member).build();
+    public static MemberResponseDto userMember(Member member){
+        return MemberResponseDto.builder().member(member).role("user").build();
+    }
+    public static MemberResponseDto adminMember(Member member){
+        return MemberResponseDto.builder().member(member).role("admin").build();
     }
 }

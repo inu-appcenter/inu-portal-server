@@ -18,8 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
@@ -128,10 +128,7 @@ public class MemberServiceTest {
     }
     private Member createMember(String studentId) throws NoSuchFieldException, IllegalAccessException {
         Member member = Member.builder().studentId(studentId).roles(Collections.singletonList("ROLE_USER")).build();
-        Class<?> c = member.getClass();
-        Field field = c.getDeclaredField("id");
-        field.setAccessible(true);
-        field.set(member,1L);
+        ReflectionTestUtils.setField(member,"id",1L);
         return member;
     }
 
@@ -270,8 +267,8 @@ public class MemberServiceTest {
     }
 
     @Test
-    @DisplayName("회원 정보 가져오기 테스트")
-    public void getMemberTest() throws NoSuchFieldException, IllegalAccessException {
+    @DisplayName("회원 정보 가져오기 테스트 - 일반회원")
+    public void getMemberUserTest() throws NoSuchFieldException, IllegalAccessException {
         //given
         Long fire = 3L;
         String studentId = "20231234";
@@ -285,9 +282,31 @@ public class MemberServiceTest {
         assertAll(
                 ()->assertEquals(memberResponseDto.getFireId(),fire),
                 ()->assertEquals(memberResponseDto.getId(),1L),
-                ()->assertEquals(memberResponseDto.getNickname(),studentId)
+                ()->assertEquals(memberResponseDto.getNickname(),studentId),
+                ()->assertEquals(memberResponseDto.getRole(),"user")
         );
+    }
 
+    @Test
+    @DisplayName("회원 정보 가져오기 테스트 - 관리자")
+    public void getMemberAdminTest() throws NoSuchFieldException, IllegalAccessException {
+        //given
+        Long fire = 3L;
+        String studentId = "20231234";
+        Member member = createMember(studentId);
+        ReflectionTestUtils.setField(member,"roles",Collections.singletonList("ROLE_ADMIN"));
+        member.updateFire(fire);
+
+        //when
+        MemberResponseDto memberResponseDto = memberService.getMember(member);
+
+        //given
+        assertAll(
+                ()->assertEquals(memberResponseDto.getFireId(),fire),
+                ()->assertEquals(memberResponseDto.getId(),1L),
+                ()->assertEquals(memberResponseDto.getNickname(),studentId),
+                ()->assertEquals(memberResponseDto.getRole(),"admin")
+        );
     }
 
 

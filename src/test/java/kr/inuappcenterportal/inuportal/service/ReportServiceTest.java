@@ -17,8 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -40,15 +40,12 @@ public class ReportServiceTest {
 
     @Test
     @DisplayName("신고 테스트")
-    public void report() throws NoSuchFieldException, IllegalAccessException {
+    public void report() {
         Long memberId = 1L;
         Long postId = 1L;
         ReportRequestDto dto = new ReportRequestDto("잘못된 정보","7호관은 도서관이 아닙니다.");
         Report report = Report.builder().build();
-        Class<?> c = report.getClass();
-        Field id = c.getDeclaredField("id");
-        id.setAccessible(true);
-        id.set(report,1L);
+        ReflectionTestUtils.setField(report,"id",1L);
         when(reportRepository.save(any(Report.class))).thenReturn(report);
         Long reportId = reportService.saveReport(dto,postId,memberId);
         Assertions.assertThat(reportId).isEqualTo(1L);
@@ -57,7 +54,7 @@ public class ReportServiceTest {
 
     @Test
     @DisplayName("신고 목록 가져오기 테스트")
-    public void getReportList() throws NoSuchFieldException, IllegalAccessException {
+    public void getReportList(){
         int page = 1;
         Pageable pageable = PageRequest.of(0, 8);
 
@@ -81,12 +78,9 @@ public class ReportServiceTest {
                 .postId(105L)
                 .memberId(3L)
                 .build();
-        Class<?> c = report1.getClass();
-        Field createDate = c.getSuperclass().getDeclaredField("createDate");
-        createDate.setAccessible(true);
-        createDate.set(report1, LocalDate.now());
-        createDate.set(report2,LocalDate.now());
-        createDate.set(report3,LocalDate.now());
+        ReflectionTestUtils.setField(report1,"createDate",LocalDate.now());
+        ReflectionTestUtils.setField(report2,"createDate",LocalDate.now());
+        ReflectionTestUtils.setField(report3,"createDate",LocalDate.now());
 
         List<Report> reportList = Arrays.asList(report1, report2,report3);
         Page<Report> mockPage = new PageImpl<>(reportList, pageable, reportList.size());
