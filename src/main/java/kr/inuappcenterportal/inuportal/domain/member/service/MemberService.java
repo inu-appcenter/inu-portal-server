@@ -34,9 +34,9 @@ public class MemberService {
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto){
         Member member = memberRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         if(memberUpdateNicknameDto.getNickname()!=null) {
-            /*if (memberUpdateNicknameDto.getNickname().equals(member.getNickname())) {
+            if (memberUpdateNicknameDto.getNickname().equals(member.getNickname())) {
                 throw new MyException(MyErrorCode.SAME_NICKNAME_UPDATE);
-            }*/
+            }
             if (memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())) {
                 throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
             }
