@@ -18,7 +18,7 @@ public class SwaggerConfig {
     private Info apiInfo() {
         return new Info()
                 .title("INTIP API명세서")
-                .description("api 명세서")
+                .description("이미지 호출 : /images/도메인/id-이미지번호  ex) /images/post-1-1 \n 썸네일 호출 : /images/도메인/thumbnail/id  ex /images/post/thumbnail/1")
                 .version("1.0.0");
     }
 }

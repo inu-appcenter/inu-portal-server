@@ -43,6 +43,8 @@ dependencies {
     implementation 'com.oracle.database.jdbc:ojdbc11'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation group: 'net.coobird', name: 'thumbnailator', version: '0.4.1'
+
 }
 
 tasks.named('test') {
