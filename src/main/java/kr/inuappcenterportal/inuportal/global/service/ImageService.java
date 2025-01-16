@@ -3,10 +3,10 @@ package kr.inuappcenterportal.inuportal.global.service;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,10 +23,25 @@ public class ImageService {
     public void saveImage(Long id, List<MultipartFile> images,String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
             MultipartFile file = images.get(i - 1);
-            String fileName = id + "-" + i;
+            String originalFilename = file.getOriginalFilename();
+            String fileExtension = getExtension(originalFilename);
+            String fileName = id + "-" + i + fileExtension;
             Path filePath = Paths.get(path, fileName);
             Files.write(filePath, file.getBytes());
         }
+        saveThumbnail(images.get(0),path+"/thumbnail");
+    }
+    private String getExtension(String filename) {
+        // 파일 확장자 추출 (예: .jpg, .png)
+        int dotIndex = filename.lastIndexOf(".");
+        if (dotIndex != -1 && dotIndex < filename.length() - 1) {
+            return filename.substring(dotIndex); // 확장자 반환
+        }
+        return ""; // 확장자가 없는 경우 빈 문자열 반환
+    }
+
+    private void saveThumbnail(MultipartFile image,String path){
+
     }
 
     public void updateImage(Long id,long presentImageCount, List<MultipartFile> images,String path) throws IOException {
@@ -36,8 +51,11 @@ public class ImageService {
 
     public byte[] getImage(Long id, Long imageId, String path){
         String fileName = id+"-"+imageId;
-        Path filePath = Paths.get(path, fileName);
         try {
+            File directory = new File(path);
+            File[] matchingFiles = directory.listFiles((dir, name) -> name.startsWith(fileName));
+            File file = matchingFiles[0];
+            Path filePath = file.toPath();
             return Files.readAllBytes(filePath);
         }
         catch (Exception e){
