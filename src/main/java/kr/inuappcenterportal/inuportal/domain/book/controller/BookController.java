@@ -56,8 +56,8 @@ public class BookController {
             @ApiResponse(responseCode = "200", description = "책 리스트 조회 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
     })
     @GetMapping
-    public ResponseEntity<ListResponseDto<BookPreview>> getList(@RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
-        return ResponseEntity.status(OK).body(bookService.getList(page));
+    public ResponseEntity<ResponseDto<ListResponseDto<BookPreview>>> getList(@RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
+        return ResponseEntity.status(OK).body(ResponseDto.of(bookService.getList(page),"책 리스트 조회 성공"));
     }
 
     @Operation(summary = "책 상세 조회", description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id를 보내주세요.")
@@ -84,8 +84,8 @@ public class BookController {
             @ApiResponse(responseCode = "200", description = "판매 가능한 책 리스트 조회 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
     })
     @GetMapping("/available")
-    public ResponseEntity<ListResponseDto<BookPreview>> getListOnlyAvailable(@RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
-        return ResponseEntity.status(OK).body(bookService.getListOnlyAvailable(page));
+    public ResponseEntity<ResponseDto<ListResponseDto<BookPreview>>> getListOnlyAvailable(@RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
+        return ResponseEntity.status(OK).body(ResponseDto.of(bookService.getListOnlyAvailable(page),"판매 가능한 책 리스트 조회 성공"));
     }
 
     @Operation(summary = "책 삭제", description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id를 보내주세요.")
