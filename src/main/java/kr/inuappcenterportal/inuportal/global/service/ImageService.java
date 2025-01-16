@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.global.service;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,19 +30,25 @@ public class ImageService {
             Path filePath = Paths.get(path, fileName);
             Files.write(filePath, file.getBytes());
         }
-        saveThumbnail(images.get(0),path+"/thumbnail");
+        saveThumbnail(images.get(0),path+"/thumbnail",id);
     }
     private String getExtension(String filename) {
         // 파일 확장자 추출 (예: .jpg, .png)
         int dotIndex = filename.lastIndexOf(".");
         if (dotIndex != -1 && dotIndex < filename.length() - 1) {
-            return filename.substring(dotIndex); // 확장자 반환
+            return filename.substring(dotIndex);
         }
-        return ""; // 확장자가 없는 경우 빈 문자열 반환
+        return "";
     }
 
-    private void saveThumbnail(MultipartFile image,String path){
-
+    private void saveThumbnail(MultipartFile image,String path, Long id) throws IOException {
+        String fileExtension = getExtension(image.getOriginalFilename());
+        String thumbnailName = id + fileExtension;
+        Path thumbnailPath = Paths.get(path, thumbnailName);
+        Thumbnails.of(image.getInputStream())
+                .size(150, 150)
+                .outputFormat(fileExtension.replace(".", ""))
+                .toFile(thumbnailPath.toFile());
     }
 
     public void updateImage(Long id,long presentImageCount, List<MultipartFile> images,String path) throws IOException {
