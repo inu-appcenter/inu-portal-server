@@ -21,12 +21,16 @@ import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.*;
@@ -42,13 +46,23 @@ public class BookController {
 
     private final BookService bookService;
 
-    @Operation(summary = "책 등록", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content, int 형태의 price} 보내주세요. 성공 시 등록된 책의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "책만 저장", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content, int 형태의 price} 보내주세요. 그 이후 등록된 게시글의 id와 이미지를 보내주세요. 성공 시 등록된 책의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "책 등록 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<ResponseDto<Long>> register(@RequestPart @Valid BookRegister request, @RequestPart List<MultipartFile> images) throws IOException {
-        return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(Book.create(request.getName(), request.getAuthor(), request.getPrice(), request.getContent(), images.size()), images), "책 등록 성공"));
+    @PostMapping
+    public ResponseEntity<ResponseDto<Long>> register(@RequestBody @Valid BookRegister request) throws IOException {
+        return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(Book.create(request.getName(), request.getAuthor(), request.getPrice(), request.getContent())),"책 등록 성공"));
+    }
+
+    @Operation(summary = "게시글 이미지 등록",description = "파라미터에 책의 id, images에 이미지 파일들을 보내주세요. 성공 시 책의 데이터베이 아이디값이 {data: id}으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201",description = "이미지 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 책입니다. / 존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping(value = "/{bookId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<Long>> saveImage(@RequestPart List<MultipartFile> images, @Parameter(name = "bookId",description = "책의 id",in = ParameterIn.PATH) @PathVariable Long bookId) throws IOException {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(bookService.saveImage(bookId, images), "이미지 등록 성공"));
     }
 
     @Operation(summary = "책 리스트 조회", description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id를 보내주세요. 페이지(공백일 시 1)를 보내주세요.")
@@ -58,6 +72,19 @@ public class BookController {
     @GetMapping
     public ResponseEntity<ResponseDto<ListResponseDto<BookPreview>>> getList(@RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
         return ResponseEntity.status(OK).body(ResponseDto.of(bookService.getList(page),"책 리스트 조회 성공"));
+    }
+
+    @Operation(summary = "책의 이미지 가져오기",description = "url 파라미터에 bookId, imageId를 보내주세요. imageId는 이미지의 등록 순번입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "책의 이미지 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 책입니다. / 존재하지 않는 이미지 번호입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @GetMapping("/{bookId}/images/{imageId}")
+    public ResponseEntity<byte[]> getImages(@Parameter(name = "bookId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long bookId, @Parameter(name = "imageId",description = "이미지 번호",in = ParameterIn.PATH) @PathVariable Long imageId) throws IOException {
+        log.info("책의 이미지 가져오기 호출 id:{}",bookId);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.IMAGE_PNG);
+        return ResponseEntity.ok().headers(httpHeaders).body(bookService.getImage(bookId, imageId));
     }
 
     @Operation(summary = "책 상세 조회", description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id를 보내주세요.")
@@ -107,5 +134,20 @@ public class BookController {
             @Parameter(name = "bookId",description = "책의 id",in = ParameterIn.PATH) @PathVariable Long bookId) throws IOException {
         bookService.update(request, images, bookId);
         return ResponseEntity.ok(ResponseDto.of(bookId, "책 수정 완료"));
+    }
+
+    @Operation(summary = "책의 이미지 수정",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id, images 에 기존 이미지를 포함한 이미지들을 보내주세요.(아무 이미지도 보내지 않을 시 모든 이미지가 삭제됩니다) 성공 시 수정된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "책 이미지 수정 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PutMapping(value = "/{bookId}/images",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<Long>> updateOnlyImage(@AuthenticationPrincipal Member member, @Parameter(name = "bookId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long bookId, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
+        log.info("책 이미지 수정 호출 id:{}",bookId);
+        if(images==null){
+            images = new ArrayList<>();
+        }
+        bookService.updateImageLocal(bookId, images);
+        return ResponseEntity.ok(ResponseDto.of(bookId,"게시글 수정 성공"));
     }
 }

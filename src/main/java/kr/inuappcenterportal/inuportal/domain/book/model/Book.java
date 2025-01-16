@@ -51,14 +51,13 @@ public class Book extends BaseTimeEntity {
         this.imageCount = imageCount;
     }
 
-    public static Book create(String name, String author, int price, String content, int imageCount) {
+    public static Book create(String name, String author, int price, String content) {
         return Book.builder()
                 .name(name)
                 .author(author)
                 .price(price)
                 .transactionStatus(TransactionStatus.AVAILABLE)
                 .content(content)
-                .imageCount(imageCount)
                 .build();
     }
 
@@ -76,4 +75,9 @@ public class Book extends BaseTimeEntity {
         this.price = price;
         this.content = content;
     }
+
+    public void updateImageCount(int imageCount){
+        this.imageCount += imageCount;
+    }
+
 }

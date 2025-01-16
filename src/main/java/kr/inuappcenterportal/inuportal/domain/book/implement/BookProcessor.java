@@ -17,7 +17,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Base64;
 import java.util.List;
 
 @Component
@@ -25,7 +24,6 @@ import java.util.List;
 public class BookProcessor {
 
     private final BookRepository bookRepository;
-    private final ImageService imageService;
 
     public Long register(Book book) {
         bookRepository.save(book);
@@ -37,7 +35,7 @@ public class BookProcessor {
         return bookRepository.findAll(PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
     }
 
-    public ListResponseDto<BookPreview> getListWithThumbnails(Page<Book> books, String path) {
+    public ListResponseDto<BookPreview> getList(Page<Book> books) {
         List<BookPreview> bookPreviews = books.stream()
                 .map(BookPreview::of).toList();
         long total = books.getTotalElements();
