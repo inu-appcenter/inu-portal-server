@@ -11,15 +11,13 @@ public class BookPreview {
     private Long id;
     private String name;
     private String author;
-    private String thumbnail;
     private TransactionStatus transactionStatus;
 
-    public static BookPreview of(Book book, String thumbnail) {
+    public static BookPreview of(Book book) {
         return BookPreview.builder()
                 .id(book.getId())
                 .name(book.getName())
                 .author(book.getAuthor())
-                .thumbnail(thumbnail)
                 .transactionStatus(book.getTransactionStatus())
                 .build();
     }

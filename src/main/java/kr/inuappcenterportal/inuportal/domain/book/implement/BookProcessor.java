@@ -39,16 +39,15 @@ public class BookProcessor {
 
     public ListResponseDto<BookPreview> getListWithThumbnails(Page<Book> books, String path) {
         List<BookPreview> bookPreviews = books.stream()
-                .map(book -> BookPreview.of(book, Base64.getEncoder().encodeToString(imageService.getThumbnail(book.getId(), path)))).toList();
+                .map(BookPreview::of).toList();
         long total = books.getTotalElements();
         long pages = books.getTotalPages();
         return ListResponseDto.of(pages, total, bookPreviews);
     }
 
-    public BookDetail getDetail(Long bookId, String path) {
+    public BookDetail getDetail(Long bookId) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
-        List<byte[]> images = imageService.getImages(bookId, path);
-        return BookDetail.of(book, images);
+        return BookDetail.of(book);
     }
 
     @Transactional

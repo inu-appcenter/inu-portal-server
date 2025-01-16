@@ -18,9 +18,8 @@ public class BookDetail {
     private String content;
     private TransactionStatus transactionStatus;
     private int imageCount;
-    private List<byte[]> images;
 
-    public static BookDetail of(Book book, List<byte[]> images) {
+    public static BookDetail of(Book book) {
         return BookDetail.builder()
                 .id(book.getId())
                 .name(book.getName())
@@ -28,8 +27,7 @@ public class BookDetail {
                 .price(book.getPrice())
                 .content(book.getContent())
                 .transactionStatus(book.getTransactionStatus())
-                .imageCount(images.size())
-                .images(images)
+                .imageCount(book.getImageCount())
                 .build();
     }
 

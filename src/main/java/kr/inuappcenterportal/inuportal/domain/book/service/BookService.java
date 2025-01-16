@@ -38,7 +38,7 @@ public class BookService {
     }
 
     public BookDetail get(Long bookId) {
-        return bookProcessor.getDetail(bookId, bookImagePath);
+        return bookProcessor.getDetail(bookId);
     }
 
     public void toggleTransactionStatus(Long bookId) {

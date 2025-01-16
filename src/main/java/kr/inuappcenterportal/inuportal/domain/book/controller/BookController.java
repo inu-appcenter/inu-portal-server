@@ -48,7 +48,7 @@ public class BookController {
     })
     @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ResponseDto<Long>> register(@RequestPart @Valid BookRegister request, @RequestPart List<MultipartFile> images) throws IOException {
-        return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(Book.create(request.getName(), request.getAuthor(), request.getPrice(), request.getContent()), images), "책 등록 성공"));
+        return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(Book.create(request.getName(), request.getAuthor(), request.getPrice(), request.getContent(), images.size()), images), "책 등록 성공"));
     }
 
     @Operation(summary = "책 리스트 조회", description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id를 보내주세요. 페이지(공백일 시 1)를 보내주세요.")

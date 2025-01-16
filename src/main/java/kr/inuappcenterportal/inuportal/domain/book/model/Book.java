@@ -36,23 +36,28 @@ public class Book extends BaseTimeEntity {
     @Column(nullable = false,length = 2000)
     private String content;
 
+    @Column
+    private int imageCount;
+
 
     @Builder
-    public Book(String name, String author, int price, TransactionStatus transactionStatus, String content) {
+    public Book(String name, String author, int price, TransactionStatus transactionStatus, String content, int imageCount) {
         this.name = name;
         this.author = author;
         this.price = price;
         this.transactionStatus = transactionStatus;
         this.content = content;
+        this.imageCount = imageCount;
     }
 
-    public static Book create(String name, String author, int price, String content) {
+    public static Book create(String name, String author, int price, String content, int imageCount) {
         return Book.builder()
                 .name(name)
                 .author(author)
                 .price(price)
                 .transactionStatus(TransactionStatus.AVAILABLE)
                 .content(content)
+                .imageCount(imageCount)
                 .build();
     }
 
