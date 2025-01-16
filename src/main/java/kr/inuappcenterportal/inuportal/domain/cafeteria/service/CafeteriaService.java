@@ -28,7 +28,7 @@ public class CafeteriaService {
     @Value("${installPath}")
     private String installPath;
 
-//    @PostConstruct
+   @PostConstruct
     @Transactional
     public void initCafeteria() throws InterruptedException {
         crawlCafeteria();

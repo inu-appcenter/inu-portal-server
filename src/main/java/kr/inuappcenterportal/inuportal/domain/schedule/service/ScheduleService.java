@@ -32,7 +32,7 @@ public class ScheduleService {
     private static long id = 0L;
 
 
-//    @PostConstruct
+    @PostConstruct
     @Transactional
     public void initSchedule() throws InterruptedException {
         crawlingSchedule();
