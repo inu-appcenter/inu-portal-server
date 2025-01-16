@@ -70,7 +70,7 @@ public class CouncilNoticeService {
         councilRepository.delete(councilNotice);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CouncilNoticeResponseDto getCouncilNotice(Long councilNoticeId, String address){
         CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElseThrow(()-> new MyException(MyErrorCode.NOT_FOUND_COUNCIL_NOTICE));
         if(redisService.isFirstConnect(address,councilNoticeId,"councilNotice")){

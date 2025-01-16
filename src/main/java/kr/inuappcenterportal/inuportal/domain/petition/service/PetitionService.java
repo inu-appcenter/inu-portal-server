@@ -99,7 +99,7 @@ public class PetitionService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PetitionResponseDto getPetition(Long petitionId, String address, Member member){
         Petition petition = petitionRepository.findByIdWithMember(petitionId).orElseThrow(()->new MyException(MyErrorCode.NOT_FOUND_PETITION));
         if (petition.getIsPrivate() && (member==null||(!petition.getMember().equals(member) && !member.getRoles().contains("ROLE_ADMIN")))) {
