@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.report.dto.ReportListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.report.dto.ReportRequestDto;
 import kr.inuappcenterportal.inuportal.domain.report.model.Report;
 import kr.inuappcenterportal.inuportal.domain.report.service.ReportService;
+import kr.inuappcenterportal.inuportal.global.config.CustomResourceResolver;
 import kr.inuappcenterportal.inuportal.global.config.SecurityConfig;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -49,6 +50,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @MockBean(JpaMetamodelMappingContext.class)
 @Import(SecurityConfig.class)
 public class ReportControllerTest {
+    @MockBean
+    private CustomResourceResolver customResourceResolver;
     @Autowired
     MockMvc mockMvc;
     ObjectMapper objectMapper = new ObjectMapper();
