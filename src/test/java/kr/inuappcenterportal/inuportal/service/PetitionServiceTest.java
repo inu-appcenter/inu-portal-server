@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.service;
 
-import kr.inuappcenterportal.inuportal.domain.PetitionLike.model.PetitionLike;
-import kr.inuappcenterportal.inuportal.domain.PetitionLike.repository.PetitionLikeRepository;
+import kr.inuappcenterportal.inuportal.domain.petitionLike.model.PetitionLike;
+import kr.inuappcenterportal.inuportal.domain.petitionLike.repository.PetitionLikeRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.petition.dto.PetitionListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.petition.dto.PetitionRequestDto;

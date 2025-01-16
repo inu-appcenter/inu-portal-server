@@ -1,14 +1,13 @@
 package kr.inuappcenterportal.inuportal.domain.petition.service;
 
-import kr.inuappcenterportal.inuportal.domain.PetitionLike.model.PetitionLike;
-import kr.inuappcenterportal.inuportal.domain.PetitionLike.repository.PetitionLikeRepository;
+import kr.inuappcenterportal.inuportal.domain.petitionLike.model.PetitionLike;
+import kr.inuappcenterportal.inuportal.domain.petitionLike.repository.PetitionLikeRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.petition.dto.PetitionListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.petition.dto.PetitionRequestDto;
 import kr.inuappcenterportal.inuportal.domain.petition.dto.PetitionResponseDto;
 import kr.inuappcenterportal.inuportal.domain.petition.model.Petition;
 import kr.inuappcenterportal.inuportal.domain.petition.respoitory.PetitionRepository;
-import kr.inuappcenterportal.inuportal.domain.postLike.model.PostLike;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -26,7 +25,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

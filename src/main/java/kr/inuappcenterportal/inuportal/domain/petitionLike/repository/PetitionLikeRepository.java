@@ -1,6 +1,6 @@
-package kr.inuappcenterportal.inuportal.domain.PetitionLike.repository;
+package kr.inuappcenterportal.inuportal.domain.petitionLike.repository;
 
-import kr.inuappcenterportal.inuportal.domain.PetitionLike.model.PetitionLike;
+import kr.inuappcenterportal.inuportal.domain.petitionLike.model.PetitionLike;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.petition.model.Petition;
 import org.springframework.data.jpa.repository.JpaRepository;

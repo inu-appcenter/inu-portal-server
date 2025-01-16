@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.PetitionLike.model;
+package kr.inuappcenterportal.inuportal.domain.petitionLike.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
