@@ -79,8 +79,10 @@ public class ImageService {
     }
 
     public byte[] getThumbnail(Long bookId, String path){
-        String fileName = bookId+"-1";
-        Path filePath = Paths.get(path, fileName);
+        File directory = new File(path+"/thumbnail");
+        File[] matchingFiles = directory.listFiles((dir, name) -> name.startsWith(String.valueOf(bookId)));
+        File file = matchingFiles[0];
+        Path filePath = file.toPath();
         try {
             return Files.readAllBytes(filePath);
         }
