@@ -14,6 +14,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name="book")
 public class Book extends BaseTimeEntity {
 
     @Id
@@ -36,7 +37,7 @@ public class Book extends BaseTimeEntity {
     @Column(nullable = false,length = 2000)
     private String content;
 
-    @Column
+    @Column(name = "image_count")
     private int imageCount;
 
 
