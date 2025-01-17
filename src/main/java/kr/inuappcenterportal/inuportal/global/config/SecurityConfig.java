@@ -41,10 +41,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/cafeterias","/api/weathers","/api/councilNotices","/api/councilNotices/**","/api/petitions","/api/petitions/**").permitAll()
                         .requestMatchers("/api/posts/**","/api/posts","/api/fires/**","/api/petitions","/api/petitions/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/replies/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers("/api/search","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
+                        .requestMatchers("/api/search","/api/notices","/api/notices/**","api/schedules","api/schedules/**", "/api/reservations/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders","/api/search/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**", "/api/books/**").permitAll()
-                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**").hasRole("ADMIN"));
+                        .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**", "/api/books/**", "/api/items/**").permitAll()
+                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**").hasRole("ADMIN"));
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))

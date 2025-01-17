@@ -53,8 +53,16 @@ public enum MyErrorCode {
     NOT_FOUND_COUNCIL_NOTICE(HttpStatus.NOT_FOUND,"존재하지 않는 총학생회 공지사항입니다."),
     BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 책입니다."),
     NOT_FOUND_PETITION(HttpStatus.NOT_FOUND,"존재하지 않는 총학생회 청원입니다."),
-    SECRET_PETITION(HttpStatus.FORBIDDEN,"비밀글입니다.");
-
+    SECRET_PETITION(HttpStatus.FORBIDDEN,"비밀글입니다."),
+    ITEM_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 물품 번호입니다."),
+    INVALID_CATEGORY(HttpStatus.NOT_FOUND, "카테고리가 존재하지 않습니다."),
+    OUT_OF_ITEM(HttpStatus.CONFLICT, "물품 예약 가능 수량이 부족합니다."),
+    INAPPROPRIATE_RESERVATION_PERIOD(HttpStatus.BAD_REQUEST, "예약 가능 시간이 아닙니다."),
+    INAPPROPRIATE_RENTAL_DAY(HttpStatus.BAD_REQUEST, "대여 및 반납 가능 날이 아닙니다."),
+    INAPPROPRIATE_RENTAL_TIME(HttpStatus.BAD_REQUEST, "대여 및 반납 가능 시간이 아닙니다."),
+    DUPLICATE_RESERVATION(HttpStatus.BAD_REQUEST, "동일한 사용자의 예약이 존재합니다."),
+    RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 예약"),
+    HAS_NOT_RESERVATION_AUTHORIZATION(HttpStatus.NOT_FOUND, "이 예약에 대한 삭제 권한이 없습니다.");
 
     private final HttpStatus status;
     private final String message;
