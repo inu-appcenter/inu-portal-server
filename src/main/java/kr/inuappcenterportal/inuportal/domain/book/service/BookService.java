@@ -6,7 +6,6 @@ import kr.inuappcenterportal.inuportal.domain.book.dto.BookUpdate;
 import kr.inuappcenterportal.inuportal.domain.book.implement.BookProcessor;
 import kr.inuappcenterportal.inuportal.domain.book.model.Book;
 import kr.inuappcenterportal.inuportal.domain.book.repository.BookRepository;
-import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -15,14 +14,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class BookService {
 
@@ -37,8 +34,7 @@ public class BookService {
     }
 
     public Long saveImage(Long bookId, List<MultipartFile> images) throws IOException {
-        Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
-        book.updateImageCount(1);
+        bookProcessor.updateImageCount(bookId);
         imageService.saveImage(bookId, images, bookImagePath);
         return bookId;
     }

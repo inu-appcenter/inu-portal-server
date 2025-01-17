@@ -65,7 +65,7 @@ public class BookController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(bookService.saveImage(bookId, images), "이미지 등록 성공"));
     }
 
-    @Operation(summary = "책 리스트 조회", description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id를 보내주세요. 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "책 리스트 조회", description = "헤더 Auth에 발급받은 토큰을 보내주세요. 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "책 리스트 조회 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
     })

@@ -9,7 +9,6 @@ import kr.inuappcenterportal.inuportal.domain.book.repository.BookRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,6 +27,12 @@ public class BookProcessor {
     public Long register(Book book) {
         bookRepository.save(book);
         return book.getId();
+    }
+
+    @Transactional
+    public void updateImageCount(Long bookId) {
+        Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
+        book.updateImageCount(1);
     }
 
     @Transactional(readOnly = true)
