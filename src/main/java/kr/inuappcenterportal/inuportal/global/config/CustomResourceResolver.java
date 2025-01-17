@@ -33,7 +33,7 @@ public class CustomResourceResolver implements ResourceResolver {
 
             // 디렉토리 내에서 파일 검색
             File baseDir = requestedPath.getParent().toFile();
-            File[] matchingFiles = baseDir.listFiles((dir, name) -> name.startsWith(requestedPath.getFileName().toString()));
+            File[] matchingFiles = baseDir.listFiles((dir, name) -> name.startsWith(requestedPath.getFileName().toString()+"."));
 
             if (matchingFiles != null && matchingFiles.length > 0) {
                 return new UrlResource(matchingFiles[0].toURI());
