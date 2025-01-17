@@ -47,7 +47,7 @@ public class BookController {
             @ApiResponse(responseCode = "201", description = "책 등록 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<ResponseDto<Long>> register(@RequestPart @Valid BookRegister request, @RequestPart List<MultipartFile> images) throws IOException {
+    public ResponseEntity<ResponseDto<Long>> register(@RequestPart @Valid BookRegister request, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
         return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(Book.create(request.getName(), request.getAuthor(), request.getPrice(), request.getContent(), images.size()), images), "책 등록 성공"));
     }
 

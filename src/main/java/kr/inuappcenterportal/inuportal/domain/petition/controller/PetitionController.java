@@ -46,7 +46,7 @@ public class PetitionController {
             @ApiResponse(responseCode = "201",description = "총학생회 청원 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDto<Long>> createCouncilNotice(@RequestPart(value = "images") List<MultipartFile> images, @Valid @RequestPart(value = "petitionRequestDto") PetitionRequestDto petitionRequestDto, @AuthenticationPrincipal Member member) throws IOException {
+    public ResponseEntity<ResponseDto<Long>> createCouncilNotice(@RequestPart(value = "images", required = false) List<MultipartFile> images, @Valid @RequestPart(value = "petitionRequestDto") PetitionRequestDto petitionRequestDto, @AuthenticationPrincipal Member member) throws IOException {
         log.info("총학생회 청원 등록");
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(petitionService.savePetition(petitionRequestDto, member, images), "총학생회 청원 등록 성공"));
     }
