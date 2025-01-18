@@ -2,17 +2,13 @@ package kr.inuappcenterportal.inuportal.domain.book.service;
 
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookDetail;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookPreview;
+import kr.inuappcenterportal.inuportal.domain.book.dto.BookRegister;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookUpdate;
 import kr.inuappcenterportal.inuportal.domain.book.implement.BookProcessor;
-import kr.inuappcenterportal.inuportal.domain.book.model.Book;
-import kr.inuappcenterportal.inuportal.domain.book.repository.BookRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
-import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,28 +20,19 @@ import java.util.List;
 public class BookService {
 
     private final BookProcessor bookProcessor;
-    private final BookRepository bookRepository;
     private final ImageService imageService;
     @Value("${bookImagePath}")
     private String bookImagePath;
 
-    public Long register(Book book) throws IOException {
-        return bookProcessor.register(book);
-    }
 
-    public Long saveImage(Long bookId, List<MultipartFile> images) throws IOException {
-        bookProcessor.updateImageCount(bookId);
+    public Long register(BookRegister request, List<MultipartFile> images) throws IOException {
+        Long bookId = bookProcessor.register(request, images);
         imageService.saveImage(bookId, images, bookImagePath);
         return bookId;
     }
 
     public ListResponseDto<BookPreview> getList(int page) {
-        Page<Book> books = bookProcessor.getList(page);
-        return bookProcessor.getList(books);
-    }
-
-    public byte[] getImage(Long postId, Long imageId){
-        return imageService.getImage(postId,imageId,bookImagePath);
+        return bookProcessor.getList(page);
     }
 
     public BookDetail get(Long bookId) {
@@ -57,8 +44,7 @@ public class BookService {
     }
 
     public ListResponseDto<BookPreview> getListOnlyAvailable(int page) {
-        Page<Book> books = bookProcessor.getListOnlyAvailable(page);
-        return bookProcessor.getList(books);
+        return bookProcessor.getListOnlyAvailable(page);
     }
 
     public void delete(Long bookId) {
@@ -69,14 +55,6 @@ public class BookService {
     public void update(BookUpdate bookUpdate, List<MultipartFile> images, Long bookId) throws IOException {
         bookProcessor.update(bookUpdate, bookId);
         imageService.updateImages(bookId, images, bookImagePath);
-    }
-
-    public void updateImageLocal(Long bookId, List<MultipartFile> images) throws IOException{
-        Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
-        if(images!=null){
-            imageService.updateImage(bookId,book.getImageCount(),images,bookImagePath);
-            book.updateImageCount(images.size());
-        }
     }
 
 }
