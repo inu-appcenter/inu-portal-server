@@ -119,6 +119,38 @@ public class PetitionTest {
     }
 
     @Test
+    @DisplayName("총학생회 청원 등록 테스트 - 이미지 없이 등록")
+    public void savePetitionNoImageTest() throws Exception {
+        PetitionRequestDto petitionRequestDto = createPetitionRequest("제목","내용",false);
+        Member member = saveMember("20241234");
+        MockMultipartHttpServletRequestBuilder multipartRequest = MockMvcRequestBuilders.multipart("/api/petitions");
+        String body = objectMapper.writeValueAsString(petitionRequestDto);
+        MockPart jsonPart = new MockPart("petitionRequestDto", body.getBytes(StandardCharsets.UTF_8));
+        jsonPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        multipartRequest.part(jsonPart);
+        TokenDto tokenDto = memberService.login(member);
+        multipartRequest.header("Auth", tokenDto.getAccessToken())
+                .with(csrf())
+                .contentType(MediaType.MULTIPART_FORM_DATA);
+        ResultActions resultActions =mockMvc.perform(multipartRequest)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.msg").value("총학생회 청원 등록 성공"))
+                .andDo(print());
+
+        Long petitionId = objectMapper.readTree(resultActions.andReturn().getResponse().getContentAsString()).get("data").asLong();
+
+        Petition petition = petitionRepository.findByIdWithMember(petitionId).orElse(null);
+        assertAll(
+                ()->assertEquals(petition.getId(),petitionId),
+                ()->assertEquals(petition.getTitle(),"제목"),
+                ()->assertEquals(petition.getContent(),"내용"),
+                ()->assertEquals(petition.getMember(),member),
+                ()->assertEquals(petition.getImageCount(),0),
+                ()->assertEquals(petition.getIsPrivate(),false)
+        );
+    }
+
+    @Test
     @DisplayName("총학생회 청원 수정 테스트")
     public void updatePetitionTest() throws Exception {
         PetitionRequestDto petitionRequestDto = createPetitionRequest("제목","내용",false);
