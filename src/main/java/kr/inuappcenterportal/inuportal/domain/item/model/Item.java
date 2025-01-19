@@ -17,11 +17,13 @@ public class Item {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "item_category")
     @Enumerated(value = EnumType.STRING)
     private ItemCategory itemCategory;
 
     private String name;
 
+    @Column(name = "total_quantity")
     private int totalQuantity;
 
     private int deposit;

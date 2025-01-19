@@ -62,7 +62,8 @@ public enum MyErrorCode {
     INAPPROPRIATE_RENTAL_TIME(HttpStatus.BAD_REQUEST, "대여 및 반납 가능 시간이 아닙니다."),
     DUPLICATE_RESERVATION(HttpStatus.BAD_REQUEST, "동일한 사용자의 예약이 존재합니다."),
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 예약"),
-    HAS_NOT_RESERVATION_AUTHORIZATION(HttpStatus.NOT_FOUND, "이 예약에 대한 삭제 권한이 없습니다.");
+    HAS_NOT_RESERVATION_AUTHORIZATION(HttpStatus.NOT_FOUND, "이 예약에 대한 삭제 권한이 없습니다."),
+    LOST_PROPERTY_NOT_FOUND(HttpStatus.NOT_FOUND, "이 예약에 대한 삭제 권한이 없습니다.");
 
     private final HttpStatus status;
     private final String message;

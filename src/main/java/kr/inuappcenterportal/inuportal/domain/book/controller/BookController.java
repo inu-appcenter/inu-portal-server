@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,13 +42,13 @@ public class BookController {
 
     private final BookService bookService;
 
-    @Operation(summary = "책만 저장", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content, int 형태의 price} 보내주세요. 그 이후 등록된 게시글의 id와 이미지를 보내주세요. 성공 시 등록된 책의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "책만 저장", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content, int 형태의 price} 보내주세요. 이미지를 보내주세요. 성공 시 등록된 책의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "책 등록 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ResponseDto<Long>> register(@RequestPart @Valid BookRegister request, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
-        if (images == null) images = new ArrayList<>();
+        if(ObjectUtils.isEmpty(images)) images = new ArrayList<>();
         return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(request, images), "책 등록 성공"));
     }
 
@@ -98,13 +99,14 @@ public class BookController {
         return ResponseEntity.status(OK).body(ResponseDto.of(bookId, "책 삭제 완료"));
     }
 
-    @Operation(summary = "책 수정", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content,int 형태의 price}, url 파라미터에 책의 id를 보내주세요.")
+    @Operation(summary = "책 수정", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content,int 형태의 price}, 이미지를 보내주세요. url 파라미터에 책의 id를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "책 수정 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping(value = "/{bookId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ResponseDto<Long>> update(@RequestPart @Valid BookUpdate request, @RequestPart List<MultipartFile> images,
             @Parameter(name = "bookId",description = "책의 id",in = ParameterIn.PATH) @PathVariable Long bookId) throws IOException {
+        if(ObjectUtils.isEmpty(images))  images = new ArrayList<>();
         bookService.update(request, images, bookId);
         return ResponseEntity.ok(ResponseDto.of(bookId, "책 수정 완료"));
     }

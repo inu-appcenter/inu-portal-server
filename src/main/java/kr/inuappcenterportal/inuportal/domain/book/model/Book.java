@@ -32,7 +32,7 @@ public class Book extends BaseTimeEntity {
     @Column
     private int price;
 
-    @Column
+    @Column(name = "transaction_status")
     @Enumerated(EnumType.STRING)
     private TransactionStatus transactionStatus;
 
@@ -70,13 +70,15 @@ public class Book extends BaseTimeEntity {
 
     public void delete() {
         transactionStatus = transactionStatus.delete();
+        imageCount = 0;
     }
 
-    public void update(String name, String author, int price, String content) {
+    public void update(String name, String author, int price, String content, int imageCount) {
         this.name = name;
         this.author = author;
         this.price = price;
         this.content = content;
+        this.imageCount = imageCount;
     }
 
     public void updateImageCount(int imageCount){

@@ -53,7 +53,7 @@ public class BookService {
     }
 
     public void update(BookUpdate bookUpdate, List<MultipartFile> images, Long bookId) throws IOException {
-        bookProcessor.update(bookUpdate, bookId);
+        bookProcessor.update(bookUpdate, images.size(), bookId);
         imageService.updateImages(bookId, images, bookImagePath);
     }
 

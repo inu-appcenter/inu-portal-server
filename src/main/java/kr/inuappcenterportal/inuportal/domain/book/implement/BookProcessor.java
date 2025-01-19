@@ -38,9 +38,10 @@ public class BookProcessor {
         return getBookPreviewListResponseDto(books, bookPreviews);
     }
 
+    @Transactional(readOnly = true)
     public BookDetail getDetail(Long bookId) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
-        return BookDetail.of(book);
+        return BookDetail.from(book);
     }
 
     @Transactional
@@ -64,9 +65,9 @@ public class BookProcessor {
     }
 
     @Transactional
-    public void update(BookUpdate bookUpdate, Long bookId) {
+    public void update(BookUpdate bookUpdate, int imageCount, Long bookId) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new MyException(MyErrorCode.BOOK_NOT_FOUND));
-        book.update(bookUpdate.getName(), bookUpdate.getAuthor(), bookUpdate.getPrice(), bookUpdate.getContent());
+        book.update(bookUpdate.getName(), bookUpdate.getAuthor(), bookUpdate.getPrice(), bookUpdate.getContent(), imageCount);
     }
 
     private List<BookPreview> getBookPreviews(Page<Book> books) {
