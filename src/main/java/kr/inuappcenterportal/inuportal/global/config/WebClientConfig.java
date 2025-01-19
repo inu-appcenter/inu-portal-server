@@ -28,10 +28,4 @@ public class WebClientConfig {
                 .build();
     }
 
-    @Bean
-    public ObjectMapper objectMapper(){
-        return new ObjectMapper();
-    }
-
-
 }

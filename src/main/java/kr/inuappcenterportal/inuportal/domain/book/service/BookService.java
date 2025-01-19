@@ -2,16 +2,14 @@ package kr.inuappcenterportal.inuportal.domain.book.service;
 
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookDetail;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookPreview;
+import kr.inuappcenterportal.inuportal.domain.book.dto.BookRegister;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookUpdate;
 import kr.inuappcenterportal.inuportal.domain.book.implement.BookProcessor;
-import kr.inuappcenterportal.inuportal.domain.book.model.Book;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -26,15 +24,15 @@ public class BookService {
     @Value("${bookImagePath}")
     private String bookImagePath;
 
-    public Long register(Book book, List<MultipartFile> images) throws IOException {
-        Long bookId = bookProcessor.register(book);
-        if (images!=null) imageService.saveImage(bookId, images, bookImagePath);
+
+    public Long register(BookRegister request, List<MultipartFile> images) throws IOException {
+        Long bookId = bookProcessor.register(request, images);
+        imageService.saveImage(bookId, images, bookImagePath);
         return bookId;
     }
 
     public ListResponseDto<BookPreview> getList(int page) {
-        Page<Book> books = bookProcessor.getList(page);
-        return bookProcessor.getListWithThumbnails(books, bookImagePath);
+        return bookProcessor.getList(page);
     }
 
     public BookDetail get(Long bookId) {
@@ -46,8 +44,7 @@ public class BookService {
     }
 
     public ListResponseDto<BookPreview> getListOnlyAvailable(int page) {
-        Page<Book> books = bookProcessor.getListOnlyAvailable(page);
-        return bookProcessor.getListWithThumbnails(books, bookImagePath);
+        return bookProcessor.getListOnlyAvailable(page);
     }
 
     public void delete(Long bookId) {
@@ -59,6 +56,5 @@ public class BookService {
         bookProcessor.update(bookUpdate, bookId);
         imageService.updateImages(bookId, images, bookImagePath);
     }
-
 
 }

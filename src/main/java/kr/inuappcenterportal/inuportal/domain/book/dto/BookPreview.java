@@ -13,7 +13,7 @@ public class BookPreview {
     private String author;
     private TransactionStatus transactionStatus;
 
-    public static BookPreview of(Book book) {
+    public static BookPreview from(Book book) {
         return BookPreview.builder()
                 .id(book.getId())
                 .name(book.getName())

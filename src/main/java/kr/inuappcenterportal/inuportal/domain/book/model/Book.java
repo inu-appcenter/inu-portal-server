@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -76,4 +78,9 @@ public class Book extends BaseTimeEntity {
         this.price = price;
         this.content = content;
     }
+
+    public void updateImageCount(int imageCount){
+        this.imageCount += imageCount;
+    }
+
 }

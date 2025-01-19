@@ -14,9 +14,7 @@ import kr.inuappcenterportal.inuportal.domain.book.dto.BookDetail;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookPreview;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookRegister;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookUpdate;
-import kr.inuappcenterportal.inuportal.domain.book.model.Book;
 import kr.inuappcenterportal.inuportal.domain.book.service.BookService;
-import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.*;
@@ -42,16 +41,17 @@ public class BookController {
 
     private final BookService bookService;
 
-    @Operation(summary = "책 등록", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content, int 형태의 price} 보내주세요. 성공 시 등록된 책의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "책만 저장", description = "헤더 Auth에 발급받은 토큰을, 바디에 {name,author,content, int 형태의 price} 보내주세요. 그 이후 등록된 게시글의 id와 이미지를 보내주세요. 성공 시 등록된 책의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "책 등록 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ResponseDto<Long>> register(@RequestPart @Valid BookRegister request, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
-        return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(Book.create(request.getName(), request.getAuthor(), request.getPrice(), request.getContent(), images.size()), images), "책 등록 성공"));
+        if (images == null) images = new ArrayList<>();
+        return ResponseEntity.status(CREATED).body(ResponseDto.of(bookService.register(request, images), "책 등록 성공"));
     }
 
-    @Operation(summary = "책 리스트 조회", description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 책의 id를 보내주세요. 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "책 리스트 조회", description = "헤더 Auth에 발급받은 토큰을 보내주세요. 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "책 리스트 조회 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
     })
@@ -108,4 +108,5 @@ public class BookController {
         bookService.update(request, images, bookId);
         return ResponseEntity.ok(ResponseDto.of(bookId, "책 수정 완료"));
     }
+
 }
