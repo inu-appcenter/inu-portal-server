@@ -44,7 +44,7 @@ public class WeatherService {
     private final String x = "54";
     private final String y = "123";
 
-    /*@Scheduled(cron = "0 35 * * * *")
+    @Scheduled(cron = "0 35 * * * *")
     @Transactional
     public void getWeatherAPI(){
         getWeatherSky();
@@ -66,7 +66,7 @@ public class WeatherService {
         getDust();
         getWeatherSky();
         getTemperature();
-    }*/
+    }
     public void getWeatherSky(){
         LocalDateTime t = LocalDateTime.now().minusMinutes(30);
 
