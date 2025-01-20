@@ -100,7 +100,7 @@ public class PetitionController {
         return ResponseEntity.ok().headers(httpHeaders).body(petitionService.getPetitionImage(petitionId,imageId));
     }
 
-    @Operation(summary = "총학생회 청원 리스트 가져오기",description = "정렬기준 sort(date/공백(최신순), view), 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "총학생회 청원 리스트 가져오기",description = "헤더 Auth에 발급받은 토큰을(있다면), 정렬기준 sort(date/공백(최신순), view), 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "총학생회 청원 리스트 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))

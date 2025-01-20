@@ -49,7 +49,12 @@ public class PetitionService {
         petition = petitionRepository.save(petition);
         if (images != null) {
             petition.updateImageCount(images.size());
-            imageService.saveImage(petition.getId(), images, path);
+            if(petition.getIsPrivate()){
+                imageService.saveImage(petition.getId(), images, path);
+            }
+            else {
+                imageService.saveImageWithThumbnail(petition.getId(), images, path);
+            }
         }
         return petition.getId();
     }
@@ -63,7 +68,7 @@ public class PetitionService {
         Petition petition = validHasAuthorizationPetition(petitionId,member);
         petition.updatePetition(petitionRequestDto.getTitle(),petitionRequestDto.getContent(),petitionRequestDto.getIsPrivate());
         if(images!=null){
-            imageService.updateImage(petitionId,petition.getImageCount(),images,path);
+            imageService.updateImages(petitionId,images,path);
             petition.updateImageCount(images.size());
         }
         return petitionId;
@@ -126,13 +131,13 @@ public class PetitionService {
         Page<Petition> dto = petitionRepository.findAllWithMember(pageable);
         List<PetitionListResponseDto> petitions = dto.stream().map(petition -> {
             if(member!=null&&member.getRoles().contains("ROLE_ADMIN")){
-                return PetitionListResponseDto.of(petition, petition.getMember().getStudentId());
+                return PetitionListResponseDto.of(petition);
             }
             if(petition.getIsPrivate()&&!petition.getMember().equals(member)){
-                return PetitionListResponseDto.secretPetition(petition,petition.getMember().getStudentId());
+                return PetitionListResponseDto.secretPetition(petition);
             }
             else {
-                return PetitionListResponseDto.of(petition, petition.getMember().getStudentId());
+                return PetitionListResponseDto.of(petition);
             }
             }).toList();
         return ListResponseDto.of(dto.getTotalPages(), dto.getTotalElements(), petitions);
