@@ -18,16 +18,22 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "item_id")
     private Long itemId;
 
+    @Column(name = "member_id")
     private Long memberId;
 
+    @Column(name = "start_date_time")
     private LocalDateTime startDateTime;
 
+    @Column(name = "end_date_time")
     private LocalDateTime endDateTime;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "reservation_status")
     @Enumerated(value = EnumType.STRING)
     private ReservationStatus reservationStatus;
 

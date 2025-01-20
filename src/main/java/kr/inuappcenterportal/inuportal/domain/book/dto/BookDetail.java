@@ -5,8 +5,6 @@ import kr.inuappcenterportal.inuportal.domain.book.model.Book;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.util.List;
-
 @Getter
 @Builder
 public class BookDetail {
@@ -19,7 +17,7 @@ public class BookDetail {
     private TransactionStatus transactionStatus;
     private int imageCount;
 
-    public static BookDetail of(Book book) {
+    public static BookDetail from(Book book) {
         return BookDetail.builder()
                 .id(book.getId())
                 .name(book.getName())
