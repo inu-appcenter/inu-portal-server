@@ -21,7 +21,11 @@ import java.util.stream.Stream;
 public class ImageService {
 
 
-    public void saveImage(Long id, List<MultipartFile> images,String path) throws IOException {
+    public void saveImageWithThumbnail(Long id, List<MultipartFile> images, String path) throws IOException {
+        saveImage(id,images,path);
+        saveThumbnail(images.get(0),path+"/thumbnail",id);
+    }
+    public void saveImage(Long id, List<MultipartFile> images, String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
             MultipartFile file = images.get(i - 1);
             String originalFilename = file.getOriginalFilename();
@@ -30,7 +34,6 @@ public class ImageService {
             Path filePath = Paths.get(path, fileName);
             Files.write(filePath, file.getBytes());
         }
-        saveThumbnail(images.get(0),path+"/thumbnail",id);
     }
     private String getExtension(String filename) {
         // 파일 확장자 추출 (예: .jpg, .png)
@@ -49,11 +52,6 @@ public class ImageService {
                 .size(150, 150)
                 .outputFormat(fileExtension.replace(".", ""))
                 .toFile(thumbnailPath.toFile());
-    }
-
-    public void updateImage(Long id,long presentImageCount, List<MultipartFile> images,String path) throws IOException {
-        deleteAllImage(id,presentImageCount,path);
-        saveImage(id, images, path);
     }
 
     public byte[] getImage(Long id, Long imageId, String path){
@@ -76,33 +74,8 @@ public class ImageService {
             Path filePath = Paths.get(path, fileName);
             Files.deleteIfExists(filePath);
         }
-    }
-
-    public byte[] getThumbnail(Long bookId, String path){
-        File directory = new File(path+"/thumbnail");
-        File[] matchingFiles = directory.listFiles((dir, name) -> name.startsWith(String.valueOf(bookId)));
-        File file = matchingFiles[0];
-        Path filePath = file.toPath();
-        try {
-            return Files.readAllBytes(filePath);
-        }
-        catch (Exception e){
-            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
-        }
-    }
-
-    public List<byte[]> getImages(Long id, String path) {
-        List<byte[]> images = new ArrayList<>();
-        try (Stream<Path> paths = Files.list(Paths.get(path))) {
-            for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id + "-"))
-                    .sorted()
-                    .toList()) {
-                images.add(Files.readAllBytes(filePath));
-            }
-        } catch (IOException e) {
-            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
-        }
-        return images;
+        Path filePath = Paths.get(path+"/thumbnail", id.toString());
+        Files.deleteIfExists(filePath);
     }
 
     public void deleteImages(Long id, String path) {
@@ -111,6 +84,8 @@ public class ImageService {
                     .toList()) {
                 Files.delete(filePath);
             }
+            Path filePath = Paths.get(path+"/thumbnail", id.toString());
+            Files.deleteIfExists(filePath);
         } catch (IOException e) {
             throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
@@ -119,7 +94,7 @@ public class ImageService {
     public void updateImages(Long id, List<MultipartFile> images,String path) throws IOException {
         deleteImages(id, path);
         if (images == null) images = new ArrayList<>();
-        saveImage(id, images, path);
+        saveImageWithThumbnail(id, images, path);
     }
 
 

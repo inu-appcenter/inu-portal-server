@@ -30,9 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -74,7 +71,7 @@ public class PostService {
         }
         if (images != null) {
             post.updateImageCount(images.size());
-            imageService.saveImage(post.getId(),images,path);
+            imageService.saveImageWithThumbnail(post.getId(),images,path);
         }
         return postId;
     }
@@ -106,7 +103,7 @@ public class PostService {
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         if(images!=null){
-            imageService.updateImage(postId,post.getImageCount(),images,path);
+            imageService.updateImages(postId,images,path);
             post.updateImageCount(images.size());
         }
     }

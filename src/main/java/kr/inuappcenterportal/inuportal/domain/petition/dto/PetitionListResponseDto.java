@@ -16,8 +16,6 @@ public class PetitionListResponseDto {
     private Long id;
     @Schema(description = "제목",example = "제목")
     private String title;
-    @Schema(description = "작성자",example = "작성자")
-    private String writer;
     @Schema(description = "좋아요")
     private Long like;
     @Schema(description = "조회수")
@@ -30,10 +28,9 @@ public class PetitionListResponseDto {
     private String modifiedDate;
 
     @Builder
-    private PetitionListResponseDto(Long id, String title, String writer, Long like, Long view, Long imageCount, String createDate, String modifiedDate){
+    private PetitionListResponseDto(Long id, String title, Long like, Long view, Long imageCount, String createDate, String modifiedDate){
         this.id = id;
         this.title = title;
-        this.writer = writer;
         this.like = like;
         this.view = view;
         this.imageCount = imageCount;
@@ -41,11 +38,10 @@ public class PetitionListResponseDto {
         this.modifiedDate = modifiedDate;
     }
 
-    public static PetitionListResponseDto of(Petition petition, String writer){
+    public static PetitionListResponseDto of(Petition petition){
         return PetitionListResponseDto.builder()
                 .id(petition.getId())
                 .title(petition.getTitle())
-                .writer(writer)
                 .like(petition.getGood())
                 .view(petition.getView())
                 .imageCount(petition.getImageCount())
@@ -54,11 +50,10 @@ public class PetitionListResponseDto {
                 .build();
     }
 
-    public static PetitionListResponseDto secretPetition(Petition petition, String writer){
+    public static PetitionListResponseDto secretPetition(Petition petition){
         return PetitionListResponseDto.builder()
                 .id(petition.getId())
                 .title("비밀청원입니다.")
-                .writer(writer)
                 .like(petition.getGood())
                 .view(petition.getView())
                 .imageCount(petition.getImageCount())

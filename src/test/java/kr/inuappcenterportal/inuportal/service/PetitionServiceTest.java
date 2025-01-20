@@ -67,6 +67,24 @@ public class PetitionServiceTest {
 
         //then
         verify(petitionRepository, times(1)).save(any(Petition.class));
+        verify(imageService,times(1)).saveImageWithThumbnail(any(),any(),any());
+    }
+
+    @Test
+    @DisplayName("총학생회 청원 저장 테스트 - 비밀글")
+    public void saveSecretPetitionTest() throws IOException {
+        //given
+        PetitionRequestDto petitionRequestDto = createPetition("제목","내용");
+        Member member = createMember("20241234");
+        List<MultipartFile> images = createDummyImages();
+        Petition petition = createPetitionEntity("제목","내용",true,member);
+        when(petitionRepository.save(any())).thenReturn(petition);
+
+        //when
+        petitionService.savePetition(petitionRequestDto,member,images);
+
+        //then
+        verify(petitionRepository, times(1)).save(any(Petition.class));
         verify(imageService,times(1)).saveImage(any(),any(),any());
     }
 
@@ -101,7 +119,7 @@ public class PetitionServiceTest {
         //then
         assertEquals(id,petitionId);
         verify(petitionRepository,times(1)).findByIdAndIsDeletedFalse(petitionId);
-        verify(imageService,times(1)).updateImage(any(),any(long.class),any(),any());
+        verify(imageService,times(1)).updateImages(any(),any(),any());
     }
 
 

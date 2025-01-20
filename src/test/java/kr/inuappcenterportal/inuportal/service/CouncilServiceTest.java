@@ -70,7 +70,7 @@ public class CouncilServiceTest {
         councilNoticeService.saveCouncilNoticeImage(councilNotice.getId(),images);
 
         //then
-        verify(imageService, times(1)).saveImage(any(),any(),any());
+        verify(imageService, times(1)).saveImageWithThumbnail(any(),any(),any());
     }
 
     @Test
@@ -101,7 +101,7 @@ public class CouncilServiceTest {
 
         //then
         assertEquals(id,councilNotice.getId());
-        verify(imageService, times(1)).updateImage(any(),any(long.class),any(),any());
+        verify(imageService, times(1)).updateImages(any(),any(),any());
     }
 
     @Test
