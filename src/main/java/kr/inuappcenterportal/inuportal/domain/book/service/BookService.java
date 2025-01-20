@@ -27,7 +27,7 @@ public class BookService {
 
     public Long register(BookRegister request, List<MultipartFile> images) throws IOException {
         Long bookId = bookProcessor.register(request, images);
-        imageService.saveImage(bookId, images, bookImagePath);
+        imageService.saveImageWithThumbnail(bookId, images, bookImagePath);
         return bookId;
     }
 

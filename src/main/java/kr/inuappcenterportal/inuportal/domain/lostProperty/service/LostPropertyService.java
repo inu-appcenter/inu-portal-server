@@ -26,7 +26,7 @@ public class LostPropertyService {
 
     public Long register(LostPropertyRegister request, List<MultipartFile> images) throws IOException {
         Long lostPropertyId = lostPropertyProcessor.register(request, images.size());
-        imageService.saveImage(lostPropertyId, images, lostPropertyImagePath);
+        imageService.saveImageWithThumbnail(lostPropertyId, images, lostPropertyImagePath);
         return lostPropertyId;
     }
 
