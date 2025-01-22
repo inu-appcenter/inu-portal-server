@@ -56,9 +56,9 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDto<Long>> saveOnlyPost(@Valid@RequestBody PostDto postSaveDto, @AuthenticationPrincipal Member member, @RequestPart(required = false) List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
+    public ResponseEntity<ResponseDto<Long>> savePost(@Valid@RequestPart PostDto postDto, @AuthenticationPrincipal Member member, @RequestPart(required = false) List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
         log.info("게시글만 저장 호출 id:{}",member.getId());
-        Long postId = postService.saveOnlyPost(member,postSaveDto,images);
+        Long postId = postService.saveOnlyPost(member,postDto,images);
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postId,"게시글 등록 성공"));
     }
 
@@ -70,7 +70,7 @@ public class PostController {
             ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping(value = "/{postId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDto<Long>> updateOnlyPost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestBody PostDto postDto, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
+    public ResponseEntity<ResponseDto<Long>> updatePost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestPart PostDto postDto, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
         log.info("게시글 수정 호출 id:{}",postId);
         postService.updateOnlyPost(member.getId(),postId,postDto,images);
         return ResponseEntity.ok(ResponseDto.of(postId,"게시글 수정 성공"));
@@ -125,15 +125,15 @@ public class PostController {
         return ResponseEntity.ok(ResponseDto.of(postService.scrapPost(member,postId),"스크랩 여부 변경 성공"));
     }
 
-    @Operation(summary = "모든 게시글 가져오기",description = "카테고리(공백일 시 모든 게시글), 정렬기준 sort(date/공백(최신순), like, scrap), 페이지(공백일 시 1)를 보내주세요.")
+    @Operation(summary = "모든 게시글 가져오기",description = "카테고리(공백일 시 모든 게시글), 정렬기준 sort(date/공백(최신순), like, scrap), 페이지(공백일 시 1)를 보내주세요. 로그인 한 상태라면 토큰도 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false,defaultValue = "date") String sort
-            ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page ){
-        return ResponseEntity.ok(ResponseDto.of(postService.getAllPost(category, sort,page),"모든 게시글 가져오기 성공"));
+            ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page,@AuthenticationPrincipal Member member ){
+        return ResponseEntity.ok(ResponseDto.of(postService.getAllPost(category, sort,page,member),"모든 게시글 가져오기 성공"));
     }
 
 
@@ -173,8 +173,8 @@ public class PostController {
             @ApiResponse(responseCode = "200",description = "모바일용 게시글 리스트 가져오기 성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
     })
     @GetMapping("/mobile")
-    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForMobile(@RequestParam(required = false) Long lastPostId, @RequestParam(required = false) String category){
-        return ResponseEntity.ok(ResponseDto.of(postService.getPostForInf(lastPostId,category),"모바일용 게시글 리스트 가져오기 성공"));
+    public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForMobile(@RequestParam(required = false) Long lastPostId, @RequestParam(required = false) String category, @AuthenticationPrincipal Member member){
+        return ResponseEntity.ok(ResponseDto.of(postService.getPostForInf(lastPostId,category,member),"모바일용 게시글 리스트 가져오기 성공"));
     }
 
 }
