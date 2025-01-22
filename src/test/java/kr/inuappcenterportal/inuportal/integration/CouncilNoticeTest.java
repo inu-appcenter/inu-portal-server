@@ -24,13 +24,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockPart;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -82,13 +85,33 @@ public class CouncilNoticeTest {
     @DisplayName("총학생회 공지사항 작성 테스트")
     public void saveCouncilNoticeTest() throws Exception {
         CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목","본문");
-        String body = objectMapper.writeValueAsString(councilNoticeRequestDto);
         Member member = saveAdminMember("20241234");
+        List<MultipartFile> images = createDummyImages();
+        MockMultipartHttpServletRequestBuilder multipartRequest = MockMvcRequestBuilders.multipart("/api/councilNotices");
+        for(MultipartFile multipartFile : images){
+            multipartRequest.file((MockMultipartFile) multipartFile);
+        }
+        String body = objectMapper.writeValueAsString(councilNoticeRequestDto);
+        MockPart jsonPart = new MockPart("petitionRequestDto", body.getBytes(StandardCharsets.UTF_8));
+        jsonPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        multipartRequest.part(jsonPart);
         TokenDto tokenDto = memberService.login(member);
-        mockMvc.perform(post("/api/councilNotices").content(body).header("Auth",tokenDto.getAccessToken()).with(csrf()).contentType(MediaType.APPLICATION_JSON))
+        multipartRequest.header("Auth", tokenDto.getAccessToken())
+                .with(csrf())
+                .contentType(MediaType.MULTIPART_FORM_DATA);
+        ResultActions resultActions =mockMvc.perform(multipartRequest)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.msg").value("총학생회 공지사항 등록 성공"))
                 .andDo(print());
+
+        Long councilNoticeId = objectMapper.readTree(resultActions.andReturn().getResponse().getContentAsString()).get("data").asLong();
+        CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElse(null);
+        assertAll(
+                ()->assertEquals(councilNotice.getId(),councilNoticeId),
+                ()->assertEquals(councilNotice.getTitle(),"제목"),
+                ()->assertEquals(councilNotice.getContent(),"본문"),
+                ()->assertEquals(councilNotice.getImageCount(),images.size())
+        );
     }
 
     @Test
@@ -104,88 +127,30 @@ public class CouncilNoticeTest {
                 .andDo(print());
     }
 
-    @Test
-    @DisplayName("총학생회 공지사항 이미지 등록 테스트")
-    public void saveCouncilNoticeImageTest() throws Exception {
-        CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목","본문");
-        Long councilNoticeId =councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
-        List<MultipartFile> images = createDummyImages();
-        Member member = saveAdminMember("20241234");
-        MockMultipartHttpServletRequestBuilder multipartRequest = MockMvcRequestBuilders.multipart("/api/councilNotices/" + councilNoticeId + "/images");
-        for(MultipartFile multipartFile : images){
-            multipartRequest.file((MockMultipartFile) multipartFile);
-        }
-        TokenDto tokenDto = memberService.login(member);
-        multipartRequest.header("Auth", tokenDto.getAccessToken())
-                .with(csrf())
-                .contentType(MediaType.MULTIPART_FORM_DATA);
-        mockMvc.perform(multipartRequest)
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.msg").value("총학생회 공지사항 이미지 등록 성공"))
-                .andExpect(jsonPath("$.data").value(councilNoticeId))
-                .andDo(print());
-        CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElse(null);
-        assertEquals(councilNotice.getImageCount(),images.size());
-    }
 
-    @Test
-    @DisplayName("총학생회 공지사항 이미지 등록 실패 테스트 - 존재하지 않는 공지사항")
-    public void saveCouncilNoticeImageFailTest() throws Exception {
-        List<MultipartFile> images = createDummyImages();
-        Member member = saveAdminMember("20241234");
-        MockMultipartHttpServletRequestBuilder multipartRequest = MockMvcRequestBuilders.multipart("/api/councilNotices/" + -1 + "/images");
-        for(MultipartFile multipartFile : images){
-            multipartRequest.file((MockMultipartFile) multipartFile);
-        }
-        TokenDto tokenDto = memberService.login(member);
-        multipartRequest.header("Auth", tokenDto.getAccessToken())
-                .with(csrf())
-                .contentType(MediaType.MULTIPART_FORM_DATA);
-        mockMvc.perform(multipartRequest)
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.msg").value("존재하지 않는 총학생회 공지사항입니다."))
-                .andDo(print());
-    }
 
     @Test
     @DisplayName("총학생회 공지사항 수정 테스트")
     public void updateCouncilNoticeTest() throws Exception {
         CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목","본문");
-        Long councilNoticeId = councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
-        Member member = saveAdminMember("20241234");
-        TokenDto tokenDto = memberService.login(member);
-        CouncilNoticeRequestDto councilNoticeUpdateDto = createCouncilNoticeRequestDto("수정된 제목","수정된 본문");
-        String body = objectMapper.writeValueAsString(councilNoticeUpdateDto);
-        mockMvc.perform(put("/api/councilNotices/"+councilNoticeId).content(body).header("Auth",tokenDto.getAccessToken()).with(csrf()).contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.msg").value("총삭생회 공지사항 수정 성공"))
-                .andExpect(jsonPath("$.data").value(councilNoticeId))
-                .andDo(print());
-        CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElse(null);
-        assertAll(
-                ()->assertEquals(councilNotice.getTitle(),"수정된 제목"),
-                ()->assertEquals(councilNotice.getContent(),"수정된 본문")
-        );
-    }
-
-    @Test
-    @DisplayName("총학생회 공지사항 이미지 수정 테스트")
-    public void updateCouncilNoticeImageTest() throws Exception {
-        CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목","본문");
-        Long councilNoticeId = councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
-        Member member = saveAdminMember("20241234");
-        TokenDto tokenDto = memberService.login(member);
         List<MultipartFile> images = createDummyImages();
-        councilNoticeService.saveCouncilNoticeImage(councilNoticeId,images);
-        images = createDummyImages2();
-        MockMultipartHttpServletRequestBuilder multipartRequest = (MockMultipartHttpServletRequestBuilder) MockMvcRequestBuilders.multipart("/api/councilNotices/" + councilNoticeId + "/images")
+        Long councilNoticeId = councilNoticeService.saveCouncilNotice(councilNoticeRequestDto,images);
+        CouncilNoticeRequestDto councilNoticeUpdateDto = createCouncilNoticeRequestDto("수정된 제목","수정된 본문");
+        Member member = saveAdminMember("20241234");
+        TokenDto tokenDto = memberService.login(member);
+        List<MultipartFile> updateImages = createDummyImages2();
+        MockMultipartHttpServletRequestBuilder multipartRequest = (MockMultipartHttpServletRequestBuilder) MockMvcRequestBuilders.multipart("/api/councilNotices/" + councilNoticeId)
                 .with(request -> {
                     request.setMethod("PUT");
                     return request;
                 });
-        for(MultipartFile multipartFile : images){
+        for(MultipartFile multipartFile : updateImages){
             multipartRequest.file((MockMultipartFile) multipartFile);
         }
+        String body = objectMapper.writeValueAsString(councilNoticeUpdateDto);
+        MockPart jsonPart = new MockPart("petitionRequestDto", body.getBytes(StandardCharsets.UTF_8));
+        jsonPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        multipartRequest.part(jsonPart);
         multipartRequest.header("Auth", tokenDto.getAccessToken())
                 .with(csrf())
                 .contentType(MediaType.MULTIPART_FORM_DATA);
@@ -195,14 +160,20 @@ public class CouncilNoticeTest {
                 .andExpect(jsonPath("$.data").value(councilNoticeId))
                 .andDo(print());
         CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElse(null);
-        assertEquals(councilNotice.getImageCount(),images.size());
+        assertAll(
+                ()->assertEquals(councilNotice.getImageCount(),images.size()),
+                ()->assertEquals(councilNotice.getTitle(),"수정된 제목"),
+                ()->assertEquals(councilNotice.getContent(),"수정된 내용")
+        );
+
     }
+
 
     @Test
     @DisplayName("총학생회 공지사항 삭제 테스트")
     public void deleteCouncilNoticeTest() throws Exception {
         CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목","본문");
-        Long councilNoticeId = councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
+        Long councilNoticeId = councilNoticeService.saveCouncilNotice(councilNoticeRequestDto,null);
         Member member = saveAdminMember("20241234");
         TokenDto tokenDto = memberService.login(member);
         mockMvc.perform(delete("/api/councilNotices/"+councilNoticeId).header("Auth",tokenDto.getAccessToken()).with(csrf()).contentType(MediaType.APPLICATION_JSON))
@@ -218,7 +189,7 @@ public class CouncilNoticeTest {
     @DisplayName("총학생회 공지사항 가져오기 테스트")
     public void getCouncilNoticeTest() throws Exception {
         CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목","본문");
-        Long councilNoticeId = councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
+        Long councilNoticeId = councilNoticeService.saveCouncilNotice(councilNoticeRequestDto,null);
         mockMvc.perform(get("/api/councilNotices/"+councilNoticeId).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("총학생회 공지사항 가져오기 성공"))
@@ -229,27 +200,17 @@ public class CouncilNoticeTest {
                 .andDo(print());
     }
 
-    @Test
-    @DisplayName("총학생회 공지사항 이미지 가져오기 테스트")
-    public void getCouncilNoticeImageTest() throws Exception {
-        CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목","본문");
-        Long councilNoticeId =councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
-        List<MultipartFile> images = createDummyImages();
-        councilNoticeService.saveCouncilNoticeImage(councilNoticeId,images);
-        mockMvc.perform(get("/api/councilNotices/"+councilNoticeId+"/images/1").with(csrf()).contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andDo(print());
-    }
+
 
     @Test
     @DisplayName("총학생회 공지사항 리스트 가져오기")
     public void getCouncilNoticeListTest() throws Exception {
         CouncilNoticeRequestDto councilNoticeRequestDto = createCouncilNoticeRequestDto("제목1","본문1");
-        councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
+        councilNoticeService.saveCouncilNotice(councilNoticeRequestDto,null);
         councilNoticeRequestDto = createCouncilNoticeRequestDto("제목2","본문2");
-        councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
+        councilNoticeService.saveCouncilNotice(councilNoticeRequestDto,null);
         councilNoticeRequestDto = createCouncilNoticeRequestDto("제목3","본문3");
-        councilNoticeService.saveCouncilNotice(councilNoticeRequestDto);
+        councilNoticeService.saveCouncilNotice(councilNoticeRequestDto,null);
 
         mockMvc.perform(get("/api/councilNotices").with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

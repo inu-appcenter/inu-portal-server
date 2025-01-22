@@ -15,10 +15,10 @@ public class ClubService {
 
     public List<ClubListResponseDto> getClubList(String category){
         if(category==null){
-            return clubRepository.findAll().stream().map(ClubListResponseDto::of).collect(Collectors.toList());
+            return clubRepository.findAll().stream().map(ClubListResponseDto::from).collect(Collectors.toList());
         }
         else {
-            return clubRepository.findByCategory(category).stream().map(ClubListResponseDto::of).collect(Collectors.toList());
+            return clubRepository.findByCategory(category).stream().map(ClubListResponseDto::from).collect(Collectors.toList());
         }
     }
 }

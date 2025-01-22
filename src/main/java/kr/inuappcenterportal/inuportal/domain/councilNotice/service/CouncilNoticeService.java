@@ -34,35 +34,26 @@ public class CouncilNoticeService {
     @Value("${councilNoticeImagePath}")
     private String path;
 
-    public Long saveCouncilNotice(CouncilNoticeRequestDto councilNoticeRequestDto){
+    public Long saveCouncilNotice(CouncilNoticeRequestDto councilNoticeRequestDto, List<MultipartFile> images) throws IOException {
         CouncilNotice councilNotice = CouncilNotice.builder().title(councilNoticeRequestDto.getTitle()).content(councilNoticeRequestDto.getContent()).build();
         councilRepository.save(councilNotice);
-        return councilNotice.getId();
-    }
-
-    public Long saveCouncilNoticeImage(Long councilNoticeId, List<MultipartFile> images) throws IOException {
-        CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElseThrow(()-> new MyException(MyErrorCode.NOT_FOUND_COUNCIL_NOTICE));
         if (images != null) {
             councilNotice.updateImageCount(images.size());
             imageService.saveImage(councilNotice.getId(),images,path);
         }
-        return councilNoticeId;
-    }
-
-    public Long updateCouncilNotice(Long councilNoticeId, CouncilNoticeRequestDto councilNoticeRequestDto){
-        CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElseThrow(()-> new MyException(MyErrorCode.NOT_FOUND_COUNCIL_NOTICE));
-        councilNotice.updateCouncilNotice(councilNoticeRequestDto.getTitle(), councilNoticeRequestDto.getContent());
         return councilNotice.getId();
     }
 
-    public Long updateCouncilNoticeImage(Long councilNoticeId, List<MultipartFile> images) throws IOException {
+    public Long updateCouncilNotice(Long councilNoticeId, CouncilNoticeRequestDto councilNoticeRequestDto, List<MultipartFile> images) throws IOException {
         CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElseThrow(()-> new MyException(MyErrorCode.NOT_FOUND_COUNCIL_NOTICE));
+        councilNotice.updateCouncilNotice(councilNoticeRequestDto.getTitle(), councilNoticeRequestDto.getContent());
         if(images!=null){
             imageService.updateImage(councilNoticeId,councilNotice.getImageCount(),images,path);
             councilNotice.updateImageCount(images.size());
         }
         return councilNotice.getId();
     }
+
 
     public void deleteCouncilNotice(Long councilNoticeId) throws IOException {
         CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElseThrow(()-> new MyException(MyErrorCode.NOT_FOUND_COUNCIL_NOTICE));
@@ -78,10 +69,6 @@ public class CouncilNoticeService {
             councilNotice.upViewCount();
         }
         return CouncilNoticeResponseDto.of(councilNotice);
-    }
-    @Transactional(readOnly = true)
-    public byte[] getCouncilNoticeImage(Long councilNoticeId, Long imageId){
-        return imageService.getImage(councilNoticeId,imageId,path);
     }
 
     @Transactional(readOnly = true)
