@@ -51,7 +51,7 @@ public class PostService {
 
 
     @Transactional
-    public Long saveOnlyPost(Member member, PostDto postSaveDto) throws NoSuchAlgorithmException {
+    public Long saveOnlyPost(Member member, PostDto postSaveDto, List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
         if(!categoryRepository.existsByCategory(postSaveDto.getCategory())){
             throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
@@ -59,29 +59,21 @@ public class PostService {
         redisService.blockRepeat(hash);
         Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(0).build();
         postRepository.save(post);
-        return post.getId();
-    }
-
-
-    @Transactional
-    public Long saveImageLocal(Member member, Long postId, List<MultipartFile> images ) throws IOException {
-        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        if(!post.getMember().getId().equals(member.getId())){
-            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
-        }
         if (images != null) {
             post.updateImageCount(images.size());
             imageService.saveImageWithThumbnail(post.getId(),images,path);
         }
-        return postId;
+        return post.getId();
     }
+
+
 
     public byte[] getPostImage(Long postId, Long imageId){
         return imageService.getImage(postId,imageId,path);
     }
 
     @Transactional
-    public void updateOnlyPost(Long memberId, Long postId, PostDto postDto){
+    public void updateOnlyPost(Long memberId, Long postId, PostDto postDto, List<MultipartFile> images) throws IOException {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(post.getIsDeleted()){
             throw new MyException(MyErrorCode.POST_NOT_FOUND);
@@ -93,20 +85,13 @@ public class PostService {
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         post.updateOnlyPost(postDto.getTitle(),postDto.getContent(), postDto.getCategory(),postDto.getAnonymous());
-    }
-
-
-    @Transactional
-    public void updateImageLocal(Long memberId, Long postId, List<MultipartFile> images) throws IOException{
-        Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        if(!post.getMember().getId().equals(memberId)){
-            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
-        }
         if(images!=null){
             imageService.updateImages(postId,images,path);
             post.updateImageCount(images.size());
         }
     }
+
+
 
     @Transactional
     public void delete(Long memberId, Long postId) throws IOException {

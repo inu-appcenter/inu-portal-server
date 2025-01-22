@@ -156,14 +156,14 @@ public class CouncilNoticeTest {
                 .contentType(MediaType.MULTIPART_FORM_DATA);
         mockMvc.perform(multipartRequest)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.msg").value("총학생회 공지사항 이미지 수정 성공"))
+                .andExpect(jsonPath("$.msg").value("총학생회 공지사항 수정 성공"))
                 .andExpect(jsonPath("$.data").value(councilNoticeId))
                 .andDo(print());
         CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElse(null);
         assertAll(
-                ()->assertEquals(councilNotice.getImageCount(),images.size()),
+                ()->assertEquals(councilNotice.getImageCount(),updateImages.size()),
                 ()->assertEquals(councilNotice.getTitle(),"수정된 제목"),
-                ()->assertEquals(councilNotice.getContent(),"수정된 내용")
+                ()->assertEquals(councilNotice.getContent(),"수정된 본문")
         );
 
     }

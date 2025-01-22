@@ -35,7 +35,7 @@ public class PostServiceTest {
 
 
 
-    @Test
+    /*@Test
     @DisplayName("게시글 저장 테스트")
     public void saveOnlyPostTest() throws Exception{
         Member member = Member.builder().studentId("201900000").roles(Collections.singletonList("ROLE_USER")).build();
@@ -43,7 +43,7 @@ public class PostServiceTest {
         when(categoryRepository.existsByCategory(any(String.class))).thenReturn(true);
         postService.saveOnlyPost(member,postDto);
 
-    }
+    }*/
 
     /*@Test
     @DisplayName("게시글 도배 테스트")

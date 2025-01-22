@@ -55,22 +55,11 @@ public class PostController {
             ,@ApiResponse(responseCode = "400",description = "일정 시간 동안 같은 게시글이나 댓글을 작성할 수 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PostMapping("")
-    public ResponseEntity<ResponseDto<Long>> saveOnlyPost(@Valid@RequestBody PostDto postSaveDto, @AuthenticationPrincipal Member member) throws NoSuchAlgorithmException {
+    @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<Long>> saveOnlyPost(@Valid@RequestBody PostDto postSaveDto, @AuthenticationPrincipal Member member, @RequestPart(required = false) List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
         log.info("게시글만 저장 호출 id:{}",member.getId());
-        Long postId = postService.saveOnlyPost(member,postSaveDto);
+        Long postId = postService.saveOnlyPost(member,postSaveDto,images);
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postId,"게시글 등록 성공"));
-    }
-
-    @Operation(summary = "게시글 이미지 등록",description = "파라미터에 게시글의 id, images에 이미지 파일들을 보내주세요. 성공 시 게시글의 데이터베이 아이디값이 {data: id}으로 보내집니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201",description = "이미지 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 게시글입니다. / 존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
-    @PostMapping(value = "/{postId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDto<Long>> saveOnlyImage( @RequestPart List<MultipartFile> images,@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @AuthenticationPrincipal Member member) throws IOException {
-        log.info("이미지만 저장 호출 id:{}",postId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postService.saveImageLocal(member,postId,images),"이미지 등록 성공"));
     }
 
 
@@ -80,25 +69,10 @@ public class PostController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PutMapping("/{postId}")
-    public ResponseEntity<ResponseDto<Long>> updateOnlyPost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestBody PostDto postDto) {
+    @PutMapping("/{postId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<Long>> updateOnlyPost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestBody PostDto postDto, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
         log.info("게시글 수정 호출 id:{}",postId);
-        postService.updateOnlyPost(member.getId(),postId,postDto);
-        return ResponseEntity.ok(ResponseDto.of(postId,"게시글 수정 성공"));
-    }
-    @Operation(summary = "게시글의 이미지 수정",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id, images 에 기존 이미지를 포함한 이미지들을 보내주세요.(아무 이미지도 보내지 않을 시 모든 이미지가 삭제됩니다) 성공 시 수정된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "게시글이미지 수정 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "403",description = "이 게시글의 수정/삭제에 대한 권한이 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
-    @PutMapping(value = "/{postId}/images",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDto<Long>> updateOnlyImage(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
-        log.info("게시글 수정 호출 id:{}",postId);
-        if(images==null){
-            images = new ArrayList<>();
-        }
-        postService.updateImageLocal(member.getId(),postId,images);
+        postService.updateOnlyPost(member.getId(),postId,postDto,images);
         return ResponseEntity.ok(ResponseDto.of(postId,"게시글 수정 성공"));
     }
 
