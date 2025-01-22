@@ -30,7 +30,7 @@ public class ClubListResponseDto {
         this.homeUrl = homeUrl;
     }
 
-    public static ClubListResponseDto of(Club club){
+    public static ClubListResponseDto from(Club club){
         return ClubListResponseDto.builder()
                 .name(club.getName())
                 .category(club.getCategory())
