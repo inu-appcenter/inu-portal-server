@@ -47,61 +47,33 @@ public class CouncilServiceTest {
 
     @Test
     @DisplayName("총학생회 공지 등록 테스트")
-    public void saveCouncilNoticeTest(){
+    public void saveCouncilNoticeTest() throws IOException {
         //given
         CouncilNoticeRequestDto requestDto = createCouncilNoticeRequest("테스트 공지 제목","테스트 내용");
+        List<MultipartFile> images = createDummyImages();
 
         //when
-        councilNoticeService.saveCouncilNotice(requestDto);
+        councilNoticeService.saveCouncilNotice(requestDto,images);
 
         //then
         verify(councilRepository, times(1)).save(any());
+        verify(imageService, times(1)).saveImageWithThumbnail(any(),any(),any());
     }
 
-    @Test
-    @DisplayName("총학생회 공지 이미지 저장 테스트")
-    public void saveCouncilNoticeImageTest() throws NoSuchFieldException, IllegalAccessException, IOException {
-        //given
-        CouncilNotice councilNotice = createCouncilNotice("테스트 제목","테스트 내용");
-        List<MultipartFile> images = createDummyImages();
-        when(councilRepository.findById(councilNotice.getId())).thenReturn(Optional.of(councilNotice));
-
-        //when
-        councilNoticeService.saveCouncilNoticeImage(councilNotice.getId(),images);
-
-        //then
-        verify(imageService, times(1)).saveImage(any(),any(),any());
-    }
 
     @Test
     @DisplayName("총학생회 공지 수정 테스트")
-    public void updateCouncilNoticeTest() throws NoSuchFieldException, IllegalAccessException {
+    public void updateCouncilNoticeTest() throws NoSuchFieldException, IllegalAccessException, IOException {
         //given
         CouncilNotice councilNotice = createCouncilNotice("테스트 제목","테스트 내용");
         CouncilNoticeRequestDto requestDto = createCouncilNoticeRequest("테스트 제목 수정","테스트 내용 수정");
         when(councilRepository.findById(councilNotice.getId())).thenReturn(Optional.of(councilNotice));
 
         //when
-        Long id = councilNoticeService.updateCouncilNotice(councilNotice.getId(),requestDto);
+        Long id = councilNoticeService.updateCouncilNotice(councilNotice.getId(),requestDto,null);
 
         //then
         assertEquals(id,councilNotice.getId());
-    }
-
-    @Test
-    @DisplayName("총학생회 공지 이미지 수정 테스트")
-    public void updateCouncilNoticeImageTest() throws NoSuchFieldException, IllegalAccessException, IOException {
-        //given
-        CouncilNotice councilNotice = createCouncilNotice("테스트 제목","테스트 내용");
-        List<MultipartFile> images = createDummyImages();
-        when(councilRepository.findById(councilNotice.getId())).thenReturn(Optional.of(councilNotice));
-
-        //when
-        Long id = councilNoticeService.updateCouncilNoticeImage(councilNotice.getId(),images);
-
-        //then
-        assertEquals(id,councilNotice.getId());
-        verify(imageService, times(1)).updateImage(any(),any(long.class),any(),any());
     }
 
     @Test
@@ -140,19 +112,6 @@ public class CouncilServiceTest {
         );
     }
 
-    @Test
-    @DisplayName("총학생회 공지사항 이미지 가져오기 테스트")
-    public void getCouncilNoticeImageTest(){
-        //given
-        Long councilNoticeId = 1L;
-        Long imageId = 1L;
-
-        //when
-        councilNoticeService.getCouncilNoticeImage(councilNoticeId,imageId);
-
-        //then
-        verify(imageService, times(1)).getImage(any(),any(),any());
-    }
 
     @Test
     @DisplayName("총학생회 공지 리스트 가져오기 테스트")
