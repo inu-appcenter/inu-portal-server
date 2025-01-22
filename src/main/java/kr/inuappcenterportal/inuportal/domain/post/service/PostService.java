@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.post.repository.PostRepository;
 import kr.inuappcenterportal.inuportal.domain.postLike.model.PostLike;
 import kr.inuappcenterportal.inuportal.domain.postLike.repository.LikePostRepository;
 import kr.inuappcenterportal.inuportal.domain.reply.service.ReplyService;
+import kr.inuappcenterportal.inuportal.domain.report.repository.ReportRepository;
 import kr.inuappcenterportal.inuportal.domain.scrap.model.Scrap;
 import kr.inuappcenterportal.inuportal.domain.scrap.repository.ScrapRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
@@ -45,6 +46,7 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final RedisService redisService;
     private final ImageService imageService;
+    private final ReportRepository reportRepository;
 
     @Value("${postImagePath}")
     private String path;
@@ -105,6 +107,9 @@ public class PostService {
     @Transactional
     public PostResponseDto getPost(Long postId,Member member,String address){
         Post post = postRepository.findByIdAndIsDeletedFalseWithPostMember(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
+        if(member!=null&&reportRepository.existsByPostIdAndMemberId(postId,member.getId())){
+            throw new MyException(MyErrorCode.BANNED_POST);
+        }
         if(redisService.isFirstConnect(address,postId,"post")){
             redisService.insertAddress(address,postId,"post");
             post.upViewCount();
@@ -143,19 +148,18 @@ public class PostService {
 
 
     @Transactional(readOnly = true)
-    public ListResponseDto<PostListResponseDto> getAllPost(String category, String sort, int page){
+    public ListResponseDto<PostListResponseDto> getAllPost(String category, String sort, int page, Member member){
         Pageable pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
         Page<Post> dto;
-        if(category==null){
-            dto = postRepository.findAllByIsDeletedFalse(pageable);
+        List<Long> postIds = null;
+        if (category != null && !categoryRepository.existsByCategory(category)) {
+            throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
-        else{
-            if(!categoryRepository.existsByCategory(category)){
-                throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
-            }
-            dto = postRepository.findAllByCategoryAndIsDeletedFalse(category, pageable);
+        if(member!=null) {
+            postIds = reportRepository.findPostIdsByMemberId(member.getId());
         }
-        long total = dto.getTotalElements();
+        dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable);
+                long total = dto.getTotalElements();
         long pages = dto.getTotalPages();
         List<PostListResponseDto> posts = dto.stream()
                 .map(this::getPostListResponseDto)
@@ -293,19 +297,20 @@ public class PostService {
 
 
     @Transactional(readOnly = true)
-    public List<PostListResponseDto> getPostForInf(Long lastPostId,String category){
+    public List<PostListResponseDto> getPostForInf(Long lastPostId,String category, Member member){
         Pageable pageable = PageRequest.of(0,8,sortData("date"));
-        if(lastPostId==null&&category==null){
-            return postRepository.findAllByIsDeletedFalse(pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        List<Long> postIds = null;
+        if(member!=null){
+            postIds = reportRepository.findPostIdsByMemberId(member.getId());
         }
-        else if(lastPostId == null){
-            return postRepository.findAllByCategoryAndIsDeletedFalse(category,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+        if(lastPostId==null){
+            return postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else if(category!=null){
             return postRepository.findByCategoryAndIdLessThanAndIsDeletedFalse(category,lastPostId,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else {
-            return postRepository.findAllByIdLessThanAndIsDeletedFalse(lastPostId, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findFilteredPosts(category,lastPostId,postIds, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
     }
 

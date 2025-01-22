@@ -133,7 +133,7 @@ public class PostController {
     @GetMapping("")
     public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false,defaultValue = "date") String sort
             ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page,@AuthenticationPrincipal Member member ){
-        return ResponseEntity.ok(ResponseDto.of(postService.getAllPost(category, sort,page),"모든 게시글 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(postService.getAllPost(category, sort,page,member),"모든 게시글 가져오기 성공"));
     }
 
 
@@ -174,7 +174,7 @@ public class PostController {
     })
     @GetMapping("/mobile")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForMobile(@RequestParam(required = false) Long lastPostId, @RequestParam(required = false) String category, @AuthenticationPrincipal Member member){
-        return ResponseEntity.ok(ResponseDto.of(postService.getPostForInf(lastPostId,category),"모바일용 게시글 리스트 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(postService.getPostForInf(lastPostId,category,member),"모바일용 게시글 리스트 가져오기 성공"));
     }
 
 }

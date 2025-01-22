@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,11 +18,6 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     Optional<Post> findByIdAndIsDeletedFalse(Long id);
     @Query("SELECT p FROM Post p LEFT JOIN FETCH p.member m WHERE p.id = :id AND p.isDeleted = false")
     Optional<Post> findByIdAndIsDeletedFalseWithPostMember(Long id);
-    Page<Post> findAllByCategoryAndIsDeletedFalse(String category,Pageable pageable);
-
-    Page<Post> findAllByIsDeletedFalse(Pageable pageable);
-
-    List<Post> findAllByIdLessThanAndIsDeletedFalse(Long id, Pageable pageable);
     List<Post> findByCategoryAndIdLessThanAndIsDeletedFalse(String category,Long id,Pageable pageable);
     long count();
     List<Post> findAllByMemberAndIsDeletedFalse(Member member, Sort sort);
@@ -44,5 +40,10 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     Optional<Post> findByIdWithLock(Long id);
 
 
+    @Query(" SELECT p FROM Post p WHERE p.isDeleted = false AND (:category IS NULL OR p.category = :category) AND (:postIds IS NULL OR p.id NOT IN :postIds)")
+    Page<Post> findAllByCategoryExcludingPostIds(@Param("category") String category, @Param("postIds") List<Long> postIds, Pageable pageable);
+
+    @Query(" SELECT p FROM Post p WHERE p.isDeleted = false AND (:category IS NULL OR p.category = :category) AND (:id IS NULL OR p.id < :id) AND (:postIds IS NULL OR p.id NOT IN :postIds)")
+    List<Post> findFilteredPosts(@Param("category") String category, @Param("id") Long id, @Param("postIds") List<Long> postIds, Pageable pageable);
 
 }
