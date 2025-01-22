@@ -92,7 +92,7 @@ public class CouncilNoticeTest {
             multipartRequest.file((MockMultipartFile) multipartFile);
         }
         String body = objectMapper.writeValueAsString(councilNoticeRequestDto);
-        MockPart jsonPart = new MockPart("petitionRequestDto", body.getBytes(StandardCharsets.UTF_8));
+        MockPart jsonPart = new MockPart("councilNoticeRequestDto", body.getBytes(StandardCharsets.UTF_8));
         jsonPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         multipartRequest.part(jsonPart);
         TokenDto tokenDto = memberService.login(member);
@@ -148,7 +148,7 @@ public class CouncilNoticeTest {
             multipartRequest.file((MockMultipartFile) multipartFile);
         }
         String body = objectMapper.writeValueAsString(councilNoticeUpdateDto);
-        MockPart jsonPart = new MockPart("petitionRequestDto", body.getBytes(StandardCharsets.UTF_8));
+        MockPart jsonPart = new MockPart("councilNoticeRequestDto", body.getBytes(StandardCharsets.UTF_8));
         jsonPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         multipartRequest.part(jsonPart);
         multipartRequest.header("Auth", tokenDto.getAccessToken())
