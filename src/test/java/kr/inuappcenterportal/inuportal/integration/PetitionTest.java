@@ -344,7 +344,7 @@ public class PetitionTest {
         petitionService.savePetition(petitionRequestDto2,member,null);
         petitionService.savePetition(petitionRequestDto3,member,null);
         Member admin = saveAdminMember("20255555");
-        TokenDto tokenDto = memberService.login(member);
+        TokenDto tokenDto = memberService.login(admin);
         mockMvc.perform(get("/api/petitions").header("Auth",tokenDto.getAccessToken()).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("총학생회 청원 리스트 가져오기 성공"))

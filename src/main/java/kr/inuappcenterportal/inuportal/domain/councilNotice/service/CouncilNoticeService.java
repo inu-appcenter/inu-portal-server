@@ -39,7 +39,7 @@ public class CouncilNoticeService {
         councilRepository.save(councilNotice);
         if (images != null) {
             councilNotice.updateImageCount(images.size());
-            imageService.saveImage(councilNotice.getId(),images,path);
+            imageService.saveImageWithThumbnail(councilNotice.getId(),images,path);
         }
         return councilNotice.getId();
     }
@@ -48,7 +48,7 @@ public class CouncilNoticeService {
         CouncilNotice councilNotice = councilRepository.findById(councilNoticeId).orElseThrow(()-> new MyException(MyErrorCode.NOT_FOUND_COUNCIL_NOTICE));
         councilNotice.updateCouncilNotice(councilNoticeRequestDto.getTitle(), councilNoticeRequestDto.getContent());
         if(images!=null){
-            imageService.updateImage(councilNoticeId,councilNotice.getImageCount(),images,path);
+            imageService.updateImages(councilNoticeId,images,path);
             councilNotice.updateImageCount(images.size());
         }
         return councilNotice.getId();
