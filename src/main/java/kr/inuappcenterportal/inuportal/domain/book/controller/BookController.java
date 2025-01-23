@@ -104,7 +104,7 @@ public class BookController {
             @ApiResponse(responseCode = "200", description = "책 수정 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping(value = "/{bookId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<ResponseDto<Long>> update(@RequestPart @Valid BookUpdate request, @RequestPart List<MultipartFile> images,
+    public ResponseEntity<ResponseDto<Long>> update(@RequestPart @Valid BookUpdate request, @RequestPart(required = false) List<MultipartFile> images,
             @Parameter(name = "bookId",description = "책의 id",in = ParameterIn.PATH) @PathVariable Long bookId) throws IOException {
         if(ObjectUtils.isEmpty(images))  images = new ArrayList<>();
         bookService.update(request, images, bookId);
