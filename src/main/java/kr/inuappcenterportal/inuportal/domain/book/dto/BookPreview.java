@@ -12,6 +12,7 @@ public class BookPreview {
     private String name;
     private String author;
     private TransactionStatus transactionStatus;
+    private int imageCount;
 
     public static BookPreview from(Book book) {
         return BookPreview.builder()
@@ -19,6 +20,7 @@ public class BookPreview {
                 .name(book.getName())
                 .author(book.getAuthor())
                 .transactionStatus(book.getTransactionStatus())
+                .imageCount(builder().imageCount)
                 .build();
     }
 }
