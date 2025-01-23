@@ -20,7 +20,7 @@ public class BookPreview {
                 .name(book.getName())
                 .author(book.getAuthor())
                 .transactionStatus(book.getTransactionStatus())
-                .imageCount(builder().imageCount)
+                .imageCount(book.getImageCount())
                 .build();
     }
 }
