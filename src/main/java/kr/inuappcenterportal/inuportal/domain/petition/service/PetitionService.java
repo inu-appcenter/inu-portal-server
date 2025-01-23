@@ -116,7 +116,7 @@ public class PetitionService {
         }
         boolean hasAuthority = false;
         boolean isLiked = false;
-        if(petition.getMember().equals(member)){
+        if(petition.getMember().getId().equals(member.getId())){
             hasAuthority = true;
         }
         if(petitionLikeRepository.existsByMemberAndPetition(member,petition)){
