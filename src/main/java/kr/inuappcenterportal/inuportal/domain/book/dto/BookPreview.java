@@ -11,6 +11,7 @@ public class BookPreview {
     private Long id;
     private String name;
     private String author;
+    private int price;
     private TransactionStatus transactionStatus;
     private int imageCount;
 
@@ -19,6 +20,7 @@ public class BookPreview {
                 .id(book.getId())
                 .name(book.getName())
                 .author(book.getAuthor())
+                .price(book.getPrice())
                 .transactionStatus(book.getTransactionStatus())
                 .imageCount(book.getImageCount())
                 .build();
