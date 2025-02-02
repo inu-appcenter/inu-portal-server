@@ -24,12 +24,16 @@ public class CouncilNoticeListDto {
     @Schema(description = "조회수")
     private Long view;
 
+    @Schema(description = "이미지 수")
+    private Long imageCount;
+
     @Builder
-    private CouncilNoticeListDto (Long id, String title, String createDate, Long view){
+    private CouncilNoticeListDto (Long id, String title, String createDate, Long view, Long imageCount) {
         this.id = id;
         this.title = title;
         this.createDate = createDate;
         this.view = view;
+        this.imageCount = imageCount;
     }
 
     public static CouncilNoticeListDto of(CouncilNotice councilNotice){
@@ -38,6 +42,7 @@ public class CouncilNoticeListDto {
                 .title(councilNotice.getTitle())
                 .createDate(councilNotice.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
                 .view(councilNotice.getView())
+                .imageCount(councilNotice.getImageCount())
                 .build();
     }
 }

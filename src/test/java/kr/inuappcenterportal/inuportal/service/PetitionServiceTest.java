@@ -263,6 +263,7 @@ public class PetitionServiceTest {
         String address = "168.000.00.000";
         Member petitionMember = createMember("20241234");
         Member member = createMember("20251234");
+        ReflectionTestUtils.setField(member,"id",2L);
         Petition petition = createPetitionEntity("제목","내용",false,petitionMember);
         when(petitionRepository.findByIdWithMember(petitionId)).thenReturn(Optional.ofNullable(petition));
         when(redisService.isFirstConnect(address,petitionId,"petition")).thenReturn(true);
@@ -310,6 +311,7 @@ public class PetitionServiceTest {
         String address = "168.000.00.000";
         Member petitionMember = createMember("20241234");
         Member admin = createMember("20251234");
+        ReflectionTestUtils.setField(admin,"id",2L);
         ReflectionTestUtils.setField(admin,"roles",Collections.singletonList("ROLE_ADMIN"));
         Petition petition = createPetitionEntity("제목","내용",true,petitionMember);
         when(petitionRepository.findByIdWithMember(petitionId)).thenReturn(Optional.ofNullable(petition));

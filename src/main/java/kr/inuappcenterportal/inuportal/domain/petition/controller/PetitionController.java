@@ -58,7 +58,7 @@ public class PetitionController {
             ,@ApiResponse(responseCode = "404",description = "존재하지 않는 총학생회 청원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping(value ="/{petitionId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDto<Long>> updateCouncilNotice(@RequestPart List<MultipartFile> images,@Parameter(name = "petitionId",description = "총학생회 청원의 id",in = ParameterIn.PATH) @PathVariable Long petitionId, @Valid@RequestPart PetitionRequestDto petitionRequestDto, @AuthenticationPrincipal Member member) throws IOException {
+    public ResponseEntity<ResponseDto<Long>> updateCouncilNotice(@RequestPart(required = false) List<MultipartFile> images,@Parameter(name = "petitionId",description = "총학생회 청원의 id",in = ParameterIn.PATH) @PathVariable Long petitionId, @Valid@RequestPart PetitionRequestDto petitionRequestDto, @AuthenticationPrincipal Member member) throws IOException {
         log.info("총학생회 청원 수정 호출 id:{}",petitionId);
         petitionService.updatePetition(petitionId,petitionRequestDto,member,images);
         return ResponseEntity.ok(ResponseDto.of(petitionId,"총삭생회 청원 수정 성공"));

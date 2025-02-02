@@ -85,7 +85,7 @@ public class LostPropertyController {
             @ApiResponse(responseCode = "200", description = "분실물 수정 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping(value = "/{lostId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<ResponseDto<Long>> update(@RequestPart @Valid LostPropertyUpdate request, @RequestPart List<MultipartFile> images,
+    public ResponseEntity<ResponseDto<Long>> update(@RequestPart @Valid LostPropertyUpdate request, @RequestPart(required = false) List<MultipartFile> images,
                                                     @Parameter(name = "lostId",description = "분실물의 id",in = ParameterIn.PATH) @PathVariable Long lostId) throws IOException {
         if(ObjectUtils.isEmpty(images)) images = new ArrayList<>();
         lostPropertyService.update(request, images, lostId);

@@ -9,6 +9,7 @@ import lombok.Getter;
 @Builder
 public class ItemPreview {
 
+    private Long id;
     private String itemCategory;
     private String name;
     private int totalQuantity;
@@ -16,6 +17,7 @@ public class ItemPreview {
 
     public static ItemPreview from(Item item) {
         return ItemPreview.builder()
+                .id(item.getId())
                 .itemCategory(item.getItemCategory().name())
                 .name(item.getName())
                 .totalQuantity(item.getTotalQuantity())

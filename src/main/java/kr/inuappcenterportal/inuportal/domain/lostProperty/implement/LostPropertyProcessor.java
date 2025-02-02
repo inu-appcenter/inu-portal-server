@@ -57,7 +57,8 @@ public class LostPropertyProcessor {
 
     private List<LostPropertyPreview> getPreviews(Page<LostProperty> lostProperties) {
         return lostProperties.stream()
-                .map(lostProperty -> new LostPropertyPreview(lostProperty.getId(), lostProperty.getName()))
+                .map(lostProperty -> new LostPropertyPreview(lostProperty.getId(), lostProperty.getName(), lostProperty.getContent(),
+                        lostProperty.getImageCount(), lostProperty.getCreateDate()))
                 .toList();
     }
 
