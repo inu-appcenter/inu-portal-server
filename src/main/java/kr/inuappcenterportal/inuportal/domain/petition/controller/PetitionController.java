@@ -110,4 +110,16 @@ public class PetitionController {
             , @RequestParam(required = false,defaultValue = "1") @Min(1) int page, @AuthenticationPrincipal Member member ){
         return ResponseEntity.ok(ResponseDto.of(petitionService.getPetitionList(sort,page,member),"총학생회 청원 리스트 가져오기 성공"));
     }
+
+    @Operation(summary = "총학생회 청원 좋아요 여부 변경",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 청원의 id를 보내주세요. 좋아요 시 {data:1}, 좋아요 취소 시 {data:-1}입니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "총학생회 청원 좋아요 여부 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다. / 존재하지 않는 게시글입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "자신의 게시글에는 추천을 할 수 없습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+
+    })
+    @PutMapping("/{petitionId}/like")
+    public ResponseEntity<ResponseDto<Integer>> likePetition(@AuthenticationPrincipal Member member, @Parameter(name = "petitionId",description = "청원의 id",in = ParameterIn.PATH)@PathVariable Long petitionId){
+        return ResponseEntity.ok(ResponseDto.of(petitionService.likePetition(petitionId,member),"총학생회 청원 좋아요 여부 변경 성공"));
+    }
 }
