@@ -39,8 +39,8 @@ public class ReservationService {
         return reservationRemover.delete(itemId, memberId);
     }
 
-    public ListResponseDto<ReservationPreview> getList(int page) {
-        return reservationReader.getList(page);
+    public ListResponseDto<ReservationPreview> getList(int page, Long memberId) {
+        return reservationReader.getList(page, memberId);
     }
 
 

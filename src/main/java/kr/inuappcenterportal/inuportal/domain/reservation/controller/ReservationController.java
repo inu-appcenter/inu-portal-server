@@ -74,7 +74,7 @@ public class ReservationController {
             @ApiResponse(responseCode = "200", description = "예약 상세 조회 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
     })
     @GetMapping
-    public ResponseEntity<ListResponseDto<ReservationPreview>> getList(@RequestParam(required = false,defaultValue = "1") @Min(1) int page) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.getList(page));
+    public ResponseEntity<ListResponseDto<ReservationPreview>> getList(@RequestParam(required = false,defaultValue = "1") @Min(1) int page, @AuthenticationPrincipal Member member) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.getList(page, member.getId()));
     }
 }

@@ -33,8 +33,8 @@ public class ReservationReader {
         return ListResponseDto.of(pages, total, list);
     }
 
-    public ListResponseDto<ReservationPreview> getList( int page) {
-        Page<Reservation> reservations = reservationRepository.findAll(PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
+    public ListResponseDto<ReservationPreview> getList(int page, Long memberId) {
+        Page<Reservation> reservations = reservationRepository.findAllByMemberId(PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")), memberId);
         List<ReservationPreview> list = reservations.stream().map(ReservationPreview::from).toList();
         long total = reservations.getTotalElements();
         long pages = reservations.getTotalPages();
