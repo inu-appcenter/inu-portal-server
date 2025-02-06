@@ -62,7 +62,7 @@ public class ReservationController {
 
     @Operation(summary = "예약 삭제", description = "헤더 Auth에 발급받은 토큰을 보내주세요. url 파라미터에 물품의 id를 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "예약 상세 조회 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "200", description = "예약 삭제 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("/item/{itemId}")
     public ResponseEntity<ResponseDto<Long>> delete(@PathVariable Long itemId, @AuthenticationPrincipal Member member) {
@@ -74,7 +74,7 @@ public class ReservationController {
             @ApiResponse(responseCode = "200", description = "예약 상세 조회 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
     })
     @GetMapping
-    public ResponseEntity<ListResponseDto<ReservationPreview>> getList(@RequestParam(required = false,defaultValue = "1") @Min(1) int page) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.getList(page));
+    public ResponseEntity<ListResponseDto<ReservationPreview>> getList(@RequestParam(required = false,defaultValue = "1") @Min(1) int page, @AuthenticationPrincipal Member member) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.getList(page, member.getId()));
     }
 }
