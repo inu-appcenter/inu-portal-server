@@ -22,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("file:"+path)
                 .setCachePeriod(3600)
-                .resourceChain(true)
+                .resourceChain(false)
                 .addResolver(customResourceHttpRequestHandler);
     }
 
