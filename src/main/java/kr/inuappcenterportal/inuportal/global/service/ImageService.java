@@ -85,7 +85,16 @@ public class ImageService {
                 Files.delete(filePath);
             }
             Path filePath = Paths.get(path+"/thumbnail", id.toString());
+
             Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
+        }
+        try (Stream<Path> paths = Files.list(Paths.get(path+"/thumbnail"))) {
+            for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id.toString()))
+                    .toList()) {
+                Files.delete(filePath);
+            }
         } catch (IOException e) {
             throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
