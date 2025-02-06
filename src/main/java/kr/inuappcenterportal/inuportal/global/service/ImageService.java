@@ -69,7 +69,7 @@ public class ImageService {
     }
 
     public void deleteAllImage(Long id, Long imageCount,String path) throws IOException {
-        for(int i = 1 ; i < imageCount ; i++){
+        for(int i = 1 ; i < imageCount + 1 ; i++){
             String fileName = id + "-" + i;
             Path filePath = Paths.get(path, fileName);
             Files.deleteIfExists(filePath);
@@ -84,9 +84,6 @@ public class ImageService {
                     .toList()) {
                 Files.delete(filePath);
             }
-            Path filePath = Paths.get(path+"/thumbnail", id.toString());
-
-            Files.deleteIfExists(filePath);
         } catch (IOException e) {
             throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
