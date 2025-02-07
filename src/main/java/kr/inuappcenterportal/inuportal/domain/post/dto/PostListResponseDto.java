@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.post.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import lombok.Builder;
@@ -32,10 +33,10 @@ public class PostListResponseDto {
     @Schema(description = "이미지수")
     private Long imageCount;
     @Schema(description = "생성일",example = "yyyy.mm.dd")
-    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy.MM.dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy.mm.dd")
-    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy.MM.dd")
     private LocalDate modifiedDate;
 
     @Builder
