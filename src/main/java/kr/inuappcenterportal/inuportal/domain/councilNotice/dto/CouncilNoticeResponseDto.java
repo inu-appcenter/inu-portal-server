@@ -5,7 +5,9 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.model.CouncilNotice;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Schema(description = "총학생회 공지사항 응답Dto")
@@ -25,16 +27,18 @@ public class CouncilNoticeResponseDto {
     private Long view;
 
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private String createDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate createDate;
 
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private String modifiedDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate modifiedDate;
 
     @Schema(description = "이미지 갯수")
     private Long imageCount;
 
     @Builder
-    private CouncilNoticeResponseDto(Long id, String title, String content, Long view, String createDate, String modifiedDate, Long imageCount){
+    private CouncilNoticeResponseDto(Long id, String title, String content, Long view, LocalDate createDate, LocalDate modifiedDate, Long imageCount){
         this.id = id;
         this.title = title;
         this.content = content;
@@ -50,8 +54,8 @@ public class CouncilNoticeResponseDto {
                 .title(councilNotice.getTitle())
                 .content(councilNotice.getContent())
                 .view(councilNotice.getView())
-                .createDate(councilNotice.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(councilNotice.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(councilNotice.getCreateDate())
+                .modifiedDate(councilNotice.getModifiedDate())
                 .imageCount(councilNotice.getImageCount())
                 .build();
     }

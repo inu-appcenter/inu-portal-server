@@ -7,8 +7,9 @@ import kr.inuappcenterportal.inuportal.domain.reply.dto.ReplyResponseDto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.List;
 
 @Schema(description = "게시글 내용 응답Dto")
@@ -42,9 +43,11 @@ public class PostResponseDto {
     @Schema(description = "수정/삭제 가능 여부")
     private Boolean hasAuthority;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private String createDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private String modifiedDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate modifiedDate;
     @Schema(description = "이미지 갯수")
     private Long imageCount;
     @Schema(description = "베스트 댓글")
@@ -54,7 +57,7 @@ public class PostResponseDto {
 
 
     @Builder
-    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, String createDate, String modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority,long replyCount){
+    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority,long replyCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -80,8 +83,8 @@ public class PostResponseDto {
                 .id(post.getId())
                 .replies(replies)
                 .bestReplies(bestReplies)
-                .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(post.getCreateDate())
+                .modifiedDate(post.getModifiedDate())
                 .category(post.getCategory())
                 .writer(writer)
                 .fireId(fireId)

@@ -5,7 +5,9 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.model.CouncilNotice;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Schema(description = "총학생회 공지사항 리스트 응답 Dto")
@@ -19,7 +21,12 @@ public class CouncilNoticeListDto {
     private String title;
 
     @Schema(description = "작성일",example = "작성일")
-    private String createDate;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDate createDate;
+
+    @Schema(description = "수정일",example = "yyyy.mm.dd")
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate modifiedDate;
 
     @Schema(description = "조회수")
     private Long view;
@@ -28,10 +35,11 @@ public class CouncilNoticeListDto {
     private Long imageCount;
 
     @Builder
-    private CouncilNoticeListDto (Long id, String title, String createDate, Long view, Long imageCount) {
+    private CouncilNoticeListDto (Long id, String title, LocalDate createDate, Long view, Long imageCount, LocalDate modifiedDate) {
         this.id = id;
         this.title = title;
         this.createDate = createDate;
+        this.modifiedDate = modifiedDate;
         this.view = view;
         this.imageCount = imageCount;
     }
@@ -40,7 +48,8 @@ public class CouncilNoticeListDto {
         return CouncilNoticeListDto.builder()
                 .id(councilNotice.getId())
                 .title(councilNotice.getTitle())
-                .createDate(councilNotice.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(councilNotice.getCreateDate())
+                .modifiedDate(councilNotice.getModifiedDate())
                 .view(councilNotice.getView())
                 .imageCount(councilNotice.getImageCount())
                 .build();

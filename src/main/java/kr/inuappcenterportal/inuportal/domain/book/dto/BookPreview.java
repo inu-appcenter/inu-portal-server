@@ -4,6 +4,10 @@ import kr.inuappcenterportal.inuportal.domain.book.enums.TransactionStatus;
 import kr.inuappcenterportal.inuportal.domain.book.model.Book;
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Getter
 @Builder
@@ -14,6 +18,10 @@ public class BookPreview {
     private int price;
     private TransactionStatus transactionStatus;
     private int imageCount;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate createDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate modifiedDate;
 
     public static BookPreview from(Book book) {
         return BookPreview.builder()
@@ -23,6 +31,8 @@ public class BookPreview {
                 .price(book.getPrice())
                 .transactionStatus(book.getTransactionStatus())
                 .imageCount(book.getImageCount())
+                .createDate(book.getCreateDate())
+                .modifiedDate(book.getModifiedDate())
                 .build();
     }
 }

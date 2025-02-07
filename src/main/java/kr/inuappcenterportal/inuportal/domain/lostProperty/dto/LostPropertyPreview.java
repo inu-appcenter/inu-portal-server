@@ -13,14 +13,17 @@ public class LostPropertyPreview {
     private String name;
     private String content;
     private int imageCount;
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
     private LocalDate createdAt;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate modifiedDate;
 
-    public LostPropertyPreview(Long id, String name, String content, int imageCount, LocalDate createdAt) {
+    public LostPropertyPreview(Long id, String name, String content, int imageCount, LocalDate createdAt, LocalDate modifiedDate) {
         this.id = id;
         this.name = name;
         this.content = content;
         this.imageCount = imageCount;
         this.createdAt = createdAt;
+        this.modifiedDate = modifiedDate;
     }
 }

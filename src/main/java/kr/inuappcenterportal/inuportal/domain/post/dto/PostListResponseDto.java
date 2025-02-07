@@ -5,8 +5,9 @@ import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 
 @Schema(description = "게시글 리스트 응답Dto")
 @Getter
@@ -30,13 +31,15 @@ public class PostListResponseDto {
     private Long replyCount;
     @Schema(description = "이미지수")
     private Long imageCount;
-    @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private String createDate;
-    @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private String modifiedDate;
+    @Schema(description = "생성일",example = "yyyy.mm.dd")
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate createDate;
+    @Schema(description = "수정일",example = "yyyy.mm.dd")
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate modifiedDate;
 
     @Builder
-    private PostListResponseDto(Long id, String title, String category, String writer,String content, String createDate, String modifiedDate, long like, long scrap, long imageCount, long replyCount){
+    private PostListResponseDto(Long id, String title, String category, String writer,String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap, long imageCount, long replyCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -53,8 +56,8 @@ public class PostListResponseDto {
     public static PostListResponseDto of(Post post, String writer){
         return PostListResponseDto.builder()
                 .id(post.getId())
-                .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(post.getCreateDate())
+                .modifiedDate(post.getModifiedDate())
                 .category(post.getCategory())
                 .writer(writer)
                 .content((post.getContent().length()>50)?post.getContent().substring(0,50)+"...":post.getContent())
