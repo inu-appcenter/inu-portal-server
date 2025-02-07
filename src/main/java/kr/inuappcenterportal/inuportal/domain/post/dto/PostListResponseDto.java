@@ -1,6 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.post.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import lombok.Builder;
@@ -8,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDate;
+
 import java.time.format.DateTimeFormatter;
 
 @Schema(description = "게시글 리스트 응답Dto")
@@ -35,7 +34,7 @@ public class PostListResponseDto {
     private Long imageCount;
     @Schema(description = "생성일",example = "yyyy.mm.dd")
     private String createDate;
-    @Schema(description = "수정일",example = "yyyy.mm.dd")
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
     private String modifiedDate;
 
     @Builder
@@ -57,7 +56,7 @@ public class PostListResponseDto {
         return PostListResponseDto.builder()
                 .id(post.getId())
                 .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
                 .category(post.getCategory())
                 .writer(writer)
                 .content((post.getContent().length()>50)?post.getContent().substring(0,50)+"...":post.getContent())

@@ -9,6 +9,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @MappedSuperclass
@@ -21,7 +22,7 @@ public class BaseTimeEntity {
 
     @LastModifiedDate
     @Column(name = "modified_date")
-    private LocalDate modifiedDate;
+    private LocalDateTime modifiedDate;
 
 
 }

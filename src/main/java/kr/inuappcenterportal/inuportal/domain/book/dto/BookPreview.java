@@ -7,7 +7,7 @@ import lombok.Getter;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -20,8 +20,8 @@ public class BookPreview {
     private int imageCount;
     @DateTimeFormat(pattern = "yyyy.MM.dd")
     private LocalDate createDate;
-    @DateTimeFormat(pattern = "yyyy.MM.dd")
-    private LocalDate modifiedDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
+    private LocalDateTime modifiedDate;
 
     public static BookPreview from(Book book) {
         return BookPreview.builder()

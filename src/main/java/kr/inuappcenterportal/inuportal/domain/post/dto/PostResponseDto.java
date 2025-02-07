@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Schema(description = "게시글 내용 응답Dto")
@@ -46,8 +47,8 @@ public class PostResponseDto {
     @DateTimeFormat(pattern = "yyyy.MM.dd")
     private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    @DateTimeFormat(pattern = "yyyy.MM.dd")
-    private LocalDate modifiedDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
+    private LocalDateTime modifiedDate;
     @Schema(description = "이미지 갯수")
     private Long imageCount;
     @Schema(description = "베스트 댓글")
@@ -57,7 +58,7 @@ public class PostResponseDto {
 
 
     @Builder
-    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, LocalDate createDate, LocalDate modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority,long replyCount){
+    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, LocalDate createDate, LocalDateTime modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority,long replyCount){
         this.id = id;
         this.title = title;
         this.category = category;

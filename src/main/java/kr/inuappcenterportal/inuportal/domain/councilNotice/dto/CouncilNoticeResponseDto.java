@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 @Schema(description = "총학생회 공지사항 응답Dto")
 @Getter
@@ -30,15 +30,14 @@ public class CouncilNoticeResponseDto {
     @DateTimeFormat(pattern = "yyyy.MM.dd")
     private LocalDate createDate;
 
-    @Schema(description = "수정일",example = "yyyy-mm-dd")
-    @DateTimeFormat(pattern = "yyyy.MM.dd")
-    private LocalDate modifiedDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
+    private LocalDateTime modifiedDate;
 
     @Schema(description = "이미지 갯수")
     private Long imageCount;
 
     @Builder
-    private CouncilNoticeResponseDto(Long id, String title, String content, Long view, LocalDate createDate, LocalDate modifiedDate, Long imageCount){
+    private CouncilNoticeResponseDto(Long id, String title, String content, Long view, LocalDate createDate, LocalDateTime modifiedDate, Long imageCount){
         this.id = id;
         this.title = title;
         this.content = content;

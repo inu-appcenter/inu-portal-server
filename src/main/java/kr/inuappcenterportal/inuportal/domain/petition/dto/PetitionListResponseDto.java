@@ -5,8 +5,10 @@ import kr.inuappcenterportal.inuportal.domain.petition.model.Petition;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Schema(description = "총학생회 청원 리스트 응답Dto")
 @Getter
@@ -23,12 +25,14 @@ public class PetitionListResponseDto {
     @Schema(description = "이미지수")
     private Long imageCount;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private String createDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private String modifiedDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
+    private LocalDateTime modifiedDate;
 
     @Builder
-    private PetitionListResponseDto(Long id, String title, Long like, Long view, Long imageCount, String createDate, String modifiedDate){
+    private PetitionListResponseDto(Long id, String title, Long like, Long view, Long imageCount, LocalDate createDate, LocalDateTime modifiedDate){
         this.id = id;
         this.title = title;
         this.like = like;
@@ -45,8 +49,8 @@ public class PetitionListResponseDto {
                 .like(petition.getGood())
                 .view(petition.getView())
                 .imageCount(petition.getImageCount())
-                .createDate(petition.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(petition.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(petition.getCreateDate())
+                .modifiedDate(petition.getModifiedDate())
                 .build();
     }
 
@@ -57,8 +61,8 @@ public class PetitionListResponseDto {
                 .like(petition.getGood())
                 .view(petition.getView())
                 .imageCount(petition.getImageCount())
-                .createDate(petition.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(petition.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(petition.getCreateDate())
+                .modifiedDate(petition.getModifiedDate())
                 .build();
     }
 }

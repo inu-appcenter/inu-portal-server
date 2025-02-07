@@ -5,8 +5,10 @@ import kr.inuappcenterportal.inuportal.domain.petition.model.Petition;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Schema(description = "총학생회 청원 응답Dto")
 @Getter
@@ -31,10 +33,11 @@ public class PetitionResponseDto {
     private Long like;
 
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    private String createDate;
-
+    @DateTimeFormat(pattern = "yyyy.MM.dd")
+    private LocalDate createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private String modifiedDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
+    private LocalDateTime modifiedDate;
 
     @Schema(description = "이미지 갯수")
     private Long imageCount;
@@ -46,7 +49,7 @@ public class PetitionResponseDto {
     private Boolean isLiked;
 
     @Builder
-    private PetitionResponseDto(Long id, String title, String content, Long view, Long like, String createDate, String modifiedDate, Long imageCount, Boolean hasAuthority, Boolean isLiked, String writer){
+    private PetitionResponseDto(Long id, String title, String content, Long view, Long like, LocalDate createDate, LocalDateTime modifiedDate, Long imageCount, Boolean hasAuthority, Boolean isLiked, String writer){
         this.id = id;
         this.title = title;
         this.content = content;
@@ -67,8 +70,8 @@ public class PetitionResponseDto {
                 .content(petition.getContent())
                 .view(petition.getView())
                 .like(petition.getGood())
-                .createDate(petition.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(petition.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(petition.getCreateDate())
+                .modifiedDate(petition.getModifiedDate())
                 .imageCount(petition.getImageCount())
                 .hasAuthority(hasAuthority)
                 .isLiked(isLiked)
