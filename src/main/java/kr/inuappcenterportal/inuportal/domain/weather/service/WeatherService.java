@@ -45,7 +45,6 @@ public class WeatherService {
     private final String y = "123";
 
     @Scheduled(cron = "0 35 * * * *")
-    @Transactional
     public void getWeatherAPI(){
         getWeatherSky();
         getTemperature();
@@ -53,20 +52,19 @@ public class WeatherService {
     }
 
     @Scheduled(cron = "0 5 0 * * *")
-    @Transactional
     public void getDay() {
         getDayData();
     }
 
 
     @PostConstruct
-    @Transactional
     public void initWeather(){
         getDayData();
         getDust();
         getWeatherSky();
         getTemperature();
     }
+    @Transactional
     public void getWeatherSky(){
         LocalDateTime t = LocalDateTime.now().minusMinutes(30);
 
@@ -126,6 +124,7 @@ public class WeatherService {
     }
 
 
+    @Transactional
     public void getTemperature(){
         LocalDateTime t = LocalDateTime.now();
         String url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"+
@@ -177,6 +176,7 @@ public class WeatherService {
         }
     }
 
+    @Transactional
     public void getDust(){
         String url = "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty"+
                 "?serviceKey="+weatherKey+
@@ -271,11 +271,11 @@ public class WeatherService {
             return itemList;
         }
         catch (Exception e){
-            log.info("날씨 관련 api호출 중 문제 발생 ");
-            return new JsonArray();
+            throw new RuntimeException("날씨 관련 api호출 중 문제 발생");
         }
     }
 
+    @Transactional
     public void getDayData(){
         LocalDateTime t = LocalDateTime.now();
         String url = "http://apis.data.go.kr/B090041/openapi/service/RiseSetInfoService/getAreaRiseSetInfo" +
@@ -307,7 +307,7 @@ public class WeatherService {
 
             redisService.storeSun(sunrise,sunset);
         } catch (Exception e) {
-            log.info("일출일몰 api 문제 발생");
+            throw new RuntimeException("일출일몰 api호출 중 문제 발생");
         }
     }
 
