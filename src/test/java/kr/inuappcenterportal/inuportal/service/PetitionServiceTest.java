@@ -26,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -442,7 +443,7 @@ public class PetitionServiceTest {
         Petition petition = Petition.builder().title(title).content(content).isPrivate(isPrivate).member(member).build();
         ReflectionTestUtils.setField(petition,"id",1L);
         ReflectionTestUtils.setField(petition,"createDate", LocalDate.now());
-        ReflectionTestUtils.setField(petition,"modifiedDate", LocalDate.now());
+        ReflectionTestUtils.setField(petition,"modifiedDate", LocalDateTime.now());
         return petition;
     }
 }

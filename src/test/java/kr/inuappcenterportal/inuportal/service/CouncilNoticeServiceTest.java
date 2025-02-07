@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class CouncilServiceTest {
+public class CouncilNoticeServiceTest {
     @InjectMocks
     CouncilNoticeService councilNoticeService;
 
@@ -151,8 +152,8 @@ public class CouncilServiceTest {
                 .content(content)
                 .build();
         ReflectionTestUtils.setField(councilNotice,"id",1L);
-        ReflectionTestUtils.setField(councilNotice,"createDate",LocalDate.now());
-        ReflectionTestUtils.setField(councilNotice,"modifiedDate",LocalDate.now());
+        ReflectionTestUtils.setField(councilNotice,"createDate", LocalDate.now());
+        ReflectionTestUtils.setField(councilNotice,"modifiedDate",LocalDateTime.now());
         return councilNotice;
     }
 
