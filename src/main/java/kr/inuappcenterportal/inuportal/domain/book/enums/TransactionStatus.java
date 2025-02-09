@@ -8,6 +8,7 @@ public enum TransactionStatus {
     AVAILABLE, COMPLETED, DELETED;
 
     public TransactionStatus toggle() {
+        if (this==DELETED) return this;
         return this == COMPLETED ? AVAILABLE : COMPLETED;
     }
 
