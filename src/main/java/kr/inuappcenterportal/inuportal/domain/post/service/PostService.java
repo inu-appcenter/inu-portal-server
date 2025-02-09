@@ -157,6 +157,9 @@ public class PostService {
         }
         if(member!=null) {
             postIds = reportRepository.findPostIdsByMemberId(member.getId());
+            if(postIds.size()==0){
+                postIds = null;
+            }
         }
         dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable);
                 long total = dto.getTotalElements();
@@ -302,6 +305,9 @@ public class PostService {
         List<Long> postIds = null;
         if(member!=null){
             postIds = reportRepository.findPostIdsByMemberId(member.getId());
+            if(postIds.size()==0){
+                postIds = null;
+            }
         }
         if(lastPostId==null){
             return postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
