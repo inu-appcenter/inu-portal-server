@@ -73,7 +73,7 @@ public class MemberController {
     })
     @PostMapping("/login")
     public ResponseEntity<ResponseDto<TokenDto>> login(@Valid @RequestBody LoginDto loginDto){
-        log.info("로그인 호출");
+        //log.info("로그인 호출");
         return ResponseEntity.ok(ResponseDto.of(memberService.schoolLogin(loginDto),"로그인 성공, 토근이 발급되었습니다."));
     }
 
@@ -84,7 +84,7 @@ public class MemberController {
     })
     @PostMapping("/refresh")
     public ResponseEntity<ResponseDto<TokenDto>> refresh(HttpServletRequest httpServletRequest){
-        log.info("토큰 재발급 호출");
+        //log.info("토큰 재발급 호출");
         return ResponseEntity.ok(ResponseDto.of(memberService.refreshToken(httpServletRequest.getHeader("refresh")),"토큰 재발급 성공"));
     }
 
@@ -115,7 +115,7 @@ public class MemberController {
     })
     @GetMapping("/posts")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
-        log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",member.getId());
+        //log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getPostByMember(member,sort),"회원이 작성한 모든 게시글 가져오기 성공"));
     }
 
@@ -128,7 +128,7 @@ public class MemberController {
     @GetMapping("/scraps")
     public ResponseEntity<ResponseDto<ListResponseDto>> getAllScrap(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort
     ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
-        log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",member.getId());
+        //log.info("회원이 스크랩한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getScrapsByMember(member,sort,page),"회원이 스크랩한 모든 게시글 가져오기 성공"));
     }
 
@@ -140,7 +140,7 @@ public class MemberController {
     })
     @GetMapping("/likes")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllLike(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
-        log.info("회원이 좋아요한 모든 글 가져오기 호출 id:{}",member.getId());
+        //log.info("회원이 좋아요한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getLikeByMember(member,sort),"회원이 좋아요한 모든 게시글 가져오기 성공"));
     }
 
@@ -152,7 +152,7 @@ public class MemberController {
     })
     @GetMapping("/replies")
     public ResponseEntity<ResponseDto<List<ReplyListResponseDto>>> getAllReply(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
-        log.info("회원이 작성한 모든 댓글 호출 id:{}",member.getId());
+        //log.info("회원이 작성한 모든 댓글 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(replyService.getReplyByMember(member,sort),"회원이 작성한 모든 댓글 가져오기 성공"));
     }
 

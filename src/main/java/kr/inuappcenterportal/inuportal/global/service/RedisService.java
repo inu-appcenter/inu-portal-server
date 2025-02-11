@@ -31,7 +31,7 @@ public class RedisService {
 
     public boolean isFirstConnect(String address, Long postId, String board){
         String key = board + ":" + address + "&"+ postId;
-        log.info("check isFirstConnect key:{}",key);
+        //log.info("check isFirstConnect key:{}",key);
         return !redisTemplate.hasKey(key);
     }
 

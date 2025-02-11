@@ -96,7 +96,7 @@ public class PostController {
     })
     @GetMapping("/{postId}")
     public ResponseEntity<ResponseDto<PostResponseDto>> getPost(@AuthenticationPrincipal Member member, HttpServletRequest httpServletRequest, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
-        log.info("게시글 가져오기 호출 id:{}",postId);
+        //log.info("게시글 가져오기 호출 id:{}",postId);
         return ResponseEntity.ok(ResponseDto.of(postService.getPost(postId,member,httpServletRequest.getHeader("X-Forwarded-For")),"게시글 가져오기 성공"));
     }
 
@@ -144,7 +144,7 @@ public class PostController {
     })
     @GetMapping("/{postId}/images/{imageId}")
     public ResponseEntity<byte[]> getImages(@Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId, @Parameter(name = "imageId",description = "이미지 번호",in = ParameterIn.PATH) @PathVariable Long imageId) throws IOException {
-        log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
+        //log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.IMAGE_PNG);
         return ResponseEntity.ok().headers(httpHeaders).body(postService.getPostImage(postId, imageId));
