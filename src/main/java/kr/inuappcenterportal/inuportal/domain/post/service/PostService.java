@@ -96,9 +96,9 @@ public class PostService {
 
 
     @Transactional
-    public void delete(Long memberId, Long postId) throws IOException {
+    public void delete(Member member, Long postId) throws IOException {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        if(!post.getMember().getId().equals(memberId)){
+        if(!post.getMember().getId().equals(member.getId())&&!member.getRoles().contains("ROLE_ADMIN")){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         post.delete();
@@ -125,7 +125,7 @@ public class PostService {
             if(scrapRepository.existsByMemberAndPost(member,post)){
                 isScraped = true;
             }
-            if(post.getMember()!=null&&member.getId().equals(post.getMember().getId())){
+            if(post.getMember()!=null&&(member.getId().equals(post.getMember().getId())||member.getRoles().contains("ROLE_ADMIN"))){
                 hasAuthority = true;
             }
         }

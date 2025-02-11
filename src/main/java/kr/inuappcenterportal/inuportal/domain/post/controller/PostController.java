@@ -85,7 +85,7 @@ public class PostController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<ResponseDto<Long>> deletePost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId) throws IOException {
         log.info("게시글 삭제 호출 id:{}",postId);
-        postService.delete(member.getId(),postId);
+        postService.delete(member,postId);
         return ResponseEntity.ok(ResponseDto.of(postId,"게시글 삭제 성공"));
     }
 
