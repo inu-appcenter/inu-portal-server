@@ -49,7 +49,7 @@ public class TokenProvider {
 
 
     public String createToken(String id, List<String> roles, LocalDateTime localDateTime){
-        log.info("토큰 생성 시작");
+        //log.info("토큰 생성 시작");
         Claims claims = Jwts.claims().setSubject(id);
         claims.put("roles",roles);
         Date now = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
@@ -60,12 +60,12 @@ public class TokenProvider {
                 .setExpiration(accessExpiredTime)
                 .signWith(secretKey,SignatureAlgorithm.HS256)
                 .compact();
-        log.info("토큰 생성 완료");
+        //log.info("토큰 생성 완료");
         return accessToken;
     }
 
     public String createRefreshToken(String id, LocalDateTime localDateTime){
-        log.info("refresh 토큰 생성 시작");
+        //log.info("refresh 토큰 생성 시작");
         Claims claims = Jwts.claims().setSubject(id);
         Date now = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
         Date refreshExpiredTime = new Date(now.getTime()+refreshValidMillisecond);
@@ -75,7 +75,7 @@ public class TokenProvider {
                 .setExpiration(refreshExpiredTime)
                 .signWith(refreshKey,SignatureAlgorithm.HS256)
                 .compact();
-        log.info("refresh 토큰 생성 완료");
+        //log.info("refresh 토큰 생성 완료");
         return refreshToken;
     }
 
@@ -92,7 +92,7 @@ public class TokenProvider {
     public String getUsername(String token){
             //log.info("토큰으로 회원 정보 추출");
             String info = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody().getSubject();
-            log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
+            //log.info("토큰으로 회원 정보 추출 완료 info:{}",info);
             return info;
 
     }

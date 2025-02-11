@@ -46,7 +46,7 @@ public class RedisService {
                 .withNano(0);
         Duration subTime = Duration.between(currentTime, endTime);
         long expireTime = subTime.getSeconds();
-        log.info("만료시간: {}",expireTime);
+        //log.info("만료시간: {}",expireTime);
         redisTemplate.opsForValue().set(key,"1");
         redisTemplate.expire(key,expireTime, TimeUnit.SECONDS);
     }
@@ -63,7 +63,7 @@ public class RedisService {
 
     public byte[] getFireImage(Long id){
         String key = "fire" + "-" + id;
-        log.info("이미지가져오기 key:{}",key);
+        //log.info("이미지가져오기 key:{}",key);
         byte[] image = redisTemplateForImage.opsForValue().get(key);
         if(image==null){
             throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
