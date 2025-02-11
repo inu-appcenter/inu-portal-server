@@ -26,6 +26,8 @@ public class LostPropertyDetail {
                 .name(lostProperty.getName())
                 .content(lostProperty.getContent())
                 .imageCount(lostProperty.getImageCount())
+                .createDate(lostProperty.getCreateDate())
+                .modifiedDate(lostProperty.getModifiedDate())
                 .build();
     }
 }
