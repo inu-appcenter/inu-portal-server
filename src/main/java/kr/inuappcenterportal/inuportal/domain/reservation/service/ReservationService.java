@@ -8,9 +8,11 @@ import kr.inuappcenterportal.inuportal.domain.reservation.implement.ReservationR
 import kr.inuappcenterportal.inuportal.domain.reservation.implement.ReservationRemover;
 import kr.inuappcenterportal.inuportal.domain.reservation.implement.ReservationVerifier;
 
+import kr.inuappcenterportal.inuportal.domain.reservation.model.Reservation;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,20 +29,31 @@ public class ReservationService {
         return reservationCreator.create(request, itemId, memberId);
     }
 
-    public ReservationDetail get(Long reservationId) {
-        return reservationReader.get(reservationId);
+    public ReservationDetail getDetail(Long reservationId) {
+        return reservationReader.getDetail(reservationId);
     }
 
     public ListResponseDto<ReservationPreview> getListByItemId(Long itemId, int page) {
         return reservationReader.getListByItemId(itemId, page);
     }
 
-    public Long deleteByOwner(Long itemId, Long memberId) {
-        return reservationRemover.delete(itemId, memberId);
+    public Long deleteByOwner(Long reservationId, Long memberId) {
+        return reservationRemover.delete(reservationId, memberId);
+    }
+
+    public Long deleteByAdmin(Long reservationId) {
+        return reservationRemover.deleteByAdmin(reservationId);
     }
 
     public ListResponseDto<ReservationPreview> getList(int page, Long memberId) {
         return reservationReader.getList(page, memberId);
+    }
+
+    @Transactional
+    public Long confirmOrRejectReservation(Long reservationId, String status) {
+        Reservation reservation = reservationReader.get(reservationId);
+        reservation.confirmOrReject(status);
+        return reservationId;
     }
 
 

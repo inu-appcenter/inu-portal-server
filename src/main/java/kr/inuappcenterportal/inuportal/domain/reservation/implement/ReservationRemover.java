@@ -18,10 +18,16 @@ public class ReservationRemover {
     private final ReservationRepository reservationRepository;
 
     @Transactional
-    public Long delete(Long itemId, Long memberId) {
-        Reservation reservation = reservationRepository.findByItemId(itemId);
-        if (Objects.equals(reservation.getMemberId(), memberId)) reservationRepository.deleteByItemId(itemId);
+    public Long delete(Long reservationId, Long memberId) {
+        Reservation reservation = reservationRepository.findById(reservationId).orElseThrow(() -> new MyException(MyErrorCode.RESERVATION_NOT_FOUND));
+        if (Objects.equals(reservation.getMemberId(), memberId)) reservationRepository.delete(reservation);
         else throw new MyException(MyErrorCode.HAS_NOT_RESERVATION_AUTHORIZATION);
-        return reservation.getId();
+        return reservationId;
+    }
+
+    @Transactional
+    public Long deleteByAdmin(Long reservationId) {
+        reservationRepository.deleteById(reservationId);
+        return reservationId;
     }
 }

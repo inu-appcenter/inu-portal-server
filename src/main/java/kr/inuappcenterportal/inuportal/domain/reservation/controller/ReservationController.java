@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,7 +49,7 @@ public class ReservationController {
     })
     @GetMapping("/{reservationId}")
     public ResponseEntity<ResponseDto<ReservationDetail>> get(@PathVariable Long reservationId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(reservationService.get(reservationId), "예약 조회 성공"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(reservationService.getDetail(reservationId), "예약 조회 성공"));
     }
 
     @Operation(summary = "예약 물품별 리스트 조회", description = "헤더 Auth에 발급받은 토큰을 보내주세요. url 파라미터에 물품의 id를 보내주세요.")
@@ -60,13 +61,23 @@ public class ReservationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.getListByItemId(itemId, page));
     }
 
-    @Operation(summary = "예약 삭제", description = "헤더 Auth에 발급받은 토큰을 보내주세요. url 파라미터에 물품의 id를 보내주세요.")
+    @Operation(summary = "예약한 당사자가 직접 삭제", description = "헤더 Auth에 발급받은 토큰을 보내주세요. url 파라미터에 예약 id를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "예약 삭제 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @DeleteMapping("/item/{itemId}")
-    public ResponseEntity<ResponseDto<Long>> delete(@PathVariable Long itemId, @AuthenticationPrincipal Member member) {
-        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(reservationService.deleteByOwner(itemId, member.getId()), "예약 아이템별 리스트 조회 성공"));
+    @DeleteMapping("/{reservationId}")
+    public ResponseEntity<ResponseDto<Long>> delete(@PathVariable Long reservationId, @AuthenticationPrincipal Member member) {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(reservationService.deleteByOwner(reservationId, member.getId()), "예약 삭제 성공"));
+    }
+
+    @Operation(summary = "Admin의 예약 삭제", description = "헤더 Auth에 발급받은 토큰을 보내주세요. url 파라미터에 예약 id를 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "예약 삭제 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @DeleteMapping("/admin/{reservationId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ResponseDto<Long>> deleteByAdmin(@PathVariable Long reservationId) {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(reservationService.deleteByAdmin(reservationId), "관리자 : 예약 삭제 성공"));
     }
 
     @Operation(summary = "예약 리스트 조회", description = "헤더 Auth에 발급받은 토큰을 보내주세요. url 파라미터에 물품의 id를 보내주세요. 페이지(공백일 시 1)를 보내주세요.")
@@ -76,5 +87,15 @@ public class ReservationController {
     @GetMapping
     public ResponseEntity<ListResponseDto<ReservationPreview>> getList(@RequestParam(required = false,defaultValue = "1") @Min(1) int page, @AuthenticationPrincipal Member member) {
         return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.getList(page, member.getId()));
+    }
+
+    @Operation(summary = "예약 상태 변경", description = "헤더 Auth에 발급받은 토큰을 보내주세요. 경로변수에 예약 id를 보내주세요. 요청 파라미터에 status값(대문자) CONFIRM / REJECTED 보내주세요")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "예약 삭제 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PostMapping("/{reservationId}/confirm")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ResponseDto<Long>> confirm(@PathVariable Long reservationId, @RequestParam String status) {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(reservationService.confirmOrRejectReservation(reservationId, status), "예약 상태 변경 성공"));
     }
 }
