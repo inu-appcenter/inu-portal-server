@@ -3,9 +3,9 @@ package kr.inuappcenterportal.inuportal.domain.reservation;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class PhoneNumberValidator {
-    // 국제번호(+82 포함) 또는 한국 휴대폰 번호 형식
-    private static final String PHONE_NUMBER_REGEX = "^(\\+\\d{1,3})?1?\\d{9,10}$";
+public class PhoneNumberValidator {
+    // 한국 휴대전화 번호 (010으로 시작, 10~11자리, 대시(-) 없이 입력)
+    private static final String PHONE_NUMBER_REGEX = "^01[016789]\\d{7,8}$";
     private static final Pattern pattern = Pattern.compile(PHONE_NUMBER_REGEX);
 
     public static void validate(String phoneNumber) {
