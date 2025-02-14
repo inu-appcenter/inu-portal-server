@@ -29,29 +29,35 @@ public class Item {
 
     private int deposit;
 
+    @Column(name = "image_count")
+    private int imageCount;
+
     @Builder
-    public Item(ItemCategory itemCategory, String name, int totalQuantity, int deposit) {
+    public Item(ItemCategory itemCategory, String name, int totalQuantity, int deposit, int imageCount) {
         this.itemCategory = itemCategory;
         this.name = name;
         this.totalQuantity = totalQuantity;
         this.deposit = deposit;
+        this.imageCount = imageCount;
     }
 
-    public static Item create(ItemRegister itemRegister) {
+    public static Item create(ItemRegister itemRegister, int imageCount) {
         return Item.builder()
                 .name(itemRegister.getName())
                 .itemCategory(ItemCategory.from(itemRegister.getItemCategory()))
                 .name(itemRegister.getName())
                 .totalQuantity(itemRegister.getTotalQuantity())
                 .deposit(itemRegister.getDeposit())
+                .imageCount(imageCount)
                 .build();
     }
 
-    public void update(ItemCategory itemCategory, String name, int totalQuantity, int deposit) {
+    public void update(ItemCategory itemCategory, String name, int totalQuantity, int deposit, int imageCount) {
         this.itemCategory = itemCategory;
         this.name = name;
         this.totalQuantity = totalQuantity;
         this.deposit = deposit;
+        this.imageCount = imageCount;
     }
 
 }
