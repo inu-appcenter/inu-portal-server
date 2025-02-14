@@ -34,7 +34,7 @@ public class ReservationController {
 
     private final ReservationService reservationService;
 
-    @Operation(summary = "예약 등록", description = "헤더 Auth에 발급받은 토큰을, 바디에 {startDateTime, endDateTime} ISO-8601 형식으로 보내주세요. ")
+    @Operation(summary = "예약 등록", description = "헤더 Auth에 발급받은 토큰을, 바디에 {startDateTime, endDateTime} ISO-8601 형식, 전화번호를(하이픈 없이)으로 보내주세요. ")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "예약 등록 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
