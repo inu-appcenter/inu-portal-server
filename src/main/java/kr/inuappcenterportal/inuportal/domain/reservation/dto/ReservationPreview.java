@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 @Builder
 public class ReservationPreview {
 
+    private Long reservationId;
+
     private Long itemId;
 
     private Long memberId;
@@ -24,6 +26,7 @@ public class ReservationPreview {
 
     public static ReservationPreview from(Reservation reservation) {
         return ReservationPreview.builder()
+                .reservationId(reservation.getId())
                 .itemId(reservation.getItemId())
                 .memberId(reservation.getMemberId())
                 .startDateTime(reservation.getStartDateTime())
