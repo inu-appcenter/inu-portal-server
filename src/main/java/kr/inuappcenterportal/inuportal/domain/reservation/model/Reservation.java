@@ -38,24 +38,34 @@ public class Reservation {
     @Enumerated(value = EnumType.STRING)
     private ReservationStatus reservationStatus;
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
     @Builder
-    public Reservation(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime, LocalDateTime createdAt, ReservationStatus reservationStatus) {
+    public Reservation(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime, LocalDateTime createdAt, ReservationStatus reservationStatus, String phoneNumber) {
         this.itemId = itemId;
         this.memberId = memberId;
         this.startDateTime = startDateTime;
         this.endDateTime = endDateTime;
         this.createdAt = createdAt;
         this.reservationStatus = reservationStatus;
+        this.phoneNumber = phoneNumber;
     }
 
-    public static Reservation create(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+    public static Reservation create(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime, String phoneNumber) {
         return Reservation.builder()
                 .itemId(itemId)
                 .memberId(memberId)
                 .startDateTime(startDateTime)
                 .endDateTime(endDateTime)
                 .createdAt(LocalDateTime.now())
-                .reservationStatus(ReservationStatus.CONFIRM)
+                .reservationStatus(ReservationStatus.PENDING)
+                .phoneNumber(phoneNumber)
                 .build();
+    }
+
+    public void confirmOrReject(String status) {
+        if (ReservationStatus.CONFIRM.name().equals(status)) this.reservationStatus = ReservationStatus.CONFIRM;
+        else this.reservationStatus = ReservationStatus.REJECTED;
     }
 }

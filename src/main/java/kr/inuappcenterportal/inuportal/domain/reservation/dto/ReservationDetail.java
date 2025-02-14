@@ -21,8 +21,9 @@ public class ReservationDetail {
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
     private ReservationStatus reservationStatus;
+    private String studentId;
 
-    public static ReservationDetail from(Reservation reservation) {
+    public static ReservationDetail from(Reservation reservation, String studentId) {
         return ReservationDetail.builder()
                 .itemId(reservation.getItemId())
                 .memberId(reservation.getMemberId())
@@ -30,6 +31,7 @@ public class ReservationDetail {
                 .endDateTime(reservation.getEndDateTime())
                 .createdAt(reservation.getCreatedAt())
                 .reservationStatus(reservation.getReservationStatus())
+                .studentId(studentId)
                 .build();
     }
 

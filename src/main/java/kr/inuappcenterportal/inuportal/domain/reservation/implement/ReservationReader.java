@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.reservation.implement;
 
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationDetail;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationPreview;
 import kr.inuappcenterportal.inuportal.domain.reservation.model.Reservation;
@@ -20,9 +22,12 @@ import java.util.List;
 public class ReservationReader {
 
     private final ReservationRepository reservationRepository;
+    private final MemberRepository memberRepository;
 
-    public ReservationDetail get(Long reservationId) {
-        return ReservationDetail.from(reservationRepository.findById(reservationId).orElseThrow(() -> new MyException(MyErrorCode.REPLY_NOT_FOUND)));
+    public ReservationDetail getDetail(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId).orElseThrow(() -> new MyException(MyErrorCode.RESERVATION_NOT_FOUND));
+        Member member = memberRepository.findById(reservation.getMemberId()).orElseThrow(() -> new MyException(MyErrorCode.RESERVATION_NOT_FOUND));
+        return ReservationDetail.from(reservation, member.getStudentId());
     }
 
     public ListResponseDto<ReservationPreview> getListByItemId(Long itemId, int page) {
@@ -39,6 +44,10 @@ public class ReservationReader {
         long total = reservations.getTotalElements();
         long pages = reservations.getTotalPages();
         return ListResponseDto.of(pages, total, list);
+    }
+
+    public Reservation get(Long reservationId) {
+        return reservationRepository.findById(reservationId).orElseThrow(() -> new MyException(MyErrorCode.RESERVATION_NOT_FOUND));
     }
 
 

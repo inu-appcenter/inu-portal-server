@@ -12,4 +12,5 @@ public class ReservationCreate {
     private LocalDateTime startDateTime;
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endDateTime;
+    private String phoneNumber;
 }
