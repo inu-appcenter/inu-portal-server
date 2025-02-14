@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.reservation.PhoneNumberValidator;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationCreate;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationDetail;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationPreview;
@@ -40,6 +41,7 @@ public class ReservationController {
     @PostMapping("/{itemId}")
     public ResponseEntity<ResponseDto<Long>> register(@RequestBody @Valid ReservationCreate request, @PathVariable Long itemId,
                                                       @AuthenticationPrincipal Member member) {
+        PhoneNumberValidator.validate(request.getPhoneNumber());
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(reservationService.create(request, itemId, member.getId()), "예약 등록 성공"));
     }
 
