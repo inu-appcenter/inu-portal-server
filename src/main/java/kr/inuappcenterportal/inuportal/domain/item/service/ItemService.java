@@ -26,7 +26,7 @@ public class ItemService {
 
     public Long register(ItemRegister request, List<MultipartFile> images) throws IOException {
         Long itemId = itemProcessor.register(request, images);
-        imageService.saveOnlyImage(request.getName(), images, itemImagePath);
+        imageService.saveImageWithThumbnail(itemId, images, itemImagePath);
         return itemId;
     }
 

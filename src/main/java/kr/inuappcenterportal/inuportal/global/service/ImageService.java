@@ -26,16 +26,6 @@ public class ImageService {
         saveThumbnail(images.get(0),path+"/thumbnail",id);
     }
 
-    public void saveOnlyImage(String name, List<MultipartFile> images, String path) throws IOException {
-        for (int i = 1; i < images.size() + 1; i++) {
-            MultipartFile file = images.get(i - 1);
-            String originalFilename = file.getOriginalFilename();
-            String fileExtension = getExtension(originalFilename);
-            String fileName = name + fileExtension;
-            Path filePath = Paths.get(path, fileName);
-            Files.write(filePath, file.getBytes());
-        }
-    }
     public void saveImage(Long id, List<MultipartFile> images, String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
             MultipartFile file = images.get(i - 1);
@@ -113,6 +103,8 @@ public class ImageService {
         if (images == null) images = new ArrayList<>();
         saveImageWithThumbnail(id, images, path);
     }
+
+
 
 
 
