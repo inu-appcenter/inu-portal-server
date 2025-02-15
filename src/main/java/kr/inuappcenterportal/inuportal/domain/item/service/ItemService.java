@@ -45,8 +45,8 @@ public class ItemService {
         imageService.deleteImages(itemId, itemImagePath);
     }
 
-    public ListResponseDto<ItemPreview> getList(int page) {
-        return itemProcessor.getList(page);
+    public List<ItemPreview> getList() {
+        return itemProcessor.getList();
     }
 
 

@@ -49,13 +49,13 @@ public class ItemProcessor {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto<ItemPreview> getList(int page) {
-        Page<Item> items = itemRepository.findAll(PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
-        List<ItemPreview> itemPreviews = getItemPreviews(items);
-        return getItemPreviewListResponseDto(items, itemPreviews);
+    public List<ItemPreview> getList() {
+        //Page<Item> items = itemRepository.findAll(PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
+        List<Item> items = itemRepository.findAll();
+        return getItemPreviews(items);
     }
 
-    private List<ItemPreview> getItemPreviews(Page<Item> items) {
+    private List<ItemPreview> getItemPreviews(List<Item> items) {
         return items.stream()
                 .map(ItemPreview::from)
                 .toList();

@@ -83,7 +83,7 @@ public class ItemController {
             @ApiResponse(responseCode = "200", description = "물품 리스트 조회 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping
-    public ResponseEntity<ResponseDto<ListResponseDto<ItemPreview>>> getList(@RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
-        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(itemService.getList(page), "물품 리스트 조회 성공"));
+    public ResponseEntity<ResponseDto<List<ItemPreview>>> getList() {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(itemService.getList(), "물품 리스트 조회 성공"));
     }
 }
