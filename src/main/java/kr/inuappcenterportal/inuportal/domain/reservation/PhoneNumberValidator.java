@@ -1,5 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.reservation;
 
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,7 +14,7 @@ public class PhoneNumberValidator {
     public static void validate(String phoneNumber) {
         Matcher matcher = pattern.matcher(phoneNumber);
         if (!matcher.matches()) {
-            throw new IllegalArgumentException("유효하지 않은 전화번호 형식입니다.");
+            throw new MyException(MyErrorCode.WRONG_PHONE_NUMBER);
         }
     }
 }

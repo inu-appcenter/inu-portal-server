@@ -25,7 +25,7 @@ public class BookRegister {
     @Schema(description = "내용",example = "내용")
     private String content;
 
-    @Min(value = 0)
+    @Min(value = 10)
     @Schema(description = "가격",example = "2000")
     private int price;
 
