@@ -2,48 +2,51 @@ package kr.inuappcenterportal.inuportal.domain.item.service;
 
 import kr.inuappcenterportal.inuportal.domain.item.dto.ItemDetail;
 import kr.inuappcenterportal.inuportal.domain.item.dto.ItemPreview;
+import kr.inuappcenterportal.inuportal.domain.item.dto.ItemRegister;
 import kr.inuappcenterportal.inuportal.domain.item.dto.ItemUpdate;
-import kr.inuappcenterportal.inuportal.domain.item.enums.ItemCategory;
-import kr.inuappcenterportal.inuportal.domain.item.model.Item;
-import kr.inuappcenterportal.inuportal.domain.item.repository.ItemRepository;
-import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.domain.item.implement.ItemProcessor;
+import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
+import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ItemService {
 
-    private final ItemRepository itemRepository;
+    private final ItemProcessor itemProcessor;
+    private final ImageService imageService;
+    @Value("${itemImagePath}")
+    private String itemImagePath;
 
-    public Long register(Item item) {
-        return itemRepository.save(item).getId();
+    public Long register(ItemRegister request, List<MultipartFile> images) throws IOException {
+        Long itemId = itemProcessor.register(request, images);
+        imageService.saveImageWithThumbnail(itemId, images, itemImagePath);
+        return itemId;
     }
 
     public ItemDetail get(Long itemId) {
-        Item item = itemRepository.findById(itemId).orElseThrow(() -> new MyException(MyErrorCode.ITEM_NOT_FOUND));
-        return ItemDetail.from(item);
+        return itemProcessor.getDetail(itemId);
     }
 
-    @Transactional
-    public void update(ItemUpdate itemUpdate, Long itemId) {
-        Item item = itemRepository.findById(itemId).orElseThrow(() -> new MyException(MyErrorCode.ITEM_NOT_FOUND));
-        item.update(ItemCategory.from(itemUpdate.getItemCategory()), itemUpdate.getName(), itemUpdate.getTotalQuantity(), itemUpdate.getDeposit());
+
+    public void update(ItemUpdate itemUpdate, List<MultipartFile> images, Long itemId) throws IOException {
+        itemProcessor.update(itemUpdate, images.size(), itemId);
+        imageService.updateImages(itemId, images, itemImagePath);
     }
 
     public void delete(Long itemId) {
-        itemRepository.deleteById(itemId);
+        itemProcessor.delete(itemId);
+        imageService.deleteImages(itemId, itemImagePath);
     }
 
-    public List<ItemPreview> getList() {
-        return itemRepository.findAll()
-                .stream()
-                .map(ItemPreview::from)
-                .toList();
+    public ListResponseDto<ItemPreview> getList(int page) {
+        return itemProcessor.getList(page);
     }
 
 

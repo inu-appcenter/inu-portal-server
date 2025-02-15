@@ -25,6 +25,7 @@ public class ImageService {
         saveImage(id,images,path);
         saveThumbnail(images.get(0),path+"/thumbnail",id);
     }
+
     public void saveImage(Long id, List<MultipartFile> images, String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
             MultipartFile file = images.get(i - 1);
@@ -102,6 +103,8 @@ public class ImageService {
         if (images == null) images = new ArrayList<>();
         saveImageWithThumbnail(id, images, path);
     }
+
+
 
 
 
