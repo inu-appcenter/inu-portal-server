@@ -65,7 +65,8 @@ public enum MyErrorCode {
     HAS_NOT_RESERVATION_AUTHORIZATION(HttpStatus.NOT_FOUND, "이 예약에 대한 삭제 권한이 없습니다."),
     LOST_PROPERTY_NOT_FOUND(HttpStatus.NOT_FOUND, "이 예약에 대한 삭제 권한이 없습니다."),
     BANNED_POST(HttpStatus.NOT_FOUND,"차단한 게시글입니다."),
-    WRONG_PHONE_NUMBER(HttpStatus.BAD_REQUEST, "잘못된 전화번호 형식");
+    WRONG_PHONE_NUMBER(HttpStatus.BAD_REQUEST, "잘못된 전화번호 형식"),
+    WRONG_RESERVATION_STATUS(HttpStatus.BAD_REQUEST, "잘못된 형식의 예약상태를 요청했습니다.");
 
     private final HttpStatus status;
     private final String message;
