@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.domain.reservation.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.reservation.enums.ReservationStatus;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -66,6 +68,7 @@ public class Reservation {
 
     public void confirmOrReject(String status) {
         if (ReservationStatus.CONFIRM.name().equals(status)) this.reservationStatus = ReservationStatus.CONFIRM;
-        else this.reservationStatus = ReservationStatus.REJECTED;
+        else if(ReservationStatus.REJECTED.name().equals(status)) this.reservationStatus = ReservationStatus.REJECTED;
+        else throw new MyException(MyErrorCode.WRONG_RESERVATION_STATUS);
     }
 }
