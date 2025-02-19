@@ -68,7 +68,7 @@ public class Reservation {
 
     public void confirmOrReject(String status) {
         if (ReservationStatus.CONFIRM.name().equals(status)) this.reservationStatus = ReservationStatus.CONFIRM;
-        else if(ReservationStatus.REJECTED.name().equals(status)) this.reservationStatus = ReservationStatus.REJECTED;
+        else if(ReservationStatus.CANCELED.name().equals(status)) this.reservationStatus = ReservationStatus.CANCELED;
         else throw new MyException(MyErrorCode.WRONG_RESERVATION_STATUS);
     }
 }

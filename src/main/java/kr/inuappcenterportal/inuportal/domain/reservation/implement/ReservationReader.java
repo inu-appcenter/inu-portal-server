@@ -32,7 +32,14 @@ public class ReservationReader {
 
     public ListResponseDto<ReservationPreview> getListByItemId(Long itemId, int page) {
         Page<Reservation> reservations = reservationRepository.findListByItemId(itemId, PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
-        List<ReservationPreview> list = reservations.stream().map(ReservationPreview::from).toList();
+        List<ReservationPreview> list = reservations.stream()
+                .map(reservation -> {
+                    String studentId = memberRepository.findById(reservation.getMemberId())
+                            .map(Member::getStudentId)
+                            .orElse(null);
+                    return ReservationPreview.from(reservation, studentId);
+                })
+                .toList();
         long total = reservations.getTotalElements();
         long pages = reservations.getTotalPages();
         return ListResponseDto.of(pages, total, list);
@@ -40,7 +47,12 @@ public class ReservationReader {
 
     public ListResponseDto<ReservationPreview> getList(int page, Long memberId) {
         Page<Reservation> reservations = reservationRepository.findAllByMemberId(PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")), memberId);
-        List<ReservationPreview> list = reservations.stream().map(ReservationPreview::from).toList();
+        String studentId = memberRepository.findById(memberId)
+                .map(Member::getStudentId)
+                .orElse(null);
+        List<ReservationPreview> list = reservations.stream()
+                .map(reservation -> ReservationPreview.from(reservation, studentId))
+                .toList();
         long total = reservations.getTotalElements();
         long pages = reservations.getTotalPages();
         return ListResponseDto.of(pages, total, list);
