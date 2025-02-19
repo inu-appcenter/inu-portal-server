@@ -91,7 +91,7 @@ public class ReservationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.getList(page, member.getId()));
     }
 
-    @Operation(summary = "예약 상태 변경", description = "헤더 Auth에 발급받은 토큰을 보내주세요. 경로변수에 예약 id를 보내주세요. 요청 파라미터에 status값(대문자) CONFIRM / REJECTED 보내주세요")
+    @Operation(summary = "예약 상태 변경", description = "헤더 Auth에 발급받은 토큰을 보내주세요. 경로변수에 예약 id를 보내주세요. 요청 파라미터에 status값(대문자) CONFIRM / CANCELED 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "예약 삭제 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })

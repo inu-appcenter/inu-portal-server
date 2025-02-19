@@ -22,6 +22,7 @@ public class ReservationDetail {
     private LocalDateTime createdAt;
     private ReservationStatus reservationStatus;
     private String studentId;
+    private String phoneNumber;
 
     public static ReservationDetail from(Reservation reservation, String studentId) {
         return ReservationDetail.builder()
@@ -32,6 +33,7 @@ public class ReservationDetail {
                 .createdAt(reservation.getCreatedAt())
                 .reservationStatus(reservation.getReservationStatus())
                 .studentId(studentId)
+                .phoneNumber(reservation.getPhoneNumber())
                 .build();
     }
 

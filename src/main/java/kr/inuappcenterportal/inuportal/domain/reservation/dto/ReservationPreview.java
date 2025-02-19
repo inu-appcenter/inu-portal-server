@@ -23,8 +23,10 @@ public class ReservationPreview {
 
     private LocalDateTime createdAt;
     private ReservationStatus reservationStatus;
+    private String studentId;
+    private String phoneNumber;
 
-    public static ReservationPreview from(Reservation reservation) {
+    public static ReservationPreview from(Reservation reservation, String studentId) {
         return ReservationPreview.builder()
                 .reservationId(reservation.getId())
                 .itemId(reservation.getItemId())
@@ -33,6 +35,8 @@ public class ReservationPreview {
                 .endDateTime(reservation.getEndDateTime())
                 .createdAt(reservation.getCreatedAt())
                 .reservationStatus(reservation.getReservationStatus())
+                .studentId(studentId)
+                .phoneNumber(reservation.getPhoneNumber())
                 .build();
     }
 
