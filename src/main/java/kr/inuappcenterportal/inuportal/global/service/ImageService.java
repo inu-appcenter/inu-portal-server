@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.global.service;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ImageService {
@@ -86,7 +88,7 @@ public class ImageService {
                 Files.delete(filePath);
             }
         } catch (IOException e) {
-            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
+            log.error("이미지가 없어서 삭제시 오류 발생", e);
         }
         try (Stream<Path> paths = Files.list(Paths.get(path+"/thumbnail"))) {
             for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id.toString()))
@@ -94,7 +96,7 @@ public class ImageService {
                 Files.delete(filePath);
             }
         } catch (IOException e) {
-            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
+            log.error("썸네일이 없어서 삭제시 오류 발생", e);
         }
     }
 
