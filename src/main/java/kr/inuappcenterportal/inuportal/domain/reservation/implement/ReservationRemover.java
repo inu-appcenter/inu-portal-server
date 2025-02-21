@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 @Component
@@ -18,16 +20,21 @@ public class ReservationRemover {
     private final ReservationRepository reservationRepository;
 
     @Transactional
-    public Long delete(Long reservationId, Long memberId) {
+    public Reservation delete(Long reservationId, Long memberId) {
         Reservation reservation = reservationRepository.findById(reservationId).orElseThrow(() -> new MyException(MyErrorCode.RESERVATION_NOT_FOUND));
         if (Objects.equals(reservation.getMemberId(), memberId)) reservationRepository.delete(reservation);
         else throw new MyException(MyErrorCode.HAS_NOT_RESERVATION_AUTHORIZATION);
-        return reservationId;
+        return reservation;
     }
 
     @Transactional
-    public Long deleteByAdmin(Long reservationId) {
+    public Reservation deleteByAdmin(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId).orElseThrow(() -> new MyException(MyErrorCode.RESERVATION_NOT_FOUND));
         reservationRepository.deleteById(reservationId);
-        return reservationId;
+        return reservation;
+    }
+
+    public List<Reservation> findExpiredReservations(LocalDateTime now) {
+        return reservationRepository.findByEndDateTimeBefore(now);
     }
 }
