@@ -64,6 +64,7 @@ public class ItemController {
     })
     @PutMapping("/{itemId}")
     public ResponseEntity<ResponseDto<Long>> update(@RequestPart @Valid ItemUpdate itemUpdate, @RequestPart(required = false) List<MultipartFile> images, @PathVariable Long itemId) throws IOException {
+        if(ObjectUtils.isEmpty(images)) images = new ArrayList<>();
         itemService.update(itemUpdate, images,itemId);
         return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(itemId, "물품 수정 성공"));
     }

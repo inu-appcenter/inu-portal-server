@@ -26,7 +26,9 @@ public class ItemService {
 
     public Long register(ItemRegister request, List<MultipartFile> images) throws IOException {
         Long itemId = itemProcessor.register(request, images);
-        imageService.saveImageWithThumbnail(itemId, images, itemImagePath);
+        if(images.size()!=0) {
+            imageService.saveImageWithThumbnail(itemId, images, itemImagePath);
+        }
         return itemId;
     }
 
@@ -37,7 +39,9 @@ public class ItemService {
 
     public void update(ItemUpdate itemUpdate, List<MultipartFile> images, Long itemId) throws IOException {
         itemProcessor.update(itemUpdate, images.size(), itemId);
-        imageService.updateImages(itemId, images, itemImagePath);
+        if(images.size()!=0) {
+            imageService.updateImages(itemId, images, itemImagePath);
+        }
     }
 
     public void delete(Long itemId) {
