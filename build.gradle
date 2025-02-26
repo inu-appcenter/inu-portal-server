@@ -47,6 +47,9 @@ dependencies {
     implementation group: 'net.coobird', name: 'thumbnailator', version: '0.4.1'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
 
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
 }
 
 tasks.named('test') {
