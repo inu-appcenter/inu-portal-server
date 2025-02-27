@@ -43,8 +43,11 @@ public class Reservation {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @Column(name = "quantity")
+    private int quantity;
+
     @Builder
-    public Reservation(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime, LocalDateTime createdAt, ReservationStatus reservationStatus, String phoneNumber) {
+    public Reservation(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime, LocalDateTime createdAt, ReservationStatus reservationStatus, String phoneNumber, int quantity) {
         this.itemId = itemId;
         this.memberId = memberId;
         this.startDateTime = startDateTime;
@@ -52,9 +55,10 @@ public class Reservation {
         this.createdAt = createdAt;
         this.reservationStatus = reservationStatus;
         this.phoneNumber = phoneNumber;
+        this.quantity = quantity;
     }
 
-    public static Reservation create(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime, String phoneNumber) {
+    public static Reservation create(Long itemId, Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime, String phoneNumber, int quantity) {
         return Reservation.builder()
                 .itemId(itemId)
                 .memberId(memberId)
@@ -63,6 +67,7 @@ public class Reservation {
                 .createdAt(LocalDateTime.now())
                 .reservationStatus(ReservationStatus.PENDING)
                 .phoneNumber(phoneNumber)
+                .quantity(quantity)
                 .build();
     }
 
