@@ -54,9 +54,9 @@ public class ItemProcessor {
     }
 
     @Transactional
-    public void rollbackItemQuantity(Long itemId) {
+    public void rollbackItemQuantity(Long itemId, int quantity) {
         Item item = itemRepository.findById(itemId).orElseThrow(() -> new MyException(MyErrorCode.ITEM_NOT_FOUND));
-        item.rollbackTotalQuantity();
+        item.rollbackTotalQuantity(quantity);
     }
 
     private List<ItemPreview> getItemPreviews(List<Item> items) {

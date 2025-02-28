@@ -47,13 +47,13 @@ public class ReservationService {
 
     public Long deleteByOwner(Long reservationId, Long memberId) {
         Reservation reservation = reservationRemover.delete(reservationId, memberId);
-        itemProcessor.rollbackItemQuantity(reservation.getItemId());
+        itemProcessor.rollbackItemQuantity(reservation.getItemId(), reservation.getQuantity());
         return reservationId;
     }
 
     public Long deleteByAdmin(Long reservationId) {
         Reservation reservation = reservationRemover.deleteByAdmin(reservationId);
-        itemProcessor.rollbackItemQuantity(reservation.getItemId());
+        itemProcessor.rollbackItemQuantity(reservation.getItemId(), reservation.getQuantity());
         return reservationId;
     }
 
@@ -76,7 +76,7 @@ public class ReservationService {
             int deletedCount = 0;
             for (Reservation reservation : expiredReservations) {
                 reservationRemover.deleteByAdmin(reservation.getId());
-                itemProcessor.rollbackItemQuantity(reservation.getItemId());
+                itemProcessor.rollbackItemQuantity(reservation.getItemId(), reservation.getQuantity());
                 deletedCount++;
             }
 
