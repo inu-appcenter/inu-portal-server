@@ -60,8 +60,8 @@ public class Item {
         this.imageCount = imageCount;
     }
 
-    public void rollbackTotalQuantity() {
-        this.totalQuantity++;
+    public void rollbackTotalQuantity(int quantity) {
+        this.totalQuantity+= quantity;
     }
 
 }

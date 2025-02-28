@@ -21,9 +21,9 @@ public class ReservationCreator {
 
     @Transactional
     public Long create(ReservationCreate request, Long itemId, Long memberId) {
-        int updatedRows = itemRepository.decrease(itemId);
+        int updatedRows = itemRepository.decrease(itemId, request.getQuantity());
         if (updatedRows == 0) throw new MyException(MyErrorCode.OUT_OF_ITEM);
-        Reservation reservation = Reservation.create(itemId, memberId, request.getStartDateTime(), request.getEndDateTime(), request.getPhoneNumber());
+        Reservation reservation = Reservation.create(itemId, memberId, request.getStartDateTime(), request.getEndDateTime(), request.getPhoneNumber(), request.getQuantity());
         return reservationRepository.save(reservation).getId();
     }
 

@@ -9,6 +9,6 @@ import org.springframework.data.repository.query.Param;
 public interface ItemRepository extends JpaRepository<Item, Long> {
 
     @Modifying
-    @Query("UPDATE Item i SET i.totalQuantity = i.totalQuantity - 1 WHERE i.id = :itemId AND i.totalQuantity > 0")
-    int decrease(@Param("itemId") Long itemId);
+    @Query("UPDATE Item i SET i.totalQuantity = i.totalQuantity - :quantity WHERE i.id = :itemId AND i.totalQuantity >= :quantity")
+    int decrease(@Param("itemId") Long itemId, @Param("quantity") int quantity);
 }

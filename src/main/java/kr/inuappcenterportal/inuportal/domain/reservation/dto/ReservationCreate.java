@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.reservation.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -15,4 +16,6 @@ public class ReservationCreate {
     private LocalDateTime endDateTime;
     @NotBlank
     private String phoneNumber;
+    @Min(1)
+    private int quantity;
 }
