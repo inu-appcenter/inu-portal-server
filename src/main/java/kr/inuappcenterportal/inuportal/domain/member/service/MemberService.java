@@ -104,7 +104,7 @@ public class MemberService {
         return login(member);
 
     }
-    @Transactional
+
     public void createMember(String studentId){
         Member member = Member.builder().studentId(studentId).roles(Collections.singletonList("ROLE_USER")).build();
         memberRepository.save(member);
