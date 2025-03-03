@@ -37,7 +37,7 @@ public class TokenProvider {
     private Key secretKey;
     private Key refreshKey;
     private final long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
-    private final long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
+    private final long refreshValidMillisecond = 1000L * 60 * 60 * 24 * 7;//7일
 
     @PostConstruct
     protected void init(){
