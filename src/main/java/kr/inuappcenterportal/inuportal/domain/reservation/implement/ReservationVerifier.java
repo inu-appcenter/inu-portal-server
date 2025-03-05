@@ -1,5 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.reservation.implement;
 
+import kr.inuappcenterportal.inuportal.domain.item.model.Item;
+import kr.inuappcenterportal.inuportal.domain.item.repository.ItemRepository;
+import kr.inuappcenterportal.inuportal.domain.reservation.model.Reservation;
 import kr.inuappcenterportal.inuportal.domain.reservation.repository.ReservationRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -15,6 +18,7 @@ import java.time.LocalTime;
 public class ReservationVerifier {
 
     private final ReservationRepository reservationRepository;
+    private final ItemRepository itemRepository;
 
     public void validateDates(LocalDateTime rentalTime, LocalDateTime returnTime) {
         LocalDateTime reservationTime = LocalDateTime.now();
@@ -39,5 +43,21 @@ public class ReservationVerifier {
 
     public void checkDuplicateReservation(Long memberId) {
         if(reservationRepository.existsByMemberId(memberId)) throw new MyException(MyErrorCode.DUPLICATE_RESERVATION);
+    }
+
+    public void validQuantity(Long itemId, LocalDateTime rentalTime, LocalDateTime returnTime, int quantity){
+        if(getRemainQuantity(itemId,rentalTime,returnTime) - quantity < 0){
+            throw new MyException(MyErrorCode.OUT_OF_ITEM);
+        }
+    }
+
+    public int getRemainQuantity(Long itemId, LocalDateTime rentalTime, LocalDateTime returnTime){
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> new MyException(MyErrorCode.ITEM_NOT_FOUND));
+        Long reservatedQuantity = reservationRepository.findTotalQuantityByItemIdBetween(itemId,rentalTime,returnTime);
+        return (int) (item.getTotalQuantity() - reservatedQuantity);
+    }
+
+    public void validateConfirm(Reservation reservation){
+        validQuantity(reservation.getItemId(), reservation.getStartDateTime(), reservation.getEndDateTime(), reservation.getQuantity());
     }
 }
