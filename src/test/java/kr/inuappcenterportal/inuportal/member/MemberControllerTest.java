@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.controller;
+package kr.inuappcenterportal.inuportal.member;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

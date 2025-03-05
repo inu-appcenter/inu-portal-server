@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.service;
+package kr.inuappcenterportal.inuportal.councilNotice;
 
 import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeListDto;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeRequestDto;

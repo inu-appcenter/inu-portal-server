@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.integration;
+package kr.inuappcenterportal.inuportal.petition;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.CafeteriaService;

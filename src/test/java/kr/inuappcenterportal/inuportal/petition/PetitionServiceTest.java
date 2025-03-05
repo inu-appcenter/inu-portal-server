@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.service;
+package kr.inuappcenterportal.inuportal.petition;
 
 import kr.inuappcenterportal.inuportal.domain.petitionLike.model.PetitionLike;
 import kr.inuappcenterportal.inuportal.domain.petitionLike.repository.PetitionLikeRepository;

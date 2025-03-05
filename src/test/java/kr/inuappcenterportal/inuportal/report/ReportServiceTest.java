@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.service;
+package kr.inuappcenterportal.inuportal.report;
 
 
 import kr.inuappcenterportal.inuportal.domain.report.dto.ReportListResponseDto;
