@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.controller;
+package kr.inuappcenterportal.inuportal.report;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

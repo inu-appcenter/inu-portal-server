@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.service;
+package kr.inuappcenterportal.inuportal.member;
 
 
 
