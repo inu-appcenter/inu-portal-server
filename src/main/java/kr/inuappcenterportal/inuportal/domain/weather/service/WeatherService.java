@@ -57,7 +57,7 @@ public class WeatherService {
     }
 
 
-    @PostConstruct
+    /*@PostConstruct
     public void initWeather(){
         WeatherResponseDto weatherResponseDto = getWeather();
         if(checkingNullData(weatherResponseDto)) {
@@ -66,7 +66,7 @@ public class WeatherService {
             getWeatherSky();
             getTemperature();
         }
-    }
+    }*/
     private boolean checkingNullData(WeatherResponseDto weatherResponseDto){
         return weatherResponseDto.getTemperature()==null|| weatherResponseDto.getDay()==null|| weatherResponseDto.getSky()==null|| weatherResponseDto.getPm25Grade()==null|| weatherResponseDto.getPm10Value()==null|| weatherResponseDto.getPm10Grade()==null|| weatherResponseDto.getPm25Value()==null;
     }

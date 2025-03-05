@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.item.model;
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.item.dto.ItemRegister;
 import kr.inuappcenterportal.inuportal.domain.item.enums.ItemCategory;
+import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "item")
-public class Item {
+public class Item extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,10 +59,6 @@ public class Item {
         this.totalQuantity = totalQuantity;
         this.deposit = deposit;
         this.imageCount = imageCount;
-    }
-
-    public void rollbackTotalQuantity(int quantity) {
-        this.totalQuantity+= quantity;
     }
 
 }

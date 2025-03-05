@@ -40,11 +40,11 @@ import java.util.stream.Collectors;
 public class NoticeService {
     private final NoticeRepository noticeRepository;
     private static long id = 0;
-    @PostConstruct
+    /*@PostConstruct
     @Transactional
     public void getNotice() throws IOException {
         crawlingNotices();
-    }
+    }*/
 
     @Scheduled(cron = "0 0/30 * * * *")
     @CacheEvict(value = "noticeCache",cacheManager = "cacheManager")

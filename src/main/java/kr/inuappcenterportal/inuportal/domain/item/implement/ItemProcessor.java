@@ -53,12 +53,6 @@ public class ItemProcessor {
         return getItemPreviews(items);
     }
 
-    @Transactional
-    public void rollbackItemQuantity(Long itemId, int quantity) {
-        Item item = itemRepository.findById(itemId).orElseThrow(() -> new MyException(MyErrorCode.ITEM_NOT_FOUND));
-        item.rollbackTotalQuantity(quantity);
-    }
-
     private List<ItemPreview> getItemPreviews(List<Item> items) {
         return items.stream()
                 .map(ItemPreview::from)

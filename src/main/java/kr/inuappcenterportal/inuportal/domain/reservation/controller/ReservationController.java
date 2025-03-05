@@ -18,11 +18,14 @@ import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @Tag(name = "reservations", description = " 물품대여 API")
 @Slf4j
@@ -100,4 +103,16 @@ public class ReservationController {
     public ResponseEntity<ResponseDto<Long>> confirm(@PathVariable Long reservationId, @RequestParam String status) {
         return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(reservationService.confirmOrRejectReservation(reservationId, status), "예약 상태 변경 성공"));
     }
+
+    @Operation(summary = "예약 가능 수량 조회", description = "url 파라미터에 물품의 id를 바디에 {startDateTime, endDateTime} ISO-8601 형식으로 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "예약 가능 수량 조회 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @GetMapping("/quantity/{itemId}")
+    public ResponseEntity<ResponseDto<Integer>> checkQuantity(@PathVariable Long itemId, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDateTime,
+                                                              @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDateTime) {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(reservationService.checkAbleReserveQuantity(startDateTime,endDateTime,itemId),"예약 가능 수량 조회 성공"));
+    }
+
+
 }
