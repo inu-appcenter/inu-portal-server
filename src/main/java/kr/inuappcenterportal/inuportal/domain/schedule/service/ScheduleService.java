@@ -32,11 +32,11 @@ public class ScheduleService {
     private static long id = 0L;
 
 
-    @PostConstruct
+    /*@PostConstruct
     @Transactional
     public void initSchedule() throws InterruptedException {
         crawlingSchedule();
-    }
+    }*/
     @Scheduled(cron = "0 0 0 1 * *")
     @Transactional
     public void renewalSchedule() throws InterruptedException {
