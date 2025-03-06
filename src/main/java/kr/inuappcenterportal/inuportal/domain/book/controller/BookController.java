@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookDetail;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookPreview;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookRegister;
@@ -22,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,6 +39,7 @@ import static org.springframework.http.HttpStatus.*;
 @Slf4j
 @CrossOrigin(origins = "*")
 @RestController
+@Validated
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
 public class BookController {
@@ -109,6 +113,15 @@ public class BookController {
         if(ObjectUtils.isEmpty(images))  images = new ArrayList<>();
         bookService.update(request, images, bookId);
         return ResponseEntity.ok(ResponseDto.of(bookId, "책 수정 완료"));
+    }
+
+    @Operation(summary = "책 검색", description = "query 파라티머에 2글자 이상의 검색어를 입력하세요. 페이지(공백일 시 1)를 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "책 검색 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
+    })
+    @GetMapping("/search")
+    public ResponseEntity<ResponseDto<ListResponseDto<BookPreview>>> searchBook(@RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false,defaultValue = "1") @Min(1) int page) {
+        return ResponseEntity.status(OK).body(ResponseDto.of(bookService.searchBook(query,page),"책 검색 성공"));
     }
 
 }
