@@ -84,7 +84,7 @@ public class BookProcessor {
 
     @Transactional(readOnly = true)
     public ListResponseDto<BookPreview> searchBookByQuery(String query, int page){
-        Page<Book> books = bookRepository.searchBook(query,PageRequest.of(page>0?--page:page,8));
+        Page<Book> books = bookRepository.searchBook(query,PageRequest.of(--page, 8, Sort.by(Sort.Direction.DESC, "id")));
         List<BookPreview> bookPreviews = getBookPreviews(books);
         return getBookPreviewListResponseDto(books,bookPreviews);
     }
