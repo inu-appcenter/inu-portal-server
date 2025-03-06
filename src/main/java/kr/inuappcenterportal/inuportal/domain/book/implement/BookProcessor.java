@@ -81,4 +81,11 @@ public class BookProcessor {
         long pages = books.getTotalPages();
         return ListResponseDto.of(pages, total, bookPreviews);
     }
+
+    @Transactional(readOnly = true)
+    public ListResponseDto<BookPreview> searchBookByQuery(String query, int page){
+        Page<Book> books = bookRepository.searchBook(query,PageRequest.of(page>0?--page:page,8));
+        List<BookPreview> bookPreviews = getBookPreviews(books);
+        return getBookPreviewListResponseDto(books,bookPreviews);
+    }
 }

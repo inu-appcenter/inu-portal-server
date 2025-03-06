@@ -15,5 +15,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     @Query("SELECT b FROM Book b WHERE b.transactionStatus = :status")
     Page<Book> findAllByTransactionStatus(@Param("status") TransactionStatus status, Pageable pageable);
 
+    @Query("SELECT b FROM Book b WHERE b.name LIKE CONCAT('%', :query, '%') OR b.author LIKE CONCAT('%', :query, '%')")
+    Page<Book> searchBook(@Param("query") String query, Pageable pageable);
+
 
 }

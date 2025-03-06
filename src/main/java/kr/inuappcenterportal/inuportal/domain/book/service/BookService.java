@@ -57,4 +57,8 @@ public class BookService {
         imageService.updateImages(bookId, images, bookImagePath);
     }
 
+    public ListResponseDto<BookPreview> searchBook(String query, int page){
+        return bookProcessor.searchBookByQuery(query,page);
+    }
+
 }
