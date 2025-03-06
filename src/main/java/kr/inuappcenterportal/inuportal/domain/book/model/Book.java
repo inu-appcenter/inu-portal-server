@@ -2,22 +2,20 @@ package kr.inuappcenterportal.inuportal.domain.book.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.book.enums.TransactionStatus;
-import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
-import java.util.List;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name="book")
-public class Book extends BaseTimeEntity {
+public class Book{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,6 +40,12 @@ public class Book extends BaseTimeEntity {
     @Column(name = "image_count")
     private int imageCount;
 
+    @Column(name = "create_date")
+    private LocalDate createDate;
+
+    @Column(name = "modified_date")
+    private LocalDateTime modifiedDate;
+
 
     @Builder
     public Book(String name, String author, int price, TransactionStatus transactionStatus, String content, int imageCount) {
@@ -51,6 +55,8 @@ public class Book extends BaseTimeEntity {
         this.transactionStatus = transactionStatus;
         this.content = content;
         this.imageCount = imageCount;
+        this.createDate = LocalDate.now();
+        this.modifiedDate = LocalDateTime.now();
     }
 
     public static Book create(String name, String author, int price, String content, int imageCount) {
@@ -71,6 +77,7 @@ public class Book extends BaseTimeEntity {
     public void delete() {
         transactionStatus = transactionStatus.delete();
         imageCount = 0;
+        this.modifiedDate = LocalDateTime.now();
     }
 
     public void update(String name, String author, int price, String content, int imageCount) {
@@ -79,10 +86,7 @@ public class Book extends BaseTimeEntity {
         this.price = price;
         this.content = content;
         this.imageCount = imageCount;
-    }
-
-    public void updateImageCount(int imageCount){
-        this.imageCount += imageCount;
+        this.modifiedDate = LocalDateTime.now();
     }
 
 }

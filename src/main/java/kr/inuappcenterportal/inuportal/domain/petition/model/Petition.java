@@ -2,17 +2,19 @@ package kr.inuappcenterportal.inuportal.domain.petition.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "petition")
-public class Petition extends BaseTimeEntity {
+public class Petition{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,6 +41,12 @@ public class Petition extends BaseTimeEntity {
     @Column(name = "is_deleted")
     private Boolean isDeleted;
 
+    @Column(name = "create_date")
+    private LocalDate createDate;
+
+    @Column(name = "modified_date")
+    private LocalDateTime modifiedDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
     private Member member;
@@ -53,12 +61,15 @@ public class Petition extends BaseTimeEntity {
         this.imageCount = 0L;
         this.isDeleted = false;
         this.member = member;
+        this.createDate = LocalDate.now();
+        this.modifiedDate = LocalDateTime.now();
     }
 
     public void updatePetition(String title, String content, Boolean isPrivate){
         this.title = title;
         this.content = content;
         this.isPrivate = isPrivate;
+        this.modifiedDate = LocalDateTime.now();
     }
 
     public void deletePetition(){
@@ -79,6 +90,4 @@ public class Petition extends BaseTimeEntity {
     public void downLike(){
         this.good--;
     }
-
-
 }
