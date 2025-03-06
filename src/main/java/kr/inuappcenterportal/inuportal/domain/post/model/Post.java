@@ -6,7 +6,6 @@ import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.postLike.model.PostLike;
 import kr.inuappcenterportal.inuportal.domain.reply.model.Reply;
 import kr.inuappcenterportal.inuportal.domain.scrap.model.Scrap;
-import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,6 +13,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -22,7 +23,7 @@ import java.util.List;
 @Table(name = "post", indexes = {
         @Index(name = "idx_is_deleted", columnList = "is_deleted")
 })
-public class Post extends BaseTimeEntity {
+public class Post{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -61,6 +62,12 @@ public class Post extends BaseTimeEntity {
     @Column(name = "is_deleted")
     private Boolean isDeleted;
 
+    @Column(name = "create_date")
+    private LocalDate createDate;
+
+    @Column(name = "modified_date")
+    private LocalDateTime modifiedDate;
+
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
@@ -93,7 +100,8 @@ public class Post extends BaseTimeEntity {
         this.scrap = 0L;
         this.replyCount = 0L;
         this.isDeleted = false;
-
+        this.createDate = LocalDate.now();
+        this.modifiedDate = LocalDateTime.now();
     }
 
     public void updateOnlyPost(String title, String content, String category, boolean anonymous){
@@ -101,6 +109,7 @@ public class Post extends BaseTimeEntity {
         this.content = content;
         this.category = category;
         this.anonymous = anonymous;
+        this.modifiedDate = LocalDateTime.now();
     }
     public void upNumber(){
         this.number++;

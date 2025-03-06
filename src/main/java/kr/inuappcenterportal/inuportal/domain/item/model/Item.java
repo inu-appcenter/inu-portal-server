@@ -3,17 +3,19 @@ package kr.inuappcenterportal.inuportal.domain.item.model;
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.item.dto.ItemRegister;
 import kr.inuappcenterportal.inuportal.domain.item.enums.ItemCategory;
-import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "item")
-public class Item extends BaseTimeEntity {
+public class Item{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,6 +35,12 @@ public class Item extends BaseTimeEntity {
     @Column(name = "image_count")
     private int imageCount;
 
+    @Column(name = "create_date")
+    private LocalDate createDate;
+
+    @Column(name = "modified_date")
+    private LocalDateTime modifiedDate;
+
     @Builder
     public Item(ItemCategory itemCategory, String name, int totalQuantity, int deposit, int imageCount) {
         this.itemCategory = itemCategory;
@@ -40,6 +48,8 @@ public class Item extends BaseTimeEntity {
         this.totalQuantity = totalQuantity;
         this.deposit = deposit;
         this.imageCount = imageCount;
+        this.createDate = LocalDate.now();
+        this.modifiedDate = LocalDateTime.now();
     }
 
     public static Item create(ItemRegister itemRegister, int imageCount) {
@@ -59,6 +69,7 @@ public class Item extends BaseTimeEntity {
         this.totalQuantity = totalQuantity;
         this.deposit = deposit;
         this.imageCount = imageCount;
+        this.modifiedDate = LocalDateTime.now();
     }
 
 }
