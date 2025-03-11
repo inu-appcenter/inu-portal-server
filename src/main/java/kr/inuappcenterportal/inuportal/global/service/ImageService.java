@@ -8,6 +8,8 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,12 +32,14 @@ public class ImageService {
 
     public void saveImage(Long id, List<MultipartFile> images, String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
-            MultipartFile file = images.get(i - 1);
-            String originalFilename = file.getOriginalFilename();
-            String fileExtension = getExtension(originalFilename);
-            String fileName = id + "-" + i + fileExtension;
-            Path filePath = Paths.get(path, fileName);
-            Files.write(filePath, file.getBytes());
+            MultipartFile file = images.get(i-1);
+            BufferedImage resizedImage = Thumbnails.of(file.getInputStream())
+                    .size(1080, 1080)
+                    .keepAspectRatio(true)
+                    .asBufferedImage();
+            String fileName = id + "-" + i + ".webp";
+            File outputFile = new File(path, fileName);
+            ImageIO.write(resizedImage, "webp", outputFile);
         }
     }
     private String getExtension(String filename) {
@@ -48,13 +52,13 @@ public class ImageService {
     }
 
     private void saveThumbnail(MultipartFile image,String path, Long id) throws IOException {
-        String fileExtension = getExtension(image.getOriginalFilename());
-        String thumbnailName = id + fileExtension;
-        Path thumbnailPath = Paths.get(path, thumbnailName);
-        Thumbnails.of(image.getInputStream())
-                .size(150, 150)
-                .outputFormat(fileExtension.replace(".", ""))
-                .toFile(thumbnailPath.toFile());
+        BufferedImage thumbnail = Thumbnails.of(image.getInputStream())
+                .size(400, 400)
+                .keepAspectRatio(true)
+                .asBufferedImage();
+        String thumbnailName = id + ".webp";
+        File outputFile = new File(path, thumbnailName);
+        ImageIO.write(thumbnail, "webp", outputFile);
     }
 
     public byte[] getImage(Long id, Long imageId, String path){

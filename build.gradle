@@ -50,6 +50,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
+    implementation 'org.sejda.imageio:webp-imageio:0.1.6'
+
+
 }
 
 tasks.named('test') {
