@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.club.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import kr.inuappcenterportal.inuportal.domain.club.model.Club;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,14 +21,17 @@ public class ClubListResponseDto {
     private String url;
     @Schema(description = "동아리 개인 url")
     private String homeUrl;
+    @Schema(description = "동아리 모집 중 여부")
+    private Boolean isRecruiting;
 
     @Builder
-    private ClubListResponseDto(String name, String category, String imageUrl, String url, String homeUrl){
+    private ClubListResponseDto(String name, String category, String imageUrl, String url, String homeUrl, Boolean isRecruiting){
         this.name = name;
         this.category = category;
         this.imageUrl = imageUrl;
         this.url = url;
         this.homeUrl = homeUrl;
+        this.isRecruiting = isRecruiting;
     }
 
     public static ClubListResponseDto from(Club club){
@@ -37,6 +41,7 @@ public class ClubListResponseDto {
                 .imageUrl(club.getImageUrl())
                 .url(club.getUrl())
                 .homeUrl(club.getHomeUrl())
+                .isRecruiting(club.getIsRecruiting())
                 .build();
     }
 }
