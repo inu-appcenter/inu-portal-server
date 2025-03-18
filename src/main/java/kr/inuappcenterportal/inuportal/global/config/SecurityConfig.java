@@ -33,7 +33,7 @@ public class SecurityConfig {
                 csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity
-                .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/api/clubs","/actuator/**").permitAll()
+                .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/reports/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/members/all","/api/reports").hasRole("ADMIN")
@@ -43,8 +43,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/replies/**","/api/reservations/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/search","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders","/api/search/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**").permitAll()
-                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**").hasRole("ADMIN"));
+                        .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs","/api/clubs/**").permitAll()
+                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs/**").hasRole("ADMIN"));
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))
