@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class ClubListResponseDto {
-
+    @Schema(description = "동아리 아이디")
+    private Long id;
     @Schema(description = "동아리 이름",example = "PINCOM")
     private String name;
     @Schema(description = "카테고리",example = "카테고리")
@@ -25,7 +26,8 @@ public class ClubListResponseDto {
     private Boolean isRecruiting;
 
     @Builder
-    private ClubListResponseDto(String name, String category, String imageUrl, String url, String homeUrl, Boolean isRecruiting){
+    private ClubListResponseDto(Long id,String name, String category, String imageUrl, String url, String homeUrl, Boolean isRecruiting){
+        this.id = id;
         this.name = name;
         this.category = category;
         this.imageUrl = imageUrl;
@@ -36,6 +38,7 @@ public class ClubListResponseDto {
 
     public static ClubListResponseDto from(Club club){
         return ClubListResponseDto.builder()
+                .id(club.getId())
                 .name(club.getName())
                 .category(club.getCategory())
                 .imageUrl(club.getImageUrl())

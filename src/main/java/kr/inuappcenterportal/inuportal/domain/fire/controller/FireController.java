@@ -47,7 +47,7 @@ public class FireController {
             @ApiResponse(responseCode = "200",description = "횃불이 ai 이미지 정보들 가져오기 성공",content = @Content(schema = @Schema(implementation = FirePageResponseDto.class))),
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<FirePageResponseDto>> getFireRating(@AuthenticationPrincipal Member member,@RequestParam(required = false,defaultValue = "0") int page){
+    public ResponseEntity<ResponseDto<FirePageResponseDto>> getFireRating(@AuthenticationPrincipal Member member,@RequestParam(required = false,defaultValue = "1") int page){
         return ResponseEntity.ok(ResponseDto.of(fireService.getFireImageList(member,page),"횃불이 ai 이미지 정보들 가져오기 성공"));
     }
 
