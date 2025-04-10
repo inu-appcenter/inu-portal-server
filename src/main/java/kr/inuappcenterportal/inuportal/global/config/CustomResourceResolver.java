@@ -21,17 +21,7 @@ public class CustomResourceResolver implements ResourceResolver {
 
     @Override
     public Resource resolveResource(HttpServletRequest request, String requestPath, List<? extends Resource> locations, ResourceResolverChain chain) {
-        try {
-            String path = requestPath + ".webp";
-            Path imagePath = Paths.get(path, path);
-
-            return new UrlResource(imagePath.toUri());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // 기본 체인으로 위임
-        return chain.resolveResource(request, requestPath, locations);
+        return chain.resolveResource(request, requestPath + ".webp", locations);
     }
 
     @Override
