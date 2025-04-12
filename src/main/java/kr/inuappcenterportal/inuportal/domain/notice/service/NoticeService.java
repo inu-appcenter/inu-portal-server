@@ -13,8 +13,10 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,11 +37,18 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class NoticeService {
     private final NoticeRepository noticeRepository;
     private static long id = 0;
+    private final CacheManager cacheManager;
+    @Qualifier("localCacheManager")
+    private final CacheManager localCacheManager;
+    public NoticeService(@Qualifier("cacheManager") CacheManager cacheManager, @Qualifier("localCacheManager") CacheManager localCacheManager, NoticeRepository noticeRepository){
+        this.noticeRepository = noticeRepository;
+        this.cacheManager = cacheManager;
+        this.localCacheManager = localCacheManager;
+    }
     /*@PostConstruct
     @Transactional
     public void getNotice() throws IOException {
@@ -130,9 +139,46 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "noticeCache",cacheManager = "cacheManager")
+    //@Cacheable(value = "noticeCache",cacheManager = "cacheManager")
     public List<NoticeListResponseDto> getTop(){
-        return noticeRepository.findTop12().stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
+        // 레디스 캐시 호출
+        try {
+            Cache cache = cacheManager.getCache("noticeCache");
+            List<NoticeListResponseDto> list = cache.get("noticeTop", List.class);
+            if(list!=null){
+                return list;
+            }
+        }catch (Exception e){
+            log.warn("메인 화면 공지 - 레디스 캐시 접근 실패, 로컬 캐시 접근");
+        }
+        // 레디스 캐시 호출 실패 시 로컬 캐시 호출
+        try {
+            Cache cache = localCacheManager.getCache("noticeCache");
+            List<NoticeListResponseDto> list = cache.get("noticeTop", List.class);
+            if(list!=null){
+                return list;
+            }
+        }catch (Exception e){
+            log.warn("메인 화면 공지 - 로컬 캐시 접근 실패, 데이터베이스 접근");
+        }
+        // DB 조회
+        List<NoticeListResponseDto> notices = noticeRepository.findTop12().stream().map(NoticeListResponseDto::of).collect(Collectors.toList());
+        // 레디스 캐시 등록 - 성공 시 로컬 캐시 사용하지 않음
+        try {
+            cacheManager.getCache("noticeCache").put("noticeTop",notices);
+            return notices;
+        }catch (Exception e){
+            log.warn("메인 화면 공지 - 레디스 캐시 등록 실패");
+        }
+
+        //로컬 캐시 등록
+        try {
+            localCacheManager.getCache("noticeCache").put("noticeTop",notices);
+        }catch (Exception e){
+            log.warn(e.getMessage());
+            log.warn("메인 화면 공지 - 로컬 캐시 등록 실패");
+        }
+        return notices;
     }
 
 
