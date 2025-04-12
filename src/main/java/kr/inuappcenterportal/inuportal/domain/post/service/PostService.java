@@ -20,7 +20,11 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,7 +40,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class PostService {
     private final PostRepository postRepository;
     private final MemberRepository memberRepository;
@@ -50,6 +54,32 @@ public class PostService {
 
     @Value("${postImagePath}")
     private String path;
+    private final CacheManager cacheManager;
+    private final CacheManager localCacheManager;
+
+    public PostService(PostRepository postRepository,
+                       MemberRepository memberRepository,
+                       LikePostRepository likePostRepository,
+                       ScrapRepository scrapRepository,
+                       ReplyService replyService,
+                       CategoryRepository categoryRepository,
+                       RedisService redisService,
+                       ImageService imageService,
+                       ReportRepository reportRepository,
+                       @Qualifier("cacheManager") CacheManager cacheManager,
+                       @Qualifier("localCacheManager") CacheManager localCacheManager) {
+        this.postRepository = postRepository;
+        this.memberRepository = memberRepository;
+        this.likePostRepository = likePostRepository;
+        this.scrapRepository = scrapRepository;
+        this.replyService = replyService;
+        this.categoryRepository = categoryRepository;
+        this.redisService = redisService;
+        this.imageService = imageService;
+        this.reportRepository = reportRepository;
+        this.cacheManager = cacheManager;
+        this.localCacheManager = localCacheManager;
+    }
 
 
     @Transactional
@@ -276,15 +306,91 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "topPost", key = "#category != null ? #category : 'default'",cacheManager = "cacheManager")
-    public List<PostListResponseDto> getTop(String category){
-        return postRepository.findTop12(category).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+    public List<PostListResponseDto> getTop(String category) {
+        String cacheKey = (category != null) ? category : "default";
+        // 레디스 캐시 조회
+        try {
+            Cache cache = cacheManager.getCache("topPost");
+            List<PostListResponseDto> posts = cache.get(cacheKey, List.class);
+            if (posts != null) {
+                return posts;
+            }
+        } catch (Exception e) {
+            log.warn("카테고리 인기 게시글 - 레디스 캐시 조회 실패 ");
+        }
+        // 레디스 캐시 조회 실패 시 로컬 캐시 조회
+        try {
+            Cache cache = localCacheManager.getCache("topPost");
+            List<PostListResponseDto> cached = cache.get(cacheKey, List.class);
+            if (cached != null) {
+                return cached;
+            }
+        } catch (Exception e) {
+            log.warn("카테고리 인기 게시글 - 로컬 캐시 조회 실패 ");
+        }
+        // 캐시 조회 실패 시 DB 접근
+        List<PostListResponseDto> posts = postRepository.findTop12(category).stream()
+                .map(this::getPostListResponseDto)
+                .collect(Collectors.toList());
+        // 레디스 캐시 등록
+        try {
+            cacheManager.getCache("topPost").put(cacheKey, posts);
+            return posts;
+        } catch (Exception e) {
+            log.warn("카테고리 인기 게시글 - 레디스 캐시 저장 실패 ");
+        }
+        // 레디스 캐시 등록 실패 시 로컬 캐시 등록
+        try {
+            localCacheManager.getCache("topPost").put(cacheKey, posts);
+        } catch (Exception e) {
+            log.warn("카테고리 인기 게시글 - 로컬 캐시 저장 실패 ");
+        }
+
+        return posts;
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "randomPost", cacheManager = "cacheManager")
-    public List<PostListResponseDto> getRandomTop(){
-        return postRepository.findRandomTop().stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+    public List<PostListResponseDto> getRandomTop() {
+        // 레디스 캐시 조회
+        try {
+            Cache cache = cacheManager.getCache("randomPost");
+            List<PostListResponseDto> posts = cache.get("randomTop", List.class);
+            if (posts != null) {
+                return posts;
+            }
+        } catch (Exception e) {
+            log.warn("랜덤 인기 게시글 - 레디스 캐시 조회 실패");
+        }
+        // 레디스 캐시 조회 실패 시 로컬 캐시 조회
+        try {
+            Cache cache = localCacheManager.getCache("randomPost");
+            List<PostListResponseDto> posts = cache.get("randomTop", List.class);
+            if (posts != null) {
+                return posts;
+            }
+        } catch (Exception e) {
+            log.warn("랜덤 인기 게시글 - 로컬 캐시 조회 실패");
+        }
+        // 캐시 조회 실패 시 DB 접근
+        List<PostListResponseDto> posts = postRepository.findRandomTop().stream()
+                .map(this::getPostListResponseDto)
+                .collect(Collectors.toList());
+        // 레디스 캐시 등록
+        try {
+            cacheManager.getCache("randomPost").put("randomTop", posts);
+            return posts;
+        } catch (Exception e) {
+            log.warn("랜덤 인기 게시글 - 레디스 캐시 저장 실패");
+        }
+
+        // 레디스 캐시 등록 실패 시 로컬 캐시 등록
+        try {
+            localCacheManager.getCache("randomPost").put("randomTop", posts);
+        } catch (Exception e) {
+            log.warn("랜덤 인기 게시글 - 로컬 캐시 저장 실패 ");
+        }
+
+        return posts;
     }
 
     @Transactional(readOnly = true)
