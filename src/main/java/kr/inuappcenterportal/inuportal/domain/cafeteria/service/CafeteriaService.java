@@ -28,11 +28,11 @@ public class CafeteriaService {
     @Value("${installPath}")
     private String installPath;
 
-   /*@PostConstruct
+   @PostConstruct
     @Transactional
     public void initCafeteria() throws InterruptedException {
         crawlCafeteria();
-    }*/
+    }
 
     @Scheduled(cron = "0 10 0 ? * MON-SAT")
     @Transactional
@@ -110,25 +110,12 @@ public class CafeteriaService {
         for (WebElement wrapWeekDiv : wrapWeekDivs) {
             WebElement tbody = wrapWeekDiv.findElement(By.tagName("tbody"));
             List<WebElement> rows = tbody.findElements(By.tagName("tr"));
-            for (int i = 1; i < 4; i++) {
+            for (int i = 0; i < 3; i++) {
                 List<WebElement> foods = rows.get(i).findElements(By.tagName("td"));
-                if(i==2){
-                    String menu = foods.get(0).getText().equals("")?"오늘은 쉽니다":foods.get(0).getText();
-                    menu = menu.replace("\\", "");
-                    menu = menu.replace("\"", "");
-                    redisService.storeMeal("학생식당", day, i,menu);
-                }
-                else if(i==3){
-                    String menu = foods.get(0).getText();
-                    if(menu.equals("")){
-                        menu = "오늘은 쉽니다";
-                    }
-                    menu = menu.replace("\"", "");
-                    redisService.storeMeal("학생식당", day, i,menu);
-                }
-                else {
-                    redisService.storeMeal("학생식당", day, i, foods.get(0).getText().equals("")?"오늘은 쉽니다":foods.get(0).getText());
-                }
+                String menu = foods.get(0).getText().equals("")?"오늘은 쉽니다":foods.get(0).getText();
+                menu = menu.replace("\\", "");
+                menu = menu.replace("\"", "");
+                redisService.storeMeal("학생식당", day, i+1,menu);
             }
             day++;
         }
