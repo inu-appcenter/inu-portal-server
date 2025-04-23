@@ -64,7 +64,7 @@ public class NoticeService {
 
 
     @Transactional
-    public void crawlingNotices() throws IOException {
+    public void crawlingNotices()  {
         id = 0;
         noticeRepository.deleteAllInBatch();
         int bachelor = 1516;
@@ -85,43 +85,48 @@ public class NoticeService {
         log.info("교육시험공지 크롤링 완료");
     }
 
-    private void getNoticeByCategory(int category,int categoryNum,String categoryName) throws IOException {
-        String url = "https://www.inu.ac.kr/inu/" + category + "/subview.do?enc=";
-        int index = 1;
-        boolean outLoop = false;
-        while (!outLoop) {
-            String postUrl = "fnct1|@@|%2Fbbs%2Finu%2F2" + categoryNum  + "%2FartclList.do%3Fpage%3D" + index + "%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%267";
-            String encodedUrl = url + encoding(postUrl);
-            Document document = Jsoup.connect(encodedUrl).get();
-            Elements notice = document.select("tr");
-            for (Element ele : notice){
-                if(ele.select("td.td-num").text().equals("일반공지")||ele.select("th.th-num").text().equals("NO")){
-                    continue;
+    private void getNoticeByCategory(int category,int categoryNum,String categoryName) {
+        try {
+            String url = "https://www.inu.ac.kr/inu/" + category + "/subview.do?enc=";
+            int index = 1;
+            boolean outLoop = false;
+            while (!outLoop) {
+                String postUrl = "fnct1|@@|%2Fbbs%2Finu%2F2" + categoryNum + "%2FartclList.do%3Fpage%3D" + index + "%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%267";
+                String encodedUrl = url + encoding(postUrl);
+                Document document = Jsoup.connect(encodedUrl).get();
+                Elements notice = document.select("tr");
+                for (Element ele : notice) {
+                    if (ele.select("td.td-num").text().equals("일반공지") || ele.select("th.th-num").text().equals("NO")) {
+                        continue;
+                    }
+                    if (category == 1518 && !ele.select("td.td-category").text().equals("[모집]")) {
+                        continue;
+                    }
+                    if (isAMonthAgo(ele.select("td.td-date").text())) {
+                        outLoop = true;
+                        break;
+                    }
+                    String href = "www.inu.ac.kr" + ele.select("td.td-subject").select("a").attr("href");
+                    String pattern = "\\d+";//숫자로 시작하는 패턴
+                    Pattern p = Pattern.compile(pattern);
+                    Matcher m = p.matcher(href);
+                    m.find();
+                    m.find();
+                    String number = m.group();
+                    String baseUrl = "fnct1|@@|%2Fbbs%2Finu%2F2006%2F" + number + "%2FartclView.do%3Fpage%3D3%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%26password%3D%267";
+                    noticeRepository.save(Notice.builder().category(categoryName)
+                            .title(Objects.requireNonNull(Objects.requireNonNull(ele.select("td.td-subject").first()).selectFirst("strong").text()))
+                            .url("www.inu.ac.kr/inu/" + category + "/subview.do?enc=" + encoding(baseUrl))
+                            .writer(ele.select("td.td-write").text())
+                            .createDate(ele.select("td.td-date").text())
+                            .view(Long.parseLong(ele.select("td.td-access").text()))
+                            .id(++id)
+                            .build());
                 }
-                if(category==1518&&!ele.select("td.td-category").text().equals("[모집]")){
-                    continue;
-                }
-                if(isAMonthAgo(ele.select("td.td-date").text())){
-                    outLoop = true;
-                    break;
-                }String href = "www.inu.ac.kr"+ele.select("td.td-subject").select("a").attr("href");
-                String pattern = "\\d+";//숫자로 시작하는 패턴
-                Pattern p = Pattern.compile(pattern);
-                Matcher m = p.matcher(href);
-                m.find();
-                m.find();
-                String number = m.group();
-                String baseUrl = "fnct1|@@|%2Fbbs%2Finu%2F2006%2F"+number+"%2FartclView.do%3Fpage%3D3%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%26password%3D%267";
-                noticeRepository.save(Notice.builder().category(categoryName)
-                        .title(Objects.requireNonNull(Objects.requireNonNull(ele.select("td.td-subject").first()).selectFirst("strong").text()))
-                        .url("www.inu.ac.kr/inu/"+category+"/subview.do?enc="+encoding(baseUrl))
-                        .writer(ele.select("td.td-write").text())
-                        .createDate(ele.select("td.td-date").text())
-                        .view(Long.parseLong(ele.select("td.td-access").text()))
-                        .id(++id)
-                        .build());
+                index++;
             }
-            index++;
+        }catch (Exception e){
+            log.warn("{} 공지 크롤링 실패 : {}",categoryName,e.getMessage());
         }
     }
 

@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.reservation.service;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationCreate;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationDetail;
 import kr.inuappcenterportal.inuportal.domain.reservation.dto.ReservationPreview;
@@ -27,11 +28,13 @@ public class ReservationService {
     private final ReservationCreator reservationCreator;
     private final ReservationReader reservationReader;
     private final ReservationRemover reservationRemover;
+    private final FcmService fcmService;
 
     public Long create(ReservationCreate request, Long itemId ,Long memberId) {
         reservationVerifier.validateDates(request.getStartDateTime(), request.getEndDateTime());
         reservationVerifier.validQuantity(itemId, request.getStartDateTime(), request.getEndDateTime(), request.getQuantity());
         reservationVerifier.checkDuplicateReservation(memberId);
+        fcmService.sendToAdmin("관리자 알림","물품 대여 예약이 등록되었습니다.");
         return reservationCreator.create(request, itemId, memberId);
     }
 

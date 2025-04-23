@@ -37,7 +37,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 paramName = "refresh")
 })
 @EnableJpaAuditing
-@EnableAsync
 @EnableScheduling
 @EnableCaching
 @SpringBootApplication
