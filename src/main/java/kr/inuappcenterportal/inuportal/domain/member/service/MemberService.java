@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.member.service;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
@@ -62,8 +63,8 @@ public class MemberService {
 
     public TokenDto login(Member member){
         LocalDateTime localDateTime = LocalDateTime.now();
-        long tokenValidMillisecond = 1000L * 60 * 60 * 2 ;//2시간
-        long refreshValidMillisecond = 1000L * 60 *60 *24;//24시간
+        long tokenValidMillisecond = 1000L * 60 * 60 * 24 ;//24시간
+        long refreshValidMillisecond = 1000L * 60 *60 *24 * 7;//7일
         String accessToken = tokenProvider.createToken(member.getId().toString(),member.getRoles(),localDateTime);
         String refreshToken = tokenProvider.createRefreshToken(member.getId().toString(),localDateTime);
         return TokenDto.of(accessToken,refreshToken,localDateTime.plus(Duration.ofMillis(tokenValidMillisecond)).toString(),localDateTime.plus(Duration.ofMillis(refreshValidMillisecond)).toString());

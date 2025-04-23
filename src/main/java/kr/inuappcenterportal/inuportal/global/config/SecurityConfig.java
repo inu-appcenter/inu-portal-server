@@ -34,10 +34,10 @@ public class SecurityConfig {
                 .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity
                 .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/actuator/**").permitAll()
-                        .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members","/api/tokens").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/reports/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/members/all","/api/reports").hasRole("ADMIN")
-                        .requestMatchers("/api/members/**","/api/members").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/members/**","/api/members","/api/tokens").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/cafeterias","/api/weathers","/api/councilNotices","/api/councilNotices/**","/api/petitions","/api/petitions/**","/api/reservations/quantity/**").permitAll()
                         .requestMatchers("/api/posts/**","/api/posts","/api/fires/**","/api/petitions","/api/petitions/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/replies/**","/api/reservations/**").hasAnyRole("USER","ADMIN")
