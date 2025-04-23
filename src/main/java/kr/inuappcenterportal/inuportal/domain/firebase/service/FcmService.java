@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,12 @@ public class FcmService {
     private final MessageRepository messageRepository;
     private final FcmAsyncExecutor fcmAsyncExecutor;
     private final Set<String> failedTokensSet = ConcurrentHashMap.newKeySet();
+
+    @Scheduled(cron = "0 0 0 * * *")
+    public void cleanExpiredTokens() {
+        fcmTokenRepository.deleteOldTokens();
+        log.info("로그아웃 기기 토큰 삭제");
+    }
 
 
     @Transactional
