@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeRes
 import kr.inuappcenterportal.inuportal.domain.councilNotice.model.CouncilNotice;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.repostiory.CouncilRepository;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.service.CouncilNoticeService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
@@ -45,6 +46,8 @@ public class CouncilNoticeServiceTest {
 
     @Mock
     RedisService redisService;
+    @Mock
+    FcmService fcmService;
 
     @Test
     @DisplayName("총학생회 공지 등록 테스트")
