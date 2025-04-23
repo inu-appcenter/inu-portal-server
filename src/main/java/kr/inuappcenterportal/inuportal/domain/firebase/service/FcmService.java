@@ -3,9 +3,9 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
-import kr.inuappcenterportal.inuportal.domain.firebase.model.Message;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
-import kr.inuappcenterportal.inuportal.domain.firebase.repository.MessageRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class FcmService {
     private final FcmTokenRepository fcmTokenRepository;
-    private final MessageRepository messageRepository;
+    private final FcmMessageRepository fcmMessageRepository;
     private final FcmAsyncExecutor fcmAsyncExecutor;
     private final Set<String> failedTokensSet = ConcurrentHashMap.newKeySet();
 
@@ -79,7 +79,7 @@ public class FcmService {
             if(!failToken.isEmpty()){
                 fcmTokenRepository.deleteByTokenIn(failToken);
             }
-            messageRepository.save(Message.builder().title(title).body(body).build());
+            fcmMessageRepository.save(FcmMessage.builder().title(title).body(body).build());
         } catch (FirebaseMessagingException e) {
             log.info("메시지 전송 실패 : {}",e.getMessage());
         }
@@ -100,11 +100,11 @@ public class FcmService {
             fcmTokenRepository.deleteByTokenIn(new ArrayList<>(failedTokens));
             fcmAsyncExecutor.clearFailedTokenSet();
         }
-        messageRepository.save(Message.builder().title(title).body(body).build());
+        fcmMessageRepository.save(FcmMessage.builder().title(title).body(body).build());
     }
 
     @Transactional
-    //@Async("messageExecutor")
+    @Async("messageExecutor")
     public void noticeAll(String title){
         com.google.firebase.messaging.Message message = com.google.firebase.messaging.Message.builder()
                 .setTopic("notice")
@@ -120,6 +120,6 @@ public class FcmService {
         } catch (FirebaseMessagingException e) {
             log.warn("전체 공지 실패 : {}",e.getMessage());
         }
-        messageRepository.save(Message.builder().title("인천대학교 총학생회").body(title).build());
+        fcmMessageRepository.save(FcmMessage.builder().title("인천대학교 총학생회").body(title).build());
     }
 }
