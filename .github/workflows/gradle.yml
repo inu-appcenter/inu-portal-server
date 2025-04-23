@@ -39,7 +39,7 @@ jobs:
       uses: jsdaniell/create-json@v1.2.3
       with:
         name: "firebase_key.json"
-        json: ${{ secrets.FIREBASE_KEY_JSON }}
+        json: ${{ secrets.FIREBASE_KEY }}
         dir: 'src/main/resources/'
 
     - uses: actions/upload-artifact@v4
