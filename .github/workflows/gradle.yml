@@ -36,6 +36,14 @@ jobs:
       with:
         name: application.properties
         path: ./src/main/resources/application.properties
+
+    - uses: actions/checkout@v2
+    - run: touch ./src/main/resources/firebase_key.json
+    - run: echo "${{secrets.FIREBASE_KEY}}" > ./src/main/resources/firebase_key.json
+    - uses: actions/upload-artifact@v4
+      with:
+        name: firebase_key.json
+        path: ./src/main/resources/firebase_key.json
         
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew

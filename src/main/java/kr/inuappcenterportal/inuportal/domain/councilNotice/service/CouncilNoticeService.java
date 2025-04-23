@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeReq
 import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeResponseDto;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.model.CouncilNotice;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.repostiory.CouncilRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -31,6 +32,7 @@ public class CouncilNoticeService {
     private final CouncilRepository councilRepository;
     private final ImageService imageService;
     private final RedisService redisService;
+    private final FcmService fcmService;
     @Value("${councilNoticeImagePath}")
     private String path;
 
@@ -41,6 +43,8 @@ public class CouncilNoticeService {
             councilNotice.updateImageCount(images.size());
             imageService.saveImageWithThumbnail(councilNotice.getId(),images,path);
         }
+        String title = councilNoticeRequestDto.getTitle();
+        fcmService.noticeAll(title);
         return councilNotice.getId();
     }
 
