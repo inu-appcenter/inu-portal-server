@@ -28,11 +28,11 @@ public class CafeteriaService {
     @Value("${installPath}")
     private String installPath;
 
-   @PostConstruct
+    /*@PostConstruct
     @Transactional
     public void initCafeteria() throws InterruptedException {
         crawlCafeteria();
-    }
+    }*/
 
     @Scheduled(cron = "0 10 0 ? * MON-SAT")
     @Transactional
@@ -99,7 +99,10 @@ public class CafeteriaService {
             storeTeacherCafeteria(webDriver.findElements(By.className("wrap-week")));
             log.info("사범대식당 저장 완료");
 
-        } finally {
+        }catch (Exception e){
+            log.warn("식단 크롤링 실패 : {}",e.getMessage());
+        }
+        finally {
             webDriver.quit();
         }
     }

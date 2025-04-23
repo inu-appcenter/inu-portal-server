@@ -106,7 +106,8 @@ public class ScheduleService {
                 Thread.sleep(1500);
             }
             log.info("학사일정 크롤링 완료");
-
+        }catch (Exception e){
+            log.warn("학사일정 크롤링 실패 : {}",e.getMessage());
         }
         finally {
             webDriver.quit();
