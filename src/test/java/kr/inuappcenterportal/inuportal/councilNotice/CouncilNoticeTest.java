@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.dto.CouncilNoticeReq
 import kr.inuappcenterportal.inuportal.domain.councilNotice.model.CouncilNotice;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.repostiory.CouncilRepository;
 import kr.inuappcenterportal.inuportal.domain.councilNotice.service.CouncilNoticeService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
@@ -64,6 +65,8 @@ public class CouncilNoticeTest {
     SchoolLoginRepository schoolLoginRepository;
     @MockBean
     RedisService redisService;
+    @MockBean
+    FcmService fcmService;
 
 
     @Autowired
