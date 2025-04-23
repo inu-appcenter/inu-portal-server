@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "fcm_token")
 public class FcmToken{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
