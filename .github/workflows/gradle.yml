@@ -30,8 +30,18 @@ jobs:
         distribution: 'temurin'
 
     - uses: actions/checkout@v2
-    - run: echo "${{ secrets.APPLICATION_PROPERTIES }}" > ./src/main/resources/application.properties
-    - run: echo "${{ secrets.FIREBASE_KEY }}" > ./src/main/resources/firebase_key.json
+
+    - name: Create application.properties
+      run: echo "${{ secrets.APPLICATION_PROPERTIES }}" > ./src/main/resources/application.properties
+
+    - name: Create firebase_key.json
+      id: create-json
+      uses: jsdaniell/create-json@v1.2.3
+      with:
+        name: "firebase_key.json"
+        json: ${{ secrets.FIREBASE_KEY_JSON }}
+        dir: 'src/main/resources/'
+
     - uses: actions/upload-artifact@v4
       with:
         name: app-configs
