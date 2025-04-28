@@ -38,22 +38,21 @@ public class Logging {
         if (except_uri.contains(uri)) {
             return joinPoint.proceed();
         }
-
-        Long memberId = getMemberId();
+        String memberId = getMemberId(request);
 
         long startTime = System.currentTimeMillis();
         Object result = joinPoint.proceed();
         long duration = System.currentTimeMillis() - startTime;
-        log.info("memberId={} {} {} {}ms", memberId, httpMethod, uri, duration);
+        log.info("user={} {} {} {}ms", memberId, httpMethod, uri, duration);
 
         return result;
     }
-    private Long getMemberId() {
+    private String getMemberId(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.getPrincipal() instanceof String|| authentication == null || authentication.getPrincipal() == null) {
-            return -1L;
+        if (authentication.getPrincipal() instanceof String|| authentication.getPrincipal() == null) {
+            return request.getHeader("X-Forwarded-For");
         }
         Member member = (Member)authentication.getPrincipal();
-        return member.getId();
+        return String.valueOf(member.getId());
     }
 }
