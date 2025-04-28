@@ -79,7 +79,7 @@ jobs:
           docker rm ${{ secrets.APPLICATION_NAME }}
           docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
           docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
-          docker run --network=host -d -e TZ=Asia/Seoul  -v ${{ secrets.IMAGE_PATH }}:/app/images --name ${{ secrets.APPLICATION_NAME }} ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
+          docker run --network=host -d -e TZ=Asia/Seoul  -v ${{ secrets.MOUNT_PATH }}:/intip --name ${{ secrets.APPLICATION_NAME }} ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
 
 
 
