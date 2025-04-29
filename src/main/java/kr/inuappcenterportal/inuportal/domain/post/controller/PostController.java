@@ -18,24 +18,19 @@ import kr.inuappcenterportal.inuportal.domain.post.dto.PostResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
-import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -58,7 +53,7 @@ public class PostController {
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Long>> savePost(@Valid@RequestPart PostDto postDto, @AuthenticationPrincipal Member member, @RequestPart(required = false) List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
         log.info("게시글만 저장 호출 id:{}",member.getId());
-        Long postId = postService.saveOnlyPost(member,postDto,images);
+        Long postId = postService.savePost(member,postDto,images);
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postId,"게시글 등록 성공"));
     }
 
@@ -72,7 +67,7 @@ public class PostController {
     @PutMapping(value = "/{postId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Long>> updatePost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH) @PathVariable Long postId, @Valid@RequestPart PostDto postDto, @RequestPart(required = false) List<MultipartFile> images) throws IOException {
         log.info("게시글 수정 호출 id:{}",postId);
-        postService.updateOnlyPost(member.getId(),postId,postDto,images);
+        postService.updatePost(member.getId(),postId,postDto,images);
         return ResponseEntity.ok(ResponseDto.of(postId,"게시글 수정 성공"));
     }
 
