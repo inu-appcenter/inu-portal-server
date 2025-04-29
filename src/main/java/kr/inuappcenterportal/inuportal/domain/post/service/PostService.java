@@ -19,13 +19,11 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -83,14 +81,21 @@ public class PostService {
 
 
     @Transactional
-    public Long saveOnlyPost(Member member, PostDto postSaveDto, List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
+    public Long savePost(Member member, PostDto postSaveDto, List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
         if(!categoryRepository.existsByCategory(postSaveDto.getCategory())){
             throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
         String hash = postSaveDto.getTitle()+postSaveDto.getContent();
         redisService.blockRepeat(hash);
-        Post post = Post.builder().title(postSaveDto.getTitle()).content(postSaveDto.getContent()).anonymous(postSaveDto.getAnonymous()).category(postSaveDto.getCategory()).member(member).imageCount(0).build();
-        postRepository.save(post);
+        Post post = postRepository.save(Post
+                .builder()
+                .title(postSaveDto.getTitle())
+                .content(postSaveDto.getContent())
+                .anonymous(postSaveDto.getAnonymous())
+                .category(postSaveDto.getCategory())
+                .member(member)
+                .imageCount(0)
+                .build());
         if (images != null) {
             post.updateImageCount(images.size());
             imageService.saveImageWithThumbnail(post.getId(),images,path);
@@ -105,11 +110,8 @@ public class PostService {
     }
 
     @Transactional
-    public void updateOnlyPost(Long memberId, Long postId, PostDto postDto, List<MultipartFile> images) throws IOException {
+    public void updatePost(Long memberId, Long postId, PostDto postDto, List<MultipartFile> images) throws IOException {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        if(post.getIsDeleted()){
-            throw new MyException(MyErrorCode.POST_NOT_FOUND);
-        }
         if(!categoryRepository.existsByCategory(postDto.getCategory())){
             throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
@@ -126,7 +128,7 @@ public class PostService {
 
 
     @Transactional
-    public void delete(Member member, Long postId) throws IOException {
+    public void delete(Member member, Long postId){
         Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         if(!post.getMember().getId().equals(member.getId())&&!member.getRoles().contains("ROLE_ADMIN")){
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
