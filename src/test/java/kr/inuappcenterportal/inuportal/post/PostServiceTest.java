@@ -251,7 +251,7 @@ public class PostServiceTest {
     }
 
     @Test
-    @DisplayName("게시물을 조회합니다 - 비회원 조회, 탈퇴한 작성자")
+    @DisplayName("게시물을 조회합니다 - 비회원, 탈퇴한 작성자")
     public void getPostNonMember3(){
         //given
         Member member = createMember("20190000");
@@ -342,6 +342,24 @@ public class PostServiceTest {
                 ()->assertEquals(dto.getIsScraped(),false),
                 ()->assertEquals(dto.getIsLiked(),false)
         );
+    }
+
+    @Test
+    @DisplayName("게시글 조회에 실패합니다. - 차단한 게시글")
+    public void getPostFailTest(){
+        //given
+        Member member = createMember("20190000");
+        String address = "address";
+        Post post = Post.builder().title("title").content("content").category("category").member(member).anonymous(false).build();
+        ReflectionTestUtils.setField(post,"id",1L);
+        when(postRepository.findByIdAndIsDeletedFalseWithPostMember(1L)).thenReturn(Optional.of(post));
+        when(reportRepository.existsByPostIdAndMemberId(any(),any())).thenReturn(true);
+
+        //when
+        MyException exception = assertThrows(MyException.class,()->postService.getPost(1L,member,address));
+
+        //then
+        assertEquals(exception.getErrorCode().getMessage(),"차단한 게시글입니다.");
     }
 
 
