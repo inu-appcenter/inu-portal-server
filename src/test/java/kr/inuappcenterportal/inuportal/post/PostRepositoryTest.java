@@ -87,7 +87,7 @@ public class PostRepositoryTest {
         postRepository.saveAll(List.of(post1, post2, post3, post4, post5));
         post5.delete();
         Pageable pageable = PageRequest.of(0, 8, Sort.by(Sort.Direction.DESC, "id"));
-        List<Post> posts = postRepository.findFilteredPosts("수강신청",null,List.of(1L),pageable);
+        List<Post> posts = postRepository.findFilteredPosts("수강신청",null,List.of(post1.getId()),pageable);
         assertAll(
                 ()->assertEquals(posts.size(),1),
                 ()->assertEquals(posts.get(0).getId(),post4.getId())
