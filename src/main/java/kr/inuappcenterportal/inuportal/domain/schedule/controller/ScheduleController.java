@@ -33,10 +33,4 @@ public class ScheduleController {
     public ResponseEntity<ResponseDto<List<ScheduleResponseDto>>> getScheduleByMonth(@RequestParam int year,@RequestParam int month){
         return ResponseEntity.ok(ResponseDto.of(scheduleService.getScheduleByMonth(year,month),"학사일정 가져오기 성공"));
     }
-
-    @PostMapping("/update")
-    public String updateSchedule() throws InterruptedException {
-        scheduleService.crawlingSchedule();
-        return "학사일정 업데이트 완료";
-    }
 }
