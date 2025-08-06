@@ -77,9 +77,6 @@ public class ScheduleService {
                             isNoData = true;
                             break;
                         }
-                        else if(scheduleRepository.existsByContent(content)){
-                            continue;
-                        }
                         WebElement dateElement = row.findElement(By.tagName("th"));
                         String date = dateElement.getText();
 
@@ -96,6 +93,11 @@ public class ScheduleService {
                         }
                         LocalDate start = LocalDate.parse(startDate,formatter);
                         LocalDate end = LocalDate.parse(endDate,formatter);
+
+                        if (scheduleRepository.existsByContentAndStartDateAndEndDate(content, start, end)) {
+                            continue;
+                        }
+
                         Schedule schedule = Schedule.builder().id(++id).startDate(start).endDate(end).content(content).build();
                         scheduleRepository.save(schedule);
                     }
