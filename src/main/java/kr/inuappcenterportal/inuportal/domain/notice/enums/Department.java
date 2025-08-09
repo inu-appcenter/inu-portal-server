@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum Department {
 
+    // 총 64개 학과
+
     // 인문대학
     KOREAN("국어국문학과", "https://korean.inu.ac.kr/korean/1780/subview.do"),
     ENGLISH("영어영문학과", "https://english.inu.ac.kr/ui/7888/subview.do"),
