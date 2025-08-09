@@ -1,13 +1,15 @@
 package kr.inuappcenterportal.inuportal.domain.notice.service;
 
-import jakarta.annotation.PostConstruct;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
+import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -40,12 +42,19 @@ import java.util.stream.Collectors;
 @Slf4j
 public class NoticeService {
     private final NoticeRepository noticeRepository;
+    private final DepartmentNoticeRepository departmentNoticeRepository;
     private static long id = 0;
     private final CacheManager cacheManager;
+
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
-    public NoticeService(@Qualifier("cacheManager") CacheManager cacheManager, @Qualifier("localCacheManager") CacheManager localCacheManager, NoticeRepository noticeRepository){
+
+    public NoticeService(@Qualifier("cacheManager") CacheManager cacheManager,
+                         @Qualifier("localCacheManager") CacheManager localCacheManager,
+                         NoticeRepository noticeRepository,
+                         DepartmentNoticeRepository departmentNoticeRepository) {
         this.noticeRepository = noticeRepository;
+        this.departmentNoticeRepository = departmentNoticeRepository;
         this.cacheManager = cacheManager;
         this.localCacheManager = localCacheManager;
     }
@@ -62,6 +71,12 @@ public class NoticeService {
         crawlingNotices();
     }
 
+    @Scheduled(cron = "0 0 0/2 * * *")
+    @CacheEvict(value = "noticeCache",cacheManager = "cacheManager")
+    @Transactional
+    public void getNewDepartmentNotice() throws IOException {
+        crawlingDepartmentNotices();
+    }
 
     @Transactional
     public void crawlingNotices()  {
@@ -186,6 +201,138 @@ public class NoticeService {
         return notices;
     }
 
+    @Transactional
+    public void crawlingDepartmentNotices()  {
+
+        for (Department department : Department.values()) {
+            if (department == Department.SPORTS_SCIENCE) {
+                getNoticeBySportsScience(department);
+            } else {
+                getNoticeByDepartment(department);
+            }
+        }
+        log.info("각 학과 공지사항 크롤링 완료");
+    }
+
+    private void getNoticeByDepartment(Department department) {
+        try {
+            String url = department.getUrls();
+            int index = 1;
+            int count = 0;
+            int limit = 8;
+            boolean outLoop = false;
+
+            while (!outLoop) {
+                String pageUrl = url + (url.contains("?") ? "&" : "?") + "page=" + index;
+                Document document = Jsoup.connect(pageUrl).get();
+
+                if (document.text().contains("접근 권한이 없습니다.")) {
+                    log.warn("접근 권한 없음 메시지 발견, {} 공지 크롤링 중단", department.getDepartmentName());
+                    break;
+                }
+
+                Elements notices = document.select("tbody tr");
+
+                if (notices.isEmpty()) {
+                    break;
+                }
+
+                for (Element ele : notices) {
+                    String numberText = ele.select("td.td-num").text();
+                    if ("일반공지".equals(numberText) || "NO".equals(numberText) || "전체게시판공지".equals(numberText)) {
+                        continue;
+                    }
+                    if (!ele.select("td.no-data").isEmpty()) {
+                        outLoop = true;
+                        break;
+                    }
+
+                    String title = ele.select("td.td-subject a strong").text();
+                    String date = ele.select("td.td-date").text();
+                    String href = ele.select("td.td-subject a").attr("abs:href");
+                    Long views = Long.parseLong(ele.select("td.td-access").text());
+
+                    if (departmentNoticeRepository.existsByDepartmentAndTitleAndCreateDate(department, title, date)) {
+                        outLoop = true;
+                        break;
+                    }
+
+                    departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
+                    count++;
+
+                    if (count >= limit) {
+                        outLoop = true;
+                        break;
+                    }
+                }
+                index++;
+            }
+        } catch (Exception e){
+            log.warn("{} 공지 크롤링 실패 : {}", department.getDepartmentName(), e.getMessage());
+        }
+    }
+
+    public void getNoticeBySportsScience(Department department) {
+        try {
+            String url = department.getUrls();
+            int index = 1;
+            int count = 0;
+            int limit = 8;
+            boolean outLoop = false;
+
+            while (!outLoop) {
+                String pageUrl = url + (url.contains("?") ? "&" : "?") + "page=" + index;
+                Document document = Jsoup.connect(pageUrl).get();
+
+                if (document.text().contains("접근 권한이 없습니다.")) {
+                    log.warn("접근 권한 없음 메시지 발견, {} 공지 크롤링 중단", department.getDepartmentName());
+                    break;
+                }
+
+                Elements notices = document.select("tbody tr");
+
+                if (notices.isEmpty()) {
+                    break;
+                }
+
+                for (Element ele : notices) {
+                    if (!ele.select("strong.notice_icon").isEmpty()) {
+                        continue;
+                    }
+
+                    String title = ele.select("td.td_subject a").text();
+                    String date = ele.select("td.td_datetime").text();
+                    String href = ele.select("td.td_subject a").attr("href");
+                    Long views = Long.parseLong(ele.select("td.td_num.td_hit2").text());
+
+                    if (departmentNoticeRepository.existsByDepartmentAndTitleAndCreateDate(department, title, date)) {
+                        outLoop = true;
+                        break;
+                    }
+
+                    departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
+                    count++;
+
+                    if (count >= limit) {
+                        outLoop = true;
+                        break;
+                    }
+                }
+                index++;
+            }
+        } catch (Exception e) {
+            log.warn("{} 공지 크롤링 실패 : {}", department.getDepartmentName(), e.getMessage());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public ListResponseDto<DepartmentNoticeListResponse> getDepartmentNotices(Department department, String sort, int page){
+        Pageable pageable = PageRequest.of(page>0?--page:page,8, sort(sort));
+        Page<DepartmentNotice> departmentNotices;
+        departmentNotices = departmentNoticeRepository.findAllByDepartment(department, pageable);
+
+        return ListResponseDto.of(departmentNotices.getTotalPages(),departmentNotices.getTotalElements(),departmentNotices.getContent().stream().map(DepartmentNoticeListResponse::of).collect(Collectors.toList()));
+    }
 
     private String encoding(String baseUrl)  {
         return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
@@ -209,6 +356,4 @@ public class NoticeService {
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }
     }
-
-
 }
