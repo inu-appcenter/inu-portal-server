@@ -37,7 +37,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -267,11 +266,18 @@ public class NoticeService {
                 }
 
                 Elements notices = document.select("tbody tr");
-                if (notices.isEmpty()) { break; }
+                if (notices.isEmpty()) {
+                    break;
+                }
 
                 for (Element ele : notices) {
-                    if (config.getSkipCondition().test(ele)) continue;
-                    if (!ele.select("td.no-data").isEmpty()) { outLoop = true; break; }
+                    if (config.getSkipCondition().test(ele)) {
+                        continue;
+                    }
+                    if (!ele.select("td.no-data").isEmpty()) {
+                        outLoop = true;
+                        break;
+                    }
 
                     String title = ele.select(config.getTitleSelector()).text();
                     String date = ele.select(config.getDateSelector()).text();
@@ -287,7 +293,10 @@ public class NoticeService {
 
                     departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
                     count++;
-                    if (count >= limit) { outLoop = true; break; }
+                    if (count >= limit) {
+                        outLoop = true;
+                        break;
+                    }
                 }
                 index++;
             }
