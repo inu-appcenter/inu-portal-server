@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentCrawlerStateRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeRepository;
+import kr.inuappcenterportal.inuportal.global.config.DepartmentCrawlConfig;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -224,14 +225,31 @@ public class NoticeService {
         for (int i = start; i < end; i++) {
             Department department = departments[i];
             if (department == Department.SPORTS_SCIENCE) {
-                getNoticeBySportsScience(department);
+                getNoticeByDepartment(department, new DepartmentCrawlConfig(
+                        "td.td_subject a",
+                        "td.td_datetime",
+                        "td.td_subject a",
+                        "td.td_num.td_hit2",
+                        ele -> !ele.select("strong.notice_icon").isEmpty(),
+                        false
+                ));
             } else {
-                getNoticeByDepartment(department);
+                getNoticeByDepartment(department, new DepartmentCrawlConfig(
+                        "td.td-subject a strong",
+                        "td.td-date",
+                        "td.td-subject a",
+                        "td.td-access",
+                        ele -> {
+                            String num = ele.select("td.td-num").text();
+                            return "일반공지".equals(num) || "NO".equals(num) || "전체게시판공지".equals(num);
+                        },
+                        true
+                ));
             }
         }
     }
 
-    private void getNoticeByDepartment(Department department) {
+    private void getNoticeByDepartment(Department department, DepartmentCrawlConfig config) {
         try {
             String url = department.getUrls();
             int index = 1;
@@ -249,25 +267,18 @@ public class NoticeService {
                 }
 
                 Elements notices = document.select("tbody tr");
-
-                if (notices.isEmpty()) {
-                    break;
-                }
+                if (notices.isEmpty()) { break; }
 
                 for (Element ele : notices) {
-                    String numberText = ele.select("td.td-num").text();
-                    if ("일반공지".equals(numberText) || "NO".equals(numberText) || "전체게시판공지".equals(numberText)) {
-                        continue;
-                    }
-                    if (!ele.select("td.no-data").isEmpty()) {
-                        outLoop = true;
-                        break;
-                    }
+                    if (config.getSkipCondition().test(ele)) continue;
+                    if (!ele.select("td.no-data").isEmpty()) { outLoop = true; break; }
 
-                    String title = ele.select("td.td-subject a strong").text();
-                    String date = ele.select("td.td-date").text();
-                    String href = ele.select("td.td-subject a").attr("abs:href");
-                    Long views = Long.parseLong(ele.select("td.td-access").text());
+                    String title = ele.select(config.getTitleSelector()).text();
+                    String date = ele.select(config.getDateSelector()).text();
+                    String href = config.isUseAbsoluteHref()
+                            ? ele.select(config.getLinkSelector()).attr("abs:href")
+                            : ele.select(config.getLinkSelector()).attr("href");
+                    Long views = Long.parseLong(ele.select(config.getViewsSelector()).text());
 
                     if (departmentNoticeRepository.existsByDepartmentAndTitleAndCreateDate(department, title, date)) {
                         outLoop = true;
@@ -276,70 +287,12 @@ public class NoticeService {
 
                     departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
                     count++;
-
-                    if (count >= limit) {
-                        outLoop = true;
-                        break;
-                    }
+                    if (count >= limit) { outLoop = true; break; }
                 }
                 index++;
             }
             log.info("{} 공지 크롤링 완료", department.getDepartmentName());
         } catch (Exception e){
-            log.warn("{} 공지 크롤링 실패 : {}", department.getDepartmentName(), e.getMessage());
-        }
-    }
-
-    public void getNoticeBySportsScience(Department department) {
-        try {
-            String url = department.getUrls();
-            int index = 1;
-            int count = 0;
-            int limit = 4;
-            boolean outLoop = false;
-
-            while (!outLoop) {
-                String pageUrl = url + (url.contains("?") ? "&" : "?") + "page=" + index;
-                Document document = Jsoup.connect(pageUrl).get();
-
-                if (document.text().contains("접근 권한이 없습니다.")) {
-                    log.warn("접근 권한 없음 메시지 발견, {} 공지 크롤링 중단", department.getDepartmentName());
-                    break;
-                }
-
-                Elements notices = document.select("tbody tr");
-
-                if (notices.isEmpty()) {
-                    break;
-                }
-
-                for (Element ele : notices) {
-                    if (!ele.select("strong.notice_icon").isEmpty()) {
-                        continue;
-                    }
-
-                    String title = ele.select("td.td_subject a").text();
-                    String date = ele.select("td.td_datetime").text();
-                    String href = ele.select("td.td_subject a").attr("href");
-                    Long views = Long.parseLong(ele.select("td.td_num.td_hit2").text());
-
-                    if (departmentNoticeRepository.existsByDepartmentAndTitleAndCreateDate(department, title, date)) {
-                        outLoop = true;
-                        break;
-                    }
-
-                    departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
-                    count++;
-
-                    if (count >= limit) {
-                        outLoop = true;
-                        break;
-                    }
-                }
-                index++;
-                log.info("{} 공지 크롤링 완료", department.getDepartmentName());
-            }
-        } catch (Exception e) {
             log.warn("{} 공지 크롤링 실패 : {}", department.getDepartmentName(), e.getMessage());
         }
     }
