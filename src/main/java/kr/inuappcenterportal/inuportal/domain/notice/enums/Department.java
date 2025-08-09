@@ -62,7 +62,7 @@ public enum Department {
     FINE_ARTS("조형예술학부", "https://finearts.inu.ac.kr/finearts/4130/subview.do"),
     DESIGN("디자인학부", "https://design.inu.ac.kr/design/4016/subview.do"),
     PERFORMING_ART("공연예술학과", "https://uipa10.inu.ac.kr/uipa10/3957/subview.do"),
-    SPORTS_SCIENCE("스포츠과학부", "https://sports.inu.ac.kr/bbs/board.php?bo_table=sub5_1"), // 다름
+    SPORTS_SCIENCE("스포츠과학부", "https://sports.inu.ac.kr/bbs/board.php?bo_table=sub5_1"),
     HEALTH_EXERCISE("운동건강학부", "https://uiex.inu.ac.kr/uiex/4068/subview.do"),
 
     // 사범대학
