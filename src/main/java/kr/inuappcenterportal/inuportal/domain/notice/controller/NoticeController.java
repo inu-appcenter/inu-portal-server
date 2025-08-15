@@ -66,11 +66,4 @@ public class NoticeController {
             @RequestParam(required = false,defaultValue = "1") @Min(1) int page) {
         return ResponseEntity.ok(ResponseDto.of(noticeService.getDepartmentNotices(department, sort, page),"해당 학과 모든 공지사항 가져오기 성공"));
     }
-
-    @Operation(summary = "[테스트] 학과 공지사항 가져오기",description = "학과 공지사항 Scheduler 테스트용 API")
-    @GetMapping("/test-crawling")
-    public String testDepartmentNoticeUrl() throws IOException {
-        noticeService.getNewDepartmentNotice();
-        return "성공";
-    }
 }
