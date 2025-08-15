@@ -1,13 +1,18 @@
 package kr.inuappcenterportal.inuportal.domain.notice.service;
 
-import jakarta.annotation.PostConstruct;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentCrawlerState;
+import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
+import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentCrawlerStateRepository;
+import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeRepository;
+import kr.inuappcenterportal.inuportal.global.config.DepartmentCrawlConfig;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -39,15 +44,27 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class NoticeService {
+
     private final NoticeRepository noticeRepository;
-    private static long id = 0;
+    private final DepartmentNoticeRepository departmentNoticeRepository;
+    private final DepartmentCrawlerStateRepository departmentCrawlerStateRepository;
     private final CacheManager cacheManager;
+    private static long id = 0;
+    private static final String DEPT_INDEX_KEY = "departmentIndex";
+    private static final int DEPT_SIZE = 4;
+
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
-    public NoticeService(@Qualifier("cacheManager") CacheManager cacheManager, @Qualifier("localCacheManager") CacheManager localCacheManager, NoticeRepository noticeRepository){
+
+    public NoticeService(@Qualifier("cacheManager") CacheManager cacheManager,
+                         @Qualifier("localCacheManager") CacheManager localCacheManager,
+                         NoticeRepository noticeRepository,
+                         DepartmentNoticeRepository departmentNoticeRepository, DepartmentCrawlerStateRepository departmentCrawlerStateRepository) {
         this.noticeRepository = noticeRepository;
+        this.departmentNoticeRepository = departmentNoticeRepository;
         this.cacheManager = cacheManager;
         this.localCacheManager = localCacheManager;
+        this.departmentCrawlerStateRepository = departmentCrawlerStateRepository;
     }
     /*@PostConstruct
     @Transactional
@@ -62,6 +79,21 @@ public class NoticeService {
         crawlingNotices();
     }
 
+    @Scheduled(cron = "0 0/10 * * * *")
+    @CacheEvict(value = "noticeCache",cacheManager = "cacheManager")
+    @Transactional
+    public void getNewDepartmentNotice() throws IOException {
+        Department[] departments = Department.values();
+
+        int start = getDepartmentIndex();
+        int end = Math.min(start + DEPT_SIZE, departments.length);
+
+        crawlingDepartmentNotices(departments, start, end);
+
+        setDepartmentIndex((end >= departments.length) ? 0 : end);
+
+        log.info("학과 공지 크롤링 완료, 시작 인덱스: {}, 끝 인덱스: {}", start, end);
+    }
 
     @Transactional
     public void crawlingNotices()  {
@@ -186,6 +218,102 @@ public class NoticeService {
         return notices;
     }
 
+    @Transactional
+    public void crawlingDepartmentNotices(Department[] departments, int start, int end)  {
+
+        for (int i = start; i < end; i++) {
+            Department department = departments[i];
+            if (department == Department.SPORTS_SCIENCE) {
+                getNoticeByDepartment(department, new DepartmentCrawlConfig(
+                        "td.td_subject a",
+                        "td.td_datetime",
+                        "td.td_subject a",
+                        "td.td_num.td_hit2",
+                        ele -> !ele.select("strong.notice_icon").isEmpty(),
+                        false
+                ));
+            } else {
+                getNoticeByDepartment(department, new DepartmentCrawlConfig(
+                        "td.td-subject a strong",
+                        "td.td-date",
+                        "td.td-subject a",
+                        "td.td-access",
+                        ele -> {
+                            String num = ele.select("td.td-num").text();
+                            return "일반공지".equals(num) || "NO".equals(num) || "전체게시판공지".equals(num);
+                        },
+                        true
+                ));
+            }
+        }
+    }
+
+    private void getNoticeByDepartment(Department department, DepartmentCrawlConfig config) {
+        try {
+            String url = department.getUrls();
+            int index = 1;
+            int count = 0;
+            int limit = 4;
+            boolean outLoop = false;
+
+            while (!outLoop) {
+                String pageUrl = url + (url.contains("?") ? "&" : "?") + "page=" + index;
+                Document document = Jsoup.connect(pageUrl).get();
+
+                if (document.text().contains("접근 권한이 없습니다.")) {
+                    log.warn("접근 권한 없음 메시지 발견, {} 공지 크롤링 중단", department.getDepartmentName());
+                    break;
+                }
+
+                Elements notices = document.select("tbody tr");
+                if (notices.isEmpty()) {
+                    break;
+                }
+
+                for (Element ele : notices) {
+                    if (config.getSkipCondition().test(ele)) {
+                        continue;
+                    }
+                    if (!ele.select("td.no-data").isEmpty()) {
+                        outLoop = true;
+                        break;
+                    }
+
+                    String title = ele.select(config.getTitleSelector()).text();
+                    String date = ele.select(config.getDateSelector()).text();
+                    String href = config.isUseAbsoluteHref()
+                            ? ele.select(config.getLinkSelector()).attr("abs:href")
+                            : ele.select(config.getLinkSelector()).attr("href");
+                    Long views = Long.parseLong(ele.select(config.getViewsSelector()).text());
+
+                    if (departmentNoticeRepository.existsByDepartmentAndTitleAndCreateDate(department, title, date)) {
+                        outLoop = true;
+                        break;
+                    }
+
+                    departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
+                    count++;
+                    if (count >= limit) {
+                        outLoop = true;
+                        break;
+                    }
+                }
+                index++;
+            }
+            log.info("{} 공지 크롤링 완료", department.getDepartmentName());
+        } catch (Exception e){
+            log.warn("{} 공지 크롤링 실패 : {}", department.getDepartmentName(), e.getMessage());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public ListResponseDto<DepartmentNoticeListResponse> getDepartmentNotices(Department department, String sort, int page){
+        Pageable pageable = PageRequest.of(page>0?--page:page,8, sort(sort));
+        Page<DepartmentNotice> departmentNotices;
+        departmentNotices = departmentNoticeRepository.findAllByDepartment(department, pageable);
+
+        return ListResponseDto.of(departmentNotices.getTotalPages(),departmentNotices.getTotalElements(),departmentNotices.getContent().stream().map(DepartmentNoticeListResponse::of).collect(Collectors.toList()));
+    }
 
     private String encoding(String baseUrl)  {
         return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
@@ -210,5 +338,16 @@ public class NoticeService {
         }
     }
 
+    private int getDepartmentIndex() {
+        return departmentCrawlerStateRepository.findByDeptKey(DEPT_INDEX_KEY)
+                .map(DepartmentCrawlerState::getDeptIndex)
+                .orElse(0);
+    }
 
+    private void setDepartmentIndex(int deptIndex) {
+        DepartmentCrawlerState state = departmentCrawlerStateRepository.findByDeptKey(DEPT_INDEX_KEY)
+                .orElse(new DepartmentCrawlerState(DEPT_INDEX_KEY, 0));
+        state.updateIndex(deptIndex);
+        departmentCrawlerStateRepository.save(state);
+    }
 }
