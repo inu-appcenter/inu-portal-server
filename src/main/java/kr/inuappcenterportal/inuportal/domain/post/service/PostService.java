@@ -90,7 +90,7 @@ public class PostService {
 
         List<Post> posts = postRepository.findAllByIsDeletedFalse();
         if (posts.isEmpty()) {
-            log.info("랜덤화할 게시글이 없습니다.");
+            log.info("존재하는(랜덤화 할) 게시글이 없습니다.");
             return;
         }
 
@@ -218,12 +218,13 @@ public class PostService {
         }
 
         Pageable pageable;
-        if (sort != null && (sort.equals("date") || sort.equals("like") || sort.equals("scrap"))) {
-            pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
-            dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable);
-        } else {
+        if (sort.equals("random")) {
             pageable = PageRequest.of(page>0?--page:page,8);
             dto = postRepository.findAllRandomized(category,postIds,pageable);
+        } else {
+
+            pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
+            dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable);
         }
 
         long total = dto.getTotalElements();
