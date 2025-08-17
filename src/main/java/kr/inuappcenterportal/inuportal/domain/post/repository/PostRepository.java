@@ -15,9 +15,15 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post,Long> {
+
     Optional<Post> findByIdAndIsDeletedFalse(Long id);
+
+    @Query("SELECT p FROM Post p WHERE p.isDeleted = false")
+    List<Post> findAllByIsDeletedFalse();
+
     @Query("SELECT p FROM Post p LEFT JOIN FETCH p.member m WHERE p.id = :id AND p.isDeleted = false")
     Optional<Post> findByIdAndIsDeletedFalseWithPostMember(Long id);
+
     List<Post> findByCategoryAndIdLessThanAndIsDeletedFalse(String category,Long id,Pageable pageable);
     long count();
     List<Post> findAllByMemberAndIsDeletedFalse(Member member, Sort sort);
@@ -39,11 +45,15 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     @Query("SELECT p FROM Post p WHERE p.id =:id AND p.isDeleted = false")
     Optional<Post> findByIdWithLock(Long id);
 
-
     @Query(" SELECT p FROM Post p WHERE p.isDeleted = false AND (:category IS NULL OR p.category = :category) AND (:postIds IS NULL OR p.id NOT IN :postIds)")
     Page<Post> findAllByCategoryExcludingPostIds(@Param("category") String category, @Param("postIds") List<Long> postIds, Pageable pageable);
 
+    @Query(" SELECT p FROM Post p WHERE p.isDeleted = false " +
+            "AND (:category IS NULL OR p.category = :category) " +
+            "AND (:postIds IS NULL OR p.id NOT IN :postIds) " +
+            "ORDER BY p.randomNumber ASC")
+    Page<Post> findAllRandomized(@Param("category") String category, @Param("postIds") List<Long> postIds, Pageable pageable);
+
     @Query(" SELECT p FROM Post p WHERE p.isDeleted = false AND (:category IS NULL OR p.category = :category) AND (:id IS NULL OR p.id < :id) AND (:postIds IS NULL OR p.id NOT IN :postIds)")
     List<Post> findFilteredPosts(@Param("category") String category, @Param("id") Long id, @Param("postIds") List<Long> postIds, Pageable pageable);
-
 }

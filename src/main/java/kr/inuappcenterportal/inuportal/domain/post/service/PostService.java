@@ -28,12 +28,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,6 +82,26 @@ public class PostService {
         this.localCacheManager = localCacheManager;
     }
 
+    @Scheduled(cron = "0 0 0 * * *")
+    @Transactional
+    public void shufflePosts() {
+
+        log.info("게시글 순서 랜덤화 작업 시작");
+
+        List<Post> posts = postRepository.findAllByIsDeletedFalse();
+        if (posts.isEmpty()) {
+            log.info("존재하는(랜덤화 할) 게시글이 없습니다.");
+            return;
+        }
+
+        Collections.shuffle(posts);
+
+        for (int i = 0; i < posts.size(); i++) {
+            posts.get(i).updateRandomNumber(i);
+        }
+
+        log.info("게시글 순서 랜덤화 작업 완료");
+    }
 
     @Transactional
     public Long savePost(Member member, PostDto postSaveDto, List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
@@ -178,30 +201,41 @@ public class PostService {
         return  PostResponseDto.of(post,writer,fireId,isLiked,isScraped,hasAuthority,replyService.getReplies(postId,member),replyService.getBestReplies(postId,member));
     }
 
-
     @Transactional(readOnly = true)
     public ListResponseDto<PostListResponseDto> getAllPost(String category, String sort, int page, Member member){
-        Pageable pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
+
         Page<Post> dto;
         List<Long> postIds = null;
+
         if (category != null && !categoryRepository.existsByCategory(category)) {
             throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
         }
         if(member!=null) {
             postIds = reportRepository.findPostIdsByMemberId(member.getId());
-            if(postIds.size()==0){
+            if(postIds.isEmpty()){
                 postIds = null;
             }
         }
-        dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable);
-                long total = dto.getTotalElements();
+
+        Pageable pageable;
+        if (sort.equals("random")) {
+            pageable = PageRequest.of(page>0?--page:page,8);
+            dto = postRepository.findAllRandomized(category,postIds,pageable);
+        } else {
+
+            pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
+            dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable);
+        }
+
+        long total = dto.getTotalElements();
         long pages = dto.getTotalPages();
+
         List<PostListResponseDto> posts = dto.stream()
                 .map(this::getPostListResponseDto)
                 .collect(Collectors.toList());
+
         return ListResponseDto.of(pages, total, posts);
     }
-
 
     @Transactional
     public int likePost(Member member, Long postId){
@@ -460,7 +494,7 @@ public class PostService {
     }
     private Sort sortData(String sort){
         if(sort.equals("date")){
-            return Sort.by(Sort.Direction.DESC, "id");
+            return Sort.by(Sort.Direction.DESC, "createDate", "id");
         }
         else if(sort.equals("like")){
             return Sort.by(Sort.Direction.DESC, "good","id");

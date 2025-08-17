@@ -68,6 +68,8 @@ public class Post{
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
 
+    @Column(name = "random_number")
+    private Integer randomNumber;
 
     @OneToMany(mappedBy = "post",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
@@ -141,6 +143,7 @@ public class Post{
     public void delete(){
         this.isDeleted = true;
     }
-
-
+    public void updateRandomNumber(int randomNumber) {
+        this.randomNumber = randomNumber;
+    }
 }

@@ -120,17 +120,22 @@ public class PostController {
         return ResponseEntity.ok(ResponseDto.of(postService.scrapPost(member,postId),"스크랩 여부 변경 성공"));
     }
 
-    @Operation(summary = "모든 게시글 가져오기",description = "카테고리(공백일 시 모든 게시글), 정렬기준 sort(date/공백(최신순), like, scrap), 페이지(공백일 시 1)를 보내주세요. 로그인 한 상태라면 토큰도 보내주세요.")
+    @Operation(summary = "모든 게시글 가져오기",description = "카테고리(공백일 시 하루마다 랜덤으로 정렬된 모든 게시글), 정렬기준 sort(date, like, scrap), 페이지(공백일 시 1)를 보내주세요. 로그인 한 상태라면 토큰도 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false,defaultValue = "date") String sort
+    public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> getAllPost(@RequestParam(required = false) String category, @RequestParam(required = false, defaultValue = "random") String sort
             ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page,@AuthenticationPrincipal Member member ){
         return ResponseEntity.ok(ResponseDto.of(postService.getAllPost(category, sort,page,member),"모든 게시글 가져오기 성공"));
     }
 
+    @GetMapping("/test")
+    public String randomizeTest() {
+        postService.shufflePosts();
+        return "게시글 랜덤화 테스트 완료";
+    }
 
     @Operation(summary = "게시글의 이미지 가져오기",description = "url 파라미터에 postId, imageId를 보내주세요. imageId는 이미지의 등록 순번입니다.")
     @ApiResponses({
