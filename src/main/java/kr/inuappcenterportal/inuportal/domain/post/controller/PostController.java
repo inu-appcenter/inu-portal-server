@@ -131,12 +131,6 @@ public class PostController {
         return ResponseEntity.ok(ResponseDto.of(postService.getAllPost(category, sort,page,member),"모든 게시글 가져오기 성공"));
     }
 
-    @GetMapping("/test")
-    public String randomizeTest() {
-        postService.shufflePosts();
-        return "게시글 랜덤화 테스트 완료";
-    }
-
     @Operation(summary = "게시글의 이미지 가져오기",description = "url 파라미터에 postId, imageId를 보내주세요. imageId는 이미지의 등록 순번입니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "게시글의 이미지 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
