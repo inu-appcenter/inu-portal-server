@@ -23,7 +23,7 @@ public class PostDto {
     @Size(max = 2000)
     private String content;
 
-    @Schema(description = "카테고리",allowableValues = {"수강신청","도서관","대학생활","기숙사","동아리","학사","국제교류원","장학금"})
+    @Schema(description = "카테고리", allowableValues = {"자유게시판","수강신청","장학금","학산도서관","기숙사"})
     @NotBlank
     private String category;
 
@@ -38,6 +38,4 @@ public class PostDto {
         this.category = category;
         this.anonymous = anonymous;
     }
-
-
 }
