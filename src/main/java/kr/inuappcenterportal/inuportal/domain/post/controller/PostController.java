@@ -120,7 +120,7 @@ public class PostController {
         return ResponseEntity.ok(ResponseDto.of(postService.scrapPost(member,postId),"스크랩 여부 변경 성공"));
     }
 
-    @Operation(summary = "모든 게시글 가져오기",description = "카테고리(공백일 시 하루마다 랜덤으로 정렬된 모든 게시글), 정렬기준 sort(date, like, scrap), 페이지(공백일 시 1)를 보내주세요. 로그인 한 상태라면 토큰도 보내주세요.")
+    @Operation(summary = "모든 게시글 가져오기",description = "카테고리(공백일 시 하루마다 랜덤으로 정렬된 모든 게시글), 정렬기준 sort(date, like, scrap), 페이지(공백일 시 1)를 보내주세요. 로그인 한 상태라면 토큰도 보내주세요. <br><br>category: 자유게시판, 수강신청, 장학금, 학산도서관, 기숙사")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "모든 게시글 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
             ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
