@@ -299,7 +299,7 @@ public class NoticeService {
                     DepartmentNotice departmentNotice =
                             departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
 
-                    keywordService.departmentNotifyMatchedUsers(departmentNotice);
+                    keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
 
                     count++;
                     if (count >= limit) {
