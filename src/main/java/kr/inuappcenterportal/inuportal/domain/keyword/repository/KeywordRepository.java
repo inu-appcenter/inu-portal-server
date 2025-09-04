@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.keyword.repository;
 
 import kr.inuappcenterportal.inuportal.domain.keyword.domain.Keyword;
-import kr.inuappcenterportal.inuportal.domain.keyword.enums.KeywordCategory;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
