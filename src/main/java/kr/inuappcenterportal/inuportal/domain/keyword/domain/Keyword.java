@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.keyword.domain;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.keyword.enums.KeywordCategory;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import lombok.AccessLevel;
 import lombok.Builder;
