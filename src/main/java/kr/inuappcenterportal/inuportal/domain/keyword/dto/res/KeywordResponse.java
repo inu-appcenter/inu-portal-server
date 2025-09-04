@@ -6,6 +6,9 @@ import kr.inuappcenterportal.inuportal.domain.keyword.domain.Keyword;
 @Schema(description = "키워드 알림 생성 응답")
 public record KeywordResponse(
 
+        @Schema(description = "키워드 Id", example = "1")
+        Long keywordId,
+
         @Schema(description = "회원 Id", example = "1")
         Long memberId,
 
@@ -17,6 +20,7 @@ public record KeywordResponse(
 
 ) {
     public static KeywordResponse from(Keyword keyword) {
-        return new KeywordResponse(keyword.getMemberId(), keyword.getKeyword(), keyword.getDepartment().getDepartmentName());
+        return new KeywordResponse(keyword.getId(), keyword.getMemberId(),
+                keyword.getKeyword(), keyword.getDepartment().getDepartmentName());
     }
 }

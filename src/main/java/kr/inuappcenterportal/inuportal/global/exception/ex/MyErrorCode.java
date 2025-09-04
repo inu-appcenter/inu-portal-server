@@ -68,7 +68,9 @@ public enum MyErrorCode {
     WRONG_PHONE_NUMBER(HttpStatus.BAD_REQUEST, "잘못된 전화번호 형식"),
     WRONG_RESERVATION_STATUS(HttpStatus.BAD_REQUEST, "잘못된 형식의 예약상태를 요청했습니다."),
     NOT_FOUND_CLUB(HttpStatus.NOT_FOUND,"존재하지 않는 동아리입니다."),
-    TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 토큰입니다.")
+    TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 토큰입니다."),
+    KEYWORD_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 키워드입니다."),
+    KEYWORD_ACCESS_DENIED(HttpStatus.FORBIDDEN,"이 키워드의 수정/삭제에 대한 권한이 없습니다."),
     ;
 
     private final HttpStatus status;
