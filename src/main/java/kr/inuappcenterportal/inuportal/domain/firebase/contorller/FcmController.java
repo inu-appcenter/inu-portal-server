@@ -1,14 +1,16 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.contorller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.TokenRequestDto;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/tokens")
 @RequiredArgsConstructor
 public class FcmController {
+
     private final FcmService fcmService;
 
     @PostMapping("")
@@ -32,5 +35,17 @@ public class FcmController {
     public ResponseEntity<ResponseDto<Long>> deleteToken(@AuthenticationPrincipal Member member){
         fcmService.deleteToken( member.getId());
         return ResponseEntity.ok(ResponseDto.of(1L,"토큰에서 회원 정보 삭제 성공"));
+    }
+
+    @Operation(summary = "(관리자 전용) 회원 알림 전송",
+            description = "지정 회원들에게 알림을 전송합니다. <br><br>" +
+                    "memberIds가 비어있으면 전체 회원에게 알림을 전송합니다.")
+    @PostMapping("/admin")
+    public ResponseEntity<ResponseDto<Long>> sendToMembers(@Valid @RequestBody AdminNotificationRequest request){
+        fcmService.sendToMembers(request);
+        if (request.memberIds() == null || request.memberIds().isEmpty())
+            return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(1L, "전체 회원 알림 전송 성공"));
+        else
+            return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(1L, "지정 회원 알림 전송 성공"));
     }
 }
