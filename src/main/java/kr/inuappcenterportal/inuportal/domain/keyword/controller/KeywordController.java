@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/keywords")
+@RequestMapping("/api/keywords")
 @Tag(name = "Keyword", description = "Keyword 관련 API")
 public class KeywordController {
 
@@ -26,7 +26,7 @@ public class KeywordController {
     @Operation(summary = "키워드 알림 등록",
             description = "키워드와 카테고리를 입력하여 키워드 알림을 등록합니다. <br><br>" +
                     "keyword: 알림을 받고자 하는 키워드 <br>" + "keywordCategory: 학교 (GENERAL) / 학과 (DEPARTMENT)")
-    @PostMapping("/notices")
+    @PostMapping
     public ResponseEntity<ResponseDto<KeywordResponse>> addKeyword(@AuthenticationPrincipal Member member,
                                                                    @Valid @RequestBody KeywordRequest request) {
         return ResponseEntity.status(HttpStatus.OK)
