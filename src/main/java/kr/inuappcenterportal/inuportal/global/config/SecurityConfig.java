@@ -44,7 +44,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/search","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders","/api/search/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs","/api/clubs/**").permitAll()
-                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs/**").hasRole("ADMIN"));
+                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs/**").hasRole("ADMIN")
+                        .requestMatchers("/api/tokens/admin").hasRole("ADMIN")
+                );
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))

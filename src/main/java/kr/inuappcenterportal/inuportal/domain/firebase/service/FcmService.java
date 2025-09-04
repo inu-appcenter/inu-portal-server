@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 
 import com.google.firebase.messaging.*;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
@@ -36,7 +37,6 @@ public class FcmService {
         log.info("로그아웃 기기 토큰 삭제");
     }
 
-
     @Transactional
     public void saveToken(String token, Long memberId){
         if(fcmTokenRepository.existsByToken(token)){
@@ -69,16 +69,9 @@ public class FcmService {
         try {
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
             log.info("관리자 알림 전송 성공");
-            List<String> failToken = new ArrayList<>();
-            List<SendResponse> responses = response.getResponses();
-            for(int i = 0 ; i < responses.size() ; i++){
-                if(!responses.get(i).isSuccessful()){
-                    failToken.add(target.get(i));
-                }
-            }
-            if(!failToken.isEmpty()){
-                fcmTokenRepository.deleteByTokenIn(failToken);
-            }
+
+            handleFailedTokens(response, target);
+
             fcmMessageRepository.save(FcmMessage.builder().title(title).body(body).build());
         } catch (FirebaseMessagingException e) {
             log.info("메시지 전송 실패 : {}",e.getMessage());
@@ -121,5 +114,69 @@ public class FcmService {
             log.warn("전체 공지 실패 : {}",e.getMessage());
         }
         fcmMessageRepository.save(FcmMessage.builder().title("인천대학교 총학생회").body(title).build());
+    }
+
+    @Transactional
+    @Async("messageExecutor")
+    public void sendKeywordNotice(List<String> tokens, String title, String body) {
+        if (tokens.isEmpty()) return;
+
+        MulticastMessage message = createMulticastMessage(tokens, title, body);
+
+        try {
+            FirebaseMessaging.getInstance().sendEachForMulticast(message);
+            log.info("키워드 알림 전송 성공");
+        } catch (FirebaseMessagingException e) {
+            log.info("키워드 알림 전송 실패 : {}", e.getMessage());
+        }
+    }
+
+    @Transactional
+    @Async("messageExecutor")
+    public void sendToMembers(AdminNotificationRequest request) {
+        List<String> tokens;
+        if (request.memberIds() == null) {
+            tokens = fcmTokenRepository.findAllUserTokens();
+        } else {
+            tokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
+        }
+        if (tokens.isEmpty()) return;
+
+        MulticastMessage message = createMulticastMessage(tokens , request.title(), request.content());
+
+        try {
+            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+
+            handleFailedTokens(response, tokens);
+
+            fcmMessageRepository.save(FcmMessage.builder().title(request.title()).body(request.content()).build());
+        } catch (FirebaseMessagingException e) {
+            log.info("회원 대상 알림 전송 실패 : {}", e.getMessage());
+        }
+    }
+
+    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body) {
+        return MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .setNotification(Notification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .build();
+    }
+
+    private void handleFailedTokens(BatchResponse response, List<String> target) {
+        List<String> failToken = new ArrayList<>();
+        List<SendResponse> responses = response.getResponses();
+
+        for(int i = 0 ; i < responses.size() ; i++){
+            if(!responses.get(i).isSuccessful()){
+                failToken.add(target.get(i));
+            }
+        }
+
+        if(!failToken.isEmpty()){
+            fcmTokenRepository.deleteByTokenIn(failToken);
+        }
     }
 }
