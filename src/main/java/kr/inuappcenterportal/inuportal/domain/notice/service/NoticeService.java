@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.notice.service;
 
+import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
@@ -49,6 +50,7 @@ public class NoticeService {
     private final DepartmentNoticeRepository departmentNoticeRepository;
     private final DepartmentCrawlerStateRepository departmentCrawlerStateRepository;
     private final CacheManager cacheManager;
+    private final KeywordService keywordService;
     private static long id = 0;
     private static final String DEPT_INDEX_KEY = "departmentIndex";
     private static final int DEPT_SIZE = 4;
@@ -59,12 +61,15 @@ public class NoticeService {
     public NoticeService(@Qualifier("cacheManager") CacheManager cacheManager,
                          @Qualifier("localCacheManager") CacheManager localCacheManager,
                          NoticeRepository noticeRepository,
-                         DepartmentNoticeRepository departmentNoticeRepository, DepartmentCrawlerStateRepository departmentCrawlerStateRepository) {
+                         DepartmentNoticeRepository departmentNoticeRepository,
+                         DepartmentCrawlerStateRepository departmentCrawlerStateRepository,
+                         KeywordService keywordService) {
         this.noticeRepository = noticeRepository;
         this.departmentNoticeRepository = departmentNoticeRepository;
         this.cacheManager = cacheManager;
         this.localCacheManager = localCacheManager;
         this.departmentCrawlerStateRepository = departmentCrawlerStateRepository;
+        this.keywordService = keywordService;
     }
     /*@PostConstruct
     @Transactional
@@ -291,7 +296,11 @@ public class NoticeService {
                         break;
                     }
 
-                    departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
+                    DepartmentNotice departmentNotice =
+                            departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
+
+                    keywordService.departmentNotifyMatchedUsers(departmentNotice);
+
                     count++;
                     if (count >= limit) {
                         outLoop = true;

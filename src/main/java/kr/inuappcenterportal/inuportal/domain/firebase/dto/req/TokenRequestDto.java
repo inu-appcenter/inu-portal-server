@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.firebase.dto;
+package kr.inuappcenterportal.inuportal.domain.firebase.dto.req;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;

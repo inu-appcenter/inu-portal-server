@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,4 +24,12 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken,Long> {
     @Transactional
     @Query(value = "DELETE FROM fcm_token WHERE create_date < NOW() - INTERVAL 7 DAY", nativeQuery = true)
     void deleteOldTokens();
+
+    @Query("SELECT f.token FROM FcmToken f WHERE f.memberId IN :memberIds")
+    List<String> findFcmTokensByMemberIds(@Param("memberIds") List<Long> memberIds);
+
+    @Query(value = "SELECT DISTINCT f.token FROM fcm_token f" +
+            " JOIN member_roles r ON f.member_id = r.member_id " +
+            "WHERE r.roles = 'ROLE_USER'", nativeQuery = true)
+    List<String> findAllUserTokens();
 }

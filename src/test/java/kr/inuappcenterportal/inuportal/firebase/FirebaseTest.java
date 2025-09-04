@@ -1,9 +1,8 @@
 package kr.inuappcenterportal.inuportal.firebase;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.CafeteriaService;
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.TokenRequestDto;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncExecutor;
@@ -14,8 +13,6 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
-import kr.inuappcenterportal.inuportal.domain.petition.respoitory.PetitionRepository;
-import kr.inuappcenterportal.inuportal.domain.petition.service.PetitionService;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
