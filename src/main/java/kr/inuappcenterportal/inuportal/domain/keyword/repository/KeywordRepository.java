@@ -15,4 +15,8 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
             "AND k.department = :department")
     List<Long> findMemberIdsByKeywordAndDepartmentMatches(@Param("title") String title,
                                                           @Param("department")Department department);
+
+    List<Keyword> findAllByMemberId(Long memberId);
+
+    boolean existsByIdAndMemberId(Long id, Long memberId);
 }
