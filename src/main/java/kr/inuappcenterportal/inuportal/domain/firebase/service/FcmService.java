@@ -52,6 +52,7 @@ public class FcmService {
     public void saveToken(String token, Long memberId){
         if(fcmTokenRepository.existsByToken(token)){
             FcmToken fcmToken =fcmTokenRepository.findByToken(token).orElseThrow(()->new MyException(MyErrorCode.TOKEN_NOT_FOUND));
+            fcmToken.updateMemberId(memberId);
             fcmToken.updateTimeNow();
         }
         else {

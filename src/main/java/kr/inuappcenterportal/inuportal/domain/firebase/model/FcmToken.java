@@ -30,6 +30,9 @@ public class FcmToken{
         this.createDate = LocalDateTime.now();
     }
 
+    public void updateMemberId(Long memberId){
+        this.memberId = memberId;
+    }
     public void updateTimeNow(){
         this.createDate = LocalDateTime.now();
     }
