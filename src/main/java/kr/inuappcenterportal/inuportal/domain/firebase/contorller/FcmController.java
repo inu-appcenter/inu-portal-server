@@ -3,10 +3,13 @@ package kr.inuappcenterportal.inuportal.domain.firebase.contorller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +38,14 @@ public class FcmController {
     public ResponseEntity<ResponseDto<Long>> deleteToken(@AuthenticationPrincipal Member member){
         fcmService.deleteToken( member.getId());
         return ResponseEntity.ok(ResponseDto.of(1L,"토큰에서 회원 정보 삭제 성공"));
+    }
+
+    // 받은 알림 조회
+    @Operation(summary = "회원의 받은 알림 조회", description = "회원이 받은 모든 알림을 최신순으로 조회합니다.")
+    @GetMapping
+    public ResponseEntity<ResponseDto<ListResponseDto<NotificationResponse>>> checkNotification(@AuthenticationPrincipal Member member,
+                                                                                                @RequestParam(defaultValue = "0") int page){
+        return ResponseEntity.ok(ResponseDto.of(fcmService.findNotifications(member, page),"알림 조회 성공"));
     }
 
     @Operation(summary = "(관리자 전용) 회원 알림 전송",

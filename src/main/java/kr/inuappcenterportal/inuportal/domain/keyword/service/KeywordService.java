@@ -48,7 +48,7 @@ public class KeywordService {
 
         List<String> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
 
-        fcmService.sendKeywordNotice(tokens, departmentNotice.getTitle(), "새로운 학과 공지사항이 등록되었습니다.");
+        fcmService.sendKeywordNotice(tokens, "새로운 학과 공지사항이 등록되었습니다.", departmentNotice.getTitle());
     }
 
     @Transactional

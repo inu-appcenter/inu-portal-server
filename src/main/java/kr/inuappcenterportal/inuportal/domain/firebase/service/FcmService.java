@@ -3,14 +3,23 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,8 +35,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @RequiredArgsConstructor
 public class FcmService {
+
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmMessageRepository fcmMessageRepository;
+    private final MemberFcmMessageRepository memberFcmMessageRepository;
     private final FcmAsyncExecutor fcmAsyncExecutor;
     private final Set<String> failedTokensSet = ConcurrentHashMap.newKeySet();
 
@@ -153,6 +164,21 @@ public class FcmService {
         } catch (FirebaseMessagingException e) {
             log.info("회원 대상 알림 전송 실패 : {}", e.getMessage());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
+        Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createDate"));
+
+        Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
+
+        List<NotificationResponse> notificationResponses = messages.stream().map(message -> {
+            FcmMessage fcmMessage = fcmMessageRepository.findById(message.getFcmMessageId())
+                    .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
+            return NotificationResponse.from(message, fcmMessage);
+        }).toList();
+
+        return ListResponseDto.of(messages.getTotalPages(), messages.getTotalElements(), notificationResponses);
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body) {

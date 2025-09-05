@@ -71,6 +71,7 @@ public enum MyErrorCode {
     TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 토큰입니다."),
     KEYWORD_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 키워드입니다."),
     KEYWORD_ACCESS_DENIED(HttpStatus.FORBIDDEN,"이 키워드의 수정/삭제에 대한 권한이 없습니다."),
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 메시지입니다."),
     ;
 
     private final HttpStatus status;

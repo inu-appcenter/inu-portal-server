@@ -318,8 +318,7 @@ public class NoticeService {
     @Transactional(readOnly = true)
     public ListResponseDto<DepartmentNoticeListResponse> getDepartmentNotices(Department department, String sort, int page){
         Pageable pageable = PageRequest.of(page>0?--page:page,8, sort(sort));
-        Page<DepartmentNotice> departmentNotices;
-        departmentNotices = departmentNoticeRepository.findAllByDepartment(department, pageable);
+        Page<DepartmentNotice> departmentNotices = departmentNoticeRepository.findAllByDepartment(department, pageable);
 
         return ListResponseDto.of(departmentNotices.getTotalPages(),departmentNotices.getTotalElements(),departmentNotices.getContent().stream().map(DepartmentNoticeListResponse::of).collect(Collectors.toList()));
     }
