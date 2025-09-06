@@ -4,6 +4,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
@@ -50,13 +51,13 @@ public class FcmService {
 
     @Transactional
     public void saveToken(String token, Long memberId){
-        if(fcmTokenRepository.existsByToken(token)){
-            FcmToken fcmToken =fcmTokenRepository.findByToken(token).orElseThrow(()->new MyException(MyErrorCode.TOKEN_NOT_FOUND));
-            fcmToken.updateMemberId(memberId);
-            fcmToken.updateTimeNow();
-        }
-        else {
-            FcmToken fcmToken = FcmToken.builder().token(token).memberId(memberId).build();
+        FcmToken fcmToken = fcmTokenRepository.findByToken(token)
+                .orElse(FcmToken.builder().token(token).memberId(memberId).build());
+
+        fcmToken.updateMemberId(memberId);
+        fcmToken.updateTimeNow();
+
+        if (fcmToken.getId() == null){
             fcmTokenRepository.save(fcmToken);
         }
     }
@@ -176,7 +177,7 @@ public class FcmService {
         List<NotificationResponse> notificationResponses = messages.stream().map(message -> {
             FcmMessage fcmMessage = fcmMessageRepository.findById(message.getFcmMessageId())
                     .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
-            return NotificationResponse.from(message, fcmMessage);
+            return NotificationResponse.from(message, fcmMessage, FcmMessageType.DEPARTMENT);
         }).toList();
 
         return ListResponseDto.of(messages.getTotalPages(), messages.getTotalElements(), notificationResponses);

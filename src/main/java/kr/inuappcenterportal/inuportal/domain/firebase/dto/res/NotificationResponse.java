@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.dto.res;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
@@ -20,11 +21,11 @@ public record NotificationResponse(
         String body,
 
         @Schema(description = "알림 타입")
-        Department type
+        FcmMessageType type
 
 ) {
-    public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage) {
+    public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage, FcmMessageType type) {
         return new NotificationResponse(fcmMessage.getId(), memberFcmMessage.getMemberId(),
-                fcmMessage.getTitle(), fcmMessage.getBody(), fcmMessage.getDepartment());
+                fcmMessage.getTitle(), fcmMessage.getBody(), type);
     }
 }
