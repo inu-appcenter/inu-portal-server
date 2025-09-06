@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.member.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,19 +19,22 @@ public class MemberResponseDto {
     private Long fireId;
     @Schema(description = "회원의 권한")
     private String role;
+    @Schema(description = "학과")
+    private String department;
 
     @Builder
-    private MemberResponseDto(Member member, String role){
+    private MemberResponseDto(Member member, String role, Department department) {
         this.id = member.getId();
         this.nickname = member.getNickname();
         this.fireId = member.getFireId();
         this.role = role;
+        this.department = department == null? null : department.getDepartmentName();
     }
 
     public static MemberResponseDto userMember(Member member){
-        return MemberResponseDto.builder().member(member).role("user").build();
+        return MemberResponseDto.builder().member(member).role("user").department(member.getDepartment()).build();
     }
     public static MemberResponseDto adminMember(Member member){
-        return MemberResponseDto.builder().member(member).role("admin").build();
+        return MemberResponseDto.builder().member(member).role("admin").department(member.getDepartment()).build();
     }
 }

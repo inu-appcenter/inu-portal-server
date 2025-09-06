@@ -24,10 +24,10 @@ public class Keyword {
     @Column(nullable = false)
     private String keyword;
 
-    @Column
+    @Enumerated(EnumType.STRING)
     private FcmMessageType type;
 
-    @Column
+    @Enumerated(EnumType.STRING)
     private Department department;
 
     @Builder

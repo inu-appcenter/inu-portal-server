@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.member.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.folder.model.Folder;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.domain.postLike.model.PostLike;
 import kr.inuappcenterportal.inuportal.domain.reply.model.Reply;
@@ -33,6 +34,9 @@ public class Member implements UserDetails {
 
     @Column(nullable = false)
     private String nickname;
+
+    @Enumerated(EnumType.STRING)
+    private Department department;
 
     @Column(name = "fire_id")
     private Long fireId;
@@ -69,6 +73,9 @@ public class Member implements UserDetails {
     }
     public void updateFire(Long fireId){
         this.fireId = fireId;
+    }
+    public void updateDepartment(Department department){
+        this.department = department;
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
