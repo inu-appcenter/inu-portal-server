@@ -7,7 +7,7 @@
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
 
-        <file>/intip/logs/intip.log</file>
+        <file>/git intip/logs/intip.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>/intip/logs/intip.%d{yyyy-MM-dd}.log</fileNamePattern>

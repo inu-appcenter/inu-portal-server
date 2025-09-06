@@ -58,7 +58,7 @@ public class KeywordController {
     // 학과 새 글 알림 조회
     @Operation(summary = "학과 새 글 알림 조회",
             description = "사용자가 등록한 학과 새 글 알림 목록을 조회합니다.")
-    @GetMapping
+    @GetMapping("/department")
     public ResponseEntity<ResponseDto<List<KeywordResponse>>> getDepartmentFcm(@AuthenticationPrincipal Member member) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ResponseDto.of(keywordService.getDepartmentFcm(member), "학과 새 글 알림 조회 성공"));
@@ -66,8 +66,8 @@ public class KeywordController {
 
     // 학과 새 글 알림 등록
     @Operation(summary = "학과 새 글 알림 등록",
-            description = "학과에 대한 새 글 알림을 등록합니다.")
-    @PostMapping
+            description = "학과에 대한 새 글 알림을 등록합니다. <br><br> keyword 필드는 null로 입력됩니다.")
+    @PostMapping("/department")
     public ResponseEntity<ResponseDto<KeywordResponse>> addDepartmentFcm(@AuthenticationPrincipal Member member,
                                                                                @RequestParam Department department) {
         return ResponseEntity.status(HttpStatus.CREATED)
