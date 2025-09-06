@@ -65,8 +65,8 @@ public class KeywordController {
     }
 
     // 학과 새 글 알림 등록
-    @Operation(summary = "학과 새 글 알림 등록",
-            description = "학과에 대한 새 글 알림을 등록합니다. <br><br> keyword 필드는 null로 입력됩니다.")
+    @Operation(summary = "학과 새 글 알림 구독",
+            description = "학과에 대한 새 글 알림을 구독합니다. <br><br>keyword 필드는 null로 입력됩니다.")
     @PostMapping("/department")
     public ResponseEntity<ResponseDto<KeywordResponse>> addDepartmentFcm(@AuthenticationPrincipal Member member,
                                                                                @RequestParam Department department) {
