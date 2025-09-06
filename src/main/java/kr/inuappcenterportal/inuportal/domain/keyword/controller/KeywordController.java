@@ -56,8 +56,8 @@ public class KeywordController {
     }
 
     // 학과 새 글 알림 조회
-    @Operation(summary = "학과 새 글 알림 조회",
-            description = "사용자가 등록한 학과 새 글 알림 목록을 조회합니다.")
+    @Operation(summary = "새 글 알림 구독 학과 조회",
+            description = "사용자가 새 글 알림을 구독한 학과 목록을 조회합니다. <br><br>keyword 필드는 null 값으로 조회됩니다.")
     @GetMapping("/department")
     public ResponseEntity<ResponseDto<List<KeywordResponse>>> getDepartmentFcm(@AuthenticationPrincipal Member member) {
         return ResponseEntity.status(HttpStatus.OK)
