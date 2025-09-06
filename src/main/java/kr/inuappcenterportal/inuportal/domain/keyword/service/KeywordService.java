@@ -77,6 +77,9 @@ public class KeywordService {
 
     @Transactional
     public KeywordResponse addDepartmentFcm(Member member, Department department) {
+        List<Keyword> toDeleteKeywords = keywordRepository.findAllByMemberId(member.getId());
+        keywordRepository.deleteAll(toDeleteKeywords);
+
         Keyword keyword = createDepartmentKeyword(member.getId(), null, department);
         keywordRepository.save(keyword);
 
