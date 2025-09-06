@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 
 public record NotificationResponse(
 

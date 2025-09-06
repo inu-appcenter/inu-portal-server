@@ -21,7 +21,6 @@ public class Keyword {
     @Column(name = "member_id", nullable = false)
     private Long memberId;
 
-    @Column(nullable = false)
     private String keyword;
 
     @Enumerated(EnumType.STRING)
