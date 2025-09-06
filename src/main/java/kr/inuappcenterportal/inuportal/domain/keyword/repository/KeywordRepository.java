@@ -19,4 +19,8 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
     List<Keyword> findAllByMemberId(Long memberId);
 
     boolean existsByIdAndMemberId(Long id, Long memberId);
+
+    List<Keyword> findAllByMemberIdAndKeywordIsNull(Long memberId);
+
+    List<Long> findMemberIdsByDepartmentAndKeywordIsNull(Department department);
 }

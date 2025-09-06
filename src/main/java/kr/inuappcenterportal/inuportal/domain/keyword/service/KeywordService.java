@@ -42,7 +42,7 @@ public class KeywordService {
     }
 
     @Transactional
-    public void departmentNotifyMatchedUsers(DepartmentNotice departmentNotice, Department department) {
+    public void departmentNotifyMatchedUsersAndKeyword(DepartmentNotice departmentNotice, Department department) {
         List<Long> memberIds = keywordRepository
                 .findMemberIdsByKeywordAndDepartmentMatches(departmentNotice.getTitle(), department);
         if (memberIds.isEmpty()) return;
@@ -53,10 +53,34 @@ public class KeywordService {
     }
 
     @Transactional
+    public void departmentNotifyMatchedUsers(DepartmentNotice departmentNotice, Department department) {
+        List<Long> memberIds = keywordRepository.findMemberIdsByDepartmentAndKeywordIsNull(department);
+        if (memberIds.isEmpty()) return;
+
+        List<String> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+
+        fcmService.sendKeywordNotice(tokens, "새로운" + department.getDepartmentName() + "공지사항이 등록되었습니다.", departmentNotice.getTitle());
+    }
+
+    @Transactional
     public void deleteKeyword(Member member, Long keywordId) {
         Keyword keyword = getKeywordById(keywordId);
         validateKeywordOwnership(member.getId(), keywordId);
         keywordRepository.delete(keyword);
+    }
+
+    @Transactional(readOnly = true)
+    public List<KeywordResponse> getDepartmentFcm(Member member) {
+        List<Keyword> keywords = keywordRepository.findAllByMemberIdAndKeywordIsNull(member.getId());
+        return keywords.stream().map(KeywordResponse::from).toList();
+    }
+
+    @Transactional
+    public KeywordResponse addDepartmentFcm(Member member, Department department) {
+        Keyword keyword = createDepartmentKeyword(member.getId(), null, department);
+        keywordRepository.save(keyword);
+
+        return KeywordResponse.from(keyword);
     }
 
     private Keyword getKeywordById(Long keywordId) {

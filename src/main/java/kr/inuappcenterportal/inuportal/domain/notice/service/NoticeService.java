@@ -300,6 +300,7 @@ public class NoticeService {
                             departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
 
                     keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
+                    keywordService.departmentNotifyMatchedUsersAndKeyword(departmentNotice, department);
 
                     count++;
                     if (count >= limit) {
