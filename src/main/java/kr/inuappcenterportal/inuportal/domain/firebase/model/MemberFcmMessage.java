@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.model;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "member_fcm_message")
-public class MemberFcmMessage {
+public class MemberFcmMessage extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
