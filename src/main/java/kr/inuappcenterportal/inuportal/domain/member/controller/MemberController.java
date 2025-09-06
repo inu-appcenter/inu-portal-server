@@ -15,6 +15,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
 import kr.inuappcenterportal.inuportal.domain.reply.dto.ReplyListResponseDto;
@@ -156,5 +157,13 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(replyService.getReplyByMember(member,sort),"회원이 작성한 모든 댓글 가져오기 성공"));
     }
 
-
+    @Operation(summary = "회원 학과 수정", description = "회원의 학과 정보를 수정합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.<br>요청 파라미터로 department(학과)를 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "회원 학과 수정 성공", content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
+    })
+    @PutMapping("/department")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member,
+                                                                    @RequestParam Department department){
+        return ResponseEntity.ok(ResponseDto.of(memberService.updateMemberDepartment(member, department),"회원 학과 수정 성공"));
+    }
 }

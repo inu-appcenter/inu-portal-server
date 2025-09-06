@@ -7,6 +7,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -111,4 +112,15 @@ public class MemberService {
         memberRepository.save(member);
     }
 
+    @Transactional
+    public MemberResponseDto updateMemberDepartment(Member member, Department department) {
+        member.updateDepartment(department);
+
+        if(member.getRoles().contains("ROLE_ADMIN")){
+            return MemberResponseDto.adminMember(member);
+        }
+        else {
+            return MemberResponseDto.userMember(member);
+        }
+    }
 }
