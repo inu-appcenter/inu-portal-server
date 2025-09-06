@@ -52,7 +52,7 @@ public class KeywordController {
                                                            @PathVariable Long keywordId) {
         keywordService.deleteKeyword(member, keywordId);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ResponseDto.of(1L, "키워드 알림 삭제 성공"));
+                .body(ResponseDto.of(1L, "구독 알림 삭제 성공"));
     }
 
     // 학과 새 글 알림 조회
@@ -61,7 +61,7 @@ public class KeywordController {
     @GetMapping("/department")
     public ResponseEntity<ResponseDto<List<KeywordResponse>>> getDepartmentFcm(@AuthenticationPrincipal Member member) {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ResponseDto.of(keywordService.getDepartmentFcm(member), "학과 새 글 알림 조회 성공"));
+                .body(ResponseDto.of(keywordService.getDepartmentFcm(member), "새 글 알림 구독 학과 조회 성공"));
     }
 
     // 학과 새 글 알림 등록
@@ -71,6 +71,6 @@ public class KeywordController {
     public ResponseEntity<ResponseDto<KeywordResponse>> addDepartmentFcm(@AuthenticationPrincipal Member member,
                                                                                @RequestParam Department department) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ResponseDto.of(keywordService.addDepartmentFcm(member, department), "학과 새 글 알림 등록 성공"));
+                .body(ResponseDto.of(keywordService.addDepartmentFcm(member, department), "학과 새 글 알림 구독 성공"));
     }
 }
