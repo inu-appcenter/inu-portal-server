@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.keyword.domain;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -23,13 +24,17 @@ public class Keyword {
     @Column(nullable = false)
     private String keyword;
 
-    @Column(nullable = false)
+    @Column
+    private FcmMessageType type;
+
+    @Column
     private Department department;
 
     @Builder
-    private Keyword(Long memberId, String keyword, Department department) {
+    private Keyword(Long memberId, String keyword, FcmMessageType type, Department department) {
         this.memberId = memberId;
         this.keyword = keyword;
+        this.type = type;
         this.department = department;
     }
 }

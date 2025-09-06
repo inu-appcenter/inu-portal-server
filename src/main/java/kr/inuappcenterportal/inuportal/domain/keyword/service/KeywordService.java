@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.keyword.service;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.keyword.domain.Keyword;
@@ -34,7 +35,7 @@ public class KeywordService {
 
     @Transactional
     public KeywordResponse addKeyword(Member member, String keywordString, Department department) {
-        Keyword keyword = createKeywordEntity(member.getId(), keywordString, department);
+        Keyword keyword = createDepartmentKeyword(member.getId(), keywordString, department);
         keywordRepository.save(keyword);
 
         return KeywordResponse.from(keyword);
@@ -73,10 +74,11 @@ public class KeywordService {
         }
     }
 
-    private Keyword createKeywordEntity(Long memberId, String keywordString, Department department) {
+    private Keyword createDepartmentKeyword(Long memberId, String keywordString, Department department) {
         return Keyword.builder()
                 .memberId(memberId)
                 .keyword(keywordString)
+                .type(FcmMessageType.DEPARTMENT)
                 .department(department)
                 .build();
     }
