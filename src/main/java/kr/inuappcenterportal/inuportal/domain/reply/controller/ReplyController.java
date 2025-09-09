@@ -28,7 +28,6 @@ import java.security.NoSuchAlgorithmException;
 @RestController
 @RequestMapping("/api/replies")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ReplyController {
     private final ReplyService replyService;
 

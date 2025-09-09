@@ -31,7 +31,6 @@ import java.util.List;
 
 @Tag(name = "items", description = " 물품대여 API")
 @Slf4j
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/items")
 @RequiredArgsConstructor

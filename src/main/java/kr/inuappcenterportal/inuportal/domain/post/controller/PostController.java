@@ -37,7 +37,6 @@ import java.util.List;
 @Tag(name = "Posts",description = "게시글 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/posts")
 @Validated
 public class PostController {

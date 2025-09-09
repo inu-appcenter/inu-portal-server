@@ -23,7 +23,6 @@ import java.util.List;
 @Tag(name="Categories", description = "카테고리 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/categories")
 public class CategoryController {
     private final CategoryService categoryService;

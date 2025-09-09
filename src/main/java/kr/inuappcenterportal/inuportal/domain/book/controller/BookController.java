@@ -37,7 +37,6 @@ import static org.springframework.http.HttpStatus.*;
 
 @Tag(name = "Books", description = "책 벼룩시장 API")
 @Slf4j
-@CrossOrigin(origins = "*")
 @RestController
 @Validated
 @RequestMapping("/api/books")

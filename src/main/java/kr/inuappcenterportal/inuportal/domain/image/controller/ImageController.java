@@ -24,7 +24,6 @@ import java.util.List;
 @Tag(name="Images", description = "횃불이 이미지 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/images")
 public class ImageController {
     private final RedisService redisService;

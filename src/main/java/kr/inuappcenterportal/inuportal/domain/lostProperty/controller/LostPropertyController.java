@@ -34,7 +34,6 @@ import static org.springframework.http.HttpStatus.OK;
 
 @Tag(name = "LostProperties", description = "분실물 API")
 @Slf4j
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/lost")
 @RequiredArgsConstructor
