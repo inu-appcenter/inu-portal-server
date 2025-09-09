@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Tokens", description = "Fcm 토큰 API")
 @Slf4j
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/tokens")
 @RequiredArgsConstructor
