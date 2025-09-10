@@ -115,6 +115,7 @@ public class MemberService {
     @Transactional
     public MemberResponseDto updateMemberDepartment(Member member, Department department) {
         member.updateDepartment(department);
+        memberRepository.save(member);
 
         if(member.getRoles().contains("ROLE_ADMIN")){
             return MemberResponseDto.adminMember(member);
