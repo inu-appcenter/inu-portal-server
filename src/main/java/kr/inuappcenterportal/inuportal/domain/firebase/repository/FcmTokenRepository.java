@@ -32,4 +32,7 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken,Long> {
             " JOIN member_roles r ON f.member_id = r.member_id " +
             "WHERE r.roles = 'ROLE_USER'", nativeQuery = true)
     List<String> findAllUserTokens();
+
+    @Query("SELECT f.memberId FROM FcmToken f")
+    List<Long> findMemberIds();
 }

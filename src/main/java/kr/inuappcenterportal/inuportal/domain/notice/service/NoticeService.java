@@ -108,14 +108,22 @@ public class NoticeService {
         int bachelorNum = 46;
         getNoticeByCategory(bachelor, bachelorNum,"학사");
         log.info("학사공지 크롤링 완료");
+        int credit = 1517;
+        int creditNum = 47;
+        getNoticeByCategory(credit, creditNum,"학점교류");
+        log.info("학점교류 공지 크롤링 완료");
         int recruitment = 1518;
         int recruitmentNum = 611;
-        getNoticeByCategory(recruitment, recruitmentNum,"모집");
-        log.info("모집공지 크롤링 완료");
-        int exchange = 1517;
-        int exchangeNum = 47;
-        getNoticeByCategory(exchange, exchangeNum,"학점교류");
-        log.info("학점교류공지 크롤링 완료");
+        getNoticeByCategory(recruitment, recruitmentNum,"일반/행사/모집");
+        log.info("일반/행사/모집 공지 크롤링 완료");
+        int scholarship = 1519;
+        int scholarshipNum = 49;
+        getNoticeByCategory(scholarship, scholarshipNum,"장학금");
+        log.info("장학금 크롤링 완료");
+        int tuition = 1520;
+        int tuitionNum = 50;
+        getNoticeByCategory(tuition, tuitionNum,"등록금 납부");
+        log.info("등록금 납부 공지 크롤링 완료");
         int test = 1530;
         int testNum = 52;
         getNoticeByCategory(test, testNum,"교육시험");
@@ -133,10 +141,7 @@ public class NoticeService {
                 Document document = Jsoup.connect(encodedUrl).get();
                 Elements notice = document.select("tr");
                 for (Element ele : notice) {
-                    if (ele.select("td.td-num").text().equals("일반공지") || ele.select("th.th-num").text().equals("NO")) {
-                        continue;
-                    }
-                    if (category == 1518 && !ele.select("td.td-category").text().equals("[모집]")) {
+                    if (ele.select("th.th-num").text().equals("NO")) {
                         continue;
                     }
                     if (isAMonthAgo(ele.select("td.td-date").text())) {

@@ -21,4 +21,13 @@ public class MemberFcmMessage extends BaseTimeEntity {
 
     @Column(name = "member_id", nullable = false)
     private Long memberId;
+
+    private MemberFcmMessage(Long fcmMessageId, Long memberId) {
+        this.fcmMessageId = fcmMessageId;
+        this.memberId = memberId;
+    }
+
+    public static MemberFcmMessage of(Long fcmMessageId, Long memberId) {
+        return new MemberFcmMessage(fcmMessageId, memberId);
+    }
 }
