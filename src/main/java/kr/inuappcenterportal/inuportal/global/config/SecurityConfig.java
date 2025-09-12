@@ -45,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/replies/**","/api/reservations/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/search","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders","/api/search/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs","/api/clubs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/categories/**","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs","/api/clubs/**").permitAll()
                         .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs/**").hasRole("ADMIN")
                         .requestMatchers("/api/keywords/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/tokens/admin").hasRole("ADMIN")
