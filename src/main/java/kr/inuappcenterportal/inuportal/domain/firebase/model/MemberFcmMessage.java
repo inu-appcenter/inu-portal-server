@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.model;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,12 +23,17 @@ public class MemberFcmMessage extends BaseTimeEntity {
     @Column(name = "member_id", nullable = false)
     private Long memberId;
 
-    private MemberFcmMessage(Long fcmMessageId, Long memberId) {
+    @Column(name = "fcm_message_type")
+    @Enumerated(EnumType.STRING)
+    private FcmMessageType fcmMessageType;
+
+    private MemberFcmMessage(Long fcmMessageId, Long memberId, FcmMessageType fcmMessageType) {
         this.fcmMessageId = fcmMessageId;
         this.memberId = memberId;
+        this.fcmMessageType = fcmMessageType;
     }
 
-    public static MemberFcmMessage of(Long fcmMessageId, Long memberId) {
-        return new MemberFcmMessage(fcmMessageId, memberId);
+    public static MemberFcmMessage of(Long fcmMessageId, Long memberId, FcmMessageType fcmMessageType) {
+        return new MemberFcmMessage(fcmMessageId, memberId, fcmMessageType);
     }
 }

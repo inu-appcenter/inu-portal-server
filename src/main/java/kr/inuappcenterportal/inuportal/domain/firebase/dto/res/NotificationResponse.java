@@ -23,8 +23,8 @@ public record NotificationResponse(
         FcmMessageType type
 
 ) {
-    public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage, FcmMessageType type) {
+    public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage) {
         return new NotificationResponse(fcmMessage.getId(), memberFcmMessage.getMemberId(),
-                fcmMessage.getTitle(), fcmMessage.getBody(), type);
+                fcmMessage.getTitle(), fcmMessage.getBody(), memberFcmMessage.getFcmMessageType());
     }
 }
