@@ -156,7 +156,7 @@ public class FcmService {
 
     @Transactional(readOnly = true)
     public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
-        Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createDate"));
+        Pageable pageable = PageRequest.of(page>0?--page:page, 10, Sort.by(Sort.Direction.DESC, "createDate"));
 
         Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
 
