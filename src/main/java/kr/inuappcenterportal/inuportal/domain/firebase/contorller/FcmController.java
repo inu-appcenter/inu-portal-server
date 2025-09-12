@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.contorller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
@@ -42,7 +43,7 @@ public class FcmController {
     @Operation(summary = "회원의 받은 알림 조회", description = "회원이 받은 모든 알림을 최신순으로 조회합니다.")
     @GetMapping
     public ResponseEntity<ResponseDto<ListResponseDto<NotificationResponse>>> checkNotification(@AuthenticationPrincipal Member member,
-                                                                                                @RequestParam(defaultValue = "0") int page){
+                                                                                                @RequestParam(required = false,defaultValue = "1") @Min(1) int page){
         return ResponseEntity.ok(ResponseDto.of(fcmService.findNotifications(member, page),"알림 조회 성공"));
     }
 
