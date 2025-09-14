@@ -38,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -296,13 +297,16 @@ public class NoticeService {
                             : ele.select(config.getLinkSelector()).attr("href");
                     Long views = Long.parseLong(ele.select(config.getViewsSelector()).text());
 
-                    if (departmentNoticeRepository.existsByDepartmentAndTitleAndCreateDate(department, title, date)) {
-                        outLoop = true;
-                        break;
+                    Optional<DepartmentNotice> existingDepartmentNotice = departmentNoticeRepository
+                            .findFirstByDepartmentAndTitleAndCreateDate(department, title, date);
+
+                    if (existingDepartmentNotice.isPresent()) {
+                        existingDepartmentNotice.get().updateView(views);
+                        continue;
                     }
 
                     DepartmentNotice departmentNotice =
-                            departmentNoticeRepository.save(new DepartmentNotice(department, title, date, views, href));
+                            departmentNoticeRepository.save(DepartmentNotice.create(department, title, date, views, href));
 
                     keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
                     keywordService.departmentNotifyMatchedUsersAndKeyword(departmentNotice, department);
