@@ -302,7 +302,7 @@ public class NoticeService {
 
                     if (existingDepartmentNotice.isPresent()) {
                         existingDepartmentNotice.get().updateView(views);
-                        break;
+                        continue;
                     }
 
                     DepartmentNotice departmentNotice =
