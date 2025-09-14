@@ -32,11 +32,19 @@ public class DepartmentNotice {
     @Column(nullable = false, length = 512)
     private String url;
 
-    public DepartmentNotice(Department department, String title, String createDate, Long view, String url) {
+    private DepartmentNotice(Department department, String title, String createDate, Long view, String url) {
         this.department = department;
         this.title = title;
         this.createDate = createDate;
         this.view = view;
         this.url = url;
+    }
+
+    public static DepartmentNotice create(Department department, String title, String createDate, Long view, String url) {
+        return new DepartmentNotice(department, title, createDate, view, url);
+    }
+
+    public void updateView(Long view) {
+        this.view = view;
     }
 }
