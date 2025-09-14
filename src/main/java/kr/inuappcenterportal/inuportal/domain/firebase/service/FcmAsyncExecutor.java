@@ -1,15 +1,14 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -17,9 +16,8 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 @Slf4j
 public class FcmAsyncExecutor {
-    private final List<String> failedTokensList = Collections.synchronizedList(new ArrayList<>());
     @Async("sendExecutor")
-    public CompletableFuture<Void> sendMessage(List<String> tokens, String body, String title){
+    public CompletableFuture<Void> sendMessage(List<String> tokens, String body, String title, Set<String> failedTokensList){
         try {
             MulticastMessage message = MulticastMessage.builder()
                     .addAllTokens(tokens)
@@ -39,13 +37,5 @@ public class FcmAsyncExecutor {
             log.warn("비동기 알림 전송 실패 : {}",e.getMessage());
         }
         return CompletableFuture.completedFuture(null);
-    }
-
-    public List<String> getFailedTokensList(){
-        return failedTokensList;
-    }
-
-    public void clearFailedTokenSet(){
-        failedTokensList.clear();
     }
 }
