@@ -29,8 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 @Slf4j
@@ -41,7 +39,6 @@ public class FcmService {
     private final FcmMessageRepository fcmMessageRepository;
     private final MemberFcmMessageRepository memberFcmMessageRepository;
     private final FcmAsyncExecutor fcmAsyncExecutor;
-    private final Set<String> failedTokensSet = ConcurrentHashMap.newKeySet();
 
     @Scheduled(cron = "0 0 0 * * *")
     public void cleanExpiredTokens() {
@@ -95,16 +92,15 @@ public class FcmService {
     @Async("messageExecutor")
     public void sendToAll(String title, String body) {
         List<String> target = fcmTokenRepository.findAllTokens();
+        Set<String> failedTokensSet = ConcurrentHashMap.newKeySet();
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (int i = 0; i < target.size(); i += 500) {
             List<String> tokens = target.subList(i, Math.min(i + 500, target.size()));
-            futures.add(fcmAsyncExecutor.sendMessage(tokens, body, title));
+            futures.add(fcmAsyncExecutor.sendMessage(tokens, body, title,failedTokensSet));
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        List<String> failedTokens = fcmAsyncExecutor.getFailedTokensList();
         if(!failedTokensSet.isEmpty()){
-            fcmTokenRepository.deleteByTokenIn(new ArrayList<>(failedTokens));
-            fcmAsyncExecutor.clearFailedTokenSet();
+            fcmTokenRepository.deleteByTokenIn(new ArrayList<>(failedTokensSet));
         }
         fcmMessageRepository.save(FcmMessage.builder().title(title).body(body).build());
     }
