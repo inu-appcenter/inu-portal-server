@@ -34,7 +34,7 @@ public enum Department {
     PUBLIC_ADMINISTRATION("행정학과", "https://uipa.inu.ac.kr/uipa/7800/subview.do"),
     POLITICS_DIPLOMACY("정치외교학과", "https://politics.inu.ac.kr/politics/2742/subview.do"),
     ECONOMICS("경제학과", "https://econ.inu.ac.kr/econ/2643/subview.do"),
-    TRADE("무역학부", "https://trade.inu.ac.kr/trade/12389/subview.do"),
+    TRADE("무역학부", "https://trade.inu.ac.kr/trade/2693/subview.do"),
     CONSUMER_SCIENCE("소비자학과", "https://ccs.inu.ac.kr/ccs/2789/subview.do"),
 
     // 공과대학
