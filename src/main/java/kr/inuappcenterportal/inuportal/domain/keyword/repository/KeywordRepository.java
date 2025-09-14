@@ -23,5 +23,4 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
     List<Keyword> findAllByMemberIdAndKeywordIsNull(Long memberId);
 
     @Query("SELECT k.memberId FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL")
-    List<Long> findMemberIdsByDepartmentAndKeywordIsNull(Department department);
-}
+    List<Long> findMemberIdsByDepartmentAndKeywordIsNull(Department department);}
