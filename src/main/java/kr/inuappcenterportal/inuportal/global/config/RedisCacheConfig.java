@@ -27,7 +27,7 @@ public class RedisCacheConfig {
         RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
-                .entryTtl(Duration.ofHours(3L)); // 캐쉬 저장 시간 3시간 설정
+                .entryTtl(Duration.ofMinutes(185L)); // 캐쉬 저장 시간 3시간 5분 설정
 
         return RedisCacheManager
                 .RedisCacheManagerBuilder
@@ -42,7 +42,7 @@ public class RedisCacheConfig {
         caffeine.setAllowNullValues(false);
         caffeine.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(20)
-                .expireAfterWrite(30, TimeUnit.MINUTES)); // 로컬 캐시 저장 시간 30분
+                .expireAfterWrite(185, TimeUnit.MINUTES)); // 로컬 캐시 저장 시간 30분
         return caffeine;
     }
 
