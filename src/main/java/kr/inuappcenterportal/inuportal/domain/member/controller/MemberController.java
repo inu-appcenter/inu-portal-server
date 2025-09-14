@@ -34,7 +34,6 @@ import java.util.List;
 @Tag(name="Members", description = "회원 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/members")
 public class MemberController {
     private final MemberService memberService;

@@ -29,7 +29,6 @@ import java.util.List;
 
 @Tag(name = "Clubs", description = "동아리 API")
 @Slf4j
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/clubs")
 @RequiredArgsConstructor

@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.category.service;
 
 import kr.inuappcenterportal.inuportal.domain.category.dto.CategoryDto;
 import kr.inuappcenterportal.inuportal.domain.category.dto.CategoryUpdateDto;
+import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
 import kr.inuappcenterportal.inuportal.domain.category.model.Category;
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -44,6 +45,10 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<String> getCategories(){
-        return categoryRepository.findAll().stream().map(Category::getCategory).collect(Collectors.toList());
+        return categoryRepository.findAllByType(CategoryType.POST).stream().map(Category::getCategory).collect(Collectors.toList());
+    }
+
+    public List<String> getNoticeCategories() {
+        return categoryRepository.findAllByType(CategoryType.NOTICE).stream().map(Category::getCategory).collect(Collectors.toList());
     }
 }

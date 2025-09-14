@@ -21,7 +21,6 @@ import java.util.List;
 @Tag(name="Schedules", description = "학사일정 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/schedules")
 public class ScheduleController {
     private final ScheduleService scheduleService;

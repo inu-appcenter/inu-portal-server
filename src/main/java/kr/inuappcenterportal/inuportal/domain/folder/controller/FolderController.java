@@ -30,7 +30,6 @@ import java.util.List;
 @Tag(name="Folders", description = "스크랩폴더 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/folders")
 public class FolderController {
     private final FolderService folderService;

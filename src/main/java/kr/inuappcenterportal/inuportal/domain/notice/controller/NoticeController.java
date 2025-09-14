@@ -27,7 +27,6 @@ import java.util.List;
 @Tag(name="Notices", description = "학교 공지사항 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/notices")
 public class NoticeController {
     private final NoticeService noticeService;

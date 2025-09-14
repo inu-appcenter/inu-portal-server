@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Search",description = "게시글 검색 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/search")
 public class SearchController {
     private final PostService postService;

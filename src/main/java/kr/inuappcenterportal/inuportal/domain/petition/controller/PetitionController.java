@@ -36,7 +36,6 @@ import java.util.List;
 @Tag(name = "Petitions",description = "총학생회 청원 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/petitions")
 public class PetitionController {
     private final PetitionService petitionService;

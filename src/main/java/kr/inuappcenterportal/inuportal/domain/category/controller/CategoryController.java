@@ -23,7 +23,6 @@ import java.util.List;
 @Tag(name="Categories", description = "카테고리 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/categories")
 public class CategoryController {
     private final CategoryService categoryService;
@@ -64,12 +63,21 @@ public class CategoryController {
         return ResponseEntity.ok(ResponseDto.of(categoryDto.getCategory(),"카테고리 삭제 성공"));
     }
 
-    @Operation(summary = "모든 카테고리 가져오기")
+    @Operation(summary = "팁 게시판 카테고리 가져오기")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "모든 카테고리 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "200",description = "팁 게시판 카테고리 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<List<String>>> getCategoryList(){
-        return ResponseEntity.ok(ResponseDto.of(categoryService.getCategories(),"모든 카테고리 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(categoryService.getCategories(),"팁 게시판 카테고리 가져오기 성공"));
+    }
+
+    @Operation(summary = "학교 공지사항 카테고리 가져오기")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "학교 공지사항 카테고리 가져오기 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+    })
+    @GetMapping("/notice")
+    public ResponseEntity<ResponseDto<List<String>>> getNoticeCategoryList(){
+        return ResponseEntity.ok(ResponseDto.of(categoryService.getNoticeCategories(),"학교 공지사항 카테고리 가져오기 성공"));
     }
 }

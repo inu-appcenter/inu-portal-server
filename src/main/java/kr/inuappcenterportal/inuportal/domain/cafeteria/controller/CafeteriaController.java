@@ -20,7 +20,6 @@ import java.util.List;
 @Tag(name="Cafeterias", description = "학식 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/cafeterias")
 public class CafeteriaController {
     private final CafeteriaService cafeteriaService;
