@@ -1,6 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.post.service;
 
-import jakarta.annotation.PostConstruct;
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
@@ -21,8 +20,6 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -41,8 +38,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,8 +57,6 @@ public class PostService {
     private String path;
     private final CacheManager cacheManager;
     private final CacheManager localCacheManager;
-    private final RedissonClient redissonClient;
-    private final ReentrantLock lock = new ReentrantLock();
 
     public PostService(PostRepository postRepository,
                        MemberRepository memberRepository,
@@ -75,8 +68,7 @@ public class PostService {
                        ImageService imageService,
                        ReportRepository reportRepository,
                        @Qualifier("cacheManager") CacheManager cacheManager,
-                       @Qualifier("localCacheManager") CacheManager localCacheManager,
-                       RedissonClient redissonClient) {
+                       @Qualifier("localCacheManager") CacheManager localCacheManager) {
         this.postRepository = postRepository;
         this.memberRepository = memberRepository;
         this.likePostRepository = likePostRepository;
@@ -88,7 +80,6 @@ public class PostService {
         this.reportRepository = reportRepository;
         this.cacheManager = cacheManager;
         this.localCacheManager = localCacheManager;
-        this.redissonClient = redissonClient;
     }
 
     @Scheduled(cron = "0 0 0 * * *")
@@ -112,15 +103,6 @@ public class PostService {
         log.info("게시글 순서 랜덤화 작업 완료");
     }
 
-    @PostConstruct
-    public void warmUpData(){
-        warmUpCache();
-    }
-
-    @Scheduled(cron = "0 0 */3 * * ?")
-    public void warmUp(){
-        warmUpCache();
-    }
     @Transactional
     public Long savePost(Member member, PostDto postSaveDto, List<MultipartFile> images) throws NoSuchAlgorithmException, IOException {
         if(!categoryRepository.existsByCategory(postSaveDto.getCategory())){
@@ -403,146 +385,48 @@ public class PostService {
         return posts;
     }
 
-
+    @Transactional(readOnly = true)
     public List<PostListResponseDto> getRandomTop() {
         // 레디스 캐시 조회
         try {
-            List<PostListResponseDto> posts = getRedisCachedData();
+            Cache cache = cacheManager.getCache("randomPost");
+            List<PostListResponseDto> posts = cache.get("randomTop", List.class);
             if (posts != null) {
                 return posts;
             }
-            else{
-                // 레디스가 살아 있는 상태에서 캐시 조회 실패시 캐시 셋팅
-                return setRedisCache();
+        } catch (Exception e) {
+            log.warn("랜덤 인기 게시글 - 레디스 캐시 조회 실패");
+        }
+        // 레디스 캐시 조회 실패 시 로컬 캐시 조회
+        try {
+            Cache cache = localCacheManager.getCache("randomPost");
+            List<PostListResponseDto> posts = cache.get("randomTop", List.class);
+            if (posts != null) {
+                return posts;
             }
         } catch (Exception e) {
-            log.warn("랜덤 인기 게시글 - 레디스 다운으로 인한 조회 실패");
+            log.warn("랜덤 인기 게시글 - 로컬 캐시 조회 실패");
         }
-
-        // 레디스 캐시 조회 실패 시 로컬 캐시 조회
-        List<PostListResponseDto> posts = getLocalCachedData();
-        if (posts != null) {
-            return posts;
-        }
-        else{
-            return setLocalCache();
-        }
-    }
-
-    public List<PostListResponseDto> getRedisCachedData(){
-        Cache cache = cacheManager.getCache("randomPost");
-        return cache.get("randomTop", List.class);
-    }
-    public List<PostListResponseDto> getLocalCachedData(){
-        Cache cache = localCacheManager.getCache("randomPost");
-        return cache.get("randomTop", List.class);
-    }
-
-    private List<PostListResponseDto> setRedisCache(){
-        RLock lock = redissonClient.getLock("postLock");
-        List<PostListResponseDto> posts = null;
-        boolean locked = false;
-        try {
-            locked = lock.tryLock(500, 5000, TimeUnit.MILLISECONDS);
-            if(locked) {
-                // 캐시 갱신 완료시 로직 스킵
-                posts = getRedisCachedData();
-                if(posts==null) {
-                    // 캐시 조회 실패 시 DB 접근 후 레디스 캐시 등록
-                    posts = postRepository.findRandomTop().stream()
-                            .map(this::getPostListResponseDto)
-                            .collect(Collectors.toList());
-                    cacheManager.getCache("randomPost").put("randomTop", posts);
-                }
-            }
-            else{
-                // 락 획득 실패시 조회 재시도 4초동안 0.2초 간격으로 캐시 확인, 실패시 로컬 캐시 접근
-                int count = 0;
-                while (count < 20){
-                    posts = getRedisCachedData();
-                    if(posts!=null){
-                        return posts;
-                    }
-                    Thread.sleep(200);
-                    count++;
-                }
-                return setLocalCache();
-            }
-        }
-        catch (InterruptedException e){
-            Thread.currentThread().interrupt();
-            log.warn("락 대기 중 인터럽트 발생");
-        }
-        catch (Exception e){
-            // 레디스 다운 발생시 로컬 캐시 접근
-            posts = getLocalCachedData();
-            if(posts!=null) {
-                return setLocalCache();
-            }
-            return posts;
-        }
-        finally {
-            if (locked && lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
-        return posts;
-    }
-
-    private List<PostListResponseDto> setLocalCache(){
-        boolean locked = false;
-        List<PostListResponseDto> posts = null;
-        try {
-            locked = lock.tryLock(500,TimeUnit.MILLISECONDS);
-            if(locked) {
-                // 캐시 조회 실패 시 DB 접근 후 로컬 캐시 등록
-                // 캐시 갱신 완료시 로직 스킵
-                posts = getLocalCachedData();
-                if(posts==null) {
-                    posts = postRepository.findRandomTop().stream()
-                            .map(this::getPostListResponseDto)
-                            .collect(Collectors.toList());
-                    localCacheManager.getCache("randomPost").put("randomTop", posts);
-                }
-            }
-            else{
-                // 락 획득 실패시 조회 재시도
-                int count = 0;
-                while (count < 20){
-                    posts = getLocalCachedData();
-                    if(posts!=null){
-                        return posts;
-                    }
-                    Thread.sleep(200);
-                    count++;
-                }
-                // 로컬 캐시 데이터 조회에도 문제 발생 시 데이터베이스 문제로 판단하고 빈 데이터 전송
-                log.warn("로컬 캐시 조회 타임 아웃 발생 - 데이터베이스 ");
-                return null;
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("락 대기 중 인터럽트 발생");
-        }
-        finally {
-            if(locked){
-                lock.unlock();
-            }
-        }
-        return posts;
-    }
-
-    public void warmUpCache(){
+        // 캐시 조회 실패 시 DB 접근
         List<PostListResponseDto> posts = postRepository.findRandomTop().stream()
                 .map(this::getPostListResponseDto)
                 .collect(Collectors.toList());
-        // 캐시 웜업 - 레디스 다운 시 로컬 캐시에 데이터 웜업
-        try{
+        // 레디스 캐시 등록
+        try {
             cacheManager.getCache("randomPost").put("randomTop", posts);
+            return posts;
+        } catch (Exception e) {
+            log.warn("랜덤 인기 게시글 - 레디스 캐시 저장 실패");
         }
-        catch (Exception e){
+
+        // 레디스 캐시 등록 실패 시 로컬 캐시 등록
+        try {
             localCacheManager.getCache("randomPost").put("randomTop", posts);
+        } catch (Exception e) {
+            log.warn("랜덤 인기 게시글 - 로컬 캐시 저장 실패 ");
         }
+
+        return posts;
     }
 
     @Transactional(readOnly = true)

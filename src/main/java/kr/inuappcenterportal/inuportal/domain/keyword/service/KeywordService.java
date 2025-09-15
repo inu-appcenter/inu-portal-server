@@ -49,7 +49,7 @@ public class KeywordService {
 
         List<String> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
 
-        fcmService.sendKeywordNotice(memberIds, tokens, "새로운 학과 공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        fcmService.sendKeywordNotice(memberIds, tokens, "[" + department.getDepartmentName() + "] 키워드에 맞는 새 공지사항이 등록되었습니다.", departmentNotice.getTitle());
     }
 
     @Transactional
@@ -59,7 +59,7 @@ public class KeywordService {
 
         List<String> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
 
-        fcmService.sendKeywordNotice(memberIds, tokens, "새로운" + department.getDepartmentName() + "공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        fcmService.sendKeywordNotice(memberIds, tokens, "[" + department.getDepartmentName() + "] 새로운 공지사항이 등록되었습니다.", departmentNotice.getTitle());
     }
 
     @Transactional
