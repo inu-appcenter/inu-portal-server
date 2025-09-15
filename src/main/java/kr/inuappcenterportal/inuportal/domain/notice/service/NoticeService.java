@@ -302,7 +302,6 @@ public class NoticeService {
 
                     if (existingDepartmentNotice.isPresent()) {
                         existingDepartmentNotice.get().updateView(views);
-                        continue;
                     } else {
                         DepartmentNotice departmentNotice =
                                 departmentNoticeRepository.save(DepartmentNotice.create(department, title, date, views, href));
