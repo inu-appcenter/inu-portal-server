@@ -16,7 +16,6 @@ public class AsyncConfig {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(1);
         executor.setMaxPoolSize(2);
-        executor.setQueueCapacity(10);
         executor.setThreadNamePrefix("FCM-MSG-");
         executor.initialize();
         return executor;
@@ -24,10 +23,9 @@ public class AsyncConfig {
 
     @Bean(name = "sendExecutor")
     public Executor sendExecutor() {
-        int core = Runtime.getRuntime().availableProcessors();
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(core);
-        executor.setMaxPoolSize(core * 2);
+        executor.setCorePoolSize(8);
+        executor.setMaxPoolSize(16);
         executor.setQueueCapacity(500);
         executor.setThreadNamePrefix("FCM-SEND-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
