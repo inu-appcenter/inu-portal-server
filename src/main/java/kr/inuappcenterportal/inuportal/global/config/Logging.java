@@ -36,6 +36,7 @@ public class Logging {
         String httpMethod = request.getMethod();
 
         if (except_uri.contains(uri)) {
+
             return joinPoint.proceed();
         }
         String memberId = getMemberId(request);

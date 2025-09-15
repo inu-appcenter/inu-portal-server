@@ -303,13 +303,13 @@ public class NoticeService {
                     if (existingDepartmentNotice.isPresent()) {
                         existingDepartmentNotice.get().updateView(views);
                         continue;
+                    } else {
+                        DepartmentNotice departmentNotice =
+                                departmentNoticeRepository.save(DepartmentNotice.create(department, title, date, views, href));
+
+                        keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
+                        keywordService.departmentNotifyMatchedUsersAndKeyword(departmentNotice, department);
                     }
-
-                    DepartmentNotice departmentNotice =
-                            departmentNoticeRepository.save(DepartmentNotice.create(department, title, date, views, href));
-
-                    keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
-                    keywordService.departmentNotifyMatchedUsersAndKeyword(departmentNotice, department);
 
                     count++;
                     if (count >= limit) {
