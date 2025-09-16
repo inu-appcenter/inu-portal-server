@@ -143,7 +143,7 @@ public class FcmService {
         List<Long> memberIds = request.memberIds();
         List<String> tokens;
 
-        if (request.memberIds() == null) {
+        if (request.memberIds() == null || request.memberIds().isEmpty()) {
             tokens = fcmTokenRepository.findAllUserTokens();
             memberIds = fcmTokenRepository.findMemberIds();
         } else {
