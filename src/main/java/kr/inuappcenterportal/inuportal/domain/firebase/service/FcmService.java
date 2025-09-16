@@ -134,24 +134,39 @@ public class FcmService {
     public void sendKeywordNotice(List<Long> memberIds, List<String> tokens, String title, String body) {
         if (tokens.isEmpty()) return;
 
-        sendFcmMessageToMembers(memberIds, tokens, title, body, FcmMessageType.DEPARTMENT);
+        Map<String, Long> tokenAndMemberId = new HashMap<>();
+        for (int i = 0; i < tokens.size(); i++) {
+            if (i < memberIds.size() && memberIds.get(i) != null) {
+                tokenAndMemberId.put(tokens.get(i), memberIds.get(i));
+            }
+        }
+
+        if (tokenAndMemberId.isEmpty()) return;
+
+        List<String> safeTokens = new ArrayList<>(tokenAndMemberId.keySet());
+
+        sendFcmMessageToMembers(tokenAndMemberId, safeTokens, title, body, FcmMessageType.DEPARTMENT);
     }
 
     @Transactional
     @Async("messageExecutor")
     public void sendToMembers(AdminNotificationRequest request) {
-        List<Long> memberIds = request.memberIds();
-        List<String> tokens;
+        List<FcmToken> fcmTokens;
 
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            tokens = fcmTokenRepository.findAllUserTokens();
-            memberIds = fcmTokenRepository.findMemberIds();
+            fcmTokens = fcmTokenRepository.findAllActiveTokens();
         } else {
-            tokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
+            fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
         }
-        if (tokens.isEmpty()) return;
+        if (fcmTokens.isEmpty()) return;
 
-        sendFcmMessageToMembers(memberIds, tokens, request.title(), request.content(), FcmMessageType.GENERAL);
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .filter(t -> t.getMemberId() != null)
+                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+
+        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
+
+        sendFcmMessageToMembers(tokenAndMemberId, tokens, request.title(), request.content(), FcmMessageType.GENERAL);
     }
 
     @Transactional(readOnly = true)
@@ -194,13 +209,9 @@ public class FcmService {
         }
     }
 
-    private void addMemberFcmMessageList(BatchResponse batchResponse, List<String> subTokens,
-                                         Map<String, Long> tokenAndMemberId, List<MemberFcmMessage> memberFcmMessageList,
-                                         FcmMessage fcmMessage, FcmMessageType fcmMessageType, int j) {
-        SendResponse sendResponse = batchResponse.getResponses().get(j);
-        String token = subTokens.get(j);
-        Long memberId = tokenAndMemberId.get(token);
-
+    private void addMemberFcmMessageList(SendResponse sendResponse, String token,
+                                         Long memberId, List<MemberFcmMessage> memberFcmMessageList,
+                                         FcmMessage fcmMessage, FcmMessageType fcmMessageType) {
         if (sendResponse.isSuccessful() && memberId != null) {
             memberFcmMessageList.add(MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType));
         } else {
@@ -216,18 +227,10 @@ public class FcmService {
         memberFcmMessageRepository.flush();
     }
 
-    private void sendFcmMessageToMembers(List<Long> memberIds, List<String> tokens, String title, String body, FcmMessageType fcmMessageType) {
+    private void sendFcmMessageToMembers(Map<String, Long> tokenAndMemberId, List<String> tokens, String title, String body, FcmMessageType fcmMessageType) {
         int batchSize = 500;
 
         FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder().title(title).body(body).build());
-
-        // memberId가 null인 토큰은 저장에서 제외
-        Map<String, Long> tokenAndMemberId = new HashMap<>();
-        for (int i = 0; i < tokens.size(); i++) {
-            if (i < memberIds.size() && memberIds.get(i) != null) {
-                tokenAndMemberId.put(tokens.get(i), memberIds.get(i));
-            }
-        }
 
         List<MemberFcmMessage> memberFcmMessageList = new ArrayList<>();
 
@@ -237,12 +240,25 @@ public class FcmService {
                 List<String> subTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
 
                 MulticastMessage message = createMulticastMessage(subTokens, title, body);
-                BatchResponse batchResponse = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+                BatchResponse batchResponse;
+                try {
+                    batchResponse = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+                } catch (FirebaseMessagingException e) {
+                    log.error("FCM 메시지 전송 실패: {}", e.getMessage());
+                    continue;
+                }
 
                 for (int j = 0; j < batchResponse.getResponses().size(); j++) {
-                    // 전송된 알림들 List화
-                    addMemberFcmMessageList(batchResponse, subTokens, tokenAndMemberId,
-                            memberFcmMessageList, fcmMessage, fcmMessageType, j);
+                    String token = subTokens.get(j);
+                    Long memberId = tokenAndMemberId.get(token);
+
+                    try {
+                        // 전송된 알림들 List화
+                        addMemberFcmMessageList(batchResponse.getResponses().get(j), token, memberId,
+                                memberFcmMessageList, fcmMessage, fcmMessageType);
+                    } catch (Exception e) {
+                        log.error("개별 FCM 전송 처리 중 오류: token={}, error={}", token, e.getMessage(), e);
+                    }
                 }
 
                 handleFailedTokens(batchResponse, subTokens);
@@ -254,7 +270,7 @@ public class FcmService {
             }
 
             log.info("회원 대상 알림 전송 성공, {}건", memberFcmMessageList.size());
-        } catch (FirebaseMessagingException e) {
+        } catch (Exception e) {
             log.error("회원 대상 알림 전송 실패 : {}", e.getMessage());
         }
     }

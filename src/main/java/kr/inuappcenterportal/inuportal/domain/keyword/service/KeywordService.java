@@ -1,6 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.keyword.service;
 
+import io.jsonwebtoken.impl.crypto.MacProvider;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.keyword.domain.Keyword;
@@ -16,7 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,9 +52,16 @@ public class KeywordService {
                 .findMemberIdsByKeywordAndDepartmentMatches(departmentNotice.getTitle(), department);
         if (memberIds.isEmpty()) return;
 
-        List<String> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
 
-        fcmService.sendKeywordNotice(memberIds, tokens, "[" + department.getDepartmentName() + "] 키워드에 맞는 새 공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .filter(t -> t.getMemberId() != null)
+                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+
+        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
+        List<Long> safeMemberIds = new ArrayList<>(tokenAndMemberId.values());
+
+        fcmService.sendKeywordNotice(safeMemberIds, tokens, "[" + department.getDepartmentName() + "] 키워드에 맞는 새 공지사항이 등록되었습니다.", departmentNotice.getTitle());
     }
 
     @Transactional
@@ -57,9 +69,16 @@ public class KeywordService {
         List<Long> memberIds = keywordRepository.findMemberIdsByDepartmentAndKeywordIsNull(department);
         if (memberIds.isEmpty()) return;
 
-        List<String> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
 
-        fcmService.sendKeywordNotice(memberIds, tokens, "[" + department.getDepartmentName() + "] 새로운 공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .filter(t -> t.getMemberId() != null)
+                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+
+        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
+        List<Long> safeMemberIds = new ArrayList<>(tokenAndMemberId.values());
+
+        fcmService.sendKeywordNotice(safeMemberIds, tokens, "[" + department.getDepartmentName() + "] 새로운 공지사항이 등록되었습니다.", departmentNotice.getTitle());
     }
 
     @Transactional

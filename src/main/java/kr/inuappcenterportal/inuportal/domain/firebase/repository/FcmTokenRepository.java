@@ -25,14 +25,9 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken,Long> {
     @Query(value = "DELETE FROM fcm_token WHERE create_date < NOW() - INTERVAL 7 DAY", nativeQuery = true)
     void deleteOldTokens();
 
-    @Query("SELECT f.token FROM FcmToken f WHERE f.memberId IN :memberIds")
-    List<String> findFcmTokensByMemberIds(@Param("memberIds") List<Long> memberIds);
+    @Query("SELECT f FROM FcmToken f WHERE f.memberId IN :memberIds")
+    List<FcmToken> findFcmTokensByMemberIds(@Param("memberIds") List<Long> memberIds);
 
-    @Query(value = "SELECT DISTINCT f.token FROM fcm_token f" +
-            " JOIN member_roles r ON f.member_id = r.member_id " +
-            "WHERE r.roles = 'ROLE_USER'", nativeQuery = true)
-    List<String> findAllUserTokens();
-
-    @Query("SELECT f.memberId FROM FcmToken f")
-    List<Long> findMemberIds();
+    @Query("SELECT f FROM FcmToken f WHERE f.memberId IS NOT null")
+    List<FcmToken> findAllActiveTokens();
 }
