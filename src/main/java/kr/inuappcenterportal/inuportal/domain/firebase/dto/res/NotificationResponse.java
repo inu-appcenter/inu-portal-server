@@ -5,6 +5,9 @@ import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 public record NotificationResponse(
 
         @Schema(description = "알림 Id")
@@ -20,11 +23,14 @@ public record NotificationResponse(
         String body,
 
         @Schema(description = "알림 타입")
-        FcmMessageType type
+        FcmMessageType type,
+
+        @Schema(description = "알림 생성 시간")
+        LocalDate createDate
 
 ) {
     public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage) {
         return new NotificationResponse(fcmMessage.getId(), memberFcmMessage.getMemberId(),
-                fcmMessage.getTitle(), fcmMessage.getBody(), memberFcmMessage.getFcmMessageType());
+                fcmMessage.getTitle(), fcmMessage.getBody(), memberFcmMessage.getFcmMessageType(), memberFcmMessage.getCreateDate());
     }
 }
