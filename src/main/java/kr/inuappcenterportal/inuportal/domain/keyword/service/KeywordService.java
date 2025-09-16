@@ -58,10 +58,7 @@ public class KeywordService {
                 .filter(t -> t.getMemberId() != null)
                 .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
 
-        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
-        List<Long> safeMemberIds = new ArrayList<>(tokenAndMemberId.values());
-
-        fcmService.sendKeywordNotice(safeMemberIds, tokens, "[" + department.getDepartmentName() + "] 키워드에 맞는 새 공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        fcmService.sendKeywordNotice(tokenAndMemberId, "[" + department.getDepartmentName() + "] 키워드에 맞는 새 공지사항이 등록되었습니다.", departmentNotice.getTitle());
     }
 
     @Transactional
@@ -75,10 +72,7 @@ public class KeywordService {
                 .filter(t -> t.getMemberId() != null)
                 .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
 
-        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
-        List<Long> safeMemberIds = new ArrayList<>(tokenAndMemberId.values());
-
-        fcmService.sendKeywordNotice(safeMemberIds, tokens, "[" + department.getDepartmentName() + "] 새로운 공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        fcmService.sendKeywordNotice(tokenAndMemberId, "[" + department.getDepartmentName() + "] 새로운 공지사항이 등록되었습니다.", departmentNotice.getTitle());
     }
 
     @Transactional

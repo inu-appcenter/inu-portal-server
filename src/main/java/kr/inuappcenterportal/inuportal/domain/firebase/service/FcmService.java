@@ -131,21 +131,12 @@ public class FcmService {
 
     @Transactional
     @Async("messageExecutor")
-    public void sendKeywordNotice(List<Long> memberIds, List<String> tokens, String title, String body) {
-        if (tokens.isEmpty()) return;
-
-        Map<String, Long> tokenAndMemberId = new HashMap<>();
-        for (int i = 0; i < tokens.size(); i++) {
-            if (i < memberIds.size() && memberIds.get(i) != null) {
-                tokenAndMemberId.put(tokens.get(i), memberIds.get(i));
-            }
-        }
-
+    public void sendKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body) {
         if (tokenAndMemberId.isEmpty()) return;
 
-        List<String> safeTokens = new ArrayList<>(tokenAndMemberId.keySet());
+        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
 
-        sendFcmMessageToMembers(tokenAndMemberId, safeTokens, title, body, FcmMessageType.DEPARTMENT);
+        sendFcmMessageToMembers(tokenAndMemberId, tokens, title, body, FcmMessageType.DEPARTMENT);
     }
 
     @Transactional
