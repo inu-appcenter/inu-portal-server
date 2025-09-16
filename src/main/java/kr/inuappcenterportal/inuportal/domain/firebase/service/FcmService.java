@@ -145,15 +145,14 @@ public class FcmService {
         List<FcmToken> fcmTokens;
 
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            fcmTokens = fcmTokenRepository.findAllActiveTokens();
+            fcmTokens = fcmTokenRepository.findAll();
         } else {
             fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
         }
         if (fcmTokens.isEmpty()) return;
 
         Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .filter(t -> t.getMemberId() != null)
-                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId, (existing, replacement) -> existing));
 
         List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
 
@@ -203,8 +202,12 @@ public class FcmService {
     private void addMemberFcmMessageList(SendResponse sendResponse, String token,
                                          Long memberId, List<MemberFcmMessage> memberFcmMessageList,
                                          FcmMessage fcmMessage, FcmMessageType fcmMessageType) {
-        if (sendResponse.isSuccessful() && memberId != null) {
-            memberFcmMessageList.add(MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType));
+        if (sendResponse.isSuccessful()) {
+            if (memberId != null) {
+                memberFcmMessageList.add(MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType));
+            } else {
+                log.info("Member FCM 저장 생략 (memberId = null): token={}", token);
+            }
         } else {
             FirebaseMessagingException exception = sendResponse.getException();
             String errorMsg = exception != null ? exception.getMessage() : "알 수 없는 오류 (exception=null)";
