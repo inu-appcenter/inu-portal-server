@@ -27,7 +27,4 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken,Long> {
 
     @Query("SELECT f FROM FcmToken f WHERE f.memberId IN :memberIds")
     List<FcmToken> findFcmTokensByMemberIds(@Param("memberIds") List<Long> memberIds);
-
-    @Query("SELECT f FROM FcmToken f WHERE f.memberId IS NOT null")
-    List<FcmToken> findAllActiveTokens();
 }
