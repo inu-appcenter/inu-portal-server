@@ -204,7 +204,9 @@ public class FcmService {
         if (sendResponse.isSuccessful() && memberId != null) {
             memberFcmMessageList.add(MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType));
         } else {
-            log.warn("FCM 전송 실패: token={}, error={}", token, sendResponse.getException().getMessage());
+            FirebaseMessagingException exception = sendResponse.getException();
+            String errorMsg = exception != null ? exception.getMessage() : "알 수 없는 오류 (exception=null)";
+            log.warn("FCM 전송 실패: token={}, error={}", token, errorMsg);
         }
     }
 
