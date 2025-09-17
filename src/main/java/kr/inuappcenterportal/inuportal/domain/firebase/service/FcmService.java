@@ -217,7 +217,15 @@ public class FcmService {
 
     private void saveMemberFcmMessage(List<MemberFcmMessage> memberFcmMessageList, int i, int batchSize) {
         List<MemberFcmMessage> batch = memberFcmMessageList.subList(i, Math.min(i + batchSize, memberFcmMessageList.size()));
-        memberFcmMessageRepository.saveAll(batch);
+
+        Map<Long, MemberFcmMessage> uniqueMemberFcmMessages = batch.stream()
+                        .collect(Collectors.toMap(
+                                MemberFcmMessage::getMemberId,
+                                m -> m,
+                                (existing, replacement) -> existing
+                        ));
+
+        memberFcmMessageRepository.saveAll(uniqueMemberFcmMessages.values());
         memberFcmMessageRepository.flush();
     }
 
