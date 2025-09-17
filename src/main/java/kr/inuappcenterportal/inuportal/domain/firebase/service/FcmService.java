@@ -152,7 +152,9 @@ public class FcmService {
         if (fcmTokens.isEmpty()) return;
 
         Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId, (existing, replacement) -> existing));
+                .collect(Collectors.toMap(
+                        FcmToken::getToken, t -> t.getMemberId() != null ? t.getMemberId() : -1L,
+                        (existing, replacement) -> existing));
 
         List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
 
@@ -203,7 +205,7 @@ public class FcmService {
                                          Long memberId, List<MemberFcmMessage> memberFcmMessageList,
                                          FcmMessage fcmMessage, FcmMessageType fcmMessageType) {
         if (sendResponse.isSuccessful()) {
-            if (memberId != null) {
+            if (memberId != null && memberId != -1L) {
                 memberFcmMessageList.add(MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType));
             } else {
                 log.info("Member FCM 저장 생략 (memberId = null): token={}", token);
