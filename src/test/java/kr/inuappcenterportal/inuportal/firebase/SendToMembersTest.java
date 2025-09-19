@@ -4,7 +4,6 @@
     import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
     import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
     import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
-    import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
     import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
     import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
     import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
@@ -19,6 +18,7 @@
     import org.springframework.boot.test.mock.mockito.MockBean;
 
     import java.util.List;
+    import java.util.concurrent.CompletableFuture;
 
     @SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class})
     public class SendToMembersTest {
@@ -58,4 +58,24 @@
 
             Mockito.verify(fcmMessageRepository).save(Mockito.any(FcmMessage.class));
         }
+
+        @Test
+        void testSendToMembers_withAllMembers() {
+            AdminNotificationRequest request = new AdminNotificationRequest(null, "Test Title", "Test Body");
+
+            FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69");
+            FcmToken fcmToken2 = new FcmToken(null, "sample_token_null");
+            FcmToken fcmToken3 = new FcmToken(96L, "sample_token_96");
+
+            Mockito.when(fcmTokenRepository.findAll()).thenReturn(List.of(fcmToken1, fcmToken2, fcmToken3));
+            Mockito.when(fcmMessageRepository.save(Mockito.any())).thenAnswer(i -> i.getArguments()[0]);
+            Mockito.when(fcmAsyncExecutor.sendMessage(Mockito.anyList(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(CompletableFuture.completedFuture(null));
+
+            fcmService.sendToMembers(request);
+
+            Mockito.verify(fcmTokenRepository).findAll();
+            Mockito.verify(fcmMessageRepository).save(Mockito.any(FcmMessage.class));
+        }
+
     }
