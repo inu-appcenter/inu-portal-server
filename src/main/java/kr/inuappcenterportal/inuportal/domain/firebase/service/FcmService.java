@@ -207,8 +207,6 @@ public class FcmService {
         if (sendResponse.isSuccessful()) {
             if (memberId != null && memberId != -1L) {
                 memberFcmMessageList.add(MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType));
-            } else {
-                log.info("Member FCM 저장 생략 (memberId = null): token={}", token);
             }
         } else {
             FirebaseMessagingException exception = sendResponse.getException();
