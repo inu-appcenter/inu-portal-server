@@ -46,9 +46,23 @@ public class WeatherService {
 
     @Scheduled(cron = "0 35 * * * *")
     public void getWeatherAPI(){
-        getWeatherSky();
-        getTemperature();
-        getDust();
+        try {
+            getWeatherSky();
+        } catch (Exception e) {
+            log.error("날씨 SKY 조회 실패", e);
+        }
+
+        try {
+            getTemperature();
+        } catch (Exception e) {
+            log.error("날씨 온도 조회 실패", e);
+        }
+
+        try {
+            getDust();
+        } catch (Exception e) {
+            log.error("미세먼지 조회 실패", e);
+        }
     }
 
     @Scheduled(cron = "0 5 0 * * *")
