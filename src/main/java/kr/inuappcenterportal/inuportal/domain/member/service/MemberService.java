@@ -82,12 +82,7 @@ public class MemberService {
 
 
     public MemberResponseDto getMember(Member member){
-        if(member.getRoles().contains("ROLE_ADMIN")){
-            return MemberResponseDto.adminMember(member);
-        }
-        else {
-            return MemberResponseDto.userMember(member);
-        }
+        return getMemberResponseDto(member);
     }
 
     public List<MemberResponseDto> getAllMember(){
@@ -113,15 +108,31 @@ public class MemberService {
     }
 
     @Transactional
-    public MemberResponseDto updateMemberDepartment(Member member, Department department) {
+    public MemberResponseDto updateMemberDepartment(Long memberId, Department department) {
+        Member member = findMemberById(memberId);
         member.updateDepartment(department);
-        memberRepository.save(member);
 
-        if(member.getRoles().contains("ROLE_ADMIN")){
+        return getMemberResponseDto(member);
+    }
+
+    @Transactional
+    public MemberResponseDto agreeTerms(Long memberId) {
+        Member member = findMemberById(memberId);
+        member.agreeTerms();
+
+        return getMemberResponseDto(member);
+    }
+
+    private MemberResponseDto getMemberResponseDto(Member member) {
+        if (member.getRoles().contains("ROLE_ADMIN")) {
             return MemberResponseDto.adminMember(member);
-        }
-        else {
+        } else {
             return MemberResponseDto.userMember(member);
         }
+    }
+
+    private Member findMemberById(Long id){
+        return memberRepository.findById(id)
+                .orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
     }
 }

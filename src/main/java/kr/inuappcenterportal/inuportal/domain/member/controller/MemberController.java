@@ -163,6 +163,15 @@ public class MemberController {
     @PutMapping("/department")
     public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member,
                                                                     @RequestParam Department department){
-        return ResponseEntity.ok(ResponseDto.of(memberService.updateMemberDepartment(member, department),"회원 학과 수정 성공"));
+        return ResponseEntity.ok(ResponseDto.of(memberService.updateMemberDepartment(member.getId(), department),"회원 학과 수정 성공"));
+    }
+
+    @Operation(summary = "회원 약관 동의", description = "회원이 약관에 동의합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "회원 약관 동의 성공", content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
+    })
+    @PutMapping("/terms")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> agreeTerms(@AuthenticationPrincipal Member member){
+        return ResponseEntity.ok(ResponseDto.of(memberService.agreeTerms(member.getId()),"회원 약관 동의 성공"));
     }
 }

@@ -41,6 +41,9 @@ public class Member implements UserDetails {
     @Column(name = "fire_id")
     private Long fireId;
 
+    @Column(name = "terms_agreed")
+    private Boolean termsAgreed;
+
     @OneToMany(mappedBy = "member",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Scrap> scraps;
 
@@ -62,20 +65,28 @@ public class Member implements UserDetails {
         this.nickname = studentId;
         this.roles = roles;
         this.fireId = 1L;
+        this.termsAgreed = false;
     }
 
     public void updateNicknameAndFire(String nickname,Long fireId){
         this.nickname = nickname;
         this.fireId = fireId;
     }
+
     public void updateNickName(String nickname){
         this.nickname = nickname;
     }
+
     public void updateFire(Long fireId){
         this.fireId = fireId;
     }
+
     public void updateDepartment(Department department){
         this.department = department;
+    }
+
+    public void agreeTerms() {
+        this.termsAgreed = true;
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
