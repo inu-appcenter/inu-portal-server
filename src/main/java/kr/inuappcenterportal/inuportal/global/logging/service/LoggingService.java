@@ -37,7 +37,7 @@ public class LoggingService {
 
     @Transactional(readOnly = true)
     public List<LoggingApiResponse> getAPILogsByDate(LocalDate date) {
-        return loggingRepository.findApILogsByCreateDate(date, EXCLUDED_URIS, PageRequest.of(0, 10));
+        return loggingRepository.findApILogsByCreateDate(date, EXCLUDED_URIS, PageRequest.of(0, 20));
     }
 
     // 매일 새벽 4시에 실행
