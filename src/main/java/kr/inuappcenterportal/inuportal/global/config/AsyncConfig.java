@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.firebase.config;
+package kr.inuappcenterportal.inuportal.global.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +29,17 @@ public class AsyncConfig {
         executor.setQueueCapacity(500);
         executor.setThreadNamePrefix("FCM-SEND-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "loggingExecutor")
+    public Executor loggingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("LOGGING-");
         executor.initialize();
         return executor;
     }

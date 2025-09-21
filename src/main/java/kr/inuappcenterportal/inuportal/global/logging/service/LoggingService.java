@@ -7,7 +7,6 @@ import kr.inuappcenterportal.inuportal.global.logging.repository.LoggingReposito
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +22,6 @@ public class LoggingService {
     private final LoggingRepository loggingRepository;
     private final int BATCH_SIZE = 1000;
 
-    @Async
     @Transactional
     public void saveLog(String memberId, String httpMethod, String uri, long duration) {
         loggingRepository.save(Logging.createLog(memberId, httpMethod, uri, duration));

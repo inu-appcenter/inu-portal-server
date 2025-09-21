@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class FcmController {
 
     private final FcmService fcmService;
+    private final FcmAsyncService fcmAsyncService;
 
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> saveToken(@Valid@RequestBody TokenRequestDto tokenRequestDto, @AuthenticationPrincipal Member member){
@@ -52,7 +54,7 @@ public class FcmController {
                     "memberIds가 비어있으면 전체 회원에게 알림을 전송합니다.")
     @PostMapping("/admin")
     public ResponseEntity<ResponseDto<Long>> sendToMembers(@Valid @RequestBody AdminNotificationRequest request){
-        fcmService.sendToMembers(request);
+        fcmAsyncService.sendAsyncToMembers(request);
         if (request.memberIds() == null || request.memberIds().isEmpty())
             return ResponseEntity.status(HttpStatus.OK).body(ResponseDto.of(1L, "전체 회원 알림 전송 성공"));
         else

@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.global.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.global.logging.service.LoggingService;
+import kr.inuappcenterportal.inuportal.global.logging.service.LoggingAsyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -23,7 +23,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class LoggingConfig {
 
-    private final LoggingService loggingService;
+    private final LoggingAsyncService loggingAsyncService;
 
     private static final Set<String> except_uri = Set.of(
             "/api/weathers",
@@ -50,7 +50,7 @@ public class LoggingConfig {
         Object result = joinPoint.proceed();
         long duration = System.currentTimeMillis() - startTime;
 
-        loggingService.saveLog(memberId, httpMethod, uri, duration);
+        loggingAsyncService.asyncSaveLog(memberId, httpMethod, uri, duration);
 
         log.info("user={} {} {} {}ms", memberId, httpMethod, uri, duration);
 
