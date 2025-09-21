@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.global.logging.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingMemberResponse;
@@ -19,6 +20,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/logs")
+@Tag(name="Logging", description = "로깅 관련 API")
 public class LoggingController {
 
     private final LoggingService loggingService;
