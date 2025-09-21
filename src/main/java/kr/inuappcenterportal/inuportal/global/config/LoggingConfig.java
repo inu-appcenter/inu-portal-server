@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.global.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.global.logging.service.LoggingService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -18,7 +20,11 @@ import java.util.Set;
 @Slf4j
 @Aspect
 @Component
-public class Logging {
+@RequiredArgsConstructor
+public class LoggingConfig {
+
+    private final LoggingService loggingService;
+
     private static final Set<String> except_uri = Set.of(
             "/api/weathers",
             "/api/notices/top",
@@ -36,14 +42,16 @@ public class Logging {
         String httpMethod = request.getMethod();
 
         if (except_uri.contains(uri)) {
-
             return joinPoint.proceed();
         }
-        String memberId = getMemberId(request);
 
+        String memberId = getMemberId(request);
         long startTime = System.currentTimeMillis();
         Object result = joinPoint.proceed();
         long duration = System.currentTimeMillis() - startTime;
+
+        loggingService.saveLog(memberId, httpMethod, uri, duration);
+
         log.info("user={} {} {} {}ms", memberId, httpMethod, uri, duration);
 
         return result;
