@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.global.logging.service.LoggingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,12 +24,14 @@ public class LoggingController {
     private final LoggingService loggingService;
 
     @Operation(summary = "특정 날짜 접속 회원 Id 수와 목록 조회", description = "[관리자 전용] 특정 날짜에 접속한 회원 Id의 수와 목록을 조회합니다.")
+    @GetMapping("/members")
     public ResponseEntity<ResponseDto<LoggingMemberResponse>> getMemberLogsByDate(
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date ) {
         return ResponseEntity.ok(ResponseDto.of(loggingService.getMemberLogsByDate(date), date + ": 회원 로그 조회 성공"));
     }
 
     @Operation(summary = "가장 많이 호출된 API 순위", description = "[관리자 전용] 특정 날짜에 호출된 API의 순위를 조회합니다.")
+    @GetMapping("/apis")
     public ResponseEntity<ResponseDto<List<LoggingApiResponse>>> getLogsByDate(
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date ) {
         return ResponseEntity.ok(ResponseDto.of(loggingService.getAPILogsByDate(date), date + ": api 로그 조회 성공"));

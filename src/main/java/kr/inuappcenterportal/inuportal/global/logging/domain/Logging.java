@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "logging")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Logging extends BaseTimeEntity {

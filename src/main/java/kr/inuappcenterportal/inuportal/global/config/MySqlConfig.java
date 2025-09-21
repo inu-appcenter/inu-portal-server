@@ -21,8 +21,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableTransactionManagement
-@EnableJpaRepositories(basePackages = {"kr.inuappcenterportal.inuportal.domain"})
+@EnableTransactionManagement@EnableJpaRepositories(basePackages = {
+        "kr.inuappcenterportal.inuportal.domain",
+        "kr.inuappcenterportal.inuportal.global.logging.repository"
+})
 @Profile("!test")
 public class MySqlConfig {
     @Bean(name = "dataSource")
@@ -38,7 +40,10 @@ public class MySqlConfig {
         Map<String, String> properties = new HashMap<String, String>();
         properties.put("hibernate.hbm2ddl.auto", "update");
 
-        return builder.dataSource(dataSource).packages("kr.inuappcenterportal.inuportal.domain").persistenceUnit("primary").properties(properties).build();
+        return builder.dataSource(dataSource).packages(
+                "kr.inuappcenterportal.inuportal.domain",
+                "kr.inuappcenterportal.inuportal.global.logging.domain"
+        ).persistenceUnit("primary").properties(properties).build();
     }
 
     @Primary
