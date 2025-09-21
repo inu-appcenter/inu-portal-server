@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs/**").hasRole("ADMIN")
                         .requestMatchers("/api/keywords/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/tokens/admin").hasRole("ADMIN")
+                        .requestMatchers("/api/logs/**").hasAnyRole("ADMIN")
                 );
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
