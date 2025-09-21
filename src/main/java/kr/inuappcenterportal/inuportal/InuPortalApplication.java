@@ -39,6 +39,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaAuditing
 @EnableScheduling
 @EnableCaching
+@EnableAsync
 @SpringBootApplication
 public class InuPortalApplication {
 

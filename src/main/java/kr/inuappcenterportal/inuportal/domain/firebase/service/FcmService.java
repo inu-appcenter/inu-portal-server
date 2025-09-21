@@ -5,11 +5,11 @@ import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
-import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
-import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
@@ -26,11 +26,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 @Slf4j
@@ -130,7 +132,6 @@ public class FcmService {
     }
 
     @Transactional
-    @Async("messageExecutor")
     public void sendKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body) {
         if (tokenAndMemberId.isEmpty()) return;
 
@@ -140,7 +141,6 @@ public class FcmService {
     }
 
     @Transactional
-    @Async("messageExecutor")
     public void sendToMembers(AdminNotificationRequest request) {
         List<FcmToken> fcmTokens;
 
