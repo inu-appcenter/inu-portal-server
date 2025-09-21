@@ -37,7 +37,7 @@ public class LoggingService {
 
     @Transactional(readOnly = true)
     public List<LoggingApiResponse> getAPILogsByDate(LocalDate date) {
-        return loggingRepository.findApILogsByCreateDate(date, PageRequest.of(0, 10));
+        return loggingRepository.findApILogsByCreateDate(date, EXCLUDED_URIS, PageRequest.of(0, 10));
     }
 
     // 매일 새벽 4시에 실행
@@ -73,4 +73,11 @@ public class LoggingService {
 
         return logsToDelete.size();
     }
+
+    private static final List<String> EXCLUDED_URIS = List.of(
+            "/v3/api-docs/swagger-config",
+            "/v3/api-docs",
+            "/api/logs/members",
+            "/api/logs/apis"
+    );
 }
