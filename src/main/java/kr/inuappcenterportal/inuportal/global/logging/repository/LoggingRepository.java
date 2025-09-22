@@ -15,7 +15,7 @@ public interface LoggingRepository extends JpaRepository<Logging, Long> {
     SELECT DISTINCT l.memberId
     FROM Logging l
     WHERE l.createDate = :createDate AND l.memberId IS NOT NULL
-    AND l.uri = "/api/members"
+    AND l.uri = '/api/members'
 """)
     List<String> findDistinctMemberIdsByCreateDate(LocalDate createDate);
 
@@ -23,7 +23,7 @@ public interface LoggingRepository extends JpaRepository<Logging, Long> {
     SELECT new kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse(l.uri, COUNT(l.uri))
     FROM Logging l
     WHERE l.createDate = :createDate
-    AND l.uri NOT IN :excludedUris
+    AND l.uri NOT IN (:excludedUris)
     GROUP BY l.uri
     ORDER BY COUNT(l.uri) DESC
 """)
