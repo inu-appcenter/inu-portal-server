@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.global.logging.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.global.logging.dto.req.ApiLoggingRequest;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse;
@@ -18,6 +19,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/logs")
+@Tag(name="Logging", description = "로깅 관련 API")
 public class LoggingController {
 
     private final LoggingService loggingService;
@@ -29,7 +31,7 @@ public class LoggingController {
         return ResponseEntity.ok(ResponseDto.of(loggingService.getMemberLogsByDate(date), date + ": 회원 로그 조회 성공"));
     }
 
-    @Operation(summary = "가장 많이 호출된 API 순위", description = "[관리자 전용] 특정 날짜에 호출된 API의 순위를 조회합니다.")
+    @Operation(summary = "가장 많이 호출된 API 순위", description = "[관리자 전용] 특정 날짜에 호출된 API의 순위를 조회합니다. (상위 20개)")
     @GetMapping("/apis")
     public ResponseEntity<ResponseDto<List<LoggingApiResponse>>> getLogsByDate(
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date ) {
