@@ -76,13 +76,6 @@ public class LoggingService {
     }
 
     @Transactional
-    public void testSummarizeDailyLogs(LocalDate oneDayAgo) {
-        saveSummaryMemberLog(oneDayAgo);
-        saveSummaryApiLog(oneDayAgo);
-        deleteLogsByDate(oneDayAgo);
-    }
-
-    @Transactional
     public void saveSummaryMemberLog(LocalDate oneDayAgo) {
         LoggingMemberResponse loggingMemberResponse = getMemberLogResponseByDate(oneDayAgo);
 
