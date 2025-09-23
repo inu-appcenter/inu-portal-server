@@ -31,5 +31,5 @@ public interface LoggingRepository extends JpaRepository<Logging, Long> {
 """)
     List<LoggingApiResponse> findApILogsByCreateDate(LocalDate createDate, List<String> excludedUris, Pageable pageable);
 
-    List<Logging> findAllByCreateDateBefore(LocalDate createDateBefore, Pageable pageable);
+    List<Logging> findAllByCreateDate(LocalDate createDate, Pageable pageable);
 }
