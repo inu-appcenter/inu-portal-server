@@ -1,10 +1,12 @@
 package kr.inuappcenterportal.inuportal.global.logging.service;
 
-import kr.inuappcenterportal.inuportal.global.logging.domain.Logging;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.global.logging.domain.*;
 import kr.inuappcenterportal.inuportal.global.logging.dto.req.ApiLoggingRequest;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingMemberResponse;
-import kr.inuappcenterportal.inuportal.global.logging.repository.LoggingRepository;
+import kr.inuappcenterportal.inuportal.global.logging.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +24,10 @@ import java.util.List;
 public class LoggingService {
 
     private final LoggingRepository loggingRepository;
-    private final int BATCH_SIZE = 1000;
+    private final SummaryMemberLogRepository summaryMemberLogRepository;
+    private final SummaryMemberLogItemRepository summaryMemberLogItemRepository;
+    private final SummaryApiLogRepository summaryApiLogRepository;
+    private final SummaryApiLogItemRepository summaryApiLogItemRepository;
 
     @Transactional
     public void saveLog(String memberId, String httpMethod, String uri, long duration) {
@@ -30,40 +36,102 @@ public class LoggingService {
 
     @Transactional(readOnly = true)
     public LoggingMemberResponse getMemberLogsByDate(LocalDate date) {
-        List<String> memberIds = loggingRepository.findDistinctMemberIdsByCreateDate(date);
-        Integer memberCount = memberIds.size();
+        if (date.isEqual(LocalDate.now())) {
+            return getMemberLogResponseByDate(date);
+        } else {
+            SummaryMemberLog summaryMemberLog = summaryMemberLogRepository.findByDate(date)
+                    .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_LOG));
+            List<String> memberIds =
+                    summaryMemberLogItemRepository.findAllBySummaryMemberLogId(summaryMemberLog.getId());
 
-        return LoggingMemberResponse.of(memberCount, memberIds);
+            return LoggingMemberResponse.of(summaryMemberLog.getMemberCount(), memberIds);
+        }
     }
 
     @Transactional(readOnly = true)
     public List<LoggingApiResponse> getAPILogsByDate(LocalDate date) {
-        return loggingRepository.findApILogsByCreateDate(date, EXCLUDED_URIS, PageRequest.of(0, 20));
+        if (date.isEqual(LocalDate.now())) {
+            return getAPILogResponseByDate(date);
+        } else {
+            Long summaryApiLogId = summaryApiLogRepository.findIdByDate(date)
+                    .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_LOG));
+            List<SummaryApiLogItem> summaryApiLogItems =
+                    summaryApiLogItemRepository.findAllBySummaryApiLogId(summaryApiLogId);
+
+            return summaryApiLogItems.stream().map(summaryApiLogItem ->
+                    LoggingApiResponse.of(summaryApiLogItem.getUri(), summaryApiLogItem.getApiCount())
+            ).collect(Collectors.toList());
+        }
     }
 
     // 매일 새벽 4시에 실행
     @Scheduled(cron = "0 0 4 * * *")
     @Transactional
-    public void deleteOldLogs() {
-        LocalDate oneWeekAgo = LocalDate.now().minusWeeks(1);
-        log.info("일주일 전 로그 삭제 시작. 기준 날짜: {}", oneWeekAgo);
+    public void summarizeDailyLogs() {
+        LocalDate oneDayAgo = LocalDate.now().minusDays(1);
 
+        saveSummaryMemberLog(oneDayAgo);
+        saveSummaryApiLog(oneDayAgo);
+        deleteLogsByDate(oneDayAgo);
+    }
+
+    @Transactional
+    public void testSummarizeDailyLogs(LocalDate oneDayAgo) {
+        saveSummaryMemberLog(oneDayAgo);
+        saveSummaryApiLog(oneDayAgo);
+        deleteLogsByDate(oneDayAgo);
+    }
+
+    @Transactional
+    public void saveSummaryMemberLog(LocalDate oneDayAgo) {
+        LoggingMemberResponse loggingMemberResponse = getMemberLogResponseByDate(oneDayAgo);
+
+        SummaryMemberLog summaryMemberLog = summaryMemberLogRepository.save(
+                SummaryMemberLog.of(loggingMemberResponse.memberCount(), oneDayAgo));
+
+        List<SummaryMemberLogItem> summaryMemberLogItems = loggingMemberResponse.memberIds().stream()
+                .map(memberId -> SummaryMemberLogItem.of(summaryMemberLog.getId(), memberId))
+                .collect(Collectors.toList());
+        summaryMemberLogItemRepository.saveAll(summaryMemberLogItems);
+
+        log.info("회원 로그 경량화 완료. 기준 날짜: {}", oneDayAgo);
+    }
+
+    @Transactional
+    public void saveSummaryApiLog(LocalDate oneDayAgo) {
+        List<LoggingApiResponse> loggingApiResponses = getAPILogResponseByDate(oneDayAgo);
+        if (loggingApiResponses == null) return;
+
+        SummaryApiLog summaryApiLog = summaryApiLogRepository.save(SummaryApiLog.from(oneDayAgo));
+
+        List<SummaryApiLogItem> summaryApiLogItems = loggingApiResponses.stream()
+                .map(apiLog -> SummaryApiLogItem.of(summaryApiLog.getId(), apiLog.apiCount(), apiLog.uri()))
+                .collect(Collectors.toList());
+        summaryApiLogItemRepository.saveAll(summaryApiLogItems);
+
+        log.info("API 로그 경량화 완료. 기준 날짜: {}", oneDayAgo);
+    }
+
+    @Transactional
+    public void deleteLogsByDate(LocalDate oneDayAgo) {
         int deletedCount = 0;
         int batchDeleted;
 
         do {
-            batchDeleted = deleteNextBatchOfOldLogs(oneWeekAgo);
+            batchDeleted = deleteNextBatchOfOldLogs(oneDayAgo);
             deletedCount += batchDeleted;
         } while (batchDeleted > 0);
 
-        log.info("총 {}건의 오래된 로그 삭제 완료.", deletedCount);
+        log.info("총 {}건의 로그 삭제 완료.", deletedCount);
     }
 
     // 트랜잭션 분리
     @Transactional
     public int deleteNextBatchOfOldLogs(LocalDate cutoffDate) {
+        int BATCH_SIZE = 1000;
+
         List<Logging> logsToDelete =
-                loggingRepository.findAllByCreateDateBefore(cutoffDate, PageRequest.of(0, BATCH_SIZE));
+                loggingRepository.findAllByCreateDate(cutoffDate, PageRequest.of(0, BATCH_SIZE));
 
         if (logsToDelete.isEmpty()) {
             return 0;
@@ -80,6 +148,17 @@ public class LoggingService {
         return loggingRepository.save(
                 Logging.createLog("-1", "-1", apiLoggingRequest.uri(), -1)
         ).getUri();
+    }
+
+    private LoggingMemberResponse getMemberLogResponseByDate(LocalDate date) {
+        List<String> memberIds = loggingRepository.findDistinctMemberIdsByCreateDate(date);
+        Integer memberCount = memberIds.size();
+
+        return LoggingMemberResponse.of(memberCount, memberIds);
+    }
+
+    private List<LoggingApiResponse> getAPILogResponseByDate(LocalDate date) {
+        return loggingRepository.findApILogsByCreateDate(date, EXCLUDED_URIS, PageRequest.of(0, 20));
     }
   
     private static final List<String> EXCLUDED_URIS = List.of(

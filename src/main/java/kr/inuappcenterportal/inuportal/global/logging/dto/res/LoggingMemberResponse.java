@@ -11,10 +11,10 @@ public record LoggingMemberResponse(
         Integer memberCount,
 
         @Schema(description = "회원 Id 목록")
-        List<String> memberId
+        List<String> memberIds
 
 ) {
-    public static LoggingMemberResponse of(Integer memberCount, List<String> memberId) {
-        return new LoggingMemberResponse(memberCount, memberId);
+    public static LoggingMemberResponse of(Integer memberCount, List<String> memberIds) {
+        return new LoggingMemberResponse(memberCount, memberIds);
     }
 }

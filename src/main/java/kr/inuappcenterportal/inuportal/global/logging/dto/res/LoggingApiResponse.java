@@ -12,4 +12,7 @@ public record LoggingApiResponse(
         Long apiCount
 
 ) {
+    public static LoggingApiResponse of(String uri, Long apiCount) {
+        return new LoggingApiResponse(uri, apiCount);
+    }
 }
