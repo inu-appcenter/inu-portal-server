@@ -17,7 +17,7 @@ import kr.inuappcenterportal.inuportal.domain.scrap.repository.ScrapRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,7 +35,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;

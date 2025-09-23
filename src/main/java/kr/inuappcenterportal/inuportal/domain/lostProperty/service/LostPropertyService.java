@@ -6,7 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyRegis
 import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyUpdate;
 import kr.inuappcenterportal.inuportal.domain.lostProperty.implement.LostPropertyProcessor;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

@@ -11,7 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.petition.respoitory.PetitionReposi
 import kr.inuappcenterportal.inuportal.domain.petition.service.PetitionService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

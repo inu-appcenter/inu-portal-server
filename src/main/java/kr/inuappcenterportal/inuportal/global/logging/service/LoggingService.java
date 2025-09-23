@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.global.logging.service;
 
 import kr.inuappcenterportal.inuportal.global.logging.domain.Logging;
+import kr.inuappcenterportal.inuportal.global.logging.dto.req.ApiLoggingRequest;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingMemberResponse;
 import kr.inuappcenterportal.inuportal.global.logging.repository.LoggingRepository;
@@ -74,6 +75,13 @@ public class LoggingService {
         return logsToDelete.size();
     }
 
+    @Transactional
+    public String saveApiLogs(ApiLoggingRequest apiLoggingRequest) {
+        return loggingRepository.save(
+                Logging.createLog("-1", "-1", apiLoggingRequest.uri(), -1)
+        ).getUri();
+    }
+  
     private static final List<String> EXCLUDED_URIS = List.of(
             "/v3/api-docs/swagger-config",
             "/v3/api-docs",

@@ -1,6 +1,5 @@
 package kr.inuappcenterportal.inuportal.club;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.CafeteriaService;
 import kr.inuappcenterportal.inuportal.domain.club.dto.ClubRecruitingRequestDto;
@@ -14,9 +13,8 @@ import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
-import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +26,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockPart;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;

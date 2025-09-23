@@ -1,5 +1,6 @@
-package kr.inuappcenterportal.inuportal.global.service;
+package kr.inuappcenterportal.inuportal.domain.image.service;
 
+import kr.inuappcenterportal.inuportal.domain.image.repository.ImageRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.stream.Stream;
 @Service
 public class ImageService {
 
+    private final ImageRepository imageRepository;
 
     public void saveImageWithThumbnail(Long id, List<MultipartFile> images, String path) throws IOException {
         saveImage(id,images,path);
@@ -70,7 +72,7 @@ public class ImageService {
             Path filePath = file.toPath();
             return Files.readAllBytes(filePath);
         }
-        catch (Exception e){
+        catch (Exception e) {
             throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
     }
