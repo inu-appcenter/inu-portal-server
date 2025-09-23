@@ -44,9 +44,4 @@ public class LoggingController {
     public ResponseEntity<ResponseDto<String>> saveApiLogs(@Valid @RequestBody ApiLoggingRequest apiLoggingRequest) {
         return ResponseEntity.ok(ResponseDto.of(loggingService.saveApiLogs(apiLoggingRequest), "Api 로그 저장 성공"));
     }
-
-    @PutMapping("/summarize")
-    public void scheduledSummarizeLogs(@RequestParam LocalDate oneDayAgo) {
-        loggingService.testSummarizeDailyLogs(oneDayAgo);
-    }
 }
