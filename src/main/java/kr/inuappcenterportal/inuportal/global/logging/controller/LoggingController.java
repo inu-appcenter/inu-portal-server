@@ -1,17 +1,16 @@
 package kr.inuappcenterportal.inuportal.global.logging.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
+import kr.inuappcenterportal.inuportal.global.logging.dto.req.ApiLoggingRequest;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingMemberResponse;
 import kr.inuappcenterportal.inuportal.global.logging.service.LoggingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,5 +34,12 @@ public class LoggingController {
     public ResponseEntity<ResponseDto<List<LoggingApiResponse>>> getLogsByDate(
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date ) {
         return ResponseEntity.ok(ResponseDto.of(loggingService.getAPILogsByDate(date), date + ": api 로그 조회 성공"));
+    }
+
+    @Operation(summary = "API 로그 저장", description = "직접 입력한 API 로그를 저장합니다. <br><br>" +
+            "Api uri를 보내주세요. ex) /api/buses, /api/maps")
+    @PostMapping("/apis")
+    public ResponseEntity<ResponseDto<String>> saveApiLogs(@Valid @RequestBody ApiLoggingRequest apiLoggingRequest) {
+        return ResponseEntity.ok(ResponseDto.of(loggingService.saveApiLogs(apiLoggingRequest), "Api 로그 저장 성공"));
     }
 }

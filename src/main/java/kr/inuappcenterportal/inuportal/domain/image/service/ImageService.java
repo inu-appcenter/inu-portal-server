@@ -1,7 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.image.service;
 
-import kr.inuappcenterportal.inuportal.domain.image.domain.Image;
-import kr.inuappcenterportal.inuportal.domain.image.dto.res.ImageResponse;
 import kr.inuappcenterportal.inuportal.domain.image.repository.ImageRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -9,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
