@@ -1,11 +1,15 @@
-package kr.inuappcenterportal.inuportal.global.service;
+package kr.inuappcenterportal.inuportal.domain.image.service;
 
+import kr.inuappcenterportal.inuportal.domain.image.domain.Image;
+import kr.inuappcenterportal.inuportal.domain.image.dto.res.ImageResponse;
+import kr.inuappcenterportal.inuportal.domain.image.repository.ImageRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -24,6 +28,7 @@ import java.util.stream.Stream;
 @Service
 public class ImageService {
 
+    private final ImageRepository imageRepository;
 
     public void saveImageWithThumbnail(Long id, List<MultipartFile> images, String path) throws IOException {
         saveImage(id,images,path);
@@ -70,7 +75,7 @@ public class ImageService {
             Path filePath = file.toPath();
             return Files.readAllBytes(filePath);
         }
-        catch (Exception e){
+        catch (Exception e) {
             throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
     }

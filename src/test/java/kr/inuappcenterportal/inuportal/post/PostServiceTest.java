@@ -12,7 +12,7 @@ import kr.inuappcenterportal.inuportal.domain.reply.service.ReplyService;
 import kr.inuappcenterportal.inuportal.domain.report.repository.ReportRepository;
 import kr.inuappcenterportal.inuportal.domain.scrap.repository.ScrapRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

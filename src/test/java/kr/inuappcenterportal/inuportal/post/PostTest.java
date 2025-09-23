@@ -1,9 +1,7 @@
 package kr.inuappcenterportal.inuportal.post;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.CafeteriaService;
 import kr.inuappcenterportal.inuportal.domain.category.model.Category;
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
@@ -13,8 +11,6 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
-import kr.inuappcenterportal.inuportal.domain.petition.respoitory.PetitionRepository;
-import kr.inuappcenterportal.inuportal.domain.petition.service.PetitionService;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostDto;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.domain.post.repository.PostRepository;
@@ -27,7 +23,7 @@ import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.domain.scrap.model.Scrap;
 import kr.inuappcenterportal.inuportal.domain.scrap.repository.ScrapRepository;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,15 +36,12 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockPart;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
