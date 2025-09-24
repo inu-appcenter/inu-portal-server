@@ -30,7 +30,8 @@ public class LoggingConfig {
             "/api/notices/top",
             "/api/posts/main",
             "/api/members/refresh",
-            "/api/logs/*"
+            "/api/logs/members",
+            "/api/logs/apis"
     );
     @Pointcut("within(@org.springframework.web.bind.annotation.RestController *)")
     public void restControllerMethods() {}
