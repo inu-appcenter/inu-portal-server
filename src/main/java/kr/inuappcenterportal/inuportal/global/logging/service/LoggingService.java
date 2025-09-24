@@ -59,7 +59,7 @@ public class LoggingService {
                     summaryApiLogItemRepository.findAllBySummaryApiLogId(summaryApiLogId);
 
             return summaryApiLogItems.stream().map(summaryApiLogItem ->
-                    LoggingApiResponse.of(summaryApiLogItem.getUri(), summaryApiLogItem.getApiCount())
+                    LoggingApiResponse.of(summaryApiLogItem.getMethod(), summaryApiLogItem.getUri(), summaryApiLogItem.getApiCount())
             ).collect(Collectors.toList());
         }
     }
@@ -98,7 +98,7 @@ public class LoggingService {
         SummaryApiLog summaryApiLog = summaryApiLogRepository.save(SummaryApiLog.from(oneDayAgo));
 
         List<SummaryApiLogItem> summaryApiLogItems = loggingApiResponses.stream()
-                .map(apiLog -> SummaryApiLogItem.of(summaryApiLog.getId(), apiLog.apiCount(), apiLog.uri()))
+                .map(apiLog -> SummaryApiLogItem.of(summaryApiLog.getId(), apiLog.apiCount(), apiLog.method(), apiLog.uri()))
                 .collect(Collectors.toList());
         summaryApiLogItemRepository.saveAll(summaryApiLogItems);
 

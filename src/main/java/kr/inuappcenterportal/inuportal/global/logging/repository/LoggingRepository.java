@@ -17,17 +17,17 @@ public interface LoggingRepository extends JpaRepository<Logging, Long> {
     WHERE l.createDate = :createDate
     AND l.memberId IS NOT NULL
     AND l.memberId <> '-1'
-    AND l.uri = '/api/members'
+    AND l.uri = '/api/members/no-dup'
 """)
     List<String> findDistinctMemberIdsByCreateDate(LocalDate createDate);
 
     @Query("""
-    SELECT new kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse(l.uri, COUNT(l.uri))
+    SELECT new kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse(l.httpMethod, l.uri, COUNT(l.uri))
     FROM Logging l
     WHERE l.createDate = :createDate
     AND l.uri NOT IN (:excludedUris)
-    GROUP BY l.uri
-    ORDER BY COUNT(l.uri) DESC
+    GROUP BY l.httpMethod, l.uri
+    ORDER BY COUNT(1) DESC
 """)
     List<LoggingApiResponse> findApILogsByCreateDate(LocalDate createDate, List<String> excludedUris, Pageable pageable);
 

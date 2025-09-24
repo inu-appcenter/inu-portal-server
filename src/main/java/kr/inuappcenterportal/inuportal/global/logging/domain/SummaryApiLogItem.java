@@ -22,15 +22,19 @@ public class SummaryApiLogItem {
     private Long apiCount;
 
     @Column(nullable = false, length = 50)
+    private String method;
+
+    @Column(nullable = false, length = 50)
     private String uri;
 
-    private SummaryApiLogItem(Long summaryApiLogId, Long apiCount, String uri) {
+    private SummaryApiLogItem(Long summaryApiLogId, Long apiCount, String method, String uri) {
         this.summaryApiLogId = summaryApiLogId;
         this.apiCount = apiCount;
+        this.method = method;
         this.uri = uri;
     }
 
-    public static SummaryApiLogItem of(Long summaryApiLogId, Long apiCount, String uri) {
-        return new SummaryApiLogItem(summaryApiLogId, apiCount, uri);
+    public static SummaryApiLogItem of(Long summaryApiLogId, Long apiCount, String method, String uri) {
+        return new SummaryApiLogItem(summaryApiLogId, apiCount, method, uri);
     }
 }
