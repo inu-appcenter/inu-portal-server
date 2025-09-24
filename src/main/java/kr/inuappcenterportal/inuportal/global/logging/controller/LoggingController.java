@@ -1,8 +1,10 @@
 package kr.inuappcenterportal.inuportal.global.logging.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.global.logging.dto.req.ApiLoggingRequest;
 import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingApiResponse;
@@ -11,6 +13,7 @@ import kr.inuappcenterportal.inuportal.global.logging.service.LoggingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -41,7 +44,9 @@ public class LoggingController {
     @Operation(summary = "API 로그 저장", description = "직접 입력한 API 로그를 저장합니다. <br><br>" +
             "Api uri를 보내주세요. ex) /api/buses, /api/maps")
     @PostMapping("/apis")
-    public ResponseEntity<ResponseDto<String>> saveApiLogs(@Valid @RequestBody ApiLoggingRequest apiLoggingRequest) {
-        return ResponseEntity.ok(ResponseDto.of(loggingService.saveApiLogs(apiLoggingRequest), "Api 로그 저장 성공"));
+    public ResponseEntity<ResponseDto<String>> saveApiLogs(@Valid @RequestBody ApiLoggingRequest apiLoggingRequest,
+                                                           @AuthenticationPrincipal Member member,
+                                                           HttpServletRequest request) {
+        return ResponseEntity.ok(ResponseDto.of(loggingService.saveApiLogs(apiLoggingRequest, member, request), "Api 로그 저장 성공"));
     }
 }

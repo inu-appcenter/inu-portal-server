@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.global.logging.service;
 
+import jakarta.servlet.http.HttpServletRequest;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.logging.domain.*;
@@ -137,9 +139,12 @@ public class LoggingService {
     }
 
     @Transactional
-    public String saveApiLogs(ApiLoggingRequest apiLoggingRequest) {
+    public String saveApiLogs(ApiLoggingRequest apiLoggingRequest, Member member, HttpServletRequest request) {
+        String memberId = getClientId(member, request);
+        String httpMethod = "CUSTOM";
+
         return loggingRepository.save(
-                Logging.createLog("-1", "-1", apiLoggingRequest.uri(), -1)
+                Logging.createLog(memberId, httpMethod, apiLoggingRequest.uri(), -1)
         ).getUri();
     }
 
@@ -153,7 +158,15 @@ public class LoggingService {
     private List<LoggingApiResponse> getAPILogResponseByDate(LocalDate date) {
         return loggingRepository.findApILogsByCreateDate(date, EXCLUDED_URIS, PageRequest.of(0, 20));
     }
-  
+
+    private String getClientId(Member member, HttpServletRequest request) {
+        if (member != null) {
+            return member.getId().toString();
+        } else {
+            return request.getHeader("X-Forwarded-For");
+        }
+    }
+
     private static final List<String> EXCLUDED_URIS = List.of(
             "/v3/api-docs/swagger-config",
             "/v3/api-docs",
