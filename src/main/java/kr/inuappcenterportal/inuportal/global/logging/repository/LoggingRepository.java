@@ -16,7 +16,6 @@ public interface LoggingRepository extends JpaRepository<Logging, Long> {
     FROM Logging l
     WHERE l.createDate = :createDate
     AND l.memberId IS NOT NULL
-    AND l.memberId <> '-1'
     AND l.uri = '/api/members/no-dup'
 """)
     List<String> findDistinctMemberIdsByCreateDate(LocalDate createDate);
