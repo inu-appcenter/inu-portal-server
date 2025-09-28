@@ -66,8 +66,8 @@ public class LoggingService {
         }
     }
 
-    // 매일 새벽 4시에 실행
-    @Scheduled(cron = "0 0 4 * * *")
+    // 매일 00시에 실행
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void summarizeDailyLogs() {
         LocalDate oneDayAgo = LocalDate.now().minusDays(1);
