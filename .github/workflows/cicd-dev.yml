@@ -23,7 +23,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Create application.properties
-        run: echo "${{ secrets.APPLICATION_PROPERTIES }}" > ./src/main/resources/application.properties
+        run: echo "${{ secrets.APPLICATION_PROPERTIES_DEV }}" > ./src/main/resources/application.properties
 
       - name: Create firebase_key.json
         id: create-json
