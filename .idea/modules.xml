@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/inu-portal.main.iml" filepath="$PROJECT_DIR$/.idea/modules/inu-portal.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/inu-portal.test.iml" filepath="$PROJECT_DIR$/.idea/modules/inu-portal.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/inu-portal-server.iml" filepath="$PROJECT_DIR$/.idea/inu-portal-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/-932756510/inu-portal.main.iml" filepath="$PROJECT_DIR$/.idea/modules/-932756510/inu-portal.main.iml" />
     </modules>
   </component>
 </project>

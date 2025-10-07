@@ -66,11 +66,18 @@ jobs:
           key: ${{ secrets.SERVER_KEY }}
           port : ${{ secrets.SERVER_PORT }}
           script: |
+            set -e
+            
             docker stop ${{ secrets.APPLICATION_NAME }}-dev || true
             docker rm ${{ secrets.APPLICATION_NAME }}-dev || true
             docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev || true
+            
             docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+            
+            docker network create inu-portal-dev || true
+            
             docker run -d \
+              --network inu-portal-dev \
               -p 8084:8080 \
               -e TZ=Asia/Seoul \
               -v ${{ secrets.MOUNT_PATH }}:/intip \
