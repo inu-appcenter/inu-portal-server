@@ -78,7 +78,7 @@ jobs:
             
             docker run -d \
               --network inu-portal-dev \
-              -p 8084:8080 \
+              -p 8104:8080 \
               -e TZ=Asia/Seoul \
               -v ${{ secrets.MOUNT_PATH }}:/intip \
               --name ${{ secrets.APPLICATION_NAME }}-dev ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
