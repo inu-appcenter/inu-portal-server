@@ -100,8 +100,6 @@ https://inu-portal-web.pages.dev/
 
 # 📌 기술적 고민
 
----
-
 - 교내 데이터베이스(Oracle)과 서버 데이터베이스(MySql) 동시 연결을 위한 Config 설정
 - 지속적으로 버전이 업데이트 되는 Chrome, ChromeDriver 설치 자동화에 대한 docker 파일 설정 - https://velog.io/@hen715/docker-도커-컨테이너에서의-동적-웹-크롤링을-위한-도커파일
 - 좋아요 와 같은 정확한 수치 계산이 필요한 데이터베이스 비관적 lock 설정에 대한 읽기 lock, 쓰기 lock 모드에 대한 성능 차이 - https://velog.io/@hen715/낙관적-락의-동시성과-비관적-락의-성능-테스트
