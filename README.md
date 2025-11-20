@@ -19,14 +19,14 @@ https://inu-portal-web.pages.dev/
 
 ![Untitled](https://github.com/user-attachments/assets/4f6865b2-eb38-4cb5-92fd-0894205c69dd)
 
-# 🗺️아키텍처
+# 🗺️ 아키텍처
 
 ---
 
-![Untitled 1](https://github.com/user-attachments/assets/1406099f-98c8-4409-bf57-4c6d658e6721)
+<img width="1361" height="930" alt="image" src="https://github.com/user-attachments/assets/73c719d7-5ed9-4e3d-8374-f7ae89e74bbc" />
 
 
-# 💡기능
+# 💡 기능
 
 ---
 
@@ -50,6 +50,7 @@ https://inu-portal-web.pages.dev/
 - 게시글 좋아요/스크랩
 - 카테고리별 게시글 리스트 제공
 - 익명 게시글
+- 게시글 일일 정렬 랜덤화
 
 ### 댓글
 
@@ -65,6 +66,11 @@ https://inu-portal-web.pages.dev/
 ### 인천대학교 공지사항
 
 - 학교 공지사항 크롤링을 통해 제공
+- 각 학과 공지사항 크롤링을 통해 제공
+
+### 알림
+- 키워드 기반 자동 알림 전송 기능
+- 관리자 지정 알림 전송 기능
 
 ### 인천대학교 식단
 
@@ -87,9 +93,12 @@ https://inu-portal-web.pages.dev/
 
 - 각 학과의 홈페이지, 학교 관련 사이트로 이동
 
-# 📌기술적 고민
+### 통계
 
----
+- 일일 로그인/비로그인 유저 수 통계
+- 일일 호출 API 수 통계
+
+# 📌 기술적 고민
 
 - 교내 데이터베이스(Oracle)과 서버 데이터베이스(MySql) 동시 연결을 위한 Config 설정
 - 지속적으로 버전이 업데이트 되는 Chrome, ChromeDriver 설치 자동화에 대한 docker 파일 설정 - https://velog.io/@hen715/docker-도커-컨테이너에서의-동적-웹-크롤링을-위한-도커파일

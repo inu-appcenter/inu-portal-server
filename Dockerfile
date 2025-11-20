@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-jammy
 
 # 필요한 패키지 설치 및 로케일 설정
 RUN apt-get update && \
