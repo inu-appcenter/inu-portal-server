@@ -1,16 +1,21 @@
-name: Java CI with Gradle
+name: [Dev] CI & CD
 
 on:
-  push:
-    branches: [ "dev" ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "배포 이유 작성 (선택)"
+        required: false
+        default: "manual deploy"
 
 permissions:
   contents: read
 
 jobs:
   build:
-    if: "!contains(github.event.head_commit.message, '테스트코드 작성') && !contains(github.event.head_commit.message, '임시 작성')"
-
+    if: github.event_name == 'workflow_dispatch' ||
+      (!contains(github.event.head_commit.message, '테스트코드 작성') &&
+      !contains(github.event.head_commit.message, '임시 작성'))
 
     runs-on: ubuntu-latest
 
