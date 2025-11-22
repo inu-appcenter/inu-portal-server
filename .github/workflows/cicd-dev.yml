@@ -1,4 +1,4 @@
-name: [Dev] CI & CD
+name: "[Dev] CI & CD"
 
 on:
   workflow_dispatch:
