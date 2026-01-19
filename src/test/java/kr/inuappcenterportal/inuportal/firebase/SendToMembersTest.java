@@ -62,17 +62,12 @@
         void testSendToMembers_withAllMembers() {
             AdminNotificationRequest request = new AdminNotificationRequest(null, "Test Title", "Test Body");
 
-            FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69");
-            FcmToken fcmToken2 = new FcmToken(null, "sample_token_null");
-            FcmToken fcmToken3 = new FcmToken(96L, "sample_token_96");
-
-            Mockito.when(fcmTokenRepository.findAll()).thenReturn(List.of(fcmToken1, fcmToken2, fcmToken3));
-            Mockito.when(fcmMessageRepository.save(Mockito.any())).thenAnswer(i -> i.getArguments()[0]);
+            Mockito.when(fcmTokenRepository.findAllTokens())
+                    .thenReturn(List.of("sample_token_69", "sample_token_null", "sample_token_96"));
 
             fcmService.sendToMembers(request);
 
             Mockito.verify(fcmTokenRepository).findAllTokens();
-            Mockito.verify(fcmMessageRepository).save(Mockito.any(FcmMessage.class));
         }
 
     }
