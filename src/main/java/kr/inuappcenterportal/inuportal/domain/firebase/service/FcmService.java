@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
@@ -11,12 +12,17 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -135,24 +141,54 @@ public class FcmService {
     @Async("messageExecutor")
     public void sendToMembers(AdminNotificationRequest request) {
         List<String> tokens;
-        if (request.memberIds() == null) {
+        if (request.memberIds() == null || request.memberIds().isEmpty()) {
             tokens = fcmTokenRepository.findAllUserTokens();
         } else {
             tokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
         }
         if (tokens.isEmpty()) return;
 
-        MulticastMessage message = createMulticastMessage(tokens , request.title(), request.content());
+        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
+                .title(request.title())
+                .body(request.content())
+                .isAdminMessage(true)
+                .build());
 
-        try {
-            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+        int batchSize = 500;
+        int successCount = 0;
+        Set<String> failedTokens = new HashSet<>();
 
-            handleFailedTokens(response, tokens);
+        for (int i = 0; i < tokens.size(); i += batchSize) {
+            List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
+            MulticastMessage message = createMulticastMessage(batchTokens , request.title(), request.content());
 
-            fcmMessageRepository.save(FcmMessage.builder().title(request.title()).body(request.content()).build());
-        } catch (FirebaseMessagingException e) {
-            log.info("회원 대상 알림 전송 실패 : {}", e.getMessage());
+            try {
+                BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+
+                successCount += response.getSuccessCount();
+
+                collectFailedTokens(response, batchTokens, failedTokens);
+            } catch (FirebaseMessagingException e) {
+                failedTokens.addAll(batchTokens);
+                log.info("회원 대상 알림 전송 실패 : {}", e.getMessage());
+            }
         }
+
+        if (!failedTokens.isEmpty()) {
+            fcmTokenRepository.deleteByTokenIn(new ArrayList<>(failedTokens));
+        }
+
+        fcmMessage.incrementSendCount(successCount);
+
+        log.info("회원 대상 알림 전송 완료: target={}, success={}, failure={}",
+                tokens.size(), successCount, tokens.size() - successCount);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminNotificationResponse> countAdminFcmMessagesSuccess(int page) {
+        Pageable pageable = PageRequest.of(page - 1,8, Sort.by(Sort.Direction.DESC,"createDate"));
+        Page<FcmMessage> fcmMessages = fcmMessageRepository.findAllByAdminMessageTrue(pageable);
+        return fcmMessages.stream().map(AdminNotificationResponse::of).toList();
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body) {
@@ -177,6 +213,15 @@ public class FcmService {
 
         if(!failToken.isEmpty()){
             fcmTokenRepository.deleteByTokenIn(failToken);
+        }
+    }
+
+    private void collectFailedTokens(BatchResponse response, List<String> targetTokens, Set<String> failedOut) {
+        List<SendResponse> responses = response.getResponses();
+        for (int i = 0; i < responses.size(); i++) {
+            if (!responses.get(i).isSuccessful()) {
+                failedOut.add(targetTokens.get(i));
+            }
         }
     }
 }
