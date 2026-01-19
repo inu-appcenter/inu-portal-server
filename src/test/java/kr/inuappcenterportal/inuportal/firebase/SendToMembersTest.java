@@ -18,7 +18,6 @@
     import org.springframework.boot.test.mock.mockito.MockBean;
 
     import java.util.List;
-    import java.util.concurrent.CompletableFuture;
 
     @SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class})
     public class SendToMembersTest {
@@ -69,12 +68,10 @@
 
             Mockito.when(fcmTokenRepository.findAll()).thenReturn(List.of(fcmToken1, fcmToken2, fcmToken3));
             Mockito.when(fcmMessageRepository.save(Mockito.any())).thenAnswer(i -> i.getArguments()[0]);
-            Mockito.when(fcmAsyncExecutor.sendMessage(Mockito.anyList(), Mockito.anyString(), Mockito.anyString()))
-                    .thenReturn(CompletableFuture.completedFuture(null));
 
             fcmService.sendToMembers(request);
 
-            Mockito.verify(fcmTokenRepository).findAll();
+            Mockito.verify(fcmTokenRepository).findAllTokens();
             Mockito.verify(fcmMessageRepository).save(Mockito.any(FcmMessage.class));
         }
 
