@@ -7,4 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface FcmMessageRepository extends JpaRepository<FcmMessage,Long> {
+
+    Page<FcmMessage> findAllByAdminMessageTrue(Pageable pageable);
 }
