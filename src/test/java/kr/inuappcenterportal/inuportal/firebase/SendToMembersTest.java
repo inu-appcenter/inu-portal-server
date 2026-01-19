@@ -65,9 +65,13 @@
             Mockito.when(fcmTokenRepository.findAllTokens())
                     .thenReturn(List.of("sample_token_69", "sample_token_null", "sample_token_96"));
 
+            Mockito.when(fcmMessageRepository.save(Mockito.any()))
+                    .thenAnswer(i -> i.getArguments()[0]);
+
             fcmService.sendToMembers(request);
 
             Mockito.verify(fcmTokenRepository).findAllTokens();
+            Mockito.verify(fcmMessageRepository).save(Mockito.any(FcmMessage.class));
         }
 
     }
