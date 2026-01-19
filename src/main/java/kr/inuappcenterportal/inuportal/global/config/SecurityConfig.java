@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -29,8 +30,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
 
-        httpSecurity.
-                csrf(AbstractHttpConfigurer::disable)
+        httpSecurity
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity
                 .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/actuator/**").permitAll()
@@ -43,9 +45,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/replies/**","/api/reservations/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/search","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
                         .requestMatchers("/api/folders/**","/api/folders","/api/search/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/categories","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs","/api/clubs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/categories/**","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs","/api/clubs/**").permitAll()
                         .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs/**").hasRole("ADMIN")
+                        .requestMatchers("/api/keywords/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/tokens/admin").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/logs/**").hasAnyRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/logs/**").permitAll()
                 );
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)

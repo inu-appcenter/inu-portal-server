@@ -5,9 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.club.dto.ClubRecruitingResponseDto
 import kr.inuappcenterportal.inuportal.domain.club.model.Club;
 import kr.inuappcenterportal.inuportal.domain.club.repository.ClubRepository;
 import kr.inuappcenterportal.inuportal.domain.club.service.ClubService;
-import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

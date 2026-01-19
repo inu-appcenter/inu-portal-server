@@ -8,7 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.councilNotice.repostiory.CouncilRe
 import kr.inuappcenterportal.inuportal.domain.councilNotice.service.CouncilNoticeService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

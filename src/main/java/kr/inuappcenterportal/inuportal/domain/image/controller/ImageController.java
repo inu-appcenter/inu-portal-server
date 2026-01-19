@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
@@ -24,10 +25,12 @@ import java.util.List;
 @Tag(name="Images", description = "횃불이 이미지 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/images")
 public class ImageController {
+
+    private final ImageService imageService;
     private final RedisService redisService;
+
     @Operation(summary = "횃불이 이미지 등록")
     @ApiResponses({
             @ApiResponse(responseCode = "201",description = "이미지 등록 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
@@ -62,6 +65,4 @@ public class ImageController {
         redisService.deleteFireImage(id);
         return ResponseEntity.ok(ResponseDto.of(1L,"횃불이 이미지 삭제 성공"));
     }
-
-
 }

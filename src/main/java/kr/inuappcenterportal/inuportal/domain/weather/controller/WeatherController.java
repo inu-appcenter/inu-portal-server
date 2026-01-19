@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name="Weathers", description = "날씨 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/weathers")
 public class WeatherController {
     private final WeatherService weatherService;

@@ -1,13 +1,19 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
-import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -24,16 +30,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class FcmService {
+
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmMessageRepository fcmMessageRepository;
+    private final MemberFcmMessageRepository memberFcmMessageRepository;
     private final FcmAsyncExecutor fcmAsyncExecutor;
     private final Set<String> failedTokensSet = ConcurrentHashMap.newKeySet();
 
@@ -45,12 +55,13 @@ public class FcmService {
 
     @Transactional
     public void saveToken(String token, Long memberId){
-        if(fcmTokenRepository.existsByToken(token)){
-            FcmToken fcmToken =fcmTokenRepository.findByToken(token).orElseThrow(()->new MyException(MyErrorCode.TOKEN_NOT_FOUND));
-            fcmToken.updateTimeNow();
-        }
-        else {
-            FcmToken fcmToken = FcmToken.builder().token(token).memberId(memberId).build();
+        FcmToken fcmToken = fcmTokenRepository.findByToken(token)
+                .orElse(FcmToken.builder().token(token).memberId(memberId).build());
+
+        fcmToken.updateMemberId(memberId);
+        fcmToken.updateTimeNow();
+
+        if (fcmToken.getId() == null){
             fcmTokenRepository.save(fcmToken);
         }
     }
@@ -123,30 +134,23 @@ public class FcmService {
     }
 
     @Transactional
-    @Async("messageExecutor")
-    public void sendKeywordNotice(List<String> tokens, String title, String body) {
-        if (tokens.isEmpty()) return;
+    public void sendKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body) {
+        if (tokenAndMemberId.isEmpty()) return;
 
-        MulticastMessage message = createMulticastMessage(tokens, title, body);
+        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
 
-        try {
-            FirebaseMessaging.getInstance().sendEachForMulticast(message);
-            log.info("키워드 알림 전송 성공");
-        } catch (FirebaseMessagingException e) {
-            log.info("키워드 알림 전송 실패 : {}", e.getMessage());
-        }
+        sendFcmMessageToMembers(tokenAndMemberId, tokens, title, body, FcmMessageType.DEPARTMENT);
     }
 
     @Transactional
-    @Async("messageExecutor")
     public void sendToMembers(AdminNotificationRequest request) {
         List<String> tokens;
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
             tokens = fcmTokenRepository.findAllUserTokens();
         } else {
-            tokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
+            fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
         }
-        if (tokens.isEmpty()) return;
+        if (fcmTokens.isEmpty()) return;
 
         FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
                 .title(request.title())
@@ -191,6 +195,21 @@ public class FcmService {
         return fcmMessages.stream().map(AdminNotificationResponse::of).toList();
     }
 
+    @Transactional(readOnly = true)
+    public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
+        Pageable pageable = PageRequest.of(page>0?--page:page, 10, Sort.by(Sort.Direction.DESC, "createDate"));
+
+        Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
+
+        List<NotificationResponse> notificationResponses = messages.stream().map(message -> {
+            FcmMessage fcmMessage = fcmMessageRepository.findById(message.getFcmMessageId())
+                    .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
+            return NotificationResponse.from(message, fcmMessage);
+        }).toList();
+
+        return ListResponseDto.of(messages.getTotalPages(), messages.getTotalElements(), notificationResponses);
+    }
+
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body) {
         return MulticastMessage.builder()
                 .addAllTokens(tokens)
@@ -222,6 +241,82 @@ public class FcmService {
             if (!responses.get(i).isSuccessful()) {
                 failedOut.add(targetTokens.get(i));
             }
+        }
+    }
+    
+    private void addMemberFcmMessageList(SendResponse sendResponse, String token,
+                                         Long memberId, List<MemberFcmMessage> memberFcmMessageList,
+                                         FcmMessage fcmMessage, FcmMessageType fcmMessageType) {
+        if (sendResponse.isSuccessful()) {
+            if (memberId != null && memberId != -1L) {
+                memberFcmMessageList.add(MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType));
+            }
+        } else {
+            FirebaseMessagingException exception = sendResponse.getException();
+            String errorMsg = exception != null ? exception.getMessage() : "알 수 없는 오류 (exception=null)";
+            log.warn("FCM 전송 실패: token={}, error={}", token, errorMsg);
+        }
+    }
+
+    private void saveMemberFcmMessage(List<MemberFcmMessage> memberFcmMessageList, int i, int batchSize) {
+        List<MemberFcmMessage> batch = memberFcmMessageList.subList(i, Math.min(i + batchSize, memberFcmMessageList.size()));
+
+        Map<Long, MemberFcmMessage> uniqueMemberFcmMessages = batch.stream()
+                        .collect(Collectors.toMap(
+                                MemberFcmMessage::getMemberId,
+                                m -> m,
+                                (existing, replacement) -> existing
+                        ));
+
+        memberFcmMessageRepository.saveAll(uniqueMemberFcmMessages.values());
+        memberFcmMessageRepository.flush();
+    }
+
+    private void sendFcmMessageToMembers(Map<String, Long> tokenAndMemberId, List<String> tokens, String title, String body, FcmMessageType fcmMessageType) {
+        int batchSize = 500;
+
+        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder().title(title).body(body).build());
+
+        List<MemberFcmMessage> memberFcmMessageList = new ArrayList<>();
+
+        try {
+            for (int i = 0; i < tokens.size(); i += batchSize) {
+                // Batch size 만큼 분리해 처리
+                List<String> subTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
+
+                MulticastMessage message = createMulticastMessage(subTokens, title, body);
+                BatchResponse batchResponse;
+                try {
+                    batchResponse = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+                } catch (FirebaseMessagingException e) {
+                    log.error("FCM 메시지 전송 실패: {}", e.getMessage());
+                    continue;
+                }
+
+                for (int j = 0; j < batchResponse.getResponses().size(); j++) {
+                    String token = subTokens.get(j);
+                    Long memberId = tokenAndMemberId.get(token);
+
+                    try {
+                        // 전송된 알림들 List화
+                        addMemberFcmMessageList(batchResponse.getResponses().get(j), token, memberId,
+                                memberFcmMessageList, fcmMessage, fcmMessageType);
+                    } catch (Exception e) {
+                        log.error("개별 FCM 전송 처리 중 오류: token={}, error={}", token, e.getMessage(), e);
+                    }
+                }
+
+                handleFailedTokens(batchResponse, subTokens);
+            }
+
+            // 전송된 알림들 저장
+            for (int i = 0; i < memberFcmMessageList.size(); i += batchSize) {
+                saveMemberFcmMessage(memberFcmMessageList, i, batchSize);
+            }
+
+            log.info("회원 대상 알림 전송 성공, {}건", memberFcmMessageList.size());
+        } catch (Exception e) {
+            log.error("회원 대상 알림 전송 실패 : {}", e.getMessage());
         }
     }
 }

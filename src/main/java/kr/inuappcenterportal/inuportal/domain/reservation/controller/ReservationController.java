@@ -29,7 +29,6 @@ import java.time.LocalDateTime;
 
 @Tag(name = "reservations", description = " 물품대여 API")
 @Slf4j
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/reservations")
 @RequiredArgsConstructor

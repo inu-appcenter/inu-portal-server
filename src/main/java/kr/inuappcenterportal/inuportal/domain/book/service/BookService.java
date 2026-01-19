@@ -6,7 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.book.dto.BookRegister;
 import kr.inuappcenterportal.inuportal.domain.book.dto.BookUpdate;
 import kr.inuappcenterportal.inuportal.domain.book.implement.BookProcessor;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
-import kr.inuappcenterportal.inuportal.global.service.ImageService;
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

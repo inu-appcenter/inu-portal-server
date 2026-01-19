@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.category.model;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,13 +19,16 @@ public class Category {
     @Column(nullable = false)
     private String category;
 
+    @Enumerated(EnumType.STRING)
+    private CategoryType type;
+
     @Builder
-    public Category(String category){
+    public Category(String category, CategoryType type){
         this.category = category;
+        this.type = type;
     }
 
     public void changeName(String category){
         this.category = category;
     }
-
 }

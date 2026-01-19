@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name="Fires", description = "횃불이Ai API")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/fires")
 public class FireController {
     private final FireService fireService;

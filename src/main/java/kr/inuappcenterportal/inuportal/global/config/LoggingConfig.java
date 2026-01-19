@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.global.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.global.logging.service.LoggingAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -18,12 +20,18 @@ import java.util.Set;
 @Slf4j
 @Aspect
 @Component
-public class Logging {
+@RequiredArgsConstructor
+public class LoggingConfig {
+
+    private final LoggingAsyncService loggingAsyncService;
+
     private static final Set<String> except_uri = Set.of(
             "/api/weathers",
             "/api/notices/top",
             "/api/posts/main",
-            "/api/members/refresh"
+            "/api/members/refresh",
+            "/api/logs/members",
+            "/api/logs/apis"
     );
     @Pointcut("within(@org.springframework.web.bind.annotation.RestController *)")
     public void restControllerMethods() {}
@@ -38,11 +46,14 @@ public class Logging {
         if (except_uri.contains(uri)) {
             return joinPoint.proceed();
         }
-        String memberId = getMemberId(request);
 
+        String memberId = getMemberId(request);
         long startTime = System.currentTimeMillis();
         Object result = joinPoint.proceed();
         long duration = System.currentTimeMillis() - startTime;
+
+        loggingAsyncService.asyncSaveLog(memberId, httpMethod, uri, duration);
+
         log.info("user={} {} {} {}ms", memberId, httpMethod, uri, duration);
 
         return result;

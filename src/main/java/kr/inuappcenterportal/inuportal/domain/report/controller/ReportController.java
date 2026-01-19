@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Tag(name = "Reports", description = "신고 API")
 @RequestMapping("/api/reports")
 public class ReportController {

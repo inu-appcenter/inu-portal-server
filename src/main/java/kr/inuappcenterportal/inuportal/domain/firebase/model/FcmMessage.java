@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.model;
 
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -18,8 +19,10 @@ public class FcmMessage extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String title;
 
+    @Column(nullable = false)
     private String body;
 
     @Column(name = "is_admin_message", nullable = false)

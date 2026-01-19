@@ -15,6 +15,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
 import kr.inuappcenterportal.inuportal.domain.reply.dto.ReplyListResponseDto;
@@ -33,7 +34,6 @@ import java.util.List;
 @Tag(name="Members", description = "회원 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/members")
 public class MemberController {
     private final MemberService memberService;
@@ -156,5 +156,22 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(replyService.getReplyByMember(member,sort),"회원이 작성한 모든 댓글 가져오기 성공"));
     }
 
+    @Operation(summary = "회원 학과 수정", description = "회원의 학과 정보를 수정합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.<br>요청 파라미터로 department(학과)를 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "회원 학과 수정 성공", content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
+    })
+    @PutMapping("/department")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member,
+                                                                    @RequestParam Department department){
+        return ResponseEntity.ok(ResponseDto.of(memberService.updateMemberDepartment(member.getId(), department),"회원 학과 수정 성공"));
+    }
 
+    @Operation(summary = "회원 약관 동의", description = "회원이 약관에 동의합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "회원 약관 동의 성공", content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
+    })
+    @PutMapping("/terms")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> agreeTerms(@AuthenticationPrincipal Member member){
+        return ResponseEntity.ok(ResponseDto.of(memberService.agreeTerms(member.getId()),"회원 약관 동의 성공"));
+    }
 }

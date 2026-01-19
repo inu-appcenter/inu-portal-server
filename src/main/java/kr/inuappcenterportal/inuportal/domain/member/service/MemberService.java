@@ -7,6 +7,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -81,12 +82,7 @@ public class MemberService {
 
 
     public MemberResponseDto getMember(Member member){
-        if(member.getRoles().contains("ROLE_ADMIN")){
-            return MemberResponseDto.adminMember(member);
-        }
-        else {
-            return MemberResponseDto.userMember(member);
-        }
+        return getMemberResponseDto(member);
     }
 
     public List<MemberResponseDto> getAllMember(){
@@ -111,4 +107,32 @@ public class MemberService {
         memberRepository.save(member);
     }
 
+    @Transactional
+    public MemberResponseDto updateMemberDepartment(Long memberId, Department department) {
+        Member member = findMemberById(memberId);
+        member.updateDepartment(department);
+
+        return getMemberResponseDto(member);
+    }
+
+    @Transactional
+    public MemberResponseDto agreeTerms(Long memberId) {
+        Member member = findMemberById(memberId);
+        member.agreeTerms();
+
+        return getMemberResponseDto(member);
+    }
+
+    private MemberResponseDto getMemberResponseDto(Member member) {
+        if (member.getRoles().contains("ROLE_ADMIN")) {
+            return MemberResponseDto.adminMember(member);
+        } else {
+            return MemberResponseDto.userMember(member);
+        }
+    }
+
+    private Member findMemberById(Long id){
+        return memberRepository.findById(id)
+                .orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+    }
 }

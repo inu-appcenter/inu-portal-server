@@ -37,7 +37,6 @@ import java.util.List;
 @Tag(name = "Posts",description = "게시글 API")
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/posts")
 @Validated
 public class PostController {
@@ -56,7 +55,6 @@ public class PostController {
         Long postId = postService.savePost(member,postDto,images);
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(postId,"게시글 등록 성공"));
     }
-
 
     @Operation(summary = "게시글 수정",description = "헤더 Auth에 발급받은 토큰을, url 파라미터에 게시글의 id, 바디에 {title,content,category, bool 형태의 anonymous}을 형식으로 보내주세요. 성공 시 수정된 게시글의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
@@ -170,5 +168,4 @@ public class PostController {
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getPostForMobile(@RequestParam(required = false) Long lastPostId, @RequestParam(required = false) String category, @AuthenticationPrincipal Member member){
         return ResponseEntity.ok(ResponseDto.of(postService.getPostForInf(lastPostId,category,member),"모바일용 게시글 리스트 가져오기 성공"));
     }
-
 }
