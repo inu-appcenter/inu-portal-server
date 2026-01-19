@@ -1,6 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
 
 @Service
 @RequiredArgsConstructor

@@ -1,8 +1,9 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -142,23 +144,55 @@ public class FcmService {
 
     @Transactional
     public void sendToMembers(AdminNotificationRequest request) {
-        List<FcmToken> fcmTokens;
-
+        List<String> tokens;
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            fcmTokens = fcmTokenRepository.findAll();
+            tokens = fcmTokenRepository.findAllUserTokens();
         } else {
             fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
         }
         if (fcmTokens.isEmpty()) return;
 
-        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .collect(Collectors.toMap(
-                        FcmToken::getToken, t -> t.getMemberId() != null ? t.getMemberId() : -1L,
-                        (existing, replacement) -> existing));
+        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
+                .title(request.title())
+                .body(request.content())
+                .isAdminMessage(true)
+                .build());
 
-        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
+        int batchSize = 500;
+        int successCount = 0;
+        Set<String> failedTokens = new HashSet<>();
 
-        sendFcmMessageToMembers(tokenAndMemberId, tokens, request.title(), request.content(), FcmMessageType.GENERAL);
+        for (int i = 0; i < tokens.size(); i += batchSize) {
+            List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
+            MulticastMessage message = createMulticastMessage(batchTokens , request.title(), request.content());
+
+            try {
+                BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+
+                successCount += response.getSuccessCount();
+
+                collectFailedTokens(response, batchTokens, failedTokens);
+            } catch (FirebaseMessagingException e) {
+                failedTokens.addAll(batchTokens);
+                log.info("회원 대상 알림 전송 실패 : {}", e.getMessage());
+            }
+        }
+
+        if (!failedTokens.isEmpty()) {
+            fcmTokenRepository.deleteByTokenIn(new ArrayList<>(failedTokens));
+        }
+
+        fcmMessage.incrementSendCount(successCount);
+
+        log.info("회원 대상 알림 전송 완료: target={}, success={}, failure={}",
+                tokens.size(), successCount, tokens.size() - successCount);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminNotificationResponse> countAdminFcmMessagesSuccess(int page) {
+        Pageable pageable = PageRequest.of(page - 1,8, Sort.by(Sort.Direction.DESC,"createDate"));
+        Page<FcmMessage> fcmMessages = fcmMessageRepository.findAllByAdminMessageTrue(pageable);
+        return fcmMessages.stream().map(AdminNotificationResponse::of).toList();
     }
 
     @Transactional(readOnly = true)
@@ -201,6 +235,15 @@ public class FcmService {
         }
     }
 
+    private void collectFailedTokens(BatchResponse response, List<String> targetTokens, Set<String> failedOut) {
+        List<SendResponse> responses = response.getResponses();
+        for (int i = 0; i < responses.size(); i++) {
+            if (!responses.get(i).isSuccessful()) {
+                failedOut.add(targetTokens.get(i));
+            }
+        }
+    }
+    
     private void addMemberFcmMessageList(SendResponse sendResponse, String token,
                                          Long memberId, List<MemberFcmMessage> memberFcmMessageList,
                                          FcmMessage fcmMessage, FcmMessageType fcmMessageType) {
