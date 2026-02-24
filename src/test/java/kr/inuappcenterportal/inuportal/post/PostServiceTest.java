@@ -1,7 +1,8 @@
 package kr.inuappcenterportal.inuportal.post;
 
-import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
-import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
+import kr.inuappcenterportal.inuportal.domain.category.model.Category;
+import kr.inuappcenterportal.inuportal.domain.post.dto.CategoryPostResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
@@ -20,18 +21,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -364,6 +370,44 @@ public class PostServiceTest {
 
 
 
+
+    @Test
+    @DisplayName("카테고리별 게시글을 가져옵니다.")
+    public void getPostsByCategoriesTest() {
+        // given
+        Category category1 = Category.builder().category("자유게시판").type(CategoryType.POST).build();
+        Category category2 = Category.builder().category("학사").type(CategoryType.POST).build();
+        when(categoryRepository.findAllByType(CategoryType.POST)).thenReturn(Arrays.asList(category1, category2));
+
+        Member member = createMember("201900000");
+        Post post1 = Post.builder().title("title1").content("content1").category("자유게시판").member(member).build();
+        ReflectionTestUtils.setField(post1, "id", 1L);
+        ReflectionTestUtils.setField(post1, "createDate", LocalDate.now());
+        ReflectionTestUtils.setField(post1, "modifiedDate", LocalDateTime.now());
+
+        Post post2 = Post.builder().title("title2").content("content2").category("학사").member(member).build();
+        ReflectionTestUtils.setField(post2, "id", 2L);
+        ReflectionTestUtils.setField(post2, "createDate", LocalDate.now());
+        ReflectionTestUtils.setField(post2, "modifiedDate", LocalDateTime.now());
+
+        Page<Post> page1 = new PageImpl<>(Collections.singletonList(post1));
+        Page<Post> page2 = new PageImpl<>(Collections.singletonList(post2));
+
+        when(postRepository.findAllByCategoryExcludingPostIds(eq("자유게시판"), any(), any())).thenReturn(page1);
+        when(postRepository.findAllByCategoryExcludingPostIds(eq("학사"), any(), any())).thenReturn(page2);
+
+        // when
+        List<CategoryPostResponseDto> result = postService.getPostsByCategories(5, null);
+
+        // then
+        assertEquals(2, result.size());
+        assertEquals("자유게시판", result.get(0).getCategory());
+        assertEquals(1, result.get(0).getPosts().size());
+        assertEquals("title1", result.get(0).getPosts().get(0).getTitle());
+        assertEquals("학사", result.get(1).getCategory());
+        assertEquals(1, result.get(1).getPosts().size());
+        assertEquals("title2", result.get(1).getPosts().get(0).getTitle());
+    }
 
     private Member createMember(String studentId){
         Member member = Member.builder().studentId(studentId).roles(Collections.singletonList("ROLE_USER")).build();

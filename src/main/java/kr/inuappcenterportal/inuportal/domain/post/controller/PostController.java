@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.post.dto.CategoryPostResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostResponseDto;
@@ -116,6 +117,15 @@ public class PostController {
     public ResponseEntity<ResponseDto<Integer>> scrapPost(@AuthenticationPrincipal Member member, @Parameter(name = "postId",description = "게시글의 id",in = ParameterIn.PATH)@PathVariable Long postId){
         log.info("게시글 스크랩 여부 변경 호출 id:{}",postId);
         return ResponseEntity.ok(ResponseDto.of(postService.scrapPost(member,postId),"스크랩 여부 변경 성공"));
+    }
+
+    @Operation(summary = "카테고리별 게시글 가져오기", description = "각 카테고리별로 최신 게시글을 지정된 개수만큼 가져옵니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "카테고리별 게시글 가져오기 성공", content = @Content(schema = @Schema(implementation = CategoryPostResponseDto.class)))
+    })
+    @GetMapping("/categories")
+    public ResponseEntity<ResponseDto<List<CategoryPostResponseDto>>> getPostsByCategory(@RequestParam(required = false, defaultValue = "5") int count, @AuthenticationPrincipal Member member) {
+        return ResponseEntity.ok(ResponseDto.of(postService.getPostsByCategories(count, member), "카테고리별 게시글 가져오기 성공"));
     }
 
     @Operation(summary = "모든 게시글 가져오기",description = "카테고리(공백일 시 하루마다 랜덤으로 정렬된 모든 게시글), 정렬기준 sort(date, like, scrap), 페이지(공백일 시 1)를 보내주세요. 로그인 한 상태라면 토큰도 보내주세요. <br><br>category: 자유게시판, 수강신청, 장학금, 학산도서관, 기숙사")

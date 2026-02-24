@@ -3,9 +3,9 @@ package kr.inuappcenterportal.inuportal.domain.post.service;
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.post.dto.PostDto;
-import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
-import kr.inuappcenterportal.inuportal.domain.post.dto.PostResponseDto;
+import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
+import kr.inuappcenterportal.inuportal.domain.category.model.Category;
+import kr.inuappcenterportal.inuportal.domain.post.dto.*;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.domain.post.repository.PostRepository;
 import kr.inuappcenterportal.inuportal.domain.postLike.model.PostLike;
@@ -198,6 +198,33 @@ public class PostService {
             }
         }
         return  PostResponseDto.of(post,writer,fireId,isLiked,isScraped,hasAuthority,replyService.getReplies(postId,member),replyService.getBestReplies(postId,member));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryPostResponseDto> getPostsByCategories(int count, Member member) {
+        List<Category> categories = categoryRepository.findAllByType(CategoryType.POST);
+        List<Long> postIds = null;
+        if (member != null) {
+            postIds = reportRepository.findPostIdsByMemberId(member.getId());
+            if (postIds.isEmpty()) {
+                postIds = null;
+            }
+        }
+
+        Pageable pageable = PageRequest.of(0, count, Sort.by(Sort.Direction.DESC, "createDate", "id"));
+        List<Long> finalPostIds = postIds;
+        return categories.stream()
+                .map(category -> {
+                    List<PostListResponseDto> posts = postRepository.findAllByCategoryExcludingPostIds(category.getCategory(), finalPostIds, pageable)
+                            .stream()
+                            .map(this::getPostListResponseDto)
+                            .collect(Collectors.toList());
+                    return CategoryPostResponseDto.builder()
+                            .category(category.getCategory())
+                            .posts(posts)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
