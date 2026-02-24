@@ -45,6 +45,7 @@ public class FcmService {
     private final FcmMessageRepository fcmMessageRepository;
     private final MemberFcmMessageRepository memberFcmMessageRepository;
     private final FcmAsyncExecutor fcmAsyncExecutor;
+    private final FirebaseMessaging firebaseMessaging;
     private final Set<String> failedTokensSet = ConcurrentHashMap.newKeySet();
 
     @Scheduled(cron = "0 0 0 * * *")
@@ -84,7 +85,7 @@ public class FcmService {
                         .build())
                 .build();
         try {
-            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+            BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
             log.info("관리자 알림 전송 성공");
 
             handleFailedTokens(response, target);
@@ -126,7 +127,7 @@ public class FcmService {
                 )
                 .build();
         try {
-            String response = FirebaseMessaging.getInstance().send(message);
+            String response = firebaseMessaging.send(message);
         } catch (FirebaseMessagingException e) {
             log.warn("전체 공지 실패 : {}",e.getMessage());
         }
@@ -168,7 +169,7 @@ public class FcmService {
             MulticastMessage message = createMulticastMessage(batchTokens , request.title(), request.content());
 
             try {
-                BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+                BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
 
                 successCount += response.getSuccessCount();
 
@@ -288,7 +289,7 @@ public class FcmService {
                 MulticastMessage message = createMulticastMessage(subTokens, title, body);
                 BatchResponse batchResponse;
                 try {
-                    batchResponse = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+                    batchResponse = firebaseMessaging.sendEachForMulticast(message);
                 } catch (FirebaseMessagingException e) {
                     log.error("FCM 메시지 전송 실패: {}", e.getMessage());
                     continue;
