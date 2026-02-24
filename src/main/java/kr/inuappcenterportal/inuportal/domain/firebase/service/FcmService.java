@@ -146,11 +146,12 @@ public class FcmService {
     public void sendToMembers(AdminNotificationRequest request) {
         List<String> tokens;
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            tokens = fcmTokenRepository.findAllUserTokens();
+            tokens = fcmTokenRepository.findAllTokens();
         } else {
-            fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
+            List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
+            tokens = fcmTokens.stream().map(FcmToken::getToken).toList();
         }
-        if (fcmTokens.isEmpty()) return;
+        if (tokens.isEmpty()) return;
 
         FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
                 .title(request.title())
