@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.post;
 
 import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
 import kr.inuappcenterportal.inuportal.domain.category.model.Category;
+import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.post.dto.CategoryPostResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostResponseDto;
