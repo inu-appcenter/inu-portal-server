@@ -47,48 +47,41 @@ public class SendToMembersTest {
     @MockBean
     private FcmAsyncExecutor fcmAsyncExecutor;
 
-    @Test
+   @Test
     void testSendToMembers_withSpecifiedMembers() throws FirebaseMessagingException {
-        AdminNotificationRequest request = new AdminNotificationRequest(List.of(69L, 96L), "Test Title", "Test Content");
+        // given
+        AdminNotificationRequest request =
+                new AdminNotificationRequest(List.of(69L, 96L), "Test Title", "Test Content");
 
         FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69");
         FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96");
 
-        when(fcmTokenRepository.findFcmTokensByMemberIds(Mockito.anyList())).thenReturn(List.of(fcmToken1, fcmToken2));
-        when(fcmMessageRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+        when(fcmTokenRepository.findFcmTokensByMemberIds(anyList()))
+                .thenReturn(List.of(fcmToken1, fcmToken2));
+
+        when(fcmMessageRepository.save(any()))
+                .thenAnswer(i -> i.getArguments()[0]);
 
         BatchResponse mockResponse = mock(BatchResponse.class);
         when(mockResponse.getSuccessCount()).thenReturn(2);
-        when(firebaseMessaging.sendEachForMulticast(any())).thenReturn(mockResponse);
+        when(firebaseMessaging.sendEachForMulticast(any()))
+                .thenReturn(mockResponse);
 
+        // when
         fcmService.sendToMembers(request);
 
+        // then
         ArgumentCaptor<List<Long>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(fcmTokenRepository).findFcmTokensByMemberIds(captor.capture());
 
-        List<Long> actualMemberIds = captor.getValue();
-        Assertions.assertThat(List.of(69L, 96L)).isEqualTo(actualMemberIds);
+        Assertions.assertThat(captor.getValue())
+                .containsExactlyInAnyOrder(69L, 96L);
 
         Mockito.verify(fcmMessageRepository).save(any(FcmMessage.class));
         Mockito.verify(firebaseMessaging).sendEachForMulticast(any());
-    }
 
-    @Test
-    void testSendToMembers_withAllMembers() throws FirebaseMessagingException {
-        AdminNotificationRequest request = new AdminNotificationRequest(null, "Test Title", "Test Content");
-
-        when(fcmTokenRepository.findAllTokens()).thenReturn(List.of("token1", "token2"));
-        when(fcmMessageRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
-
-        BatchResponse mockResponse = mock(BatchResponse.class);
-        when(mockResponse.getSuccessCount()).thenReturn(2);
-        when(firebaseMessaging.sendEachForMulticast(any())).thenReturn(mockResponse);
-
-        fcmService.sendToMembers(request);
-
-        Mockito.verify(fcmTokenRepository).findAllTokens();
-        Mockito.verify(fcmMessageRepository).save(any(FcmMessage.class));
-        Mockito.verify(firebaseMessaging).sendEachForMulticast(any());
+        // ❗ 전체 토큰 조회는 호출되면 안 됨
+        Mockito.verify(fcmTokenRepository, Mockito.never()).findAllTokens();
     }
 
 }

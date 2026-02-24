@@ -3,7 +3,6 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
-import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
@@ -27,11 +26,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -149,8 +144,8 @@ public class FcmService {
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
             tokens = fcmTokenRepository.findAllTokens();
         } else {
-            List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
-            tokens = fcmTokens.stream().map(FcmToken::getToken).toList();
+            tokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds())
+                    .stream().map(FcmToken::getToken).toList();
         }
         if (tokens.isEmpty()) return;
 
