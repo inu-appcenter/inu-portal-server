@@ -16,6 +16,7 @@ import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
 import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
+import com.google.firebase.messaging.FirebaseMessaging;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +66,8 @@ public class PetitionTest {
     SchoolLoginRepository schoolLoginRepository;
     @MockBean
     RedisService redisService;
+    @MockBean
+    FirebaseMessaging firebaseMessaging;
 
 
     @Autowired

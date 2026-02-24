@@ -17,6 +17,7 @@ import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
 import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
+import com.google.firebase.messaging.FirebaseMessaging;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,8 @@ public class FirebaseTest {
     SchoolLoginRepository schoolLoginRepository;
     @MockBean
     RedisService redisService;
+    @MockBean
+    FirebaseMessaging firebaseMessaging;
 
 
     @Autowired
@@ -118,7 +121,8 @@ public class FirebaseTest {
         String token = "token3";
 
         fcmTokenRepository.save(FcmToken.builder().memberId(member.getId()).token(token).build());
-        mockMvc.perform(delete("/api/tokens").with(csrf()).header("Auth",tokenDto.getAccessToken()).contentType(MediaType.APPLICATION_JSON))
+        TokenRequestDto tokenRequestDto = TokenRequestDto.builder().token(token).build();
+        mockMvc.perform(delete("/api/tokens").with(csrf()).header("Auth",tokenDto.getAccessToken()).content(objectMapper.writeValueAsString(tokenRequestDto)).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("토큰에서 회원 정보 삭제 성공"))
                 .andExpect(jsonPath("$.data").value(1))

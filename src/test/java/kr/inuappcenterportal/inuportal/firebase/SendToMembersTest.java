@@ -1,81 +1,94 @@
-    package kr.inuappcenterportal.inuportal.firebase;
+package kr.inuappcenterportal.inuportal.firebase;
 
-    import kr.inuappcenterportal.inuportal.config.FcmTestAsyncConfig;
-    import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
-    import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
-    import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
-    import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
-    import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
-    import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
-    import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncExecutor;
-    import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
-    import org.assertj.core.api.Assertions;
-    import org.junit.jupiter.api.Test;
-    import org.mockito.ArgumentCaptor;
-    import org.mockito.Mockito;
-    import org.springframework.beans.factory.annotation.Autowired;
-    import org.springframework.boot.test.context.SpringBootTest;
-    import org.springframework.boot.test.mock.mockito.MockBean;
+import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import kr.inuappcenterportal.inuportal.config.FcmTestAsyncConfig;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncExecutor;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
-    import java.util.List;
-    import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
-    @SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class})
-    public class SendToMembersTest {
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-        @MockBean
-        private FcmTokenRepository fcmTokenRepository;
+@SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class})
+public class SendToMembersTest {
 
-        @MockBean
-        private FcmMessageRepository fcmMessageRepository;
+    @MockBean
+    private FcmTokenRepository fcmTokenRepository;
 
-        @MockBean
-        private MemberFcmMessageRepository memberFcmMessageRepository;
+    @MockBean
+    private FcmMessageRepository fcmMessageRepository;
 
-        @Autowired
-        private FcmService fcmService;
+    @MockBean
+    private MemberFcmMessageRepository memberFcmMessageRepository;
 
-        @MockBean
-        private FcmAsyncExecutor fcmAsyncExecutor;
+    @MockBean
+    private FirebaseMessaging firebaseMessaging;
 
-        @Test
-        void testSendToMembers_withSpecifiedMembers() {
-            AdminNotificationRequest request = new AdminNotificationRequest(List.of(69L, 96L), "Test Title", "Test Body");
+    @Autowired
+    private FcmService fcmService;
 
-            FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69");
-            FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96");
+    @MockBean
+    private FcmAsyncExecutor fcmAsyncExecutor;
 
-            Mockito.when(fcmTokenRepository.findFcmTokensByMemberIds(Mockito.anyList())).thenReturn(List.of(fcmToken1, fcmToken2));
-            Mockito.when(fcmMessageRepository.save(Mockito.any())).thenAnswer(i -> i.getArguments()[0]);
+    @Test
+    void testSendToMembers_withSpecifiedMembers() throws FirebaseMessagingException {
+        AdminNotificationRequest request = new AdminNotificationRequest(List.of(69L, 96L), "Test Title", "Test Content");
 
-            fcmService.sendToMembers(request);
+        FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69");
+        FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96");
 
-            ArgumentCaptor<List<Long>> captor = ArgumentCaptor.forClass(List.class);
-            Mockito.verify(fcmTokenRepository).findFcmTokensByMemberIds(captor.capture());
+        when(fcmTokenRepository.findFcmTokensByMemberIds(Mockito.anyList())).thenReturn(List.of(fcmToken1, fcmToken2));
+        when(fcmMessageRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-            List<Long> actualMemberIds = captor.getValue();
-            Assertions.assertThat(List.of(69L, 96L)).isEqualTo(actualMemberIds);
+        BatchResponse mockResponse = mock(BatchResponse.class);
+        when(mockResponse.getSuccessCount()).thenReturn(2);
+        when(firebaseMessaging.sendEachForMulticast(any())).thenReturn(mockResponse);
 
-            Mockito.verify(fcmMessageRepository).save(Mockito.any(FcmMessage.class));
-        }
+        fcmService.sendToMembers(request);
 
-        @Test
-        void testSendToMembers_withAllMembers() {
-            AdminNotificationRequest request = new AdminNotificationRequest(null, "Test Title", "Test Body");
+        ArgumentCaptor<List<Long>> captor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(fcmTokenRepository).findFcmTokensByMemberIds(captor.capture());
 
-            FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69");
-            FcmToken fcmToken2 = new FcmToken(null, "sample_token_null");
-            FcmToken fcmToken3 = new FcmToken(96L, "sample_token_96");
+        List<Long> actualMemberIds = captor.getValue();
+        Assertions.assertThat(List.of(69L, 96L)).isEqualTo(actualMemberIds);
 
-            Mockito.when(fcmTokenRepository.findAll()).thenReturn(List.of(fcmToken1, fcmToken2, fcmToken3));
-            Mockito.when(fcmMessageRepository.save(Mockito.any())).thenAnswer(i -> i.getArguments()[0]);
-            Mockito.when(fcmAsyncExecutor.sendMessage(Mockito.anyList(), Mockito.anyString(), Mockito.anyString()))
-                    .thenReturn(CompletableFuture.completedFuture(null));
-
-            fcmService.sendToMembers(request);
-
-            Mockito.verify(fcmTokenRepository).findAll();
-            Mockito.verify(fcmMessageRepository).save(Mockito.any(FcmMessage.class));
-        }
-
+        Mockito.verify(fcmMessageRepository).save(any(FcmMessage.class));
+        Mockito.verify(firebaseMessaging).sendEachForMulticast(any());
     }
+
+    @Test
+    void testSendToMembers_withAllMembers() throws FirebaseMessagingException {
+        AdminNotificationRequest request = new AdminNotificationRequest(null, "Test Title", "Test Content");
+
+        when(fcmTokenRepository.findAllTokens()).thenReturn(List.of("token1", "token2"));
+        when(fcmMessageRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        BatchResponse mockResponse = mock(BatchResponse.class);
+        when(mockResponse.getSuccessCount()).thenReturn(2);
+        when(firebaseMessaging.sendEachForMulticast(any())).thenReturn(mockResponse);
+
+        fcmService.sendToMembers(request);
+
+        Mockito.verify(fcmTokenRepository).findAllTokens();
+        Mockito.verify(fcmMessageRepository).save(any(FcmMessage.class));
+        Mockito.verify(firebaseMessaging).sendEachForMulticast(any());
+    }
+
+}
