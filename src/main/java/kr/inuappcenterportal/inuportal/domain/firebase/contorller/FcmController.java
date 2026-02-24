@@ -39,8 +39,8 @@ public class FcmController {
     }
 
     @DeleteMapping("")
-    public ResponseEntity<ResponseDto<Long>> deleteToken(@AuthenticationPrincipal Member member){
-        fcmService.deleteToken( member.getId());
+    public ResponseEntity<ResponseDto<Long>> deleteToken(@Valid @RequestBody TokenRequestDto tokenRequestDto){
+        fcmService.deleteToken(tokenRequestDto.getToken());
         return ResponseEntity.ok(ResponseDto.of(1L,"토큰에서 회원 정보 삭제 성공"));
     }
 

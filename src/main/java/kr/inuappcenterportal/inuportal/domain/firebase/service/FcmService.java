@@ -67,8 +67,8 @@ public class FcmService {
     }
 
     @Transactional
-    public void deleteToken(Long memberId){
-        FcmToken fcmToken =fcmTokenRepository.findByMemberId(memberId).orElseThrow(()->new MyException(MyErrorCode.TOKEN_NOT_FOUND));
+    public void deleteToken(String token){
+        FcmToken fcmToken = fcmTokenRepository.findByToken(token).orElseThrow(()->new MyException(MyErrorCode.TOKEN_NOT_FOUND));
         fcmToken.clearMemberId();
     }
 
