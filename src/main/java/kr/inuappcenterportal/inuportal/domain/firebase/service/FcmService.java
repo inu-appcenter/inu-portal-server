@@ -82,7 +82,7 @@ public class FcmService {
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
             log.info("관리자 알림 전송 성공");
 
-            handleFailedTokens(response, target);
+            // handleFailedTokens(response, target);
 
             fcmMessageRepository.save(FcmMessage.builder().title(title).body(body).build());
         } catch (FirebaseMessagingException e) {
@@ -174,9 +174,9 @@ public class FcmService {
             }
         }
 
-        if (!failedTokens.isEmpty()) {
-            fcmTokenRepository.deleteByTokenIn(new ArrayList<>(failedTokens));
-        }
+        // if (!failedTokens.isEmpty()) {
+        //    fcmTokenRepository.deleteByTokenIn(new ArrayList<>(failedTokens));
+        //}
 
         fcmMessage.incrementSendCount(successCount);
 
@@ -302,7 +302,7 @@ public class FcmService {
                     }
                 }
 
-                handleFailedTokens(batchResponse, subTokens);
+                // handleFailedTokens(batchResponse, subTokens);
             }
 
             // 전송된 알림들 저장
