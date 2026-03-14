@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 @Slf4j
 public class FcmAsyncExecutor {
+    private final FirebaseMessaging firebaseMessaging;
     private final List<String> failedTokensList = Collections.synchronizedList(new ArrayList<>());
     @Async("sendExecutor")
     public CompletableFuture<Void> sendMessage(List<String> tokens, String body, String title){
@@ -26,7 +27,7 @@ public class FcmAsyncExecutor {
                             .setBody(body)
                             .build())
                     .build();
-            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+            BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
             List<SendResponse> responses = response.getResponses();
             for(int i = 0 ; i < responses.size() ; i++){
                 if(!responses.get(i).isSuccessful()){

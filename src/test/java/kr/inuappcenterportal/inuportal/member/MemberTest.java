@@ -13,6 +13,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
+import com.google.firebase.messaging.FirebaseMessaging;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,8 @@ public class MemberTest {
     CafeteriaService cafeteriaService;
     @MockBean
     SchoolLoginRepository schoolLoginRepository;
+    @MockBean
+    FirebaseMessaging firebaseMessaging;
 
     @Autowired
     MockMvc mockMvc;
