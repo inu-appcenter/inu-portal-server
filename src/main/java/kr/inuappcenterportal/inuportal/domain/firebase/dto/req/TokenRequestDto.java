@@ -11,6 +11,8 @@ public class TokenRequestDto {
     @NotBlank
     private String token;
 
+    private String deviceType;
+
     @Builder
     public TokenRequestDto(String token){
         this.token = token;

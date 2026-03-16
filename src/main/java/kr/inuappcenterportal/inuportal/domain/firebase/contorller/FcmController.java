@@ -34,7 +34,7 @@ public class FcmController {
 
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> saveToken(@Valid @RequestBody TokenRequestDto tokenRequestDto, @AuthenticationPrincipal Member member){
-        fcmService.saveToken(tokenRequestDto.getToken(), member==null?null:member.getId());
+        fcmService.saveToken(tokenRequestDto,  member==null?null:member.getId());
         return ResponseEntity.ok(ResponseDto.of(1L,"토큰 등록 성공"));
     }
 

@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
@@ -50,12 +51,13 @@ public class FcmService {
     }
 
     @Transactional
-    public void saveToken(String token, Long memberId){
-        FcmToken fcmToken = fcmTokenRepository.findByToken(token)
-                .orElse(FcmToken.builder().token(token).memberId(memberId).build());
+    public void saveToken(TokenRequestDto tokenRequestDto, Long memberId){
+        FcmToken fcmToken = fcmTokenRepository.findByToken(tokenRequestDto.getToken())
+                .orElse(FcmToken.builder().token(tokenRequestDto.getToken()).memberId(memberId).build());
 
         fcmToken.updateMemberId(memberId);
         fcmToken.updateTimeNow();
+        fcmToken.updateDeviceType(tokenRequestDto.getDeviceType());
 
         if (fcmToken.getId() == null){
             fcmTokenRepository.save(fcmToken);
@@ -94,7 +96,7 @@ public class FcmService {
     @Transactional
     @Async("messageExecutor")
     public void sendToAll(String title, String body) {
-        List<String> target = fcmTokenRepository.findAllTokens();
+        List<String> target = fcmTokenRepository.findAllStringTokens();
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (int i = 0; i < target.size(); i += 500) {
             List<String> tokens = target.subList(i, Math.min(i + 500, target.size()));
@@ -140,14 +142,22 @@ public class FcmService {
 
     @Transactional
     public void sendToMembers(AdminNotificationRequest request) {
-        List<String> tokens;
+        List<FcmToken> fcmTokens;
+
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            tokens = fcmTokenRepository.findAllTokens();
+            fcmTokens = fcmTokenRepository.findAllTokens();
         } else {
-            tokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds())
-                    .stream().map(FcmToken::getToken).toList();
+            fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(request.memberIds());
         }
-        if (tokens.isEmpty()) return;
+        if (fcmTokens.isEmpty()) return;
+
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .collect(Collectors.toMap(
+                        FcmToken::getToken,
+                        FcmToken::getMemberId
+                ));
+
+        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
 
         FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
                 .title(request.title())
@@ -158,6 +168,7 @@ public class FcmService {
         int batchSize = 500;
         int successCount = 0;
         Set<String> failedTokens = new HashSet<>();
+        List<MemberFcmMessage> memberFcmMessageList = new ArrayList<>();
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
@@ -168,11 +179,38 @@ public class FcmService {
 
                 successCount += response.getSuccessCount();
 
+                for (int j = 0; j < response.getResponses().size(); j++) {
+                    String token = batchTokens.get(j);
+                    Long memberId = tokenAndMemberId.get(token);
+
+                    try {
+                        addMemberFcmMessageList(
+                                response.getResponses().get(j),
+                                token,
+                                memberId,
+                                memberFcmMessageList,
+                                fcmMessage,
+                                FcmMessageType.GENERAL
+                        );
+                    } catch (Exception e) {
+                        log.error("개별 FCM 전송 처리 중 오류: token={}, error={}", token, e.getMessage(), e);
+                    }
+                }
+
                 collectFailedTokens(response, batchTokens, failedTokens);
             } catch (FirebaseMessagingException e) {
                 failedTokens.addAll(batchTokens);
-                log.info("회원 대상 알림 전송 실패 : {}", e.getMessage());
+                log.error("FCM 배치 전송 실패: batchSize={}, errorCode={}, message={}",
+                        batchTokens.size(),
+                        e.getMessagingErrorCode(),
+                        e.getMessage(),
+                        e);
             }
+        }
+
+
+        for (int i = 0; i < memberFcmMessageList.size(); i += batchSize) {
+            saveMemberFcmMessage(memberFcmMessageList, i, batchSize);
         }
 
         // if (!failedTokens.isEmpty()) {
