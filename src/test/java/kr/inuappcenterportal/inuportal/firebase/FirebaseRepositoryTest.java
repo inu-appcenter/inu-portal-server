@@ -63,7 +63,7 @@ public class FirebaseRepositoryTest {
         fcmTokens.add(FcmToken.builder().token("token3").build());
         fcmTokens.add(FcmToken.builder().token("token4").build());
         fcmTokenRepository.saveAll(fcmTokens);
-        List<String> tokens = fcmTokenRepository.findAllTokens();
+        List<FcmToken> tokens = fcmTokenRepository.findAllTokens();
         assertEquals(tokens.size(),fcmTokens.size());
     }
 }
