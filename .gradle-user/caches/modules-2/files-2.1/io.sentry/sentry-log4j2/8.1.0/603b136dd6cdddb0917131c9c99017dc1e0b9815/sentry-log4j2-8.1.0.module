@@ -1,0 +1,82 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.sentry",
+    "module": "sentry-log4j2",
+    "version": "8.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.5"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.sentry",
+          "module": "sentry",
+          "version": {
+            "requires": "8.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "sentry-log4j2-8.1.0.jar",
+          "url": "sentry-log4j2-8.1.0.jar",
+          "size": 8300,
+          "sha512": "c9f9e876b73cd784353ec827a71b5da39e53a88ad762b993947b88190f1f9b249525137d36a3b6515df78a709676745d8250b735fbc2958bb7a04f231c5e0ff2",
+          "sha256": "0504f1a56ac58992a20b4851b3ed78f8b6a22801395d7ed82d920e3aface4cf0",
+          "sha1": "e9ad22e7ff1355bb1eafa616320f9753f043474c",
+          "md5": "29effefadd5df0cef140f222c30bd19c"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.sentry",
+          "module": "sentry",
+          "version": {
+            "requires": "8.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "sentry-log4j2-8.1.0.jar",
+          "url": "sentry-log4j2-8.1.0.jar",
+          "size": 8300,
+          "sha512": "c9f9e876b73cd784353ec827a71b5da39e53a88ad762b993947b88190f1f9b249525137d36a3b6515df78a709676745d8250b735fbc2958bb7a04f231c5e0ff2",
+          "sha256": "0504f1a56ac58992a20b4851b3ed78f8b6a22801395d7ed82d920e3aface4cf0",
+          "sha1": "e9ad22e7ff1355bb1eafa616320f9753f043474c",
+          "md5": "29effefadd5df0cef140f222c30bd19c"
+        }
+      ]
+    }
+  ]
+}

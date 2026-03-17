@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,10 @@ public class FcmAsyncService {
     }
 
     @Async("messageExecutor")
-    public void sendAsyncToMembers(AdminNotificationRequest request) {
-        fcmService.sendToMembers(request);
+    public void sendAsyncToMembers(AdminNotificationDispatch dispatch) {
+        if (!dispatch.hasTarget() && !dispatch.hasMemberTarget()) {
+            return;
+        }
+        fcmService.sendToMembers(dispatch);
     }
 }

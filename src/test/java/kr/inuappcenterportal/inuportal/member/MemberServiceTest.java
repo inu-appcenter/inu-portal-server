@@ -60,6 +60,10 @@ public class MemberServiceTest {
         when(memberRepository.findByStudentId(studentId)).thenReturn(Optional.ofNullable(member));
         when(tokenProvider.createToken(eq("1"),eq(member.getRoles()), any(LocalDateTime.class))).thenReturn("testAccessToken");
         when(tokenProvider.createRefreshToken(eq("1"), any(LocalDateTime.class))).thenReturn("testRefreshToken");
+        when(tokenProvider.getAccessTokenExpiry(any(LocalDateTime.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, LocalDateTime.class).plusDays(1));
+        when(tokenProvider.getRefreshTokenExpiry(any(LocalDateTime.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, LocalDateTime.class).plusMonths(6));
 
         //when
         TokenDto tokenDto = memberService.schoolLogin(loginDto);
@@ -115,6 +119,10 @@ public class MemberServiceTest {
         Member member = createMember(studentId);
         when(tokenProvider.createToken(eq("1"),eq(member.getRoles()), any(LocalDateTime.class))).thenReturn("testAccessToken");
         when(tokenProvider.createRefreshToken(eq("1"), any(LocalDateTime.class))).thenReturn("testRefreshToken");
+        when(tokenProvider.getAccessTokenExpiry(any(LocalDateTime.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, LocalDateTime.class).plusDays(1));
+        when(tokenProvider.getRefreshTokenExpiry(any(LocalDateTime.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, LocalDateTime.class).plusMonths(6));
 
         //when
         TokenDto tokenDto = memberService.login(member);
@@ -145,6 +153,10 @@ public class MemberServiceTest {
         Member member = createMember(studentId);
         when(tokenProvider.createToken(eq("1"),eq(member.getRoles()), any(LocalDateTime.class))).thenReturn("testAccessToken");
         when(tokenProvider.createRefreshToken(eq("1"), any(LocalDateTime.class))).thenReturn("testRefreshToken");
+        when(tokenProvider.getAccessTokenExpiry(any(LocalDateTime.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, LocalDateTime.class).plusDays(1));
+        when(tokenProvider.getRefreshTokenExpiry(any(LocalDateTime.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, LocalDateTime.class).plusMonths(6));
         when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
 
         //when
