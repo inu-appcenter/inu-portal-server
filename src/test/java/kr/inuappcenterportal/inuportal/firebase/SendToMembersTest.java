@@ -54,8 +54,8 @@ public class SendToMembersTest {
         AdminNotificationRequest request =
                 new AdminNotificationRequest(List.of(69L, 96L), "Test Title", "Test Content");
 
-        FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69");
-        FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96");
+        FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69", "iphone");
+        FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96", "android");
 
         when(fcmTokenRepository.findFcmTokensByMemberIds(anyList()))
                 .thenReturn(List.of(fcmToken1, fcmToken2));
