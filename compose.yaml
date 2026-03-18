@@ -1,7 +1,7 @@
 services:
   app:
     image: ${DOCKERHUB_USERNAME}/${PROJECT_NAME}:latest
-    container_name: intip-app
+    container_name: intip
     restart: unless-stopped
     environment:
       TZ: Asia/Seoul
@@ -35,6 +35,9 @@ services:
     restart: unless-stopped
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      SERVER_BASEPATH: /kibana
+      SERVER_REWRITEBASEPATH: "true"
+      SERVER_PUBLICBASEURL: ${KIBANA_URL}
     ports:
       - "5601:5601"
     depends_on:
