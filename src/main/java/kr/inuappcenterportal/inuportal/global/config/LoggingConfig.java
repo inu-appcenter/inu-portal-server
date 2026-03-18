@@ -9,6 +9,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.slf4j.MDC;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,7 @@ public class LoggingConfig {
 
     private final LoggingAsyncService loggingAsyncService;
 
-    private static final Set<String> except_uri = Set.of(
+    private static final Set<String> EXCEPT_URI = Set.of(
             "/api/weathers",
             "/api/notices/top",
             "/api/posts/main",
@@ -39,28 +40,51 @@ public class LoggingConfig {
     @Around("restControllerMethods()")
     public Object logApiRequest(ProceedingJoinPoint joinPoint) throws Throwable {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+
+        if (attributes == null) {
+            return joinPoint.proceed();
+        }
+
         HttpServletRequest request = attributes.getRequest();
         String uri = request.getRequestURI();
         String httpMethod = request.getMethod();
 
-        if (except_uri.contains(uri)) {
+        if (EXCEPT_URI.contains(uri)) {
             return joinPoint.proceed();
         }
 
         String memberId = getMemberId(request);
         long startTime = System.currentTimeMillis();
-        Object result = joinPoint.proceed();
-        long duration = System.currentTimeMillis() - startTime;
 
-        loggingAsyncService.asyncSaveLog(memberId, httpMethod, uri, duration);
+        MDC.put("memberId", memberId);
+        MDC.put("httpMethod", httpMethod);
+        MDC.put("uri", uri);
 
-        log.info("user={} {} {} {}ms", memberId, httpMethod, uri, duration);
+        try {
+            Object result = joinPoint.proceed();
 
-        return result;
+            long duration = System.currentTimeMillis() - startTime;
+            MDC.put("duration", String.valueOf(duration));
+
+            loggingAsyncService.asyncSaveLog(memberId, httpMethod, uri, duration);
+            log.info("user={} {} {} {}ms", memberId, httpMethod, uri, duration);
+
+            return result;
+        } catch (Throwable e) {
+            long duration = System.currentTimeMillis() - startTime;
+            MDC.put("duration", String.valueOf(duration));
+            MDC.put("errorMessage", e.getMessage());
+
+            log.error("API request failed", e);
+            throw e;
+        } finally {
+            MDC.clear();
+        }
     }
     private String getMemberId(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.getPrincipal() instanceof String|| authentication.getPrincipal() == null) {
+
+        if (authentication.getPrincipal() instanceof String || authentication.getPrincipal() == null) {
             return request.getHeader("X-Forwarded-For");
         }
         Member member = (Member)authentication.getPrincipal();

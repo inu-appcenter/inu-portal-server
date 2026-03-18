@@ -1,0 +1,49 @@
+services:
+  app:
+    image: ${DOCKERHUB_USERNAME}/${PROJECT_NAME}:latest
+    container_name: intip-app
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${MOUNT_PATH}:/intip
+    depends_on:
+      - elasticsearch
+    networks:
+      - intip-network
+    working_dir: /intip
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.1
+    container_name: intip-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - intip-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.3.1
+    container_name: intip-kibana
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - intip-network
+
+networks:
+  intip-network:
+
+volumes:
+  esdata:

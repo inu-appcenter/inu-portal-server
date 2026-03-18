@@ -77,14 +77,7 @@ jobs:
         key: ${{ secrets.SERVER_KEY }}
         port : ${{ secrets.SERVER_PORT }}
         script: |
-          docker stop ${{ secrets.APPLICATION_NAME }}
-          docker rm ${{ secrets.APPLICATION_NAME }}
-          docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
-          docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
-          docker run --network=host -d -e TZ=Asia/Seoul  -v ${{ secrets.MOUNT_PATH }}:/intip --name ${{ secrets.APPLICATION_NAME }} ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
-
-
-
-
-
-        
+          cd /home/ubuntu/intip
+          docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
+          docker compose pull app
+          docker compose up -d
