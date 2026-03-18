@@ -77,7 +77,12 @@ jobs:
         key: ${{ secrets.SERVER_KEY }}
         port : ${{ secrets.SERVER_PORT }}
         script: |
-          cd /home/ubuntu/intip
+          cd /home/serverking/intip
+          
+          export DOCKERHUB_USERNAME=${{ secrets.USERNAME }}
+          export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
+          export MOUNT_PATH=/home/serverking/intip
+          
           docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
           docker compose pull app
           docker compose up -d
