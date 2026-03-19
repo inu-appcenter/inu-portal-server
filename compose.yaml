@@ -45,8 +45,25 @@ services:
     networks:
       - intip-network
 
+  elastic-agent:
+    image: docker.elastic.co/elastic-agent/elastic-agent:9.3.1
+    container_name: intip-elastic-agent
+    user: root
+    restart: unless-stopped
+    depends_on:
+      - intip-elasticsearch
+      - intip-kibana
+    volumes:
+      - ${MOUNT_PATH}:/intip:ro
+      - ./elastic-agent.yml:/etc/elastic-agent/elastic-agent.yml:ro
+      - agent-state:/usr/share/elastic-agent/state
+    command: [ "elastic-agent", "-e", "-c", "/etc/elastic-agent/elastic-agent.yml" ]
+    networks:
+      - intip-network
+
 networks:
   intip-network:
 
 volumes:
   esdata:
+  agent-state:

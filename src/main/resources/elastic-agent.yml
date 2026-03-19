@@ -1,0 +1,25 @@
+outputs:
+  default:
+    type: elasticsearch
+    hosts: ["${ELASTICSEARCH_HOSTS}"]
+
+inputs:
+  - id: intip-app-logs
+    type: filestream
+    use_output: default
+    streams:
+      - id: intip-app-logs-stream
+        data_stream:
+          dataset: intip.application
+          namespace: prod
+          type: logs
+        paths:
+          - /intip/logs/intip.log
+          - /intip/logs/intip.*.log
+
+agent:
+  monitoring:
+    enabled: true
+    use_output: default
+    logs: true
+    metrics: true

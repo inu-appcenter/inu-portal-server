@@ -82,7 +82,8 @@ jobs:
           export DOCKERHUB_USERNAME=${{ secrets.USERNAME }}
           export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
           export MOUNT_PATH=${{ secrets.MOUNT_PATH }}
-          exprot KIBANA_URL=${{ secrets.KIBANA_URL }}
+          export KIBANA_URL=${{ secrets.KIBANA_URL }}
+          export ELASTICSEARCH_HOSTS=${{ secrets.ELASTICSEARCH_HOSTS }}
           
           docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
           docker compose pull app
