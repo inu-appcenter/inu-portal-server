@@ -95,5 +95,6 @@ jobs:
           export KIBANA_URL=${{ secrets.KIBANA_URL }}
           
           docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
-          docker compose pull
-          docker compose up -d
+          docker compose pull app
+          docker compose up -d app --no-deps
+          docker compose up -d --force-recreate elastic-agent
