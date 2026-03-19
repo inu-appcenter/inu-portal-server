@@ -89,4 +89,3 @@ jobs:
             docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
             docker compose pull app
             docker compose up -d app --no-deps
-            docker compose up -d --force-recreate elastic-agent
