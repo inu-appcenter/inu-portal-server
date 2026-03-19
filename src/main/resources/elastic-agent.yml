@@ -1,7 +1,7 @@
 outputs:
   default:
     type: elasticsearch
-    hosts: ["${ELASTICSEARCH_HOSTS}"]
+    hosts: ["http://elasticsearch:9200"]
 
 inputs:
   - id: intip-app-logs
