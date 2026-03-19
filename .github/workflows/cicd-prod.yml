@@ -86,6 +86,24 @@ jobs:
     - name: DockerHub Push
       run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
 
+    - name: Detect changed files
+      id: changes
+      run: |
+        BEFORE="${{ github.event.before }}"
+        AFTER="${{ github.sha }}"
+
+        if git diff --name-only "$BEFORE" "$AFTER" | grep -q "^compose.yaml$"; then
+          echo "compose_changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "compose_changed=false" >> $GITHUB_OUTPUT
+        fi
+
+        if git diff --name-only "$BEFORE" "$AFTER" | grep -q "^elastic-agent.yml$"; then
+          echo "agent_changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "agent_changed=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Copy compose files to server
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -95,6 +113,22 @@ jobs:
         port: ${{ secrets.SERVER_PORT }}
         source: "compose.yaml,elastic-agent.yml"
         target: "/home/serverking/intip"
+        overwrite: true
+
+    - name: Verify copied files
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST_ADDRESS }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        key: ${{ secrets.SERVER_KEY }}
+        port: ${{ secrets.SERVER_PORT }}
+        script: |
+          cd /home/serverking/intip
+          pwd
+          ls -al
+          find /home/serverking/intip -maxdepth 2 -name "elastic-agent.yml" -print
+          echo "===== elastic-agent.yml ====="
+          cat /home/serverking/intip/elastic-agent.yml
 
     - name: Deploy to Server
       uses: appleboy/ssh-action@v1.0.0
