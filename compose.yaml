@@ -34,7 +34,7 @@ services:
     container_name: intip-kibana
     restart: unless-stopped
     environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://intip-elasticsearch:9200
       SERVER_BASEPATH: /kibana
       SERVER_REWRITEBASEPATH: "true"
       SERVER_PUBLICBASEURL: ${KIBANA_URL}
