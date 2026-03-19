@@ -16,6 +16,11 @@ inputs:
         paths:
           - /intip/logs/intip.log
           - /intip/logs/intip.*.log
+        parsers:
+          - ndjson:
+              target: ""
+              overwrite_keys: true
+              add_error_key: true
 
 agent:
   monitoring:
