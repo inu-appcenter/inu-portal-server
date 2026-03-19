@@ -86,5 +86,5 @@ jobs:
           export ELASTICSEARCH_HOSTS=${{ secrets.ELASTICSEARCH_HOSTS }}
           
           docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
-          docker compose pull app
+          docker compose pull
           docker compose up -d
