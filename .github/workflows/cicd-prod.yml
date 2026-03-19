@@ -69,6 +69,16 @@ jobs:
     - name: DockerHub Push
       run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
 
+    - name: Copy compose files to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST_ADDRESS }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        key: ${{ secrets.SERVER_KEY }}
+        port: ${{ secrets.SERVER_PORT }}
+        source: "compose.yaml,elastic-agent.yml"
+        target: "/home/serverking/intip"
+
     - name: Deploy to Server
       uses: appleboy/ssh-action@v1.0.0
       with:
@@ -83,7 +93,6 @@ jobs:
           export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
           export MOUNT_PATH=${{ secrets.MOUNT_PATH }}
           export KIBANA_URL=${{ secrets.KIBANA_URL }}
-          export ELASTICSEARCH_HOSTS=${{ secrets.ELASTICSEARCH_HOSTS }}
           
           docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
           docker compose pull
