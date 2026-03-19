@@ -51,8 +51,8 @@ services:
     user: root
     restart: unless-stopped
     depends_on:
-      - intip-elasticsearch
-      - intip-kibana
+      - elasticsearch
+      - kibana
     volumes:
       - ${MOUNT_PATH}:/intip:ro
       - ./elastic-agent.yml:/etc/elastic-agent/elastic-agent.yml:ro
