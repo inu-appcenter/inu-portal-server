@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import kr.inuappcenterportal.inuportal.domain.weather.dto.WeatherResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -24,6 +23,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
@@ -71,16 +71,34 @@ public class WeatherService {
     }
 
 
-    /*@PostConstruct
-    public void initWeather(){
-        WeatherResponseDto weatherResponseDto = getWeather();
-        if(checkingNullData(weatherResponseDto)) {
+    @PostConstruct
+    public void initWeather() {
+        try {
             getDayData();
-            getDust();
-            getWeatherSky();
-            getTemperature();
+        } catch (Exception e) {
+            log.error("일출일몰 초기화 실패", e);
         }
-    }*/
+
+        try {
+            getDust();
+        } catch (Exception e) {
+            log.error("미세먼지 초기화 실패", e);
+        }
+
+        try {
+            getWeatherSky();
+        } catch (Exception e) {
+            log.error("하늘상태 초기화 실패", e);
+        }
+
+        try {
+            getTemperature();
+        } catch (Exception e) {
+            log.error("온도 초기화 실패", e);
+        }
+    }
+
+
     private boolean checkingNullData(WeatherResponseDto weatherResponseDto){
         return weatherResponseDto.getTemperature()==null|| weatherResponseDto.getDay()==null|| weatherResponseDto.getSky()==null|| weatherResponseDto.getPm25Grade()==null|| weatherResponseDto.getPm10Value()==null|| weatherResponseDto.getPm10Grade()==null|| weatherResponseDto.getPm25Value()==null;
     }
@@ -334,21 +352,40 @@ public class WeatherService {
 
 
 
-    public WeatherResponseDto getWeather(){
+    public WeatherResponseDto getWeather() {
         String sky = redisService.getSky();
         String temperature = redisService.getTemperature();
-        Map<String,String> dusts = redisService.getDust();
-        Map<String,String > sun = redisService.getSun();
-        String day = isDaytime(sun.get("sunrise"),sun.get("sunset"))?"day":"night";
-        return WeatherResponseDto.of(sky,temperature,dusts.get("pm10Value"),dusts.get("pm10Grade"),dusts.get("pm25Value"),dusts.get("pm25Grade"),day);
+        Map<String, String> dusts = redisService.getDust();
+        Map<String, String> sun = redisService.getSun();
+
+        String sunrise = sun != null ? sun.get("sunrise") : null;
+        String sunset = sun != null ? sun.get("sunset") : null;
+
+        String day = "day";
+        if (sunrise != null && sunset != null) {
+            day = isDaytime(sunrise, sunset) ? "day" : "night";
+        }
+
+        return WeatherResponseDto.of(
+                sky,
+                temperature,
+                dusts != null ? dusts.get("pm10Value") : null,
+                dusts != null ? dusts.get("pm10Grade") : null,
+                dusts != null ? dusts.get("pm25Value") : null,
+                dusts != null ? dusts.get("pm25Grade") : null,
+                day
+        );
     }
 
     public boolean isDaytime(String sunrise, String sunset) {
+        if (sunrise == null || sunset == null) {
+            return true;
+        }
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmm");
         LocalTime sunriseTime = LocalTime.parse(sunrise, timeFormatter);
         LocalTime sunsetTime = LocalTime.parse(sunset, timeFormatter);
         LocalTime now = LocalTime.now();
-        return (now.isAfter(sunriseTime) && now.isBefore(sunsetTime));
+        return now.isAfter(sunriseTime) && now.isBefore(sunsetTime);
     }
 
 
