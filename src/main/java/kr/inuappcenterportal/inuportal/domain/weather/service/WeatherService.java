@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import kr.inuappcenterportal.inuportal.domain.weather.dto.WeatherResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -23,7 +24,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
