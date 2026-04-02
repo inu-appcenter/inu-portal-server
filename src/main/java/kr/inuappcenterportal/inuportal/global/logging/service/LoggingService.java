@@ -77,6 +77,14 @@ public class LoggingService {
         deleteLogsByDate(oneDayAgo);
     }
 
+    // 특정 날짜 로그 경량화
+    @Transactional
+    public void summarizeDailyLogsByDate(LocalDate date) {
+        saveSummaryMemberLog(date);
+        saveSummaryApiLog(date);
+        deleteLogsByDate(date);
+    }
+
     @Transactional
     public void saveSummaryMemberLog(LocalDate oneDayAgo) {
         LoggingMemberResponse loggingMemberResponse = getMemberLogResponseByDate(oneDayAgo);
