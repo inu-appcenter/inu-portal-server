@@ -1,12 +1,7 @@
 name: "[Dev] CI & CD"
 
 on:
-  workflow_dispatch:
-    inputs:
-      reason:
-        description: "배포 이유 작성 (선택)"
-        required: false
-        default: "manual deploy"
+  workflow_dispatch: {}
 
 permissions:
   contents: read
