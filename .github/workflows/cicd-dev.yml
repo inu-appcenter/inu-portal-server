@@ -74,7 +74,7 @@ jobs:
             
             docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
             
-            docker network create inu-portal-dev || true
+            docker network create intip-dev || true
             
             docker run -d \
               --network intip-dev \
