@@ -37,28 +37,28 @@ public class FcmController {
     public ResponseEntity<ResponseDto<Long>> saveToken(@Valid @RequestBody TokenRequestDto tokenRequestDto,
                                                        @AuthenticationPrincipal Member member) {
         fcmService.saveToken(tokenRequestDto, member == null ? null : member.getId());
-        return ResponseEntity.ok(ResponseDto.of(1L, "?좏겙 ?깅줉 ?깃났"));
+        return ResponseEntity.ok(ResponseDto.of(1L, "토큰 등록 성공"));
     }
 
     @DeleteMapping("")
     public ResponseEntity<ResponseDto<Long>> deleteToken(@Valid @RequestBody TokenRequestDto tokenRequestDto,
                                                          @AuthenticationPrincipal Member member) {
         fcmService.deleteToken(tokenRequestDto.getToken(), member == null ? null : member.getId());
-        return ResponseEntity.ok(ResponseDto.of(1L, "?좏겙?먯꽌 ?뚯썝 ?뺣낫 ??젣 ?깃났"));
+        return ResponseEntity.ok(ResponseDto.of(1L, "토큰에서 회원 정보 삭제 성공"));
     }
 
-    @Operation(summary = "?뚯썝??諛쏆? ?뚮┝ 議고쉶", description = "?뚯썝??諛쏆? 紐⑤뱺 ?뚮┝??理쒖떊?쒖쑝濡?議고쉶?⑸땲??")
+    @Operation(summary = "회원의 받은 알림 조회", description = "회원이 받은 모든 알림을 최신순으로 조회합니다.")
     @GetMapping
     public ResponseEntity<ResponseDto<ListResponseDto<NotificationResponse>>> checkNotification(
             @AuthenticationPrincipal Member member,
             @RequestParam(required = false, defaultValue = "1") @Min(1) int page
     ) {
-        return ResponseEntity.ok(ResponseDto.of(fcmService.findNotifications(member, page), "?뚮┝ 議고쉶 ?깃났"));
+        return ResponseEntity.ok(ResponseDto.of(fcmService.findNotifications(member, page), "알림 조회 성공"));
     }
 
-    @Operation(summary = "(愿由ъ옄 ?꾩슜) ?뚯썝 ?뚮┝ ?꾩넚",
-            description = "吏???뚯썝?ㅼ뿉寃??뚮┝???꾩넚?⑸땲?? <br><br>" +
-                    "memberIds媛 鍮꾩뼱?덉쑝硫??꾩껜 ?뚯썝?먭쾶 ?뚮┝???꾩넚?⑸땲??")
+    @Operation(summary = "(관리자 전용) 회원 알림 전송",
+            description = "지정 회원들에게 알림을 전송합니다. <br><br>" +
+                    "memberIds가 비어있으면 전체 회원에게 알림을 전송합니다.")
     @PostMapping("/admin")
     public ResponseEntity<ResponseDto<Long>> sendToMembers(@Valid @RequestBody AdminNotificationRequest request) {
         AdminNotificationDispatch dispatch = fcmService.prepareAdminNotification(request);
@@ -73,13 +73,13 @@ public class FcmController {
                 .body(ResponseDto.of(dispatch.fcmMessageId(), "발송 대상 토큰이 없어 요청만 기록했습니다."));
     }
 
-    @Operation(summary = "(愿由ъ옄 ?꾩슜) 愿由ъ옄 ?꾩넚 FCM 硫붿떆吏 ?깃났 ?잛닔 議고쉶",
-            description = "愿由ъ옄媛 ?꾩넚??FCM 硫붿꽭吏?ㅼ쓽 珥??깃났 ?잛닔瑜?議고쉶?⑸땲??")
+    @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 성공 횟수 조회",
+            description = "관리자가 전송한 FCM 메세지들의 총 성공 횟수를 조회합니다.")
     @GetMapping("/admin")
     public ResponseEntity<ResponseDto<List<AdminNotificationResponse>>> countAdminFcmMessagesSuccess(
             @RequestParam(required = false, defaultValue = "1") @Min(1) int page
     ) {
-        return ResponseEntity.ok(ResponseDto.of(fcmService.countAdminFcmMessagesSuccess(page), "FCM 硫붿떆吏 媛쒖닔 議고쉶 ?깃났"));
+        return ResponseEntity.ok(ResponseDto.of(fcmService.countAdminFcmMessagesSuccess(page), "FCM 메시지 개수 조회 성공"));
     }
 
     @GetMapping("/admin/{fcmMessageId}")

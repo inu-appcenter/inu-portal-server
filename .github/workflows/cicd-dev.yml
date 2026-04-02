@@ -77,7 +77,7 @@ jobs:
             docker network create inu-portal-dev || true
             
             docker run -d \
-              --network inu-portal-dev \
+              --network intip-dev \
               -p 8104:8080 \
               -e TZ=Asia/Seoul \
               -v ${{ secrets.MOUNT_PATH }}:/intip \
