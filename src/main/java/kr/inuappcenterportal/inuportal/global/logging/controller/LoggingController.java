@@ -49,4 +49,11 @@ public class LoggingController {
                                                            HttpServletRequest request) {
         return ResponseEntity.ok(ResponseDto.of(loggingService.saveApiLogs(apiLoggingRequest, member, request), "Api 로그 저장 성공"));
     }
+
+    @Operation(summary = "[수동] 로그 경량화", description = "특정 날짜에 대한 로그를 요약하여 저장합니다.")
+    @PostMapping("/summary")
+    public ResponseEntity<ResponseDto<String>> summarizeLogs(@RequestParam ("date")  LocalDate date) {
+        loggingService.summarizeDailyLogsByDate(date);
+        return ResponseEntity.ok(ResponseDto.of(null, "로그 요약 저장 성공"));
+    }
 }
