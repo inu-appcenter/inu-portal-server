@@ -1,7 +1,7 @@
-package kr.inuappcenterportal.inuportal.domain.staff.service;
+package kr.inuappcenterportal.inuportal.domain.directory.service;
 
-import kr.inuappcenterportal.inuportal.domain.staff.enums.StaffDirectoryCategory;
-import kr.inuappcenterportal.inuportal.domain.staff.model.StaffDirectoryEntry;
+import kr.inuappcenterportal.inuportal.domain.directory.enums.DirectoryCategory;
+import kr.inuappcenterportal.inuportal.domain.directory.model.DirectoryEntry;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Assertions;
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 
-class StaffDirectoryParserTest {
+class DirectoryParserTest {
 
     @Test
     @DisplayName("Reads total pages from the paging block")
@@ -27,11 +27,11 @@ class StaffDirectoryParserTest {
                 </div>
                 """);
 
-        Assertions.assertEquals(49, StaffDirectoryParser.extractTotalPages(document));
+        Assertions.assertEquals(49, DirectoryParser.extractTotalPages(document));
     }
 
     @Test
-    @DisplayName("Parses a staff row and normalizes its phone number")
+    @DisplayName("Parses a directory row and normalizes its phone number")
     void parseEntries() {
         Document document = Jsoup.parse("""
                 <div class="func-table">
@@ -55,17 +55,17 @@ class StaffDirectoryParserTest {
                 """);
         LocalDateTime syncedAt = LocalDateTime.of(2026, 4, 3, 10, 15);
 
-        List<StaffDirectoryEntry> entries = StaffDirectoryParser.parseEntries(
+        List<DirectoryEntry> entries = DirectoryParser.parseEntries(
                 document,
-                StaffDirectoryCategory.HEADQUARTERS,
+                DirectoryCategory.HEADQUARTERS,
                 0,
                 syncedAt
         );
 
         Assertions.assertEquals(1, entries.size());
 
-        StaffDirectoryEntry entry = entries.get(0);
-        Assertions.assertEquals(StaffDirectoryCategory.HEADQUARTERS, entry.getCategory());
+        DirectoryEntry entry = entries.get(0);
+        Assertions.assertEquals(DirectoryCategory.HEADQUARTERS, entry.getCategory());
         Assertions.assertEquals("Audit", entry.getAffiliation());
         Assertions.assertEquals("Audit Office", entry.getDetailAffiliation());
         Assertions.assertEquals("Officer", entry.getPosition());

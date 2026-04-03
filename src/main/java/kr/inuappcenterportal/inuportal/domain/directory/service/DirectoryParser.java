@@ -1,7 +1,7 @@
-package kr.inuappcenterportal.inuportal.domain.staff.service;
+package kr.inuappcenterportal.inuportal.domain.directory.service;
 
-import kr.inuappcenterportal.inuportal.domain.staff.enums.StaffDirectoryCategory;
-import kr.inuappcenterportal.inuportal.domain.staff.model.StaffDirectoryEntry;
+import kr.inuappcenterportal.inuportal.domain.directory.enums.DirectoryCategory;
+import kr.inuappcenterportal.inuportal.domain.directory.model.DirectoryEntry;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-final class StaffDirectoryParser {
+final class DirectoryParser {
 
     private static final Pattern MULTI_WHITESPACE = Pattern.compile("\\s+");
 
-    private StaffDirectoryParser() {
+    private DirectoryParser() {
     }
 
     static int extractTotalPages(Document document) {
@@ -29,10 +29,10 @@ final class StaffDirectoryParser {
         return document.select(".func-table tbody tr").isEmpty() ? 0 : 1;
     }
 
-    static List<StaffDirectoryEntry> parseEntries(Document document, StaffDirectoryCategory category,
-                                                  int startingDisplayOrder, LocalDateTime syncedAt) {
+    static List<DirectoryEntry> parseEntries(Document document, DirectoryCategory category,
+                                             int startingDisplayOrder, LocalDateTime syncedAt) {
         Elements rows = document.select(".func-table tbody tr");
-        List<StaffDirectoryEntry> entries = new ArrayList<>();
+        List<DirectoryEntry> entries = new ArrayList<>();
         int displayOrder = startingDisplayOrder;
 
         for (Element row : rows) {
@@ -52,7 +52,7 @@ final class StaffDirectoryParser {
                 continue;
             }
 
-            entries.add(StaffDirectoryEntry.create(
+            entries.add(DirectoryEntry.create(
                     category,
                     affiliation,
                     detailAffiliation,
