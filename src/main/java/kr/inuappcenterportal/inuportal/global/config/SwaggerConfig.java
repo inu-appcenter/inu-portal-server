@@ -4,8 +4,11 @@ package kr.inuappcenterportal.inuportal.global.config;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
@@ -13,8 +16,16 @@ public class SwaggerConfig {
     public OpenAPI openAPI(){
         return new OpenAPI()
                 .components(new Components())
+                .servers(List.of(currentEnvironmentServer()))
                 .info(apiInfo());
     }
+
+    private Server currentEnvironmentServer() {
+        return new Server()
+                .url("/")
+                .description("Current environment");
+    }
+
     private Info apiInfo() {
         return new Info()
                 .title("INTIP API명세서")
