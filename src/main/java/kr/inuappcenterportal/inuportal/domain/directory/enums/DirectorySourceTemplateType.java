@@ -7,10 +7,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum DirectorySourceTemplateType {
 
-    SUBVIEW_DO("subview.do"),
-    INDEX_DO("index.do"),
-    BOARD_PHP("board.php"),
-    OTHER("other");
+    SUBVIEW_DO("서브뷰 페이지"),
+    INDEX_DO("인덱스 페이지"),
+    BOARD_PHP("게시판 페이지"),
+    OTHER("기타");
 
     private final String label;
 

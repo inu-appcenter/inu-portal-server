@@ -12,18 +12,24 @@ import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
+    private static final List<Server> SERVERS = List.of(
+            createServer("http://localhost:8080", "Local"),
+            createServer("https://portal.inuappcenter.kr", "Production"),
+            createServer("https://portal-dev.inuappcenter.kr", "Development")
+    );
+
     @Bean
     public OpenAPI openAPI(){
         return new OpenAPI()
                 .components(new Components())
-                .servers(List.of(currentEnvironmentServer()))
+                .servers(SERVERS)
                 .info(apiInfo());
     }
 
-    private Server currentEnvironmentServer() {
+    private static Server createServer(String url, String description) {
         return new Server()
-                .url("/")
-                .description("Current environment");
+                .url(url)
+                .description(description);
     }
 
     private Info apiInfo() {
