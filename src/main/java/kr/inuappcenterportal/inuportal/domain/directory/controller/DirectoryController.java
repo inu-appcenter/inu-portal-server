@@ -50,7 +50,7 @@ public class DirectoryController {
             @RequestParam(required = false) String query,
             @RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
         return ResponseEntity.ok(
-                ResponseDto.of(directoryService.getEntries(category, query, page), "Directory lookup succeeded")
+                ResponseDto.of(directoryService.getEntries(category, query, page), "교내 전화번호부 조회 성공")
         );
     }
 
@@ -65,7 +65,7 @@ public class DirectoryController {
             @RequestParam(required = false) String query,
             @RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
         return ResponseEntity.ok(
-                ResponseDto.of(directoryService.getEntries(category, query, page), "Directory search succeeded")
+                ResponseDto.of(directoryService.getEntries(category, query, page), "교내 전화번호부 검색 성공")
         );
     }
 
@@ -77,7 +77,7 @@ public class DirectoryController {
     @PostMapping("/sync")
     public ResponseEntity<ResponseDto<DirectorySyncResponse>> syncDirectory() throws IOException {
         return ResponseEntity.ok(
-                ResponseDto.of(directoryService.syncAllCategories(), "Directory sync succeeded")
+                ResponseDto.of(directoryService.syncAllCategories(), "교내 전화번호부 동기화 성공")
         );
     }
 
@@ -91,7 +91,7 @@ public class DirectoryController {
             @RequestParam(required = false) DirectoryCategory category,
             @RequestParam(required = false, defaultValue = "1") @Min(1) int page) {
         return ResponseEntity.ok(
-                ResponseDto.of(directorySourceService.getSources(category, page), "Directory source inventory lookup succeeded")
+                ResponseDto.of(directorySourceService.getSources(category, page), "전화번호부 수집 대상 목록 조회 성공")
         );
     }
 
@@ -103,11 +103,11 @@ public class DirectoryController {
     @PostMapping("/sources/sync")
     public ResponseEntity<ResponseDto<DirectorySourceSyncResponse>> syncDirectorySources() throws IOException {
         return ResponseEntity.ok(
-                ResponseDto.of(directorySourceService.syncInventoryCategories(), "Directory source inventory sync succeeded")
+                ResponseDto.of(directorySourceService.syncInventoryCategories(), "전화번호부 수집 대상 목록 동기화 성공")
         );
     }
 
-    @Operation(summary = "단과대학 행정실 전화번호부 조회", description = "ISC 단과대학 연락처 페이지에서 학과 사무실의 전화번호, 홈페이지 URL, 위치 정보를 조회합니다.")
+    @Operation(summary = "단과대학 학과사무실 전화번호부 조회", description = "ISC 단과대학 연락처 페이지에서 학과 사무실의 전화번호, 홈페이지 URL, 위치 정보를 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "단과대학 행정실 전화번호부 조회 성공",
                     content = @Content(schema = @Schema(implementation = CollegeOfficeContactResponse.class)))
@@ -120,7 +120,7 @@ public class DirectoryController {
         return ResponseEntity.ok(
                 ResponseDto.of(
                         collegeOfficeContactService.getContacts(collegeName, query, page),
-                        "College office contact lookup succeeded"
+                        "학과 행정실 연락처 조회 성공"
                 )
         );
     }
@@ -138,7 +138,7 @@ public class DirectoryController {
         return ResponseEntity.ok(
                 ResponseDto.of(
                         collegeOfficeContactService.getContacts(collegeName, query, page),
-                        "College office contact search succeeded"
+                        "학과 행정실 연락처 검색 성공"
                 )
         );
     }
@@ -151,7 +151,7 @@ public class DirectoryController {
     @PostMapping("/college-office-contacts/sync")
     public ResponseEntity<ResponseDto<CollegeOfficeContactSyncResponse>> syncCollegeOfficeContacts() throws IOException {
         return ResponseEntity.ok(
-                ResponseDto.of(collegeOfficeContactService.sync(), "College office contact sync succeeded")
+                ResponseDto.of(collegeOfficeContactService.sync(), "학과 행정실 연락처 동기화 성공")
         );
     }
 }
