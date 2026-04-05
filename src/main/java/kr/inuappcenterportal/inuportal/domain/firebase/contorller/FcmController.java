@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Tokens", description = "Fcm ?좏겙 API")
+@Tag(name = "Tokens", description = "Fcm 토큰 API")
 @Slf4j
 @RestController
 @RequestMapping("/api/tokens")

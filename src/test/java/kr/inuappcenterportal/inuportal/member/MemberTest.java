@@ -77,11 +77,13 @@ public class MemberTest {
         String password = "12345";
         String body = makeLoginBody(studentId,password);
         when(schoolLoginRepository.loginCheck(studentId,password)).thenReturn(true);
+        when(schoolLoginRepository.resolveRoles(studentId)).thenReturn(Collections.singletonList("ROLE_USER"));
         mockMvc.perform(post("/api/members/login").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("로그인 성공, 토근이 발급되었습니다."))
                 .andDo(print());
         verify(schoolLoginRepository,times(1)).loginCheck(studentId,password);
+        verify(schoolLoginRepository,times(1)).resolveRoles(studentId);
     }
 
     @Test
@@ -92,11 +94,13 @@ public class MemberTest {
         saveMember(studentId);
         String body = makeLoginBody(studentId,password);
         when(schoolLoginRepository.loginCheck(studentId,password)).thenReturn(true);
+        when(schoolLoginRepository.resolveRoles(studentId)).thenReturn(Collections.singletonList("ROLE_USER"));
         mockMvc.perform(post("/api/members/login").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("로그인 성공, 토근이 발급되었습니다."))
                 .andDo(print());
         verify(schoolLoginRepository,times(1)).loginCheck(studentId,password);
+        verify(schoolLoginRepository,times(1)).resolveRoles(studentId);
     }
 
     @Test

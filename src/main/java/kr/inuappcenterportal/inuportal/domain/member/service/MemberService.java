@@ -87,20 +87,33 @@ public class MemberService {
 
     @Transactional
     public TokenDto schoolLogin(LoginDto loginDto) {
-        if (!schoolLoginRepository.loginCheck(loginDto.getStudentId(), loginDto.getPassword())) {
+        String studentId = loginDto.getStudentId();
+        if (!schoolLoginRepository.loginCheck(studentId, loginDto.getPassword())) {
             throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
         }
-        if (!memberRepository.existsByStudentId(loginDto.getStudentId())) {
-            createMember(loginDto.getStudentId());
-        }
-        Member member = memberRepository.findByStudentId(loginDto.getStudentId())
-                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        List<String> roles = schoolLoginRepository.resolveRoles(studentId);
+        Member member = memberRepository.findByStudentId(studentId)
+                .map(existingMember -> synchronizeRoles(existingMember, roles))
+                .orElseGet(() -> createMember(studentId, roles));
         return login(member);
     }
 
     public void createMember(String studentId) {
-        Member member = Member.builder().studentId(studentId).roles(Collections.singletonList("ROLE_USER")).build();
-        memberRepository.save(member);
+        createMember(studentId, Collections.singletonList("ROLE_USER"));
+    }
+
+    private Member createMember(String studentId, List<String> roles) {
+        Member member = Member.builder().studentId(studentId).roles(roles).build();
+        return memberRepository.save(member);
+    }
+
+    private Member synchronizeRoles(Member member, List<String> roles) {
+        if (!member.getRoles().equals(roles)) {
+            member.updateRoles(roles);
+            return memberRepository.save(member);
+        }
+        return member;
     }
 
     @Transactional

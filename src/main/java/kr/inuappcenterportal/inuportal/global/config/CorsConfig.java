@@ -18,6 +18,7 @@ public class CorsConfig {
         configuration.setAllowCredentials(true);
         configuration.setAllowedOrigins(List.of(
                 "https://portal.inuappcenter.kr",
+                "https://portal-dev.inuappcenter.kr",
                 "https://intip.inuappcenter.kr",
                 "https://intip-test.pages.dev",
                 "https://hyunjun.intip-test.pages.dev",

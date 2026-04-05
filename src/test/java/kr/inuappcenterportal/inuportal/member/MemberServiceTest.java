@@ -56,7 +56,7 @@ public class MemberServiceTest {
         Member member = createMember(studentId);
         LoginDto loginDto = LoginDto.builder().studentId(studentId).password(password).build();
         when(schoolLoginRepository.loginCheck(studentId,password)).thenReturn(true);
-        when(memberRepository.existsByStudentId(studentId)).thenReturn(false);
+        when(schoolLoginRepository.resolveRoles(studentId)).thenReturn(Collections.singletonList("ROLE_USER"));
         when(memberRepository.findByStudentId(studentId)).thenReturn(Optional.ofNullable(member));
         when(tokenProvider.createToken(eq("1"),eq(member.getRoles()), any(LocalDateTime.class))).thenReturn("testAccessToken");
         when(tokenProvider.createRefreshToken(eq("1"), any(LocalDateTime.class))).thenReturn("testRefreshToken");
@@ -76,7 +76,7 @@ public class MemberServiceTest {
         );
 
         verify(schoolLoginRepository,times(1)).loginCheck(studentId,password);
-        verify(memberRepository, times(1)).existsByStudentId(studentId);
+        verify(schoolLoginRepository,times(1)).resolveRoles(studentId);
         verify(memberRepository, times(1)).findByStudentId(studentId);
     }
 
