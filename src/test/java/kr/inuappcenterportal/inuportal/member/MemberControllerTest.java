@@ -134,14 +134,14 @@ public class MemberControllerTest {
 
         Member member = Member.builder().studentId("123456789").build();
         MemberResponseDto memberResponseDto = MemberResponseDto.userMember(member);
-        when(memberService.getMember(any(Member.class))).thenReturn(memberResponseDto);
+        when(memberService.getCurrentMember(any(Member.class))).thenReturn(memberResponseDto);
         mockMvc.perform(get("/api/members").header("Auth",token).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("회원 가져오기 성공"))
                 .andExpect(jsonPath("$.data.nickname").value(memberResponseDto.getNickname()))
                 .andExpect(jsonPath("$.data.role").value("user"))
                 .andDo(print());
-        verify(memberService).getMember(any(Member.class));
+        verify(memberService).getCurrentMember(any(Member.class));
     }
 
     @Test
@@ -158,14 +158,14 @@ public class MemberControllerTest {
 
         Member member = Member.builder().studentId("123456789").build();
         MemberResponseDto memberResponseDto = MemberResponseDto.adminMember(member);
-        when(memberService.getMember(any(Member.class))).thenReturn(memberResponseDto);
+        when(memberService.getCurrentMember(any(Member.class))).thenReturn(memberResponseDto);
         mockMvc.perform(get("/api/members").header("Auth",token).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("회원 가져오기 성공"))
                 .andExpect(jsonPath("$.data.nickname").value(memberResponseDto.getNickname()))
                 .andExpect(jsonPath("$.data.role").value("admin"))
                 .andDo(print());
-        verify(memberService).getMember(any(Member.class));
+        verify(memberService).getCurrentMember(any(Member.class));
     }
 
 
