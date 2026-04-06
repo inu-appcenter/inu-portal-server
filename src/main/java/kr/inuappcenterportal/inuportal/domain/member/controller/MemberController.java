@@ -95,7 +95,7 @@ public class MemberController {
     @GetMapping("")
     public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member){
         //log.info("회원 가져오기 호출 id:{}",member.getId());
-        return ResponseEntity.ok(ResponseDto.of(memberService.getMember(member),"회원 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(memberService.getCurrentMember(member),"회원 가져오기 성공"));
     }
 
     @Operation(summary = "모든 회원 가져오기")

@@ -125,6 +125,14 @@ public class Member implements UserDetails {
         this.lastSeenAt = LocalDateTime.now();
     }
 
+    public boolean shouldUpdateLastSeenAt(LocalDateTime now, long thresholdMinutes) {
+        if (this.lastSeenAt == null) {
+            return true;
+        }
+
+        return !this.lastSeenAt.isAfter(now.minusMinutes(thresholdMinutes));
+    }
+
     @PrePersist
     private void initializeTimestamps() {
         LocalDateTime now = LocalDateTime.now();

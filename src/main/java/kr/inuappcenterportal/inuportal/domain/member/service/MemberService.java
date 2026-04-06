@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MemberService {
+    private static final long LAST_SEEN_UPDATE_THRESHOLD_MINUTES = 5L;
+
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
     private final SchoolLoginRepository schoolLoginRepository;
@@ -77,12 +79,19 @@ public class MemberService {
         return login(member);
     }
 
+    @Transactional
+    public MemberResponseDto getCurrentMember(Member member) {
+        Member persistedMember = findMemberById(member.getId());
+        updateLastSeenAtIfNeeded(persistedMember);
+        return getMemberResponseDto(persistedMember);
+    }
+
     public MemberResponseDto getMember(Member member) {
         return getMemberResponseDto(member);
     }
 
     public List<MemberResponseDto> getAllMember() {
-        return memberRepository.findAll().stream().map(this::getMember).collect(Collectors.toList());
+        return memberRepository.findAll().stream().map(this::getMemberResponseDto).collect(Collectors.toList());
     }
 
     @Transactional
@@ -135,6 +144,13 @@ public class MemberService {
             return MemberResponseDto.adminMember(member);
         } else {
             return MemberResponseDto.userMember(member);
+        }
+    }
+
+    private void updateLastSeenAtIfNeeded(Member member) {
+        LocalDateTime now = LocalDateTime.now();
+        if (member.shouldUpdateLastSeenAt(now, LAST_SEEN_UPDATE_THRESHOLD_MINUTES)) {
+            member.updateLastSeenAt();
         }
     }
 

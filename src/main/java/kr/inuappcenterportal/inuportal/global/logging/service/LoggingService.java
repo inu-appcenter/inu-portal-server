@@ -2,7 +2,6 @@ package kr.inuappcenterportal.inuportal.global.logging.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.logging.domain.*;
@@ -26,9 +25,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LoggingService {
 
-    private static final String MEMBER_NO_DUP_URI = "/api/members/no-dup";
     private final LoggingRepository loggingRepository;
-    private final MemberRepository memberRepository;
     private final SummaryMemberLogRepository summaryMemberLogRepository;
     private final SummaryMemberLogItemRepository summaryMemberLogItemRepository;
     private final SummaryApiLogRepository summaryApiLogRepository;
@@ -153,20 +150,10 @@ public class LoggingService {
     public String saveApiLogs(ApiLoggingRequest apiLoggingRequest, Member member, HttpServletRequest request) {
         String memberId = getClientId(member, request);
         String httpMethod = "CUSTOM";
-        updateLastSeenAtIfNeeded(apiLoggingRequest.uri(), member);
 
         return loggingRepository.save(
                 Logging.createLog(memberId, httpMethod, apiLoggingRequest.uri(), -1)
         ).getUri();
-    }
-
-    private void updateLastSeenAtIfNeeded(String uri, Member member) {
-        if (!MEMBER_NO_DUP_URI.equals(uri) || member == null) {
-            return;
-        }
-
-        memberRepository.findById(member.getId())
-                .ifPresent(Member::updateLastSeenAt);
     }
 
     private LoggingMemberResponse getMemberLogResponseByDate(LocalDate date) {

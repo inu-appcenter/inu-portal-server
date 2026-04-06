@@ -47,7 +47,7 @@ LEFT JOIN (
             MAX(l.modified_date) AS last_seen_at
         FROM logging l
         WHERE l.member_id REGEXP '^[0-9]+$'
-          AND l.uri = '/api/members/no-dup'
+          AND l.uri IN ('/api/members', '/api/members/no-dup')
         GROUP BY CAST(l.member_id AS UNSIGNED)
     ) candidate
     GROUP BY candidate.member_id
