@@ -32,7 +32,7 @@ public class CollegeOfficeContactService {
     private final CollegeOfficeContactRepository collegeOfficeContactRepository;
     private final DirectoryPersistenceService directoryPersistenceService;
 
-    @Scheduled(cron = "0 20 4 * * *")
+    @Scheduled(cron = "0 20 4 * * SAT")
     public void scheduledSync() {
         try {
             CollegeOfficeContactSyncResponse result = sync();
