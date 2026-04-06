@@ -38,7 +38,7 @@ public class DirectorySourceService {
     private final DirectorySourceRepository directorySourceRepository;
     private final DirectoryPersistenceService directoryPersistenceService;
 
-    @Scheduled(cron = "0 15 4 * * *")
+    @Scheduled(cron = "0 15 4 * * SAT")
     public void scheduledSync() {
         try {
             DirectorySourceSyncResponse result = syncInventoryCategories();
