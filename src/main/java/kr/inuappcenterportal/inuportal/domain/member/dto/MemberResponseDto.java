@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Schema(description = "회원정보 응답Dto")
 @Getter
@@ -30,6 +31,15 @@ public class MemberResponseDto {
     @Schema(description = "약관 동의 여부", example = "false")
     private Boolean termsAgreed;
 
+    @Schema(description = "가입 시각")
+    private LocalDateTime joinedAt;
+
+    @Schema(description = "회원정보 마지막 수정 시각")
+    private LocalDateTime profileModifiedAt;
+
+    @Schema(description = "마지막 접속 시각")
+    private LocalDateTime lastSeenAt;
+
     @Builder
     private MemberResponseDto(Member member, String role, Department department) {
         this.id = member.getId();
@@ -38,6 +48,9 @@ public class MemberResponseDto {
         this.role = role;
         this.department = department == null? null : department.getDepartmentName();
         this.termsAgreed = member.getTermsAgreed();
+        this.joinedAt = member.getJoinedAt();
+        this.profileModifiedAt = member.getProfileModifiedAt();
+        this.lastSeenAt = member.getLastSeenAt();
     }
 
     public static MemberResponseDto userMember(Member member){
