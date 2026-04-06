@@ -47,13 +47,13 @@ public class DirectoryService {
     private final DirectoryPersistenceService directoryPersistenceService;
     private final List<DirectorySourceEntryAdapter> sourceEntryAdapters;
 
-    @Scheduled(cron = "0 0 4 * * *")
+    @Scheduled(cron = "0 0 4 * * SAT")
     public void scheduledSync() {
         try {
             DirectorySyncResponse result = syncAllCategories();
-            log.info("Directory sync completed. totalEntries={}", result.getTotalCount());
+            log.info("[DirectoryService] 전화번호부 크롤링 성공. totalEntries={}", result.getTotalCount());
         } catch (Exception e) {
-            log.error("Directory sync failed.", e);
+            log.error("[DirectoryService] 전화번호부 크롤링 실패..", e);
         }
     }
 
