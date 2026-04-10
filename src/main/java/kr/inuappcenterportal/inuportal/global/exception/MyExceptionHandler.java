@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.global.exception;
 
 
 import jakarta.validation.ConstraintViolationException;
+import kr.inuappcenterportal.inuportal.domain.academic.exception.AcademicException;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,12 @@ public class MyExceptionHandler {
     public ResponseEntity<ResponseDto<Integer>> MyException(MyException ex){
         log.error("예외 발생 msg:{}",ex.getErrorCode().getMessage());
         return ResponseEntity.status(ex.getErrorCode().getStatus()).body(ResponseDto.of(-1,ex.getErrorCode().getMessage()));
+    }
+
+    @ExceptionHandler(AcademicException.class)
+    public ResponseEntity<ResponseDto<Integer>> handleAcademicException(AcademicException ex){
+        log.error("학적 조회 예외 발생 msg:{}", ex.getMessage());
+        return ResponseEntity.status(ex.getStatus()).body(ResponseDto.of(-1, ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
