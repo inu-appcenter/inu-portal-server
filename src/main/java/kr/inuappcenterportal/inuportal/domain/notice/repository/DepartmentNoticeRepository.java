@@ -22,11 +22,21 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
     @Query("""
             select dn from DepartmentNotice dn
             where dn.department = :department
-              and dn.contentText is null
+              and (
+                    dn.contentText is null
+                    or dn.inlineImageUrlsJson is null
+                    or dn.attachmentMetaJson is null
+              )
               and (dn.contentStatus is null or dn.contentStatus in :statuses)
             order by dn.id desc
             """)
     List<DepartmentNotice> findBackfillTargetsByDepartment(
+            Department department,
+            List<DepartmentNoticeContentStatus> statuses,
+            Pageable pageable
+    );
+
+    List<DepartmentNotice> findByDepartmentAndContentStatusInOrderByIdDesc(
             Department department,
             List<DepartmentNoticeContentStatus> statuses,
             Pageable pageable

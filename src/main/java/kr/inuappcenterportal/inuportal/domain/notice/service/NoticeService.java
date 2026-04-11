@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.notice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
@@ -16,6 +18,8 @@ import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -33,16 +37,21 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -53,10 +62,13 @@ public class NoticeService {
 
     private static final String DEPT_INDEX_KEY = "departmentIndex";
     private static final String DEPT_CONTENT_INDEX_KEY = "departmentContentIndex";
+    private static final String DEPT_ENRICH_INDEX_KEY = "departmentEnrichIndex";
     private static final int DEPT_SIZE = 4;
     private static final int DEPT_CONTENT_SIZE = 4;
+    private static final int DEPT_ENRICH_SIZE = 4;
     private static final int DEPT_NOTICE_LIMIT_PER_RUN = 4;
     private static final int DEPT_CONTENT_LIMIT_PER_DEPARTMENT = 4;
+    private static final int DEPT_ENRICH_LIMIT_PER_DEPARTMENT = 4;
     private static final int REQUEST_TIMEOUT_MILLIS = 10_000;
     private static final String CRAWLER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
     private static final String ACCESS_DENIED_MESSAGE = "\uC811\uADFC \uAD8C\uD55C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.";
@@ -70,12 +82,17 @@ public class NoticeService {
     private static final String SCHOOL_NOTICE_TUITION = "\uB4F1\uB85D\uAE08\uB0A9\uBD80";
     private static final String SCHOOL_NOTICE_EDUCATION_TEST = "\uAD50\uC721\uC2DC\uD5D8";
     private static final String NO_LABEL = "NO";
+    private static final int ERROR_MESSAGE_LIMIT = 500;
+
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<AttachmentMeta>> ATTACHMENT_META_LIST_TYPE = new TypeReference<>() {};
 
     private final NoticeRepository noticeRepository;
     private final DepartmentNoticeRepository departmentNoticeRepository;
     private final DepartmentCrawlerStateRepository departmentCrawlerStateRepository;
     private final CacheManager cacheManager;
     private final KeywordService keywordService;
+    private final ObjectMapper objectMapper;
 
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
@@ -88,7 +105,8 @@ public class NoticeService {
             NoticeRepository noticeRepository,
             DepartmentNoticeRepository departmentNoticeRepository,
             DepartmentCrawlerStateRepository departmentCrawlerStateRepository,
-            KeywordService keywordService
+            KeywordService keywordService,
+            ObjectMapper objectMapper
     ) {
         this.noticeRepository = noticeRepository;
         this.departmentNoticeRepository = departmentNoticeRepository;
@@ -96,6 +114,7 @@ public class NoticeService {
         this.localCacheManager = localCacheManager;
         this.departmentCrawlerStateRepository = departmentCrawlerStateRepository;
         this.keywordService = keywordService;
+        this.objectMapper = objectMapper;
     }
 
     @Scheduled(cron = "0 0/30 * * * *")
@@ -130,6 +149,19 @@ public class NoticeService {
         setCrawlerIndex(DEPT_CONTENT_INDEX_KEY, end >= departments.length ? 0 : end);
 
         log.info("학과 공지 본문 백필을 완료했습니다. startIndex={}, endIndex={}, count={}", start, end, count);
+    }
+
+    @Scheduled(cron = "0 7/10 * * * *")
+    @Transactional
+    public void enrichDepartmentNoticeContents() {
+        Department[] departments = Department.values();
+        int start = getCrawlerIndex(DEPT_ENRICH_INDEX_KEY);
+        int end = Math.min(start + DEPT_ENRICH_SIZE, departments.length);
+        int count = enrichDepartmentNoticeContents(departments, start, end);
+
+        setCrawlerIndex(DEPT_ENRICH_INDEX_KEY, end >= departments.length ? 0 : end);
+
+        log.info("학과 공지 본문 보강을 완료했습니다. startIndex={}, endIndex={}, count={}", start, end, count);
     }
 
     @Transactional
@@ -267,7 +299,8 @@ public class NoticeService {
                     "td.td_num.td_hit2",
                     ele -> !ele.select("strong.notice_icon").isEmpty(),
                     false,
-                    List.of("#bo_v_con", ".bo_v_con", ".view_content", ".board_view")
+                    List.of("#bo_v_con", ".bo_v_con", ".view_content", ".board_view"),
+                    List.of("#bo_v_file a[href]", ".view_file_download")
             );
         }
 
@@ -293,6 +326,12 @@ public class NoticeService {
                         ".artclContents",
                         ".fr-view",
                         "#jwxe_main_content"
+                ),
+                List.of(
+                        ".view-file a[href]",
+                        ".view-file li a[href]",
+                        ".artclFile a[href]",
+                        ".file a[href]"
                 )
         );
     }
@@ -305,12 +344,39 @@ public class NoticeService {
             DepartmentCrawlConfig config = getDepartmentCrawlConfig(department);
             List<DepartmentNotice> notices = departmentNoticeRepository.findBackfillTargetsByDepartment(
                     department,
-                    List.of(DepartmentNoticeContentStatus.PENDING, DepartmentNoticeContentStatus.FAILED),
+                    List.of(
+                            DepartmentNoticeContentStatus.PENDING,
+                            DepartmentNoticeContentStatus.FAILED,
+                            DepartmentNoticeContentStatus.SUCCESS,
+                            DepartmentNoticeContentStatus.ENRICH_PENDING,
+                            DepartmentNoticeContentStatus.NO_TEXT_CONTENT,
+                            DepartmentNoticeContentStatus.OCR_PENDING
+                    ),
                     PageRequest.of(0, DEPT_CONTENT_LIMIT_PER_DEPARTMENT)
             );
 
             for (DepartmentNotice notice : notices) {
                 syncDepartmentNoticeContent(notice, config);
+                processedCount++;
+            }
+        }
+
+        return processedCount;
+    }
+
+    private int enrichDepartmentNoticeContents(Department[] departments, int start, int end) {
+        int processedCount = 0;
+
+        for (int i = start; i < end; i++) {
+            Department department = departments[i];
+            List<DepartmentNotice> notices = departmentNoticeRepository.findByDepartmentAndContentStatusInOrderByIdDesc(
+                    department,
+                    List.of(DepartmentNoticeContentStatus.ENRICH_PENDING, DepartmentNoticeContentStatus.FAILED),
+                    PageRequest.of(0, DEPT_ENRICH_LIMIT_PER_DEPARTMENT)
+            );
+
+            for (DepartmentNotice notice : notices) {
+                enrichDepartmentNoticeContent(notice);
                 processedCount++;
             }
         }
@@ -394,7 +460,7 @@ public class NoticeService {
     }
 
     private void syncDepartmentNoticeContent(DepartmentNotice departmentNotice, DepartmentCrawlConfig config) {
-        if (departmentNotice.hasContent() || departmentNotice.isContentCrawlBlocked()) {
+        if (departmentNotice.isContentCrawlBlocked() && departmentNotice.hasContentCrawlMetadata()) {
             return;
         }
 
@@ -408,20 +474,30 @@ public class NoticeService {
             }
 
             Element contentRoot = findDepartmentNoticeContentRoot(detailDocument, config);
-            if (contentRoot == null) {
-                departmentNotice.markContentFailed();
+            if (contentRoot == null && false) {
+                departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
                 log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return;
             }
 
-            Element sanitizedContent = contentRoot.clone();
-            sanitizedContent.select("script, style, noscript, iframe").remove();
+            Element sanitizedContent = contentRoot == null ? null : contentRoot.clone();
+            if (sanitizedContent != null) {
+                sanitizedContent.select("script, style, noscript, iframe").remove();
+            }
 
-            String contentHtml = sanitizedContent.html().trim();
-            String contentText = sanitizedContent.text().trim();
-            if (contentText.isBlank()) {
-                departmentNotice.markContentFailed();
+            String contentHtml = sanitizedContent == null ? "" : sanitizedContent.html().trim();
+            String contentText = sanitizedContent == null ? "" : sanitizedContent.text().trim();
+            List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, departmentNotice.getUrl());
+            List<AttachmentMeta> attachmentMetas = collectAttachmentMetas(detailDocument, config, departmentNotice.getUrl());
+            if (contentRoot == null && inlineImageUrls.isEmpty() && attachmentMetas.isEmpty()) {
+                departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
+                log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
+                        departmentNotice.getDepartment().name(), departmentNotice.getUrl());
+                return;
+            }
+            if (contentText.isBlank() && false) {
+                departmentNotice.markContentFailed(limitMessage("학과 공지 본문 추출 결과가 비어 있습니다."));
                 log.warn("학과 공지 본문 추출 결과가 비어 있습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return;
@@ -431,19 +507,133 @@ public class NoticeService {
                     contentHtml,
                     contentText,
                     sha256(contentText),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    writeJson(inlineImageUrls),
+                    writeJson(attachmentMetas)
             );
+            updateContentStatusAfterCrawl(departmentNotice, contentText, inlineImageUrls, attachmentMetas);
         } catch (Exception e) {
-            departmentNotice.markContentFailed();
+            departmentNotice.markContentFailed(limitMessage(e.getMessage()));
             log.warn("학과 공지 본문 크롤링에 실패했습니다. department={}, url={}, reason={}",
                     departmentNotice.getDepartment().name(), departmentNotice.getUrl(), e.getMessage());
         }
     }
 
+    private void updateContentStatusAfterCrawl(
+            DepartmentNotice departmentNotice,
+            String contentText,
+            List<String> inlineImageUrls,
+            List<AttachmentMeta> attachmentMetas
+    ) {
+        String mergedText = mergeTexts(contentText, departmentNotice.getAttachmentText(), departmentNotice.getOcrText());
+        departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), departmentNotice.getAttachmentText(), mergedText);
+
+        boolean hasBaseText = !normalizeText(contentText).isBlank();
+        boolean hasParsableAttachments = attachmentMetas.stream().anyMatch(this::isParsableAttachment);
+        boolean hasImageAssets = !inlineImageUrls.isEmpty() || attachmentMetas.stream().anyMatch(this::isImageAttachment);
+
+        if (hasParsableAttachments) {
+            departmentNotice.markContentEnrichPending();
+            return;
+        }
+
+        if (hasBaseText) {
+            departmentNotice.markContentSuccess();
+            return;
+        }
+
+        if (hasImageAssets) {
+            departmentNotice.markContentOcrPending();
+            return;
+        }
+
+        departmentNotice.markNoTextContent();
+    }
+
+    private void enrichDepartmentNoticeContent(DepartmentNotice departmentNotice) {
+        try {
+            if ((departmentNotice.getAttachmentMetaJson() == null || departmentNotice.getAttachmentMetaJson().isBlank())
+                    && !departmentNotice.hasContent()) {
+                return;
+            }
+
+            List<AttachmentMeta> attachmentMetas = readAttachmentMetas(departmentNotice.getAttachmentMetaJson());
+            List<AttachmentMeta> parsableAttachments = attachmentMetas.stream()
+                    .filter(this::isParsableAttachment)
+                    .toList();
+
+            boolean hasImageAssets = !readInlineImageUrls(departmentNotice.getInlineImageUrlsJson()).isEmpty()
+                    || attachmentMetas.stream().anyMatch(this::isImageAttachment);
+
+            if (parsableAttachments.isEmpty()) {
+                finalizeNoticeWithoutAttachmentParse(departmentNotice, hasImageAssets);
+                return;
+            }
+
+            List<String> extractedTexts = new ArrayList<>();
+            List<String> failedAttachmentNames = new ArrayList<>();
+
+            for (AttachmentMeta attachmentMeta : parsableAttachments) {
+                try {
+                    String extractedText = extractAttachmentText(attachmentMeta);
+                    if (!normalizeText(extractedText).isBlank()) {
+                        extractedTexts.add("[" + attachmentMeta.name() + "]\n" + extractedText.trim());
+                    }
+                } catch (Exception e) {
+                    failedAttachmentNames.add(attachmentMeta.name());
+                    log.warn("첨부파일 본문 추출에 실패했습니다. department={}, url={}, attachmentName={}, reason={}",
+                            departmentNotice.getDepartment().name(), departmentNotice.getUrl(), attachmentMeta.name(), e.getMessage());
+                }
+            }
+
+            if (!failedAttachmentNames.isEmpty()) {
+                departmentNotice.markContentFailed(limitMessage("첨부파일 본문 추출 재시도 필요: " + String.join(", ", failedAttachmentNames)));
+                return;
+            }
+
+            String attachmentText = mergeTexts(extractedTexts);
+            String mergedText = mergeTexts(departmentNotice.getContentText(), attachmentText, departmentNotice.getOcrText());
+            departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), attachmentText, mergedText);
+
+            if (!normalizeText(mergedText).isBlank()) {
+                departmentNotice.markContentSuccess();
+                return;
+            }
+
+            if (hasImageAssets) {
+                departmentNotice.markContentOcrPending();
+                return;
+            }
+
+            departmentNotice.markNoTextContent();
+        } catch (Exception e) {
+            departmentNotice.markContentFailed(limitMessage(e.getMessage()));
+            log.warn("학과 공지 본문 보강에 실패했습니다. department={}, url={}, reason={}",
+                    departmentNotice.getDepartment().name(), departmentNotice.getUrl(), e.getMessage());
+        }
+    }
+
+    private void finalizeNoticeWithoutAttachmentParse(DepartmentNotice departmentNotice, boolean hasImageAssets) {
+        String mergedText = mergeTexts(departmentNotice.getContentText(), departmentNotice.getAttachmentText(), departmentNotice.getOcrText());
+        departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), departmentNotice.getAttachmentText(), mergedText);
+
+        if (!normalizeText(mergedText).isBlank()) {
+            departmentNotice.markContentSuccess();
+            return;
+        }
+
+        if (hasImageAssets) {
+            departmentNotice.markContentOcrPending();
+            return;
+        }
+
+        departmentNotice.markNoTextContent();
+    }
+
     private Element findDepartmentNoticeContentRoot(Document document, DepartmentCrawlConfig config) {
         for (String selector : config.getContentSelectors()) {
             Element selected = document.selectFirst(selector);
-            if (selected != null && !selected.text().isBlank()) {
+            if (selected != null) {
                 return selected;
             }
         }
@@ -476,6 +666,173 @@ public class NoticeService {
         }
 
         return java.net.URI.create(listUrl).resolve(rawHref).toString();
+    }
+
+    private List<String> collectInlineImageUrls(Element contentRoot, String detailUrl) {
+        if (contentRoot == null) {
+            return List.of();
+        }
+
+        Set<String> imageUrls = new LinkedHashSet<>();
+        for (Element image : contentRoot.select("img[src]")) {
+            String resolvedUrl = resolveRelativeUrl(detailUrl, image.attr("abs:src"), image.attr("src"));
+            if (!resolvedUrl.isBlank()) {
+                imageUrls.add(resolvedUrl);
+            }
+        }
+        return List.copyOf(imageUrls);
+    }
+
+    private List<AttachmentMeta> collectAttachmentMetas(Document document, DepartmentCrawlConfig config, String detailUrl) {
+        Set<String> seenUrls = new LinkedHashSet<>();
+        List<AttachmentMeta> attachmentMetas = new ArrayList<>();
+
+        for (String selector : config.getAttachmentSelectors()) {
+            for (Element link : document.select(selector)) {
+                String resolvedUrl = resolveRelativeUrl(detailUrl, link.attr("abs:href"), link.attr("href"));
+                if (resolvedUrl.isBlank() || !seenUrls.add(resolvedUrl)) {
+                    continue;
+                }
+
+                String name = normalizeText(link.text());
+                if (name.isBlank()) {
+                    name = extractFileName(resolvedUrl);
+                }
+
+                attachmentMetas.add(new AttachmentMeta(
+                        name,
+                        resolvedUrl,
+                        detectFileType(name, resolvedUrl)
+                ));
+            }
+        }
+
+        return attachmentMetas;
+    }
+
+    private String resolveRelativeUrl(String baseUrl, String absoluteCandidate, String rawCandidate) {
+        if (absoluteCandidate != null && !absoluteCandidate.isBlank()) {
+            return absoluteCandidate;
+        }
+        if (rawCandidate == null || rawCandidate.isBlank()) {
+            return "";
+        }
+        if (rawCandidate.startsWith("http://") || rawCandidate.startsWith("https://")) {
+            return rawCandidate;
+        }
+        return java.net.URI.create(baseUrl).resolve(rawCandidate).toString();
+    }
+
+    private boolean isParsableAttachment(AttachmentMeta attachmentMeta) {
+        return switch (attachmentMeta.fileType()) {
+            case "pdf", "txt", "csv", "md", "json", "xml", "html", "htm" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isImageAttachment(AttachmentMeta attachmentMeta) {
+        return switch (attachmentMeta.fileType()) {
+            case "png", "jpg", "jpeg", "gif", "bmp", "webp", "tif", "tiff" -> true;
+            default -> false;
+        };
+    }
+
+    private String detectFileType(String name, String url) {
+        String candidate = name == null || name.isBlank() ? url : name;
+        int dotIndex = candidate.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex == candidate.length() - 1) {
+            return "";
+        }
+        return candidate.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private String extractAttachmentText(AttachmentMeta attachmentMeta) throws IOException {
+        byte[] bytes = downloadBinary(attachmentMeta.url());
+
+        return switch (attachmentMeta.fileType()) {
+            case "pdf" -> extractPdfText(bytes);
+            case "txt", "csv", "md", "json", "xml", "html", "htm" -> new String(bytes, StandardCharsets.UTF_8);
+            default -> "";
+        };
+    }
+
+    private byte[] downloadBinary(String url) throws IOException {
+        Connection.Response response = connect(url)
+                .ignoreContentType(true)
+                .execute();
+        return response.bodyAsBytes();
+    }
+
+    private String extractPdfText(byte[] bytes) throws IOException {
+        try (PDDocument document = PDDocument.load(bytes)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            return stripper.getText(document);
+        }
+    }
+
+    private List<AttachmentMeta> readAttachmentMetas(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(json, ATTACHMENT_META_LIST_TYPE);
+        } catch (Exception e) {
+            log.warn("첨부 메타데이터를 읽지 못했습니다. reason={}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<String> readInlineImageUrls(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(json, STRING_LIST_TYPE);
+        } catch (Exception e) {
+            log.warn("본문 이미지 메타데이터를 읽지 못했습니다. reason={}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private String writeJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            throw new IllegalStateException("JSON 직렬화에 실패했습니다.", e);
+        }
+    }
+
+    private String extractFileName(String url) {
+        String sanitizedUrl = url.replace("&amp;", "&");
+        int queryIndex = sanitizedUrl.indexOf('?');
+        String path = queryIndex >= 0 ? sanitizedUrl.substring(0, queryIndex) : sanitizedUrl;
+        int slashIndex = path.lastIndexOf('/');
+        if (slashIndex < 0 || slashIndex == path.length() - 1) {
+            return "attachment";
+        }
+        return path.substring(slashIndex + 1);
+    }
+
+    private String mergeTexts(String... texts) {
+        List<String> normalized = new ArrayList<>();
+        for (String text : texts) {
+            String value = normalizeText(text);
+            if (!value.isBlank()) {
+                normalized.add(value);
+            }
+        }
+        return String.join("\n\n", normalized);
+    }
+
+    private String mergeTexts(List<String> texts) {
+        return mergeTexts(texts.toArray(String[]::new));
+    }
+
+    private String normalizeText(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("\u00A0", " ").trim();
     }
 
     @Transactional(readOnly = true)
@@ -551,13 +908,24 @@ public class NoticeService {
         departmentCrawlerStateRepository.save(state);
     }
 
+    private String limitMessage(String message) {
+        String normalized = normalizeText(message);
+        if (normalized.length() <= ERROR_MESSAGE_LIMIT) {
+            return normalized;
+        }
+        return normalized.substring(0, ERROR_MESSAGE_LIMIT);
+    }
+
     private String sha256(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            byte[] hash = digest.digest(normalizeText(value).getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to calculate content hash", e);
         }
+    }
+
+    private record AttachmentMeta(String name, String url, String fileType) {
     }
 }

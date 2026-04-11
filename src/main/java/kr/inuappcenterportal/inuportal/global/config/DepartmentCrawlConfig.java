@@ -18,4 +18,5 @@ public class DepartmentCrawlConfig {
     private Predicate<Element> skipCondition;
     private boolean useAbsoluteHref;
     private List<String> contentSelectors;
+    private List<String> attachmentSelectors;
 }
