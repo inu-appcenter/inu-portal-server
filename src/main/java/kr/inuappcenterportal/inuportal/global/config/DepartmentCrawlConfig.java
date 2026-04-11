@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.jsoup.nodes.Element;
 
+import java.util.List;
 import java.util.function.Predicate;
 
 @Getter
@@ -16,4 +17,5 @@ public class DepartmentCrawlConfig {
     private String viewsSelector;
     private Predicate<Element> skipCondition;
     private boolean useAbsoluteHref;
+    private List<String> contentSelectors;
 }
