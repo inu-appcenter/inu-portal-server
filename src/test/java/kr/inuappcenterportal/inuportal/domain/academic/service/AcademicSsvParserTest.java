@@ -68,7 +68,7 @@ class AcademicSsvParserTest {
     }
 
     @Test
-    void parseDepartmentNameMap_parsesDepartmentXmlDataset() {
+    void parseDepartmentNameMap_parsesDepartmentXmlDatasets() {
         String response = """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <Root xmlns="http://www.nexacroplatform.com/platform/dataset">
@@ -91,12 +91,25 @@ class AcademicSsvParserTest {
                             </Row>
                         </Rows>
                     </Dataset>
+                    <Dataset id="DS_BAIM001_02">
+                        <ColumnInfo>
+                            <Column id="deptCd" type="string" size="32"/>
+                            <Column id="deptNm" type="string" size="32"/>
+                        </ColumnInfo>
+                        <Rows>
+                            <Row>
+                                <Col id="deptCd">I000</Col>
+                                <Col id="deptNm">College of Information Technology</Col>
+                            </Row>
+                        </Rows>
+                    </Dataset>
                 </Root>
                 """;
 
-        Map<String, String> result = parser.parseDepartmentNameMap(response, "DS_BAIM001_01");
+        Map<String, String> result = parser.parseDepartmentNameMap(response);
 
         assertEquals("University", result.get("0000587"));
         assertEquals("Department of CSE", result.get("0000077"));
+        assertEquals("College of Information Technology", result.get("I000"));
     }
 }

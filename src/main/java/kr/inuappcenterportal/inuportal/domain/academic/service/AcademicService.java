@@ -59,7 +59,7 @@ public class AcademicService {
     private static final String UNIT_SEPARATOR = String.valueOf((char) 31);
     private static final String NULL_MARKER = String.valueOf((char) 3);
     private static final String[] COMMON_CODE_RPST_CODES = {
-            "A0013", "CA001", "UB026", "UB006", "UB007", "UB008", "UB001", "UB002", "UB003", "UB004", "UA005"
+            "A0013", "CA001", "UB026", "UB006", "UB007", "UB008", "UB001", "UB002", "UB003", "UB004", "UB010"
     };
     private static final String[] COMMON_CODE_DATASETS = {
             "DS_GEN_GBN", "DS_NAT_GBN", "DS_HY_SEQ_GBN", "DS_CORS_GBN", "DS_SCHREG_ST_GBN",
@@ -354,7 +354,7 @@ public class AcademicService {
                 sessionMetadata
         );
 
-        return academicSsvParser.parseDepartmentNameMap(responseBody, "DS_BAIM001_01");
+        return academicSsvParser.parseDepartmentNameMap(responseBody);
     }
 
     private AcademicBasicInfoResponseDto enrichBasicInfo(
@@ -368,7 +368,10 @@ public class AcademicService {
                 .entranceTypeName(resolveCodeName(commonCodeMaps.get("DS_ENTR_GBN"), basicInfo.getEntranceTypeCode()))
                 .latestEnrollmentChangeName(resolveCodeName(commonCodeMaps.get("DS_SCHREG_MOD_GBN"), basicInfo.getLatestEnrollmentChangeCode()))
                 .genderName(resolveCodeName(commonCodeMaps.get("DS_GEN_GBN"), basicInfo.getGenderCode()))
+                .departmentName(firstNonBlank(basicInfo.getDepartmentName(), resolveCodeName(departmentNameMap, basicInfo.getDepartmentCode())))
+                .majorName(firstNonBlank(basicInfo.getMajorName(), resolveCodeName(departmentNameMap, basicInfo.getMajorCode())))
                 .collegeGroupName(resolveCodeName(departmentNameMap, basicInfo.getCollegeGroupCode()))
+                .collegeName(firstNonBlank(basicInfo.getCollegeName(), resolveCodeName(departmentNameMap, basicInfo.getCollegeCode())))
                 .courseName(resolveCodeName(commonCodeMaps.get("DS_CORS_GBN"), basicInfo.getCourseCode()))
                 .semesterSequenceName(resolveCodeName(commonCodeMaps.get("DS_HY_SEQ_GBN"), basicInfo.getSemesterSequenceCode()))
                 .nationalityName(resolveCodeName(commonCodeMaps.get("DS_NAT_GBN"), basicInfo.getNationalityCode()))
@@ -467,6 +470,13 @@ public class AcademicService {
             return null;
         }
         return codeNameMap.get(code);
+    }
+
+    private String firstNonBlank(String primaryValue, String fallbackValue) {
+        if (StringUtils.hasText(primaryValue)) {
+            return primaryValue;
+        }
+        return StringUtils.hasText(fallbackValue) ? fallbackValue : null;
     }
 
     private void sleep(long millis) {

@@ -84,7 +84,7 @@ public class AcademicSsvParser {
         return codeNameMap;
     }
 
-    public Map<String, String> parseDepartmentNameMap(String xmlResponse, String datasetName) {
+    public Map<String, String> parseDepartmentNameMap(String xmlResponse, String... datasetNames) {
         if (xmlResponse == null || xmlResponse.isBlank()) {
             throw new AcademicException(HttpStatus.BAD_GATEWAY, "Failed to fetch academic code info.");
         }
@@ -98,13 +98,13 @@ public class AcademicSsvParser {
 
             Document document = factory.newDocumentBuilder().parse(new InputSource(new StringReader(xmlResponse)));
             NodeList datasets = document.getElementsByTagName("Dataset");
+            Map<String, String> codeNameMap = new LinkedHashMap<>();
             for (int i = 0; i < datasets.getLength(); i++) {
                 Element dataset = (Element) datasets.item(i);
-                if (!datasetName.equals(dataset.getAttribute("id"))) {
+                if (!shouldParseDataset(dataset.getAttribute("id"), datasetNames)) {
                     continue;
                 }
 
-                Map<String, String> codeNameMap = new LinkedHashMap<>();
                 NodeList rows = dataset.getElementsByTagName("Row");
                 for (int rowIndex = 0; rowIndex < rows.getLength(); rowIndex++) {
                     Element row = (Element) rows.item(rowIndex);
@@ -114,6 +114,9 @@ public class AcademicSsvParser {
                         codeNameMap.put(code, name);
                     }
                 }
+            }
+
+            if (!codeNameMap.isEmpty()) {
                 return codeNameMap;
             }
         } catch (Exception exception) {
@@ -278,5 +281,19 @@ public class AcademicSsvParser {
             }
         }
         return null;
+    }
+
+    private boolean shouldParseDataset(String datasetId, String... datasetNames) {
+        if (datasetNames == null || datasetNames.length == 0) {
+            return true;
+        }
+
+        for (String datasetName : datasetNames) {
+            if (datasetName != null && datasetName.equals(datasetId)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
