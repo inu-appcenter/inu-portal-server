@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.notice.repository;
 
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeScheduleExtractStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +40,18 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
     List<DepartmentNotice> findByDepartmentAndContentStatusInOrderByIdDesc(
             Department department,
             List<DepartmentNoticeContentStatus> statuses,
+            Pageable pageable
+    );
+
+    @Query("""
+            select dn from DepartmentNotice dn
+            where dn.contentStatus = :contentStatus
+              and (dn.scheduleExtractStatus is null or dn.scheduleExtractStatus in :statuses)
+            order by dn.id asc
+            """)
+    List<DepartmentNotice> findScheduleExtractTargets(
+            DepartmentNoticeContentStatus contentStatus,
+            List<DepartmentNoticeScheduleExtractStatus> statuses,
             Pageable pageable
     );
 }

@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.notice.model;
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeScheduleExtractStatus;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -79,6 +80,26 @@ public class DepartmentNotice {
     @Column(name = "content_last_error", length = 500)
     private String contentLastError;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "schedule_extract_status", length = 32)
+    private DepartmentNoticeScheduleExtractStatus scheduleExtractStatus;
+
+    @Column(name = "schedule_extracted_at")
+    private LocalDateTime scheduleExtractedAt;
+
+    @Column(name = "schedule_extract_count")
+    private Integer scheduleExtractCount;
+
+    @Column(name = "schedule_extract_retry_count")
+    private Integer scheduleExtractRetryCount;
+
+    @Column(name = "schedule_extract_last_error", length = 500)
+    private String scheduleExtractLastError;
+
+    @Lob
+    @Column(name = "schedule_extract_response_json", columnDefinition = "LONGTEXT")
+    private String scheduleExtractResponseJson;
+
     private DepartmentNotice(Department department, String title, String createDate, Long view, String url) {
         this.department = department;
         this.title = title;
@@ -87,6 +108,8 @@ public class DepartmentNotice {
         this.url = url;
         this.contentStatus = DepartmentNoticeContentStatus.PENDING;
         this.contentRetryCount = 0;
+        this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.PENDING;
+        this.scheduleExtractRetryCount = 0;
     }
 
     public static DepartmentNotice create(Department department, String title, String createDate, Long view, String url) {
@@ -119,6 +142,7 @@ public class DepartmentNotice {
         this.inlineImageUrlsJson = inlineImageUrlsJson;
         this.attachmentMetaJson = attachmentMetaJson;
         this.contentLastError = null;
+        resetScheduleExtraction();
     }
 
     public void updateEnrichmentTexts(String ocrText, String attachmentText, String mergedText) {
@@ -126,6 +150,7 @@ public class DepartmentNotice {
         this.attachmentText = attachmentText;
         this.mergedText = mergedText;
         this.contentLastError = null;
+        resetScheduleExtraction();
     }
 
     public void markContentEnrichPending() {
@@ -157,6 +182,42 @@ public class DepartmentNotice {
     public void markContentAccessDenied() {
         this.contentStatus = DepartmentNoticeContentStatus.ACCESS_DENIED;
         this.contentLastError = null;
+    }
+
+    public void markScheduleExtractProcessing() {
+        this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.PROCESSING;
+        this.scheduleExtractLastError = null;
+    }
+
+    public void markScheduleExtractSuccess(int count, String responseJson) {
+        this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.SUCCESS;
+        this.scheduleExtractedAt = LocalDateTime.now();
+        this.scheduleExtractCount = count;
+        this.scheduleExtractResponseJson = responseJson;
+        this.scheduleExtractLastError = null;
+    }
+
+    public void markScheduleNoSchedule(String responseJson) {
+        this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
+        this.scheduleExtractedAt = LocalDateTime.now();
+        this.scheduleExtractCount = 0;
+        this.scheduleExtractResponseJson = responseJson;
+        this.scheduleExtractLastError = null;
+    }
+
+    public void markScheduleExtractFailed(String reason) {
+        this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.FAILED;
+        this.scheduleExtractRetryCount = (scheduleExtractRetryCount == null ? 0 : scheduleExtractRetryCount) + 1;
+        this.scheduleExtractLastError = reason;
+    }
+
+    public void resetScheduleExtraction() {
+        this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.PENDING;
+        this.scheduleExtractedAt = null;
+        this.scheduleExtractCount = null;
+        this.scheduleExtractLastError = null;
+        this.scheduleExtractResponseJson = null;
+        this.scheduleExtractRetryCount = 0;
     }
 
     public boolean hasContent() {

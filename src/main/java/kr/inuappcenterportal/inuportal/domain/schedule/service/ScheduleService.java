@@ -45,7 +45,7 @@ public class ScheduleService {
 
     @Transactional
     public void crawlingSchedule() throws InterruptedException {
-        id = 0;
+        id = scheduleRepository.findMaxId();
         System.setProperty("webdriver.chrome.driver",installPath);
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--remote-allow-origins=*");
@@ -94,11 +94,17 @@ public class ScheduleService {
                         LocalDate start = LocalDate.parse(startDate,formatter);
                         LocalDate end = LocalDate.parse(endDate,formatter);
 
-                        if (scheduleRepository.existsByContentAndStartDateAndEndDate(content, start, end)) {
+                        if (scheduleRepository.existsByContentAndStartDateAndEndDateAndDepartmentIsNullAndAiGeneratedFalse(content, start, end)) {
                             continue;
                         }
 
-                        Schedule schedule = Schedule.builder().id(++id).startDate(start).endDate(end).content(content).build();
+                        Schedule schedule = Schedule.builder()
+                                .id(++id)
+                                .startDate(start)
+                                .endDate(end)
+                                .content(content)
+                                .aiGenerated(false)
+                                .build();
                         scheduleRepository.save(schedule);
                     }
                     month++;

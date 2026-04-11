@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.schedule.model;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,12 +26,29 @@ public class Schedule {
     @Column
     private String content;
 
+    @Enumerated(EnumType.STRING)
+    @Column
+    private Department department;
+
+    @Column(name = "source_notice_id")
+    private Long sourceNoticeId;
+
+    @Column(name = "source_url", length = 512)
+    private String sourceUrl;
+
+    @Column(name = "ai_generated")
+    private boolean aiGenerated;
+
     @Builder
-    public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content){
+    public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content, Department department, Long sourceNoticeId, String sourceUrl, boolean aiGenerated){
         this.id = id;
         this.startDate =startDate;
         this.endDate = endDate;
         this.content = content;
+        this.department = department;
+        this.sourceNoticeId = sourceNoticeId;
+        this.sourceUrl = sourceUrl;
+        this.aiGenerated = aiGenerated;
     }
 
 
