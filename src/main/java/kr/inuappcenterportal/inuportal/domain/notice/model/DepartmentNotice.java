@@ -7,6 +7,8 @@ import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeSched
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -37,6 +39,7 @@ public class DepartmentNotice {
     private String url;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "content_status", length = 32)
     private DepartmentNoticeContentStatus contentStatus;
 
@@ -81,6 +84,7 @@ public class DepartmentNotice {
     private String contentLastError;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "schedule_extract_status", length = 32)
     private DepartmentNoticeScheduleExtractStatus scheduleExtractStatus;
 
