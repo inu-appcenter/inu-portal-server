@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleListResponseDoc;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -32,7 +32,11 @@ public class ScheduleController {
 
     @Operation(summary = "학사일정 가져오기", description = "url 파라미터로 year, month를 보내주세요.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "학사일정 가져오기 성공", content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class)))
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "학사일정 가져오기 성공",
+                    content = @Content(schema = @Schema(implementation = ScheduleListResponseDoc.class))
+            )
     })
     @GetMapping("")
     public ResponseEntity<ResponseDto<List<ScheduleResponseDto>>> getScheduleByMonth(
@@ -46,7 +50,11 @@ public class ScheduleController {
 
     @Operation(summary = "내 학과 일정 가져오기", description = "로그인한 사용자의 학과를 기준으로 해당 월의 학과 일정을 조회합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "내 학과 일정 가져오기 성공", content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class)))
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "내 학과 일정 가져오기 성공",
+                    content = @Content(schema = @Schema(implementation = ScheduleListResponseDoc.class))
+            )
     })
     @GetMapping("/my-department")
     public ResponseEntity<ResponseDto<List<ScheduleResponseDto>>> getMyDepartmentScheduleByMonth(
