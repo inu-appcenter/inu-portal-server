@@ -37,14 +37,11 @@ public class Schedule {
     @Column(name = "source_notice_id")
     private Long sourceNoticeId;
 
-    @Column(name = "source_url", length = 512)
-    private String sourceUrl;
-
     @Column(name = "ai_generated")
     private boolean aiGenerated;
 
     @Builder
-    public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content, String description, Department department, Long sourceNoticeId, String sourceUrl, boolean aiGenerated){
+    public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content, String description, Department department, Long sourceNoticeId, boolean aiGenerated){
         this.id = id;
         this.startDate =startDate;
         this.endDate = endDate;
@@ -52,7 +49,6 @@ public class Schedule {
         this.description = description;
         this.department = department;
         this.sourceNoticeId = sourceNoticeId;
-        this.sourceUrl = sourceUrl;
         this.aiGenerated = aiGenerated;
     }
 
