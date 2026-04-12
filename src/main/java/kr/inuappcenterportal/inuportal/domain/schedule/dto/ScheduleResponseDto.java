@@ -31,6 +31,12 @@ public class ScheduleResponseDto {
     @Schema(description = "학과명", example = "컴퓨터공학부")
     private String department;
 
+    @Schema(description = "원본 학과 공지 id", example = "123")
+    private Long sourceNoticeId;
+
+    @Schema(description = "원본 학과 공지 url", example = "https://cse.inu.ac.kr/isis/3519/subview.do?enc=...")
+    private String sourceUrl;
+
     @Builder
     private ScheduleResponseDto(
             String start,
@@ -38,7 +44,9 @@ public class ScheduleResponseDto {
             String title,
             String description,
             boolean aiGenerated,
-            String department
+            String department,
+            Long sourceNoticeId,
+            String sourceUrl
     ) {
         this.start = start;
         this.end = end;
@@ -46,6 +54,8 @@ public class ScheduleResponseDto {
         this.description = description;
         this.aiGenerated = aiGenerated;
         this.department = department;
+        this.sourceNoticeId = sourceNoticeId;
+        this.sourceUrl = sourceUrl;
     }
 
     public static ScheduleResponseDto of(Schedule schedule) {
@@ -56,6 +66,8 @@ public class ScheduleResponseDto {
                 .description(schedule.getDescription())
                 .aiGenerated(schedule.isAiGenerated())
                 .department(schedule.getDepartment() == null ? null : schedule.getDepartment().getDepartmentName())
+                .sourceNoticeId(schedule.getSourceNoticeId())
+                .sourceUrl(schedule.getSourceUrl())
                 .build();
     }
 }
