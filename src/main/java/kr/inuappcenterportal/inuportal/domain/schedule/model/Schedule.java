@@ -38,7 +38,7 @@ public class Schedule {
     private Long sourceNoticeId;
 
     @Column(name = "ai_generated")
-    private boolean aiGenerated;
+    private Boolean aiGenerated;
 
     @Builder
     public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content, String description, Department department, Long sourceNoticeId, boolean aiGenerated){

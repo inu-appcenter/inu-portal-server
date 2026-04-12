@@ -74,7 +74,7 @@ public class ScheduleResponseDto {
                 .end(schedule.getEndDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .title(schedule.getContent())
                 .description(schedule.getDescription())
-                .aiGenerated(schedule.isAiGenerated())
+                .aiGenerated(schedule.getAiGenerated() != null && schedule.getAiGenerated())
                 .department(schedule.getDepartment() == null ? null : schedule.getDepartment().getDepartmentName())
                 .sourceNoticeId(schedule.getSourceNoticeId())
                 .sourceNoticeTitle(sourceNotice == null ? null : sourceNotice.getTitle())
