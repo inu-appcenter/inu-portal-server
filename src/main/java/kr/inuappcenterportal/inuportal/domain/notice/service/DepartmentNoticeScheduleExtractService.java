@@ -23,6 +23,8 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -38,6 +40,10 @@ public class DepartmentNoticeScheduleExtractService {
     private static final String EXTRACT_PATH = "/shared/extract-schedule";
     private static final int EXTRACT_LIMIT_PER_RUN = 20;
     private static final int ERROR_MESSAGE_LIMIT = 500;
+    private static final ZoneId EXTRACT_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final LocalTime EXTRACT_WINDOW_START = LocalTime.of(3, 0);
+    private static final LocalTime EXTRACT_WINDOW_END = LocalTime.of(7, 0);
+    private static final long BATCH_DELAY_MILLIS = 15_000L;
 
     private final DepartmentNoticeRepository departmentNoticeRepository;
     private final ScheduleRepository scheduleRepository;
@@ -51,10 +57,10 @@ public class DepartmentNoticeScheduleExtractService {
     @Value("${app.department-notice.schedule-ai.api-key:}")
     private String apiKey;
 
-    @Value("${app.department-notice.schedule-ai.timeout-seconds:180}")
+    @Value("${app.department-notice.schedule-ai.timeout-seconds:300}")
     private long timeoutSeconds;
 
-    @Scheduled(cron = "0 9/10 * * * *")
+    @Scheduled(cron = "0 * 3-6 * * *")
     public void extractDepartmentNoticeSchedules() {
         if (!isConfigured()) {
             log.warn("학과 공지 AI 일정 추출 설정이 없어 작업을 건너뜁니다. missingBaseUrl={}, missingApiKey={}",
@@ -62,37 +68,59 @@ public class DepartmentNoticeScheduleExtractService {
             return;
         }
 
-        List<DepartmentNotice> notices = departmentNoticeRepository.findScheduleExtractTargets(
-                DepartmentNoticeContentStatus.SUCCESS,
-                List.of(
-                        DepartmentNoticeScheduleExtractStatus.PENDING,
-                        DepartmentNoticeScheduleExtractStatus.FAILED
-                ),
-                PageRequest.of(0, EXTRACT_LIMIT_PER_RUN)
-        );
-
+        int processedCount = 0;
         int successCount = 0;
         int noScheduleCount = 0;
         int failedCount = 0;
+        boolean started = false;
 
-        if (!notices.isEmpty()) {
-            log.info("학과 공지 AI 일정 추출을 시작합니다. count={}", notices.size());
-        }
+        while (isWithinExtractWindow()) {
+            List<DepartmentNotice> notices = departmentNoticeRepository.findScheduleExtractTargets(
+                    DepartmentNoticeContentStatus.SUCCESS,
+                    List.of(
+                            DepartmentNoticeScheduleExtractStatus.PENDING,
+                            DepartmentNoticeScheduleExtractStatus.FAILED
+                    ),
+                    PageRequest.of(0, EXTRACT_LIMIT_PER_RUN)
+            );
 
-        for (DepartmentNotice notice : notices) {
-            DepartmentNoticeScheduleExtractStatus status = extractSchedule(notice);
-            if (status == DepartmentNoticeScheduleExtractStatus.SUCCESS) {
-                successCount++;
-            } else if (status == DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE) {
-                noScheduleCount++;
-            } else if (status == DepartmentNoticeScheduleExtractStatus.FAILED) {
-                failedCount++;
+            if (notices.isEmpty()) {
+                if (started) {
+                    log.info("학과 공지 AI 일정 추출을 완료했습니다. processedCount={}, successCount={}, noScheduleCount={}, failedCount={}",
+                            processedCount, successCount, noScheduleCount, failedCount);
+                }
+                return;
             }
-        }
 
-        if (!notices.isEmpty()) {
-            log.info("학과 공지 AI 일정 추출을 완료했습니다. count={}, successCount={}, noScheduleCount={}, failedCount={}",
-                    notices.size(), successCount, noScheduleCount, failedCount);
+            if (!started) {
+                started = true;
+                log.info("학과 공지 AI 일정 추출을 시작합니다. count={}", notices.size());
+            }
+
+            for (DepartmentNotice notice : notices) {
+                if (!isWithinExtractWindow()) {
+                    log.info("학과 공지 AI 일정 추출 가능 시간이 종료되어 작업을 중단합니다. processedCount={}, successCount={}, noScheduleCount={}, failedCount={}",
+                            processedCount, successCount, noScheduleCount, failedCount);
+                    return;
+                }
+
+                DepartmentNoticeScheduleExtractStatus status = extractSchedule(notice);
+                processedCount++;
+
+                if (status == DepartmentNoticeScheduleExtractStatus.SUCCESS) {
+                    successCount++;
+                } else if (status == DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE) {
+                    noScheduleCount++;
+                } else if (status == DepartmentNoticeScheduleExtractStatus.FAILED) {
+                    failedCount++;
+                }
+            }
+
+            if (!pauseBetweenBatches()) {
+                log.info("학과 공지 AI 일정 추출 대기 중 인터럽트가 발생해 작업을 중단합니다. processedCount={}, successCount={}, noScheduleCount={}, failedCount={}",
+                        processedCount, successCount, noScheduleCount, failedCount);
+                return;
+            }
         }
     }
 
@@ -175,7 +203,7 @@ public class DepartmentNoticeScheduleExtractService {
                 .onStatus(HttpStatusCode::isError, clientResponse -> clientResponse.bodyToMono(String.class)
                         .defaultIfEmpty("")
                         .map(body -> new IllegalStateException(
-                                "AI 일정 추출 API 호출에 실패했습니다. status="
+                                "AI 일정 추출 API 호출이 실패했습니다. status="
                                         + clientResponse.statusCode().value()
                                         + ", body=" + limitMessage(body)
                         )))
@@ -325,6 +353,21 @@ public class DepartmentNoticeScheduleExtractService {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private boolean isWithinExtractWindow() {
+        LocalTime now = LocalTime.now(EXTRACT_ZONE_ID);
+        return !now.isBefore(EXTRACT_WINDOW_START) && now.isBefore(EXTRACT_WINDOW_END);
+    }
+
+    private boolean pauseBetweenBatches() {
+        try {
+            Thread.sleep(BATCH_DELAY_MILLIS);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
     private boolean isConfigured() {
