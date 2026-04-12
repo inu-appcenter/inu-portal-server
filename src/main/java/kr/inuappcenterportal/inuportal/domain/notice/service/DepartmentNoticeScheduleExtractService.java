@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -42,6 +41,7 @@ public class DepartmentNoticeScheduleExtractService {
 
     private final DepartmentNoticeRepository departmentNoticeRepository;
     private final ScheduleRepository scheduleRepository;
+    private final DepartmentNoticeScheduleExtractPersistenceService persistenceService;
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
@@ -54,8 +54,7 @@ public class DepartmentNoticeScheduleExtractService {
     @Value("${app.department-notice.schedule-ai.timeout-seconds:180}")
     private long timeoutSeconds;
 
-    @Scheduled(cron = "0 9/10 1-5 * * *")
-    @Transactional
+    @Scheduled(cron = "0 9/10 * * * *")
     public void extractDepartmentNoticeSchedules() {
         if (!isConfigured()) {
             log.warn("학과 공지 AI 일정 추출 설정이 없어 작업을 건너뜁니다. missingBaseUrl={}, missingApiKey={}",
@@ -75,6 +74,10 @@ public class DepartmentNoticeScheduleExtractService {
         int successCount = 0;
         int noScheduleCount = 0;
         int failedCount = 0;
+
+        if (!notices.isEmpty()) {
+            log.info("학과 공지 AI 일정 추출을 시작합니다. count={}", notices.size());
+        }
 
         for (DepartmentNotice notice : notices) {
             DepartmentNoticeScheduleExtractStatus status = extractSchedule(notice);
@@ -96,28 +99,38 @@ public class DepartmentNoticeScheduleExtractService {
     private DepartmentNoticeScheduleExtractStatus extractSchedule(DepartmentNotice departmentNotice) {
         String requestBody = buildRequestBody(departmentNotice);
         if (isBlank(requestBody)) {
-            scheduleRepository.deleteBySourceNoticeIdAndAiGeneratedTrue(departmentNotice.getId());
-            departmentNotice.markScheduleNoSchedule("");
-            departmentNoticeRepository.save(departmentNotice);
+            persistenceService.markNoSchedule(departmentNotice.getId(), "");
             log.info("학과 공지 AI 일정 추출을 건너뜁니다. noticeId={}, department={}, reason={}",
                     departmentNotice.getId(), departmentNotice.getDepartment().name(), "empty_request_body");
             return DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
         }
 
-        departmentNotice.markScheduleExtractProcessing();
-        departmentNoticeRepository.save(departmentNotice);
+        persistenceService.markProcessing(departmentNotice.getId());
+        log.info("학과 공지 AI 일정 추출 요청을 시작합니다. noticeId={}, department={}, requestLength={}, url={}",
+                departmentNotice.getId(),
+                departmentNotice.getDepartment().name(),
+                requestBody.length(),
+                departmentNotice.getUrl());
 
         try {
             DepartmentNoticeScheduleExtractResponse response = requestScheduleExtract(requestBody);
             validateResponse(response);
 
             String responseJson = writeJson(response);
+            int responseCount = response.getData() == null ? 0 : response.getData().size();
+
+            log.info("학과 공지 AI 일정 추출 응답을 받았습니다. noticeId={}, department={}, status={}, count={}, responseLength={}, url={}",
+                    departmentNotice.getId(),
+                    departmentNotice.getDepartment().name(),
+                    response.getStatus(),
+                    responseCount,
+                    responseJson.length(),
+                    departmentNotice.getUrl());
+
             List<Schedule> schedules = buildSchedules(departmentNotice, response);
 
             if (response.getData() == null || response.getData().isEmpty()) {
-                scheduleRepository.deleteBySourceNoticeIdAndAiGeneratedTrue(departmentNotice.getId());
-                departmentNotice.markScheduleNoSchedule(responseJson);
-                departmentNoticeRepository.save(departmentNotice);
+                persistenceService.markNoSchedule(departmentNotice.getId(), responseJson);
                 log.info("학과 공지 AI 일정 추출 결과 일정이 없습니다. noticeId={}, department={}, url={}",
                         departmentNotice.getId(), departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
@@ -127,17 +140,22 @@ public class DepartmentNoticeScheduleExtractService {
                 throw new IllegalStateException("AI 일정 추출 응답에서 저장 가능한 일정 날짜를 찾지 못했습니다.");
             }
 
-            scheduleRepository.deleteBySourceNoticeIdAndAiGeneratedTrue(departmentNotice.getId());
-            scheduleRepository.saveAll(schedules);
+            log.info("학과 공지 AI 일정 저장을 시작합니다. noticeId={}, department={}, scheduleCount={}, url={}",
+                    departmentNotice.getId(),
+                    departmentNotice.getDepartment().name(),
+                    schedules.size(),
+                    departmentNotice.getUrl());
 
-            departmentNotice.markScheduleExtractSuccess(schedules.size(), responseJson);
-            departmentNoticeRepository.save(departmentNotice);
-            log.info("학과 공지 AI 일정 추출을 완료했습니다. noticeId={}, department={}, scheduleCount={}, url={}",
-                    departmentNotice.getId(), departmentNotice.getDepartment().name(), schedules.size(), departmentNotice.getUrl());
+            persistenceService.saveSuccess(departmentNotice.getId(), responseJson, schedules);
+
+            log.info("학과 공지 AI 일정 저장을 완료했습니다. noticeId={}, department={}, scheduleCount={}, url={}",
+                    departmentNotice.getId(),
+                    departmentNotice.getDepartment().name(),
+                    schedules.size(),
+                    departmentNotice.getUrl());
             return DepartmentNoticeScheduleExtractStatus.SUCCESS;
         } catch (Exception e) {
-            departmentNotice.markScheduleExtractFailed(limitMessage(e.getMessage()));
-            departmentNoticeRepository.save(departmentNotice);
+            persistenceService.markFailed(departmentNotice.getId(), limitMessage(e.getMessage()));
             log.warn("학과 공지 AI 일정 추출에 실패했습니다. noticeId={}, department={}, url={}, reason={}",
                     departmentNotice.getId(), departmentNotice.getDepartment().name(), departmentNotice.getUrl(), e.getMessage());
             return DepartmentNoticeScheduleExtractStatus.FAILED;
