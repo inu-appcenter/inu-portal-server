@@ -1,6 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.schedule.service;
 
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
+import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
@@ -21,6 +23,9 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
+    private final DepartmentNoticeRepository departmentNoticeRepository;
     private final String url = "https://www.inu.ac.kr/inu/651/subview.do";
 
     @Value("${installPath}")
@@ -73,7 +79,7 @@ public class ScheduleService {
                     for (WebElement row : rows) {
                         WebElement contentElement = row.findElement(By.tagName("td"));
                         String content = contentElement.getText();
-                        if (content.equals("?쇱젙 ?곗씠?곌? ?놁뒿?덈떎.")) {
+                        if (content.equals("??깆젟 ?怨쀬뵠?怨? ??곷뮸??덈뼄.")) {
                             isNoData = true;
                             break;
                         }
@@ -119,9 +125,9 @@ public class ScheduleService {
                 link.click();
                 Thread.sleep(1500);
             }
-            log.info("?숈궗?쇱젙 ?щ·留??꾨즺");
+            log.info("??덇텢??깆젟 ??쨌筌??袁⑥┷");
         } catch (Exception e) {
-            log.warn("?숈궗?쇱젙 ?щ·留??ㅽ뙣 : {}", e.getMessage());
+            log.warn("??덇텢??깆젟 ??쨌筌???쎈솭 : {}", e.getMessage());
         } finally {
             webDriver.quit();
         }
@@ -151,8 +157,27 @@ public class ScheduleService {
                 monthEnd
         );
 
+        Map<Long, DepartmentNotice> sourceNoticeMap = loadSourceNoticeMap(schedules);
+
         return schedules.stream()
-                .map(ScheduleResponseDto::of)
+                .map(schedule -> ScheduleResponseDto.of(
+                        schedule,
+                        sourceNoticeMap.get(schedule.getSourceNoticeId())
+                ))
                 .collect(Collectors.toList());
+    }
+
+    private Map<Long, DepartmentNotice> loadSourceNoticeMap(List<Schedule> schedules) {
+        Set<Long> sourceNoticeIds = schedules.stream()
+                .map(Schedule::getSourceNoticeId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        if (sourceNoticeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return departmentNoticeRepository.findAllById(sourceNoticeIds).stream()
+                .collect(Collectors.toMap(DepartmentNotice::getId, Function.identity()));
     }
 }

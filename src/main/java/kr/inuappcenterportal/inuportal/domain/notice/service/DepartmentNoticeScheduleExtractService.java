@@ -246,7 +246,6 @@ public class DepartmentNoticeScheduleExtractService {
                     .description(normalizeText(item.getDescription()))
                     .department(departmentNotice.getDepartment())
                     .sourceNoticeId(departmentNotice.getId())
-                    .sourceUrl(departmentNotice.getUrl())
                     .aiGenerated(true)
                     .build());
         }

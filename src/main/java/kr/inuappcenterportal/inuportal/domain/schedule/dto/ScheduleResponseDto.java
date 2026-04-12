@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.schedule.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,8 +35,11 @@ public class ScheduleResponseDto {
     @Schema(description = "원본 학과 공지 id", example = "123")
     private Long sourceNoticeId;
 
+    @Schema(description = "원본 학과 공지 제목", example = "2026학년도 비교과 프로그램 신청 안내")
+    private String sourceNoticeTitle;
+
     @Schema(description = "원본 학과 공지 url", example = "https://cse.inu.ac.kr/isis/3519/subview.do?enc=...")
-    private String sourceUrl;
+    private String url;
 
     @Builder
     private ScheduleResponseDto(
@@ -46,7 +50,8 @@ public class ScheduleResponseDto {
             boolean aiGenerated,
             String department,
             Long sourceNoticeId,
-            String sourceUrl
+            String sourceNoticeTitle,
+            String url
     ) {
         this.start = start;
         this.end = end;
@@ -55,10 +60,15 @@ public class ScheduleResponseDto {
         this.aiGenerated = aiGenerated;
         this.department = department;
         this.sourceNoticeId = sourceNoticeId;
-        this.sourceUrl = sourceUrl;
+        this.sourceNoticeTitle = sourceNoticeTitle;
+        this.url = url;
     }
 
     public static ScheduleResponseDto of(Schedule schedule) {
+        return of(schedule, null);
+    }
+
+    public static ScheduleResponseDto of(Schedule schedule, DepartmentNotice sourceNotice) {
         return ScheduleResponseDto.builder()
                 .start(schedule.getStartDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .end(schedule.getEndDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
@@ -67,7 +77,8 @@ public class ScheduleResponseDto {
                 .aiGenerated(schedule.isAiGenerated())
                 .department(schedule.getDepartment() == null ? null : schedule.getDepartment().getDepartmentName())
                 .sourceNoticeId(schedule.getSourceNoticeId())
-                .sourceUrl(schedule.getSourceUrl())
+                .sourceNoticeTitle(sourceNotice == null ? null : sourceNotice.getTitle())
+                .url(sourceNotice == null ? null : sourceNotice.getUrl())
                 .build();
     }
 }
