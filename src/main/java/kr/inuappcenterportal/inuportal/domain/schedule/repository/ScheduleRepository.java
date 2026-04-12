@@ -13,7 +13,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     @Query("""
             SELECT s
             FROM Schedule s
-            WHERE s.aiGenerated = false
+            WHERE (s.aiGenerated = false OR s.aiGenerated IS NULL)
               AND s.department IS NULL
               AND (
                     (YEAR(s.startDate) = :year AND MONTH(s.startDate) = :month)
