@@ -26,6 +26,10 @@ public class Schedule {
     @Column
     private String content;
 
+    @Lob
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Enumerated(EnumType.STRING)
     @Column
     private Department department;
@@ -40,11 +44,12 @@ public class Schedule {
     private boolean aiGenerated;
 
     @Builder
-    public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content, Department department, Long sourceNoticeId, String sourceUrl, boolean aiGenerated){
+    public Schedule (Long id, LocalDate startDate, LocalDate endDate, String content, String description, Department department, Long sourceNoticeId, String sourceUrl, boolean aiGenerated){
         this.id = id;
         this.startDate =startDate;
         this.endDate = endDate;
         this.content = content;
+        this.description = description;
         this.department = department;
         this.sourceNoticeId = sourceNoticeId;
         this.sourceUrl = sourceUrl;

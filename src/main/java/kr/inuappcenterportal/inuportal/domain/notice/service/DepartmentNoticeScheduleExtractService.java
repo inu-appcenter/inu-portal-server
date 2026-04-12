@@ -243,6 +243,7 @@ public class DepartmentNoticeScheduleExtractService {
                     .startDate(dateRange.start())
                     .endDate(dateRange.end())
                     .content(title)
+                    .description(normalizeText(item.getDescription()))
                     .department(departmentNotice.getDepartment())
                     .sourceNoticeId(departmentNotice.getId())
                     .sourceUrl(departmentNotice.getUrl())
