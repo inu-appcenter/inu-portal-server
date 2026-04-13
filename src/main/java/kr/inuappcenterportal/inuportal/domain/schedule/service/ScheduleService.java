@@ -79,7 +79,7 @@ public class ScheduleService {
                     for (WebElement row : rows) {
                         WebElement contentElement = row.findElement(By.tagName("td"));
                         String content = contentElement.getText();
-                        if (content.equals("??깆젟 ?怨쀬뵠?怨? ??곷뮸??덈뼄.")) {
+                        if (content.equals("일정 데이터가 없습니다.")){
                             isNoData = true;
                             break;
                         }
@@ -125,9 +125,9 @@ public class ScheduleService {
                 link.click();
                 Thread.sleep(1500);
             }
-            log.info("??덇텢??깆젟 ??쨌筌??袁⑥┷");
+            log.info("학사일정 크롤링 완료");
         } catch (Exception e) {
-            log.warn("??덇텢??깆젟 ??쨌筌???쎈솭 : {}", e.getMessage());
+            log.warn("학사일정 크롤링 실패 : {}",e.getMessage());
         } finally {
             webDriver.quit();
         }

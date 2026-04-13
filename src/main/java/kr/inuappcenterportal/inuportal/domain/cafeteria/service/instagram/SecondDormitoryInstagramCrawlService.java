@@ -316,7 +316,7 @@ public class SecondDormitoryInstagramCrawlService {
         int resolvedRecentCount = Math.min(Math.max(desiredRecentCount, 1), properties.getResolvedRecentCount());
 
         log.info(
-                "2湲곗닕???앸떦 recent-count 怨꾩궛 ?꾨즺. date={}, target={}, expectedSlotCount={}, firstMissingDate={}, firstMissingMeal={}, desiredRecentCount={}, resolvedRecentCount={}",
+                "2기숙사 식당 recent-count 계산 완료. date={}, target={}, expectedSlotCount={}, firstMissingDate={}, firstMissingMeal={}, desiredRecentCount={}, resolvedRecentCount={}",
                 today,
                 targetMealWindow,
                 expectedSlots.size(),
