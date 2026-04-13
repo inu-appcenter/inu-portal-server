@@ -40,8 +40,9 @@ public class SecondDormitoryInstagramPythonRunner {
         Path outputDir = outputFile.getParent();
         Path historyDir = historyFile.getParent();
 
+        validateScriptSource(scriptDir, scriptFile);
+        ensureRuntimeDirectories(outputDir, historyDir, profileDir);
         logResolvedPaths(scriptDir, scriptFile, outputDir, historyDir, profileDir);
-        validateResolvedPaths(scriptDir, scriptFile, outputDir, historyDir, profileDir);
 
         List<String> command = new ArrayList<>();
         String pythonCommand = properties.getPythonCommand() == null ? "" : properties.getPythonCommand().trim();
@@ -121,28 +122,38 @@ public class SecondDormitoryInstagramPythonRunner {
         );
     }
 
-    private void validateResolvedPaths(
-            Path scriptDir,
-            Path scriptFile,
-            Path outputDir,
-            Path historyDir,
-            Path profileDir
-    ) throws IOException {
+    private void validateScriptSource(Path scriptDir, Path scriptFile) throws IOException {
         if (!Files.isDirectory(scriptDir)) {
             throw new IOException("Instagram script directory not found: " + scriptDir);
         }
         if (!Files.isRegularFile(scriptFile)) {
             throw new IOException("Instagram script file not found: " + scriptFile);
         }
-        if (outputDir == null || !Files.isDirectory(outputDir)) {
-            throw new IOException("Instagram output directory not found: " + outputDir);
+    }
+
+    private void ensureRuntimeDirectories(
+            Path outputDir,
+            Path historyDir,
+            Path profileDir
+    ) throws IOException {
+        if (outputDir == null) {
+            throw new IOException("Instagram output directory path is invalid.");
         }
-        if (historyDir == null || !Files.isDirectory(historyDir)) {
-            throw new IOException("Instagram history output directory not found: " + historyDir);
+        if (historyDir == null) {
+            throw new IOException("Instagram history output directory path is invalid.");
         }
-        if (!Files.isDirectory(profileDir)) {
-            throw new IOException("Instagram chrome profile directory not found: " + profileDir);
+        createDirectoryIfMissing(outputDir, "output");
+        createDirectoryIfMissing(historyDir, "history output");
+        createDirectoryIfMissing(profileDir, "chrome profile");
+    }
+
+    private void createDirectoryIfMissing(Path directory, String label) throws IOException {
+        if (Files.isDirectory(directory)) {
+            return;
         }
+
+        Files.createDirectories(directory);
+        log.info("2기숙사 식당 Python 실행용 디렉터리 자동 생성. label={}, path={}", label, directory);
     }
 
     private String resolveChromeDriverPath() {
