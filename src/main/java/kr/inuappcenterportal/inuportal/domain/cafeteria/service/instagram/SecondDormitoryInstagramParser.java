@@ -7,11 +7,15 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.temporal.IsoFields;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Component
 public class SecondDormitoryInstagramParser {
@@ -37,30 +41,55 @@ public class SecondDormitoryInstagramParser {
             "식단표",
             "추가밥",
             "추가 반찬",
-            "준비된 수량"
+            "준비한 수량"
     );
 
     public SecondDormitoryDailyMenu parseToday(List<InstagramMenuPost> posts, LocalDate today, ZoneId zoneId) {
-        String lunchMenu = null;
-        String dinnerMenu = null;
+        return parseWeeklyMenus(posts, today, zoneId).getOrDefault(today, SecondDormitoryDailyMenu.empty());
+    }
 
-        List<InstagramMenuPost> todayPosts = posts.stream()
+    public Map<LocalDate, SecondDormitoryDailyMenu> parseWeeklyMenus(
+            List<InstagramMenuPost> posts,
+            LocalDate referenceDate,
+            ZoneId zoneId
+    ) {
+        Map<LocalDate, List<InstagramMenuPost>> postsByDate = posts.stream()
                 .filter(post -> post.publishedAt() != null)
-                .filter(post -> post.publishedAt().atZoneSameInstant(zoneId).toLocalDate().equals(today))
+                .filter(post -> isSameWeek(referenceDate, post.publishedAt().atZoneSameInstant(zoneId).toLocalDate()))
                 .sorted(Comparator.comparing(InstagramMenuPost::publishedAt))
-                .toList();
+                .collect(Collectors.groupingBy(
+                        post -> post.publishedAt().atZoneSameInstant(zoneId).toLocalDate(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
 
-        for (InstagramMenuPost post : todayPosts) {
-            ParsedSections sections = parseCaption(post.caption(), post.publishedAt().atZoneSameInstant(zoneId).toLocalTime());
-            if (sections.lunchMenu() != null) {
-                lunchMenu = sections.lunchMenu();
+        Map<LocalDate, SecondDormitoryDailyMenu> parsedMenus = new LinkedHashMap<>();
+        for (Map.Entry<LocalDate, List<InstagramMenuPost>> entry : postsByDate.entrySet()) {
+            String lunchMenu = null;
+            String dinnerMenu = null;
+
+            for (InstagramMenuPost post : entry.getValue()) {
+                ParsedSections sections = parseCaption(post.caption(), post.publishedAt().atZoneSameInstant(zoneId).toLocalTime());
+                if (sections.lunchMenu() != null) {
+                    lunchMenu = sections.lunchMenu();
+                }
+                if (sections.dinnerMenu() != null) {
+                    dinnerMenu = sections.dinnerMenu();
+                }
             }
-            if (sections.dinnerMenu() != null) {
-                dinnerMenu = sections.dinnerMenu();
+
+            SecondDormitoryDailyMenu menu = new SecondDormitoryDailyMenu(lunchMenu, dinnerMenu);
+            if (menu.hasAnyMenu()) {
+                parsedMenus.put(entry.getKey(), menu);
             }
         }
 
-        return new SecondDormitoryDailyMenu(lunchMenu, dinnerMenu);
+        return parsedMenus;
+    }
+
+    private boolean isSameWeek(LocalDate referenceDate, LocalDate candidateDate) {
+        return referenceDate.get(IsoFields.WEEK_BASED_YEAR) == candidateDate.get(IsoFields.WEEK_BASED_YEAR)
+                && referenceDate.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) == candidateDate.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
     }
 
     private ParsedSections parseCaption(String caption, LocalTime publishedTime) {
@@ -235,7 +264,7 @@ public class SecondDormitoryInstagramParser {
         }
 
         String normalized = line.replace('\u00A0', ' ').trim();
-        normalized = normalized.replaceFirst("^[\\-•·ㆍ]+\\s*", "");
+        normalized = normalized.replaceFirst("^[\\-·•◈]+\\s*", "");
         normalized = MULTI_SPACE_PATTERN.matcher(normalized).replaceAll(" ");
         return normalized.trim();
     }

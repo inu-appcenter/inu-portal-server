@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.temporal.IsoFields;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,7 +63,7 @@ public class SecondDormitoryInstagramCrawlService {
     public void refreshMenus(String trigger) {
         LocalDate today = null;
         List<InstagramMenuPost> posts = List.of();
-        SecondDormitoryDailyMenu todayMenu = null;
+        Map<LocalDate, SecondDormitoryDailyMenu> weeklyMenus = Map.of();
         PythonRunResult runResult = null;
 
         if (!properties.isEnabled()) {
@@ -70,7 +71,7 @@ public class SecondDormitoryInstagramCrawlService {
         }
 
         if (!running.compareAndSet(false, true)) {
-            log.info("2기숙사 식당 인스타 크롤링이 이미 실행 중입니다. trigger={}", trigger);
+            log.info("2기숙사 식당 인스타 메뉴가 이미 실행 중입니다. trigger={}", trigger);
             return;
         }
 
@@ -86,34 +87,31 @@ public class SecondDormitoryInstagramCrawlService {
             posts = outputReader.readHistoryPosts(runResult.historyFile());
             logCollectedPosts(posts, runResult.historyFile().toString());
 
-            todayMenu = parser.parseToday(posts, today, properties.resolveZoneId());
-            logParsedTodayMenu(today, posts, todayMenu);
-            if (!todayMenu.hasAnyMenu()) {
-                log.warn("2기숙사 식당 오늘 메뉴를 찾지 못했습니다. trigger={}", trigger);
+            weeklyMenus = parser.parseWeeklyMenus(posts, today, properties.resolveZoneId());
+            logParsedWeeklyMenus(today, posts, weeklyMenus);
+
+            if (weeklyMenus.isEmpty()) {
+                log.warn("2기숙사 식당 현재 주차 메뉴를 찾지 못했습니다. trigger={}", trigger);
                 return;
             }
 
             try {
                 ensureWeekInitialized(today);
-                saveTodayMenus(today, todayMenu);
-                log.info(
-                        "2기숙사 식당 메뉴 저장 완료. trigger={}, lunch={}, dinner={}",
-                        trigger,
-                        todayMenu.hasLunch(),
-                        todayMenu.hasDinner()
-                );
+                saveWeeklyMenus(weeklyMenus);
+                logTodayMenuStatus(today, weeklyMenus);
+                log.info("2기숙사 식당 메뉴 저장 완료. trigger={}, savedDates={}", trigger, weeklyMenus.keySet());
             } catch (Exception e) {
-                logFailureContext(trigger, today, posts, todayMenu, runResult);
+                logFailureContext(trigger, today, posts, weeklyMenus, runResult);
                 log.warn("2기숙사 식당 인스타 메뉴 저장 실패. trigger={}, message={}", trigger, e.getMessage(), e);
             }
         } catch (IOException | InterruptedException | TimeoutException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            logFailureContext(trigger, today, posts, todayMenu, runResult);
+            logFailureContext(trigger, today, posts, weeklyMenus, runResult);
             log.warn("2기숙사 식당 Python 실행 실패. trigger={}, message={}", trigger, e.getMessage(), e);
         } catch (Exception e) {
-            logFailureContext(trigger, today, posts, todayMenu, runResult);
+            logFailureContext(trigger, today, posts, weeklyMenus, runResult);
             log.warn("2기숙사 식당 인스타 메뉴 크롤링 또는 파싱 실패. trigger={}, message={}", trigger, e.getMessage(), e);
         } finally {
             cleanupUnusedGeneratedFiles(runResult);
@@ -123,9 +121,8 @@ public class SecondDormitoryInstagramCrawlService {
 
     private void logPythonRunResult(PythonRunResult runResult) {
         log.info(
-                "2기숙사 식당 Python 실행 완료. exitCode={}, outputFile={}, historyFile={}",
+                "2기숙사 식당 Python 실행 완료. exitCode={}, historyFile={}",
                 runResult.exitCode(),
-                runResult.outputFile(),
                 runResult.historyFile()
         );
 
@@ -163,21 +160,28 @@ public class SecondDormitoryInstagramCrawlService {
         log.info("2기숙사 식당 주간 초기화 완료. currentWeek={}", currentWeek);
     }
 
-    private void saveTodayMenus(LocalDate today, SecondDormitoryDailyMenu todayMenu) {
-        int day = today.getDayOfWeek().getValue();
+    private void saveWeeklyMenus(Map<LocalDate, SecondDormitoryDailyMenu> weeklyMenus) {
+        for (Map.Entry<LocalDate, SecondDormitoryDailyMenu> entry : weeklyMenus.entrySet()) {
+            saveDailyMenu(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void saveDailyMenu(LocalDate menuDate, SecondDormitoryDailyMenu menu) {
+        int day = menuDate.getDayOfWeek().getValue();
         log.info(
-                "2기숙사 식당 Redis 저장 준비. day={}, lunchMenu={}, dinnerMenu={}",
+                "2기숙사 식당 Redis 저장 준비. menuDate={}, day={}, lunchMenu={}, dinnerMenu={}",
+                menuDate,
                 day,
-                sanitizeForLog(todayMenu.lunchMenu()),
-                sanitizeForLog(todayMenu.dinnerMenu())
+                sanitizeForLog(menu.lunchMenu()),
+                sanitizeForLog(menu.dinnerMenu())
         );
 
         storeMealWithLog(day, 1, "조식", BREAKFAST_NOT_AVAILABLE);
-        if (todayMenu.hasLunch()) {
-            storeMealWithLog(day, 2, "중식", todayMenu.lunchMenu());
+        if (menu.hasLunch()) {
+            storeMealWithLog(day, 2, "중식", menu.lunchMenu());
         }
-        if (todayMenu.hasDinner()) {
-            storeMealWithLog(day, 3, "석식", todayMenu.dinnerMenu());
+        if (menu.hasDinner()) {
+            storeMealWithLog(day, 3, "석식", menu.dinnerMenu());
         }
     }
 
@@ -224,11 +228,17 @@ public class SecondDormitoryInstagramCrawlService {
         }
     }
 
-    private void logParsedTodayMenu(LocalDate today, List<InstagramMenuPost> posts, SecondDormitoryDailyMenu todayMenu) {
+    private void logParsedWeeklyMenus(
+            LocalDate today,
+            List<InstagramMenuPost> posts,
+            Map<LocalDate, SecondDormitoryDailyMenu> weeklyMenus
+    ) {
+        SecondDormitoryDailyMenu todayMenu = weeklyMenus.getOrDefault(today, SecondDormitoryDailyMenu.empty());
         long todayPostCount = posts.stream()
                 .filter(post -> post.publishedAt() != null)
                 .filter(post -> post.publishedAt().atZoneSameInstant(properties.resolveZoneId()).toLocalDate().equals(today))
                 .count();
+
         log.info(
                 "2기숙사 식당 오늘 메뉴 파싱 완료. date={}, todayPostCount={}, lunchMenu={}, dinnerMenu={}",
                 today,
@@ -236,33 +246,58 @@ public class SecondDormitoryInstagramCrawlService {
                 sanitizeForLog(todayMenu.lunchMenu()),
                 sanitizeForLog(todayMenu.dinnerMenu())
         );
+
+        for (Map.Entry<LocalDate, SecondDormitoryDailyMenu> entry : weeklyMenus.entrySet()) {
+            log.info(
+                    "2기숙사 식당 날짜별 메뉴 파싱 완료. menuDate={}, lunchMenu={}, dinnerMenu={}",
+                    entry.getKey(),
+                    sanitizeForLog(entry.getValue().lunchMenu()),
+                    sanitizeForLog(entry.getValue().dinnerMenu())
+            );
+        }
+    }
+
+    private void logTodayMenuStatus(LocalDate today, Map<LocalDate, SecondDormitoryDailyMenu> weeklyMenus) {
+        SecondDormitoryDailyMenu todayMenu = weeklyMenus.getOrDefault(today, SecondDormitoryDailyMenu.empty());
+        if (!todayMenu.hasAnyMenu()) {
+            log.warn("2기숙사 식당 오늘 메뉴는 아직 없지만, 같은 주차의 이전 게시글은 저장했습니다. date={}", today);
+        }
     }
 
     private void logFailureContext(
             String trigger,
             LocalDate today,
             List<InstagramMenuPost> posts,
-            SecondDormitoryDailyMenu todayMenu,
+            Map<LocalDate, SecondDormitoryDailyMenu> weeklyMenus,
             PythonRunResult runResult
     ) {
         log.warn(
-                "2기숙사 식당 실패 컨텍스트. trigger={}, date={}, collectedPostCount={}, lunchMenu={}, dinnerMenu={}",
+                "2기숙사 식당 실패 컨텍스트. trigger={}, date={}, collectedPostCount={}, parsedDates={}",
                 trigger,
                 today,
                 posts == null ? 0 : posts.size(),
-                todayMenu == null ? null : sanitizeForLog(todayMenu.lunchMenu()),
-                todayMenu == null ? null : sanitizeForLog(todayMenu.dinnerMenu())
+                weeklyMenus == null ? List.of() : weeklyMenus.keySet()
         );
 
         if (runResult != null) {
             log.warn(
-                    "2기숙사 식당 Python 실행 컨텍스트. exitCode={}, outputFile={}, historyFile={}, stdout={}, stderr={}",
+                    "2기숙사 식당 Python 실행 컨텍스트. exitCode={}, historyFile={}, stdout={}, stderr={}",
                     runResult.exitCode(),
-                    runResult.outputFile(),
                     runResult.historyFile(),
                     sanitizeForLog(runResult.stdout()),
                     sanitizeForLog(runResult.stderr())
             );
+        }
+
+        if (weeklyMenus != null && !weeklyMenus.isEmpty()) {
+            for (Map.Entry<LocalDate, SecondDormitoryDailyMenu> entry : weeklyMenus.entrySet()) {
+                log.warn(
+                        "2기숙사 식당 실패 시 파싱 메뉴. menuDate={}, lunchMenu={}, dinnerMenu={}",
+                        entry.getKey(),
+                        sanitizeForLog(entry.getValue().lunchMenu()),
+                        sanitizeForLog(entry.getValue().dinnerMenu())
+                );
+            }
         }
 
         if (posts == null || posts.isEmpty()) {
@@ -284,9 +319,12 @@ public class SecondDormitoryInstagramCrawlService {
             return;
         }
 
-        deleteIfExists(runResult.outputFile(), "latest post output");
+        Path historyDir = runResult.historyFile().getParent();
+        if (historyDir == null) {
+            return;
+        }
 
-        Path debugCaptionFile = runResult.outputFile().getParent().resolve("debug_caption.json");
+        Path debugCaptionFile = historyDir.resolve("debug_caption.json");
         deleteIfExists(debugCaptionFile, "debug caption output");
     }
 

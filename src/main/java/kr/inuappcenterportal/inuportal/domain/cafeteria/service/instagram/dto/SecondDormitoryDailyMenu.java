@@ -5,6 +5,10 @@ public record SecondDormitoryDailyMenu(
         String dinnerMenu
 ) {
 
+    public static SecondDormitoryDailyMenu empty() {
+        return new SecondDormitoryDailyMenu(null, null);
+    }
+
     public boolean hasLunch() {
         return lunchMenu != null && !lunchMenu.isBlank();
     }
