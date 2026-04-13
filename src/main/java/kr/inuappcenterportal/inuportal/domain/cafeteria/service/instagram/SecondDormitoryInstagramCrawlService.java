@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.temporal.IsoFields;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -45,22 +47,32 @@ public class SecondDormitoryInstagramCrawlService {
     }
 
     @Scheduled(
-            cron = "${app.cafeteria.instagram.second-dormitory.morning-cron:0 0 9 * * *}",
+            cron = "${app.cafeteria.instagram.second-dormitory.lunch-retry-cron:0 */15 10-11 * * *}",
             zone = "${app.cafeteria.instagram.second-dormitory.zone:Asia/Seoul}"
     )
-    public void refreshMorningMenus() {
-        refreshMenus("morning");
+    public void refreshLunchRetryWindow() {
+        if (!isRetryExecutionTime(MealWindow.LUNCH)) {
+            return;
+        }
+        refreshMenus("lunch-retry", MealWindow.LUNCH);
     }
 
     @Scheduled(
-            cron = "${app.cafeteria.instagram.second-dormitory.afternoon-cron:0 0 17 * * *}",
+            cron = "${app.cafeteria.instagram.second-dormitory.dinner-retry-cron:0 */15 17-18 * * *}",
             zone = "${app.cafeteria.instagram.second-dormitory.zone:Asia/Seoul}"
     )
-    public void refreshAfternoonMenus() {
-        refreshMenus("afternoon");
+    public void refreshDinnerRetryWindow() {
+        if (!isRetryExecutionTime(MealWindow.DINNER)) {
+            return;
+        }
+        refreshMenus("dinner-retry", MealWindow.DINNER);
     }
 
     public void refreshMenus(String trigger) {
+        refreshMenus(trigger, null);
+    }
+
+    public void refreshMenus(String trigger, MealWindow targetMealWindow) {
         LocalDate today = null;
         List<InstagramMenuPost> posts = List.of();
         Map<LocalDate, SecondDormitoryDailyMenu> weeklyMenus = Map.of();
@@ -77,7 +89,18 @@ public class SecondDormitoryInstagramCrawlService {
 
         try {
             today = LocalDate.now(properties.resolveZoneId());
-            runResult = pythonRunner.runScraper();
+            if (targetMealWindow != null && hasStoredMenuForToday(today, targetMealWindow)) {
+                log.info("2기숙사 식당 재시도 스킵. trigger={}, target={}, date={}", trigger, targetMealWindow, today);
+                return;
+            }
+
+            int recentCount = determineRecentCount(today, targetMealWindow);
+            if (recentCount <= 0) {
+                log.info("2湲곗닕???앸떦 ?ㅽ겕???ㅼ쓫. trigger={}, target={}, date={}", trigger, targetMealWindow, today);
+                return;
+            }
+
+            runResult = pythonRunner.runScraper(recentCount);
             logPythonRunResult(runResult);
 
             if (!runResult.isSuccess()) {
@@ -264,6 +287,104 @@ public class SecondDormitoryInstagramCrawlService {
         }
     }
 
+    private boolean isRetryExecutionTime(MealWindow mealWindow) {
+        LocalTime now = LocalTime.now(properties.resolveZoneId());
+        return switch (mealWindow) {
+            case LUNCH -> now.getHour() == 10 || (now.getHour() == 11 && now.getMinute() <= 30);
+            case DINNER -> now.getHour() == 17 || (now.getHour() == 18 && now.getMinute() <= 30);
+        };
+    }
+
+    private boolean hasStoredMenuForToday(LocalDate today, MealWindow mealWindow) {
+        int slot = mealWindow == MealWindow.LUNCH ? 2 : 3;
+        String storedMenu = redisService.getMeal(CAFETERIA_NAME, today.getDayOfWeek().getValue(), slot);
+        if (storedMenu == null || storedMenu.isBlank()) {
+            return false;
+        }
+        return !DEFAULT_MENU.equals(storedMenu);
+    }
+
+    private int determineRecentCount(LocalDate today, MealWindow targetMealWindow) {
+        List<ExpectedMealSlot> expectedSlots = buildExpectedMealSlots(today, targetMealWindow);
+        int firstMissingIndex = findFirstMissingExpectedSlot(expectedSlots);
+        if (firstMissingIndex < 0) {
+            return 0;
+        }
+
+        ExpectedMealSlot firstMissingSlot = expectedSlots.get(firstMissingIndex);
+        int desiredRecentCount = expectedSlots.size() - firstMissingIndex;
+        int resolvedRecentCount = Math.min(Math.max(desiredRecentCount, 1), properties.getResolvedRecentCount());
+
+        log.info(
+                "2湲곗닕???앸떦 recent-count 怨꾩궛 ?꾨즺. date={}, target={}, expectedSlotCount={}, firstMissingDate={}, firstMissingMeal={}, desiredRecentCount={}, resolvedRecentCount={}",
+                today,
+                targetMealWindow,
+                expectedSlots.size(),
+                firstMissingSlot.date(),
+                firstMissingSlot.mealWindow(),
+                desiredRecentCount,
+                resolvedRecentCount
+        );
+        return resolvedRecentCount;
+    }
+
+    private List<ExpectedMealSlot> buildExpectedMealSlots(LocalDate today, MealWindow targetMealWindow) {
+        LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1L);
+        List<ExpectedMealSlot> expectedSlots = new ArrayList<>();
+
+        for (LocalDate cursor = startOfWeek; !cursor.isAfter(today); cursor = cursor.plusDays(1)) {
+            if (cursor.isBefore(today)) {
+                expectedSlots.add(new ExpectedMealSlot(cursor, MealWindow.LUNCH));
+                expectedSlots.add(new ExpectedMealSlot(cursor, MealWindow.DINNER));
+                continue;
+            }
+
+            ExpectedTodayMeals expectedTodayMeals = resolveExpectedTodayMeals(targetMealWindow);
+            if (expectedTodayMeals.includesLunch()) {
+                expectedSlots.add(new ExpectedMealSlot(cursor, MealWindow.LUNCH));
+            }
+            if (expectedTodayMeals.includesDinner()) {
+                expectedSlots.add(new ExpectedMealSlot(cursor, MealWindow.DINNER));
+            }
+        }
+
+        return expectedSlots;
+    }
+
+    private ExpectedTodayMeals resolveExpectedTodayMeals(MealWindow targetMealWindow) {
+        if (targetMealWindow == MealWindow.LUNCH) {
+            return ExpectedTodayMeals.LUNCH_ONLY;
+        }
+        if (targetMealWindow == MealWindow.DINNER) {
+            return ExpectedTodayMeals.BOTH;
+        }
+
+        LocalTime now = LocalTime.now(properties.resolveZoneId());
+        if (now.isBefore(LocalTime.of(10, 0))) {
+            return ExpectedTodayMeals.NONE;
+        }
+        if (now.isBefore(LocalTime.of(17, 0))) {
+            return ExpectedTodayMeals.LUNCH_ONLY;
+        }
+        return ExpectedTodayMeals.BOTH;
+    }
+
+    private int findFirstMissingExpectedSlot(List<ExpectedMealSlot> expectedSlots) {
+        for (int i = 0; i < expectedSlots.size(); i++) {
+            ExpectedMealSlot slot = expectedSlots.get(i);
+            if (isMealMissing(slot.date(), slot.mealWindow())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isMealMissing(LocalDate date, MealWindow mealWindow) {
+        int slot = mealWindow == MealWindow.LUNCH ? 2 : 3;
+        String storedMenu = redisService.getMeal(CAFETERIA_NAME, date.getDayOfWeek().getValue(), slot);
+        return storedMenu == null || storedMenu.isBlank() || DEFAULT_MENU.equals(storedMenu);
+    }
+
     private void logFailureContext(
             String trigger,
             LocalDate today,
@@ -348,5 +469,35 @@ public class SecondDormitoryInstagramCrawlService {
             return null;
         }
         return value.replace("\r", "\\r").replace("\n", "\\n").trim();
+    }
+
+    private enum MealWindow {
+        LUNCH,
+        DINNER
+    }
+
+    private enum ExpectedTodayMeals {
+        NONE(false, false),
+        LUNCH_ONLY(true, false),
+        BOTH(true, true);
+
+        private final boolean includesLunch;
+        private final boolean includesDinner;
+
+        ExpectedTodayMeals(boolean includesLunch, boolean includesDinner) {
+            this.includesLunch = includesLunch;
+            this.includesDinner = includesDinner;
+        }
+
+        private boolean includesLunch() {
+            return includesLunch;
+        }
+
+        private boolean includesDinner() {
+            return includesDinner;
+        }
+    }
+
+    private record ExpectedMealSlot(LocalDate date, MealWindow mealWindow) {
     }
 }

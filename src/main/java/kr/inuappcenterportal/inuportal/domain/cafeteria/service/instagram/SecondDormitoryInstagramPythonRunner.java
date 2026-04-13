@@ -32,6 +32,10 @@ public class SecondDormitoryInstagramPythonRunner {
     private String installPath;
 
     public PythonRunResult runScraper() throws IOException, InterruptedException, TimeoutException {
+        return runScraper(properties.getResolvedRecentCount());
+    }
+
+    public PythonRunResult runScraper(int recentCount) throws IOException, InterruptedException, TimeoutException {
         Path scriptDir = properties.resolveScriptDir().toAbsolutePath().normalize();
         Path scriptFile = properties.resolveScriptFile().toAbsolutePath().normalize();
         Path outputFile = properties.resolveOutputFile().toAbsolutePath().normalize();
@@ -61,7 +65,7 @@ public class SecondDormitoryInstagramPythonRunner {
         command.add("--profile-dir");
         command.add(profileDir.toString());
         command.add("--recent-count");
-        command.add(String.valueOf(properties.getResolvedRecentCount()));
+        command.add(String.valueOf(Math.max(recentCount, 1)));
 
         String resolvedChromeDriverPath = resolveChromeDriverPath();
         if (resolvedChromeDriverPath != null) {
