@@ -12,23 +12,38 @@ import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @Slf4j
-@Tag(name="Cafeterias", description = "학식 API")
+@Tag(name = "Cafeterias", description = "학식 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/cafeterias")
 public class CafeteriaController {
+
     private final CafeteriaService cafeteriaService;
-    @Operation(summary = "학식 메뉴 가져오기",description = "url 파라미터에 식당 이름(학생식당, 제1기숙사식당, 2호관(교직원)식당, 27호관식당, 사범대식당)과 요일(월요일 : 1 ~ 일요일 : 7)을 보내주세요.")
+
+    @Operation(
+            summary = "학식 메뉴 가져오기",
+            description = "url 파라미터에 식당 이름(학생식당, 제1기숙사식당, 2기숙사 식당, 2호관(교직원)식당, 27호관식당, 사범대식당)과 요일(월요일 : 1 ~ 일요일 : 7)을 보내주세요."
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "학식 메뉴 가져오기 성공",content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "학식 메뉴 가져오기 성공",
+                    content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))
+            ),
     })
     @GetMapping("")
-    public ResponseEntity<ResponseDto<List<String>>> getMenu(@RequestParam String cafeteria,@RequestParam(defaultValue = "0") Integer day){
-        return ResponseEntity.ok(ResponseDto.of(cafeteriaService.getCafeteria(cafeteria,day),"학식 메뉴 가져오기 성공"));
+    public ResponseEntity<ResponseDto<List<String>>> getMenu(
+            @RequestParam String cafeteria,
+            @RequestParam(defaultValue = "0") Integer day
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(cafeteriaService.getCafeteria(cafeteria, day), "학식 메뉴 가져오기 성공"));
     }
 }
