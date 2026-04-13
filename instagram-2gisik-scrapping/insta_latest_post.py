@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import sys
 import time
@@ -58,12 +59,35 @@ NOISE_LINE_PATTERNS = [
 ]
 
 
-def build_driver(profile_dir: Path, chromedriver_path: Optional[str]) -> webdriver.Chrome:
+def should_run_headless(explicit_headless: Optional[bool]) -> bool:
+    if explicit_headless is not None:
+        return explicit_headless
+
+    if os.name != "nt":
+        return True
+
+    return False
+
+
+def build_driver(
+    profile_dir: Path,
+    chromedriver_path: Optional[str],
+    headless: bool,
+) -> webdriver.Chrome:
     options = Options()
     options.add_argument(f"--user-data-dir={profile_dir.resolve()}")
     options.add_argument("--profile-directory=Default")
-    options.add_argument("--start-maximized")
     options.add_argument("--lang=ko-KR")
+    options.add_argument("--remote-allow-origins=*")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1440,1600")
+
+    if headless:
+        options.add_argument("--headless=new")
+    else:
+        options.add_argument("--start-maximized")
 
     service = Service(executable_path=chromedriver_path) if chromedriver_path else Service()
 
@@ -875,6 +899,12 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_RECENT_COUNT,
         help="How many of the most recent posts to check on each run.",
     )
+    parser.add_argument(
+        "--headless",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Run Chrome in headless mode. Defaults to true on non-Windows environments.",
+    )
     return parser.parse_args()
 
 
@@ -884,8 +914,24 @@ def main() -> int:
     history_output_path = Path(args.history_output)
     profile_dir = Path(args.profile_dir)
     recent_count = max(args.recent_count, 1)
+    headless = should_run_headless(args.headless)
 
-    driver = build_driver(profile_dir=profile_dir, chromedriver_path=args.chromedriver_path)
+    print(
+        json.dumps(
+            {
+                "headless": headless,
+                "profile_dir": str(profile_dir.resolve()),
+                "history_output": str(history_output_path.resolve()),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+    driver = build_driver(
+        profile_dir=profile_dir,
+        chromedriver_path=args.chromedriver_path,
+        headless=headless,
+    )
     wait = WebDriverWait(driver, 25)
 
     try:
