@@ -22,6 +22,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Create application.properties
         run: echo "${{ secrets.APPLICATION_PROPERTIES_DEV }}" > ./src/main/resources/application.properties
 
