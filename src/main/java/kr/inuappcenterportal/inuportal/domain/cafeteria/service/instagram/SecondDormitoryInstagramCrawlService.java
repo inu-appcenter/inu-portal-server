@@ -96,7 +96,7 @@ public class SecondDormitoryInstagramCrawlService {
 
             int recentCount = determineRecentCount(today, targetMealWindow);
             if (recentCount <= 0) {
-                log.info("2湲곗닕???앸떦 ?ㅽ겕???ㅼ쓫. trigger={}, target={}, date={}", trigger, targetMealWindow, today);
+                log.info("2기숙사 식당 스크래핑 스킵. trigger={}, target={}, date={}", trigger, targetMealWindow, today);
                 return;
             }
 
