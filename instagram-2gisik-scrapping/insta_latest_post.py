@@ -59,6 +59,15 @@ NOISE_LINE_PATTERNS = [
 ]
 
 
+def remove_chrome_lock(profile_dir):
+    lock_file = Path(profile_dir) / "SingletonLock"
+    if lock_file.exists():
+        try:
+            os.remove(lock_file)
+            print(f"Removed existing lock file: {lock_file}")
+        except Exception as e:
+            print(f"Failed to remove lock file: {e}")
+
 def should_run_headless(explicit_headless: Optional[bool]) -> bool:
     # explicit_headless가 지정되지 않았다면 도커(리눅스) 환경에서는 무조건 True
     if explicit_headless is not None:
@@ -911,6 +920,8 @@ def main() -> int:
     profile_dir = Path(args.profile_dir)
     recent_count = max(args.recent_count, 1)
     headless = should_run_headless(args.headless)
+
+    remove_chrome_lock(profile_dir)
 
     print(
         json.dumps(
