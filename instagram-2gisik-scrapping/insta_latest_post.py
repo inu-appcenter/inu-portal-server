@@ -60,13 +60,10 @@ NOISE_LINE_PATTERNS = [
 
 
 def should_run_headless(explicit_headless: Optional[bool]) -> bool:
+    # explicit_headless가 지정되지 않았다면 도커(리눅스) 환경에서는 무조건 True
     if explicit_headless is not None:
         return explicit_headless
-
-    if os.name != "nt":
-        return True
-
-    return False
+    return True # 도커 환경 배포를 위해 기본값을 True로 강제
 
 
 def build_driver(
@@ -94,14 +91,12 @@ def build_driver(
     try:
         return webdriver.Chrome(service=service, options=options)
     except WebDriverException as exc:
-        message = [
-            "Could not start Chrome WebDriver.",
-            "Install Selenium dependencies first: python.exe -m pip install -r requirements.txt",
-            "If Selenium Manager cannot find a driver automatically, install a",
-            "ChromeDriver version that matches your local Chrome and pass",
-            "--chromedriver-path or put chromedriver on PATH.",
-            f"Original error: {exc}",
-        ]
+            message = [
+                "Could not start Chrome WebDriver.",
+                f"Original error: {exc}",
+                "Check if Google Chrome and ChromeDriver versions match.",
+                "Make sure system dependencies (libnss3, etc.) are installed."
+            ]
         raise SystemExit("\n".join(message)) from exc
 
 
