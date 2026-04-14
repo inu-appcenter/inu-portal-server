@@ -13,6 +13,8 @@ import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentCrawlerStateRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeRepository;
+import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
+import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
 import kr.inuappcenterportal.inuportal.global.config.DepartmentCrawlConfig;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -49,6 +51,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -93,6 +96,7 @@ public class NoticeService {
     private final CacheManager cacheManager;
     private final KeywordService keywordService;
     private final ObjectMapper objectMapper;
+    private final ScheduleRepository scheduleRepository;
 
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
@@ -106,7 +110,8 @@ public class NoticeService {
             DepartmentNoticeRepository departmentNoticeRepository,
             DepartmentCrawlerStateRepository departmentCrawlerStateRepository,
             KeywordService keywordService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ScheduleRepository scheduleRepository
     ) {
         this.noticeRepository = noticeRepository;
         this.departmentNoticeRepository = departmentNoticeRepository;
@@ -115,6 +120,7 @@ public class NoticeService {
         this.departmentCrawlerStateRepository = departmentCrawlerStateRepository;
         this.keywordService = keywordService;
         this.objectMapper = objectMapper;
+        this.scheduleRepository = scheduleRepository;
     }
 
     @Scheduled(cron = "0 0/30 * * * *")
@@ -839,12 +845,38 @@ public class NoticeService {
     public ListResponseDto<DepartmentNoticeListResponse> getDepartmentNotices(Department department, String sort, int page) {
         Pageable pageable = PageRequest.of(page > 0 ? --page : page, 8, sort(sort));
         Page<DepartmentNotice> departmentNotices = departmentNoticeRepository.findAllByDepartment(department, pageable);
+        Map<Long, Boolean> hasSchedulesMap = loadHasSchedulesMap(departmentNotices.getContent());
 
         return ListResponseDto.of(
                 departmentNotices.getTotalPages(),
                 departmentNotices.getTotalElements(),
-                departmentNotices.getContent().stream().map(DepartmentNoticeListResponse::of).collect(Collectors.toList())
+                departmentNotices.getContent().stream()
+                        .map(notice -> DepartmentNoticeListResponse.of(
+                                notice,
+                                hasSchedulesMap.getOrDefault(notice.getId(), false)
+                        ))
+                        .collect(Collectors.toList())
         );
+    }
+
+    private Map<Long, Boolean> loadHasSchedulesMap(List<DepartmentNotice> notices) {
+        List<Long> noticeIds = notices.stream()
+                .map(DepartmentNotice::getId)
+                .toList();
+
+        if (noticeIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return scheduleRepository.findAllBySourceNoticeIdInAndAiGeneratedTrue(noticeIds).stream()
+                .filter(schedule -> schedule.getSourceNoticeId() != null)
+                .collect(Collectors.groupingBy(
+                        Schedule::getSourceNoticeId,
+                        Collectors.collectingAndThen(
+                                Collectors.counting(),
+                                count -> count > 0
+                        )
+                ));
     }
 
     private Connection connect(String url) {

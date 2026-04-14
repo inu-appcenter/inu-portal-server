@@ -14,6 +14,9 @@ import java.time.format.DateTimeFormatter;
 @NoArgsConstructor
 public class ScheduleResponseDto {
 
+    @Schema(description = "일정 id", example = "101")
+    private Long id;
+
     @Schema(description = "제목", example = "수강신청")
     private String title;
 
@@ -43,6 +46,7 @@ public class ScheduleResponseDto {
 
     @Builder
     private ScheduleResponseDto(
+            Long id,
             String start,
             String end,
             String title,
@@ -53,6 +57,7 @@ public class ScheduleResponseDto {
             String sourceNoticeTitle,
             String url
     ) {
+        this.id = id;
         this.start = start;
         this.end = end;
         this.title = title;
@@ -70,6 +75,7 @@ public class ScheduleResponseDto {
 
     public static ScheduleResponseDto of(Schedule schedule, DepartmentNotice sourceNotice) {
         return ScheduleResponseDto.builder()
+                .id(schedule.getId())
                 .start(schedule.getStartDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .end(schedule.getEndDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .title(schedule.getContent())

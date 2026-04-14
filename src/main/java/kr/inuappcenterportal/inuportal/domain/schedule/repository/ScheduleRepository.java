@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
@@ -43,6 +44,10 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("monthStart") LocalDate monthStart,
             @Param("monthEnd") LocalDate monthEnd
     );
+
+    List<Schedule> findAllBySourceNoticeIdAndAiGeneratedTrueOrderByStartDateAscIdAsc(Long sourceNoticeId);
+
+    List<Schedule> findAllBySourceNoticeIdInAndAiGeneratedTrue(Collection<Long> sourceNoticeIds);
 
     @Query("SELECT COALESCE(MAX(s.id), 0) FROM Schedule s")
     Long findMaxId();
