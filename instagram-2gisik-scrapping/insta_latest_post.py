@@ -91,12 +91,12 @@ def build_driver(
     try:
         return webdriver.Chrome(service=service, options=options)
     except WebDriverException as exc:
-            message = [
-                "Could not start Chrome WebDriver.",
-                f"Original error: {exc}",
-                "Check if Google Chrome and ChromeDriver versions match.",
-                "Make sure system dependencies (libnss3, etc.) are installed."
-            ]
+        message = [
+            "Could not start Chrome WebDriver.",
+            f"Original error: {exc}",
+            "Check if Google Chrome and ChromeDriver versions match.",
+            "Make sure system dependencies (libnss3, etc.) are installed."
+        ]
         raise SystemExit("\n".join(message)) from exc
 
 
