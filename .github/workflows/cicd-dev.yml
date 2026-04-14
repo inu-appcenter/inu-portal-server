@@ -91,6 +91,7 @@ jobs:
             
             docker run -d \
               --network intip-dev \
+              --shm-size=2gb \
               -p 8104:8080 \
               -e TZ=Asia/Seoul \
               -v ${{ secrets.MOUNT_PATH }}:/intip \
