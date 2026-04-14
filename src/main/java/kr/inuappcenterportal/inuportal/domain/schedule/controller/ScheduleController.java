@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,7 +31,7 @@ import java.util.List;
 public class ScheduleController {
     private final ScheduleService scheduleService;
 
-    @Operation(summary = "학사일정 가져오기", description = "url 파라미터로 year, month를 보내주세요.")
+    @Operation(summary = "학사일정 가져오기", description = "url 파라미터로 year, month를 보내주세요")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
@@ -67,6 +68,23 @@ public class ScheduleController {
                         scheduleService.getMyDepartmentScheduleByMonth(member, year, month),
                         "내 학과 일정 가져오기 성공"
                 )
+        );
+    }
+
+    @Operation(summary = "일정 단건 조회", description = "scheduleId로 일정 1건을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "일정 단건 조회 성공",
+                    content = @Content(schema = @Schema(implementation = ScheduleResponseDto.class))
+            )
+    })
+    @GetMapping("/{scheduleId}")
+    public ResponseEntity<ResponseDto<ScheduleResponseDto>> getSchedule(
+            @PathVariable Long scheduleId
+    ) {
+        return ResponseEntity.ok(
+                ResponseDto.of(scheduleService.getSchedule(scheduleId), "일정 단건 조회 성공")
         );
     }
 }

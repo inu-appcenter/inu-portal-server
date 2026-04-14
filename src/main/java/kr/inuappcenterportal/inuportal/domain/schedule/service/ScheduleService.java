@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -27,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -164,6 +167,29 @@ public class ScheduleService {
                         schedule,
                         sourceNoticeMap.get(schedule.getSourceNoticeId())
                 ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduleResponseDto getSchedule(Long scheduleId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "존재하지 않는 일정입니다."));
+
+        DepartmentNotice sourceNotice = null;
+        if (schedule.getSourceNoticeId() != null) {
+            sourceNotice = departmentNoticeRepository.findById(schedule.getSourceNoticeId()).orElse(null);
+        }
+
+        return ScheduleResponseDto.of(schedule, sourceNotice);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ScheduleResponseDto> getSchedulesByDepartmentNoticeId(Long departmentNoticeId) {
+        DepartmentNotice departmentNotice = departmentNoticeRepository.findById(departmentNoticeId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "존재하지 않는 학과 공지입니다."));
+
+        return scheduleRepository.findAllBySourceNoticeIdAndAiGeneratedTrueOrderByStartDateAscIdAsc(departmentNoticeId).stream()
+                .map(schedule -> ScheduleResponseDto.of(schedule, departmentNotice))
                 .collect(Collectors.toList());
     }
 
