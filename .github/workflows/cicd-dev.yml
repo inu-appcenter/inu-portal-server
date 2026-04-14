@@ -86,6 +86,10 @@ jobs:
             docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev || true
             
             docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+
+            # 새로운 컨테이너가 뜨기 전, 볼륨 마운트된 경로의 락 파일 강제 제거
+            rm -f ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile/SingletonLock || true
+            chmod -R 777 ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile || true
             
             docker network create intip-dev || true
             
