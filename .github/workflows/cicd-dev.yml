@@ -68,7 +68,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/chrome-profile/*"
+          source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/README.md"
           target: ${{ secrets.MOUNT_PATH }}
 
       - name: Deploy to Server
