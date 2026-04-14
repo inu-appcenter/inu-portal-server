@@ -3,6 +3,7 @@ services:
     image: ${DOCKERHUB_USERNAME}/${PROJECT_NAME}:latest
     container_name: intip
     restart: unless-stopped
+    shm_size: '2gb'
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: prod

@@ -1,0 +1,96 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.sentry",
+    "module": "sentry-spring-boot-jakarta",
+    "version": "8.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.5"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.sentry",
+          "module": "sentry",
+          "version": {
+            "requires": "8.1.0"
+          }
+        },
+        {
+          "group": "io.sentry",
+          "module": "sentry-spring-jakarta",
+          "version": {
+            "requires": "8.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "sentry-spring-boot-jakarta-8.1.0.jar",
+          "url": "sentry-spring-boot-jakarta-8.1.0.jar",
+          "size": 59452,
+          "sha512": "55721a2085a60f01e161048cf302c7c16d3ebc6029047ec9f71cfbd4e8abf2d2dc90b6f702707e27039574c3c561e94344ebbd3ed8493439635a9d71723c8ef4",
+          "sha256": "914343bd90552432911dfab0433f9cfab5a884e8a890eba13fd2f2b32fda5b3e",
+          "sha1": "33d05f63f8082319db5fa7ed659a096766b9b8a0",
+          "md5": "e523e7c3fa549394de352b2fb65c4375"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.sentry",
+          "module": "sentry",
+          "version": {
+            "requires": "8.1.0"
+          }
+        },
+        {
+          "group": "io.sentry",
+          "module": "sentry-spring-jakarta",
+          "version": {
+            "requires": "8.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "sentry-spring-boot-jakarta-8.1.0.jar",
+          "url": "sentry-spring-boot-jakarta-8.1.0.jar",
+          "size": 59452,
+          "sha512": "55721a2085a60f01e161048cf302c7c16d3ebc6029047ec9f71cfbd4e8abf2d2dc90b6f702707e27039574c3c561e94344ebbd3ed8493439635a9d71723c8ef4",
+          "sha256": "914343bd90552432911dfab0433f9cfab5a884e8a890eba13fd2f2b32fda5b3e",
+          "sha1": "33d05f63f8082319db5fa7ed659a096766b9b8a0",
+          "md5": "e523e7c3fa549394de352b2fb65c4375"
+        }
+      ]
+    }
+  ]
+}
