@@ -176,5 +176,5 @@ gradle-app.setting
 .gradle-user/
 build/
 
-/instagram-2gisik-scrapping/chrome-profile/
+#/instagram-2gisik-scrapping/chrome-profile/
 /instagram-2gisik-scrapping/output/
