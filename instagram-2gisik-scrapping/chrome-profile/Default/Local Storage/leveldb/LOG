@@ -1,3 +1,6 @@
-2026/04/14-14:48:01.412 1674 Reusing MANIFEST C:\Users\hyunjun\Desktop\instagram-2gisik-scrapping\chrome-profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/04/14-14:48:01.416 1674 Recovering log #3
-2026/04/14-14:48:01.418 1674 Reusing old log C:\Users\hyunjun\Desktop\instagram-2gisik-scrapping\chrome-profile\Default\Local Storage\leveldb/000003.log 
+2026/04/14-17:19:06.705 5fbc Reusing MANIFEST C:\Projects\Appcenter\intip\inu-portal-server\instagram-2gisik-scrapping\chrome-profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/14-17:19:06.712 5fbc Recovering log #3
+2026/04/14-17:19:06.714 5fbc Reusing old log C:\Projects\Appcenter\intip\inu-portal-server\instagram-2gisik-scrapping\chrome-profile\Default\Local Storage\leveldb/000003.log 
+2026/04/14-17:19:27.126 2ac0 Level-0 table #5: started
+2026/04/14-17:19:27.129 2ac0 Level-0 table #5: 20365 bytes OK
+2026/04/14-17:19:27.130 2ac0 Delete type=0 #3

@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 
 @Component
 @RequiredArgsConstructor
@@ -55,6 +55,7 @@ public class SecondDormitoryInstagramPythonRunner {
         }
 
         command.add(pythonCommand);
+        command.add("-u");
         command.add(scriptFile.toString());
         command.add("--username");
         command.add(properties.getUsername());
@@ -80,13 +81,27 @@ public class SecondDormitoryInstagramPythonRunner {
         log.info("2기숙사 식당 Python 스크립트 실행. command={}", String.join(" ", command));
         Process process = processBuilder.start();
 
-        CompletableFuture<String> stdoutFuture = CompletableFuture.supplyAsync(() -> readStream(process.getInputStream()));
-        CompletableFuture<String> stderrFuture = CompletableFuture.supplyAsync(() -> readStream(process.getErrorStream()));
+        CompletableFuture<String> stdoutFuture = CompletableFuture.supplyAsync(
+                () -> readStream(
+                        process.getInputStream(),
+                        line -> log.info("2湲곗닕???앸떦 Python stdout> {}", line)
+                )
+        );
+        CompletableFuture<String> stderrFuture = CompletableFuture.supplyAsync(
+                () -> readStream(
+                        process.getErrorStream(),
+                        line -> log.warn("2湲곗닕???앸떦 Python stderr> {}", line)
+                )
+        );
 
         boolean finished = process.waitFor(properties.getResolvedTimeoutSeconds(), TimeUnit.SECONDS);
         if (!finished) {
             process.destroyForcibly();
-            throw new TimeoutException("Python scraper timed out after " + properties.getResolvedTimeoutSeconds() + " seconds.");
+            throw new TimeoutException(
+                    "Python scraper timed out after " + properties.getResolvedTimeoutSeconds()
+                            + " seconds. stdout=" + abbreviate(readCapturedOutput(stdoutFuture))
+                            + ", stderr=" + abbreviate(readCapturedOutput(stderrFuture))
+            );
         }
 
         try {
@@ -178,12 +193,50 @@ public class SecondDormitoryInstagramPythonRunner {
         return null;
     }
 
-    private String readStream(InputStream inputStream) {
+    private String readStream(InputStream inputStream, Consumer<String> lineLogger) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            return reader.lines().collect(Collectors.joining(System.lineSeparator()));
+            StringBuilder captured = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (captured.length() > 0) {
+                    captured.append(System.lineSeparator());
+                }
+                captured.append(line);
+                lineLogger.accept(line);
+            }
+            return captured.toString();
         } catch (IOException e) {
-            return "stream read failed: " + e.getMessage();
+            String message = "stream read failed: " + e.getMessage();
+            lineLogger.accept(message);
+            return message;
         }
+    }
+
+    private String readCapturedOutput(CompletableFuture<String> future) {
+        try {
+            return future.get(3, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "<interrupted>";
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            return "<read failed: " + cause.getMessage() + ">";
+        } catch (java.util.concurrent.TimeoutException e) {
+            return "<unavailable>";
+        }
+    }
+
+    private String abbreviate(String text) {
+        if (text == null) {
+            return "";
+        }
+
+        String normalized = text.replace(System.lineSeparator(), "\\n");
+        int maxLength = 1000;
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLength) + "...";
     }
 
     public record PythonRunResult(

@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import time
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -64,9 +65,48 @@ def remove_chrome_lock(profile_dir):
     if lock_file.exists():
         try:
             os.remove(lock_file)
-            print(f"Removed existing lock file: {lock_file}")
+            emit_log("profile-lock-removed", path=str(lock_file))
         except Exception as e:
-            print(f"Failed to remove lock file: {e}")
+            emit_error("profile-lock-remove-failed", path=str(lock_file), message=str(e))
+
+
+def emit_log(stage: str, **fields: object) -> None:
+    payload = {
+        "stage": stage,
+        "ts_utc": datetime.now(timezone.utc).isoformat(),
+        **fields,
+    }
+    print(json.dumps(payload, ensure_ascii=False), flush=True)
+
+
+def emit_error(stage: str, **fields: object) -> None:
+    payload = {
+        "stage": stage,
+        "ts_utc": datetime.now(timezone.utc).isoformat(),
+        **fields,
+    }
+    print(json.dumps(payload, ensure_ascii=False), file=sys.stderr, flush=True)
+
+
+def safe_current_url(driver: webdriver.Chrome) -> Optional[str]:
+    try:
+        return driver.current_url
+    except Exception:
+        return None
+
+
+def safe_title(driver: webdriver.Chrome) -> Optional[str]:
+    try:
+        return driver.title
+    except Exception:
+        return None
+
+
+def safe_page_source_length(driver: webdriver.Chrome) -> Optional[int]:
+    try:
+        return len(driver.page_source or "")
+    except Exception:
+        return None
 
 def should_run_headless(explicit_headless: Optional[bool]) -> bool:
     # explicit_headless가 지정되지 않았다면 도커(리눅스) 환경에서는 무조건 True
@@ -75,12 +115,17 @@ def should_run_headless(explicit_headless: Optional[bool]) -> bool:
     return True # 도커 환경 배포를 위해 기본값을 True로 강제
 
 
+def supports_interactive_login(headless: bool) -> bool:
+    return not headless and sys.stdin.isatty()
+
+
 def build_driver(
     profile_dir: Path,
     chromedriver_path: Optional[str],
     headless: bool,
 ) -> webdriver.Chrome:
     options = Options()
+    options.page_load_strategy = "eager"
     options.add_argument(f"--user-data-dir={profile_dir.resolve()}")
     options.add_argument("--profile-directory=Default")
     options.add_argument("--lang=ko-KR")
@@ -99,7 +144,10 @@ def build_driver(
     service = Service(executable_path=chromedriver_path) if chromedriver_path else Service()
 
     try:
-        return webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(30)
+        driver.set_script_timeout(30)
+        return driver
     except WebDriverException as exc:
         message = [
             "Could not start Chrome WebDriver.",
@@ -111,8 +159,20 @@ def build_driver(
 
 
 def wait_for_page_ready(driver: webdriver.Chrome, timeout: int = 20) -> None:
+    emit_log(
+        "wait-page-ready-start",
+        timeout=timeout,
+        current_url=safe_current_url(driver),
+        title=safe_title(driver),
+    )
     WebDriverWait(driver, timeout).until(
         lambda current_driver: current_driver.execute_script("return document.readyState") == "complete"
+    )
+    emit_log(
+        "wait-page-ready-done",
+        timeout=timeout,
+        current_url=safe_current_url(driver),
+        title=safe_title(driver),
     )
 
 
@@ -183,17 +243,45 @@ def extract_recent_post_urls_from_html(page_source: str, username: str, limit: O
     return urls
 
 
-def ensure_profile_page(driver: webdriver.Chrome, username: str, wait: WebDriverWait) -> None:
+def ensure_profile_page(
+    driver: webdriver.Chrome,
+    username: str,
+    wait: WebDriverWait,
+    allow_manual_login: bool,
+) -> None:
     profile_url = f"{BASE_URL}/{username}/"
+    emit_log("profile-page-open-start", username=username, profile_url=profile_url)
     driver.get(profile_url)
     wait_for_page_ready(driver)
     time.sleep(2)
+    emit_log(
+        "profile-page-open-done",
+        username=username,
+        current_url=safe_current_url(driver),
+        title=safe_title(driver),
+        page_source_length=safe_page_source_length(driver),
+    )
 
+    dismiss_count = 0
     for _ in range(3):
         if not dismiss_login_modal_if_present(driver):
             break
+        dismiss_count += 1
+    emit_log("profile-modal-dismiss-result", username=username, dismiss_count=dismiss_count)
 
     if is_login_page(driver):
+        emit_error(
+            "profile-login-redirect",
+            username=username,
+            current_url=safe_current_url(driver),
+            title=safe_title(driver),
+            page_source_length=safe_page_source_length(driver),
+        )
+        if not allow_manual_login:
+            raise RuntimeError(
+                "Instagram redirected to a login or challenge page in non-interactive mode. "
+                f"current_url={safe_current_url(driver)}"
+            )
         print(
             "Instagram redirected to a login or challenge page.\n"
             "Log in manually in the opened Chrome window.\n"
@@ -210,11 +298,26 @@ def ensure_profile_page(driver: webdriver.Chrome, username: str, wait: WebDriver
             or len(current_driver.find_elements(By.XPATH, f"//a[contains(@href, '/{username}/p/')]")) > 0
         )
 
+    emit_log("profile-post-wait-start", username=username)
     wait.until(profile_has_posts)
+    emit_log(
+        "profile-post-wait-done",
+        username=username,
+        current_url=safe_current_url(driver),
+        title=safe_title(driver),
+        page_source_length=safe_page_source_length(driver),
+    )
 
 
 def extract_recent_post_urls(driver: webdriver.Chrome, username: str, limit: int) -> list[str]:
     anchors = driver.find_elements(By.XPATH, f"//a[contains(@href, '/{username}/p/')]")
+    emit_log(
+        "recent-post-anchor-scan",
+        username=username,
+        limit=limit,
+        anchor_count=len(anchors),
+        current_url=safe_current_url(driver),
+    )
     urls: list[str] = []
     seen: set[str] = set()
 
@@ -226,7 +329,14 @@ def extract_recent_post_urls(driver: webdriver.Chrome, username: str, limit: int
             if len(urls) >= limit:
                 return urls
 
-    for fallback_url in extract_recent_post_urls_from_html(driver.page_source, username, limit=limit):
+    fallback_urls = extract_recent_post_urls_from_html(driver.page_source, username, limit=limit)
+    emit_log(
+        "recent-post-html-fallback-scan",
+        username=username,
+        limit=limit,
+        fallback_count=len(fallback_urls),
+    )
+    for fallback_url in fallback_urls:
         if fallback_url not in seen:
             seen.add(fallback_url)
             urls.append(fallback_url)
@@ -234,8 +344,17 @@ def extract_recent_post_urls(driver: webdriver.Chrome, username: str, limit: int
                 break
 
     if urls:
+        emit_log("recent-post-urls-resolved", username=username, count=len(urls), urls=urls)
         return urls
 
+    emit_error(
+        "recent-post-urls-missing",
+        username=username,
+        limit=limit,
+        current_url=safe_current_url(driver),
+        title=safe_title(driver),
+        page_source_length=safe_page_source_length(driver),
+    )
     raise RuntimeError("Could not find recent post links on the profile page.")
 
 
@@ -729,17 +848,37 @@ def extract_post_details(
     post_url: str,
     wait: WebDriverWait,
 ) -> dict[str, object]:
+    emit_log("post-detail-open-start", username=username, post_url=post_url)
     driver.get(post_url)
     wait_for_page_ready(driver)
     time.sleep(2)
+    emit_log(
+        "post-detail-open-done",
+        username=username,
+        post_url=post_url,
+        current_url=safe_current_url(driver),
+        title=safe_title(driver),
+        page_source_length=safe_page_source_length(driver),
+    )
 
+    dismiss_count = 0
     for _ in range(3):
         if not dismiss_login_modal_if_present(driver):
             break
+        dismiss_count += 1
+    emit_log("post-detail-modal-dismiss-result", username=username, post_url=post_url, dismiss_count=dismiss_count)
 
     try:
         article = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "article")))
     except TimeoutException:
+        emit_error(
+            "post-detail-article-timeout",
+            username=username,
+            post_url=post_url,
+            current_url=safe_current_url(driver),
+            title=safe_title(driver),
+            page_source_length=safe_page_source_length(driver),
+        )
         return apply_body_text_caption_fallback(
             driver,
             extract_post_details_from_html(driver.page_source, username, post_url),
@@ -772,7 +911,7 @@ def extract_post_details(
     image_alt = compact_whitespace(image_alt) or html_fallback["image_alt"]
     like_count = like_count if like_count is not None else html_fallback["like_count"]
 
-    return {
+    result = {
         "username": username,
         "post_url": post_url,
         "caption": caption,
@@ -783,6 +922,16 @@ def extract_post_details(
         "image_alt": image_alt,
         "scraped_at_utc": datetime.now(timezone.utc).isoformat(),
     }
+    emit_log(
+        "post-detail-parsed",
+        username=username,
+        post_url=post_url,
+        caption_length=0 if result["caption"] is None else len(str(result["caption"])),
+        published_at_iso=result["published_at_iso"],
+        has_image=bool(result["image_url"]),
+        like_count=result["like_count"],
+    )
+    return result
 
 
 def write_debug_snapshot(driver: webdriver.Chrome, username: str, output_path: Path) -> None:
@@ -807,7 +956,7 @@ def write_debug_snapshot(driver: webdriver.Chrome, username: str, output_path: P
 
     debug_path = output_path.parent / "debug_caption.json"
     debug_path.write_text(json.dumps(debug_payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Caption debug written to: {debug_path.resolve()}")
+    emit_log("debug-caption-written", username=username, path=str(debug_path.resolve()))
 
 
 def read_post_history(history_path: Path) -> list[dict[str, object]]:
@@ -920,18 +1069,18 @@ def main() -> int:
     profile_dir = Path(args.profile_dir)
     recent_count = max(args.recent_count, 1)
     headless = should_run_headless(args.headless)
+    allow_manual_login = supports_interactive_login(headless)
 
     remove_chrome_lock(profile_dir)
 
-    print(
-        json.dumps(
-            {
-                "headless": headless,
-                "profile_dir": str(profile_dir.resolve()),
-                "history_output": str(history_output_path.resolve()),
-            },
-            ensure_ascii=False,
-        )
+    emit_log(
+        "startup",
+        headless=headless,
+        allow_manual_login=allow_manual_login,
+        profile_dir=str(profile_dir.resolve()),
+        history_output=str(history_output_path.resolve()),
+        recent_count=recent_count,
+        chromedriver_path=args.chromedriver_path,
     )
 
     driver = build_driver(
@@ -939,13 +1088,16 @@ def main() -> int:
         chromedriver_path=args.chromedriver_path,
         headless=headless,
     )
+    emit_log("driver-ready", current_url=safe_current_url(driver), title=safe_title(driver))
     wait = WebDriverWait(driver, 25)
 
     try:
-        ensure_profile_page(driver, args.username, wait)
+        ensure_profile_page(driver, args.username, wait, allow_manual_login)
+        emit_log("profile-ready", username=args.username, current_url=safe_current_url(driver), title=safe_title(driver))
         time.sleep(max(args.pause_after_login, 0))
 
         recent_post_urls = extract_recent_post_urls(driver, args.username, limit=recent_count)
+        emit_log("post-url-list-ready", username=args.username, count=len(recent_post_urls), urls=recent_post_urls)
         recent_posts: list[dict[str, object]] = []
 
         for post_url in recent_post_urls:
@@ -953,13 +1105,27 @@ def main() -> int:
             if post_details.get("caption") is None:
                 write_debug_snapshot(driver, args.username, output_path)
             recent_posts.append(post_details)
+            emit_log("post-detail-collected", username=args.username, post_url=post_url)
 
         latest_post = recent_posts[0]
         existing_posts = read_post_history(history_output_path)
         merged_posts, new_posts = merge_new_posts(existing_posts, recent_posts)
+        emit_log(
+            "history-merged",
+            username=args.username,
+            checked_count=len(recent_posts),
+            existing_count=len(existing_posts),
+            merged_count=len(merged_posts),
+            new_count=len(new_posts),
+        )
 
         write_output(output_path, latest_post)
         write_history_output(history_output_path, merged_posts)
+        emit_log(
+            "outputs-written",
+            latest_post_output=str(output_path.resolve()),
+            history_output=str(history_output_path.resolve()),
+        )
 
         summary = {
             "username": args.username,
@@ -971,16 +1137,39 @@ def main() -> int:
             "new_posts": new_posts,
         }
 
-        print(json.dumps(summary, ensure_ascii=False, indent=2))
-        print(f"\nSaved latest post JSON to: {output_path.resolve()}")
-        print(f"Saved cumulative history JSON to: {history_output_path.resolve()}")
+        print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
+        print(f"\nSaved latest post JSON to: {output_path.resolve()}", flush=True)
+        print(f"Saved cumulative history JSON to: {history_output_path.resolve()}", flush=True)
         return 0
     except TimeoutException as exc:
-        print("Timed out while waiting for Instagram page elements.", file=sys.stderr)
-        print(str(exc), file=sys.stderr)
+        emit_error(
+            "timeout",
+            message="Timed out while waiting for Instagram page elements.",
+            detail=str(exc),
+            current_url=safe_current_url(driver),
+            title=safe_title(driver),
+            page_source_length=safe_page_source_length(driver),
+        )
         return 1
     except RuntimeError as exc:
-        print(str(exc), file=sys.stderr)
+        emit_error(
+            "runtime-error",
+            message=str(exc),
+            current_url=safe_current_url(driver),
+            title=safe_title(driver),
+            page_source_length=safe_page_source_length(driver),
+        )
+        return 1
+    except Exception as exc:
+        emit_error(
+            "unexpected-error",
+            message=str(exc),
+            error_type=type(exc).__name__,
+            current_url=safe_current_url(driver),
+            title=safe_title(driver),
+            page_source_length=safe_page_source_length(driver),
+            traceback=traceback.format_exc(),
+        )
         return 1
     finally:
         driver.quit()
