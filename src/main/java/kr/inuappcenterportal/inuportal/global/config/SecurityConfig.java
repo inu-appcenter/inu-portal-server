@@ -56,6 +56,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/tokens/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/logs/**").hasAnyRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/logs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/feature-flags").permitAll()
+                        .requestMatchers("/api/admin/feature-flags/**").hasRole("ADMIN")
+
                 );
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
