@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <!-- This module was also published with a richer model, Gradle metadata,  -->
+  <!-- which should be used instead. Do not delete the following line which  -->
+  <!-- is to indicate to Gradle or any Gradle module metadata file consumer  -->
+  <!-- that they should prefer consuming it instead. -->
+  <!-- do_not_remove: published-with-gradle-metadata -->
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>p6spy</groupId>
+  <artifactId>p6spy</artifactId>
+  <version>3.9.1</version>
+  <name>p6spy</name>
+  <description>property 'description'</description>
+  <url>https://github.com/p6spy/p6spy</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>https://github.com/p6spy/p6spy</url>
+    <connection>scm:git:git://github.com/p6spy/p6spy.git</connection>
+    <developerConnection>scm:git:ssh://github.com:p6spy/p6spy.git</developerConnection>
+  </scm>
+  <developers>
+    <developer>
+      <name>Quinton McCombs</name>
+      <email>quinton.mccombs@gmail.com</email>
+    </developer>
+    <developer>
+      <name>Peter Butkovic</name>
+      <email>butkovic@gmail.com</email>
+    </developer>
+    <developer>
+      <name>Felix Barnsteiner</name>
+      <email>felix.barnsteiner@isys-software.de</email>
+    </developer>
+    <developer>
+      <name>Arthur Gavlyukovskiy</name>
+      <email>agavlyukovskiy@gmail.com</email>
+    </developer>
+  </developers>
+  <issueManagement>
+    <system>github</system>
+    <url>https://github.com/p6spy/p6spy/issues</url>
+  </issueManagement>
+  <ciManagement>
+    <system>Travis CI</system>
+    <url>https://travis-ci.org/p6spy/p6spy</url>
+  </ciManagement>
+</project>

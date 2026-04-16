@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members","/api/tokens").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/reports/**").hasAnyRole("USER","ADMIN")
+                        .requestMatchers(HttpMethod.POST,"/api/portal/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/members/all","/api/reports").hasRole("ADMIN")
                         .requestMatchers("/api/members/**","/api/members","/api/tokens").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/cafeterias","/api/weathers","/api/councilNotices","/api/councilNotices/**","/api/petitions","/api/petitions/**","/api/reservations/quantity/**").permitAll()
@@ -55,6 +56,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/tokens/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/logs/**").hasAnyRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/logs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/feature-flags").permitAll()
+                        .requestMatchers("/api/admin/feature-flags/**").hasRole("ADMIN")
+
                 );
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)

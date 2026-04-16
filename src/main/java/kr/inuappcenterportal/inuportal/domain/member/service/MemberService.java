@@ -118,11 +118,21 @@ public class MemberService {
     }
 
     private Member synchronizeRoles(Member member, List<String> roles) {
+        if (shouldPreserveAdminRole(member, roles)) {
+            return member;
+        }
+
         if (!member.getRoles().equals(roles)) {
             member.updateRoles(roles);
             return memberRepository.save(member);
         }
         return member;
+    }
+
+    private boolean shouldPreserveAdminRole(Member member, List<String> roles) {
+        return member.getRoles() != null
+                && member.getRoles().contains("ROLE_ADMIN")
+                && (roles == null || !roles.contains("ROLE_ADMIN"));
     }
 
     @Transactional

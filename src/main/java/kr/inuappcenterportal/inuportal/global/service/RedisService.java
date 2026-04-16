@@ -124,6 +124,14 @@ public class RedisService {
         return redisTemplate.opsForValue().get(key);
     }
 
+    public void storeValue(String key, String value) {
+        redisTemplate.opsForValue().set(key, value);
+    }
+
+    public String getValue(String key) {
+        return redisTemplate.opsForValue().get(key);
+    }
+
     public void storeSky(String sky){
         log.info("날씨저장 하늘 : {}",sky);
         redisTemplate.opsForValue().set("sky",sky);

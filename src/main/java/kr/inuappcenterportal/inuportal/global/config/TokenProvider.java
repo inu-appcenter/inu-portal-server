@@ -49,10 +49,10 @@ public class TokenProvider {
 
     @PostConstruct
     protected void init() {
-        log.info("???앹꽦 ?뷀샇??????:{}", secret);
+        log.info("키 생성 암호화 키: {}", secret);
         secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         refreshKey = Keys.hmacShaKeyFor(refreshSecret.getBytes(StandardCharsets.UTF_8));
-        log.info("???앹꽦 ?뷀샇??????:{}", secretKey);
+        log.info("키 생성 완료 - secretKey 객체 생성됨");
     }
 
     public String createToken(String id, List<String> roles, LocalDateTime localDateTime) {

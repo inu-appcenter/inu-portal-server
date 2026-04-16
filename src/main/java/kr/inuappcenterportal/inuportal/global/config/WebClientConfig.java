@@ -7,8 +7,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+import reactor.netty.http.Http11SslContextSpec;
 import reactor.netty.http.client.HttpClient;
 
+import java.time.Duration;
 
 @Configuration
 public class WebClientConfig {
@@ -16,7 +18,10 @@ public class WebClientConfig {
     DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory();
 
     HttpClient httpClient = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 20000); // 20초
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
+            .secure(sslSpec -> sslSpec
+                    .sslContext(Http11SslContextSpec.forClient())
+                    .handshakeTimeout(Duration.ofSeconds(30)));
 
     @Bean
     public WebClient webClient() {
@@ -27,5 +32,4 @@ public class WebClientConfig {
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }
-
 }

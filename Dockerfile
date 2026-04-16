@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-jdk-jammy
 
 # 필요한 패키지 설치 및 로케일 설정
 RUN apt-get update && \
-    apt-get install -y locales wget unzip curl jq && \
+    apt-get install -y locales wget unzip curl jq python3 python3-pip && \
     echo "ko_KR.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen && \
     apt-get clean && \
@@ -36,6 +36,10 @@ RUN CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\
 
 # 환경변수 PATH에 크롬 드라이버 경로 추가
 ENV PATH="/usr/local/bin:${PATH}"
+
+COPY ./instagram-2gisik-scrapping/requirements.txt /tmp/instagram-2gisik-scrapping-requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /tmp/instagram-2gisik-scrapping-requirements.txt && \
+    rm -f /tmp/instagram-2gisik-scrapping-requirements.txt
 
 RUN mkdir -p /intip/logs /intip/images
 

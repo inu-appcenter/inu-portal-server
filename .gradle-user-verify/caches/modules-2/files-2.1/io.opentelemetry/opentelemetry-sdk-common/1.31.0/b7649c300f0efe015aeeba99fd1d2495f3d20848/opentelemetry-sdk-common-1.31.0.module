@@ -1,0 +1,118 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.opentelemetry",
+    "module": "opentelemetry-sdk-common",
+    "version": "1.31.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.4"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "io.opentelemetry",
+          "module": "opentelemetry-api",
+          "version": {
+            "requires": "1.31.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "opentelemetry-sdk-common-1.31.0.jar",
+          "url": "opentelemetry-sdk-common-1.31.0.jar",
+          "size": 43676,
+          "sha512": "49c8945f242f4087005198a322ae6a5c1273546c6adecbeeb2a5269dbe672f304e2a87a5338cf44cb11db62444a2f248713bb979f4ebcc8b8ed67ab36455ab14",
+          "sha256": "a06bbe896838fd95c1fac5488ca4bc2aeb6a20aaba04fb171aee9e11400639ba",
+          "sha1": "f492528288236e097e12fc1c45963dd82c70d33c",
+          "md5": "6d045b1e3e5f63622e1d301f5efab917"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "io.opentelemetry",
+          "module": "opentelemetry-api",
+          "version": {
+            "requires": "1.31.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "opentelemetry-sdk-common-1.31.0.jar",
+          "url": "opentelemetry-sdk-common-1.31.0.jar",
+          "size": 43676,
+          "sha512": "49c8945f242f4087005198a322ae6a5c1273546c6adecbeeb2a5269dbe672f304e2a87a5338cf44cb11db62444a2f248713bb979f4ebcc8b8ed67ab36455ab14",
+          "sha256": "a06bbe896838fd95c1fac5488ca4bc2aeb6a20aaba04fb171aee9e11400639ba",
+          "sha1": "f492528288236e097e12fc1c45963dd82c70d33c",
+          "md5": "6d045b1e3e5f63622e1d301f5efab917"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "opentelemetry-sdk-common-1.31.0-javadoc.jar",
+          "url": "opentelemetry-sdk-common-1.31.0-javadoc.jar",
+          "size": 126731,
+          "sha512": "9e5632dbd06b2926fa3e58c23d59208b694af92d2fc4641caad45f06c785e3f8fc3d49776ed9497195325f1ef094e7877d0ecbe6720d108774d2f9bf53c88ea8",
+          "sha256": "728c784c4f10f1005b7d2eaf28694c779c042a7f722cbdb1272ec3ad0d5b3af8",
+          "sha1": "064c4e1ebfc119f4c60b20c92568861b090d69aa",
+          "md5": "bc209298587dac8812039f9c441a00dd"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "opentelemetry-sdk-common-1.31.0-sources.jar",
+          "url": "opentelemetry-sdk-common-1.31.0-sources.jar",
+          "size": 30275,
+          "sha512": "a5f2e7f5550ac2da884c854419f07e98f543e2df99f61a5ea6151a85b66026027cae0488c0c7ef2f3714542c99f134662ff7c8a63ed4d2f548008d79247c03ae",
+          "sha256": "f2f3d48377a5101401a635eb8a3f7dbd7c15a5d0c0c69030294e0013beb476b7",
+          "sha1": "3457c3986e0c108c1c7903fa442f2a89194a52e0",
+          "md5": "fb0ac0dc06df89d99880627d1ca9b945"
+        }
+      ]
+    }
+  ]
+}

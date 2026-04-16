@@ -22,6 +22,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Create application.properties
         run: echo "${{ secrets.APPLICATION_PROPERTIES_DEV }}" > ./src/main/resources/application.properties
 
@@ -58,6 +61,16 @@ jobs:
       - name: DockerHub Push
         run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
 
+      - name: Sync Instagram scraper files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_ADDRESS }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/README.md"
+          target: ${{ secrets.MOUNT_PATH }}
+
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -73,11 +86,16 @@ jobs:
             docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev || true
             
             docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+
+            # 새로운 컨테이너가 뜨기 전, 볼륨 마운트된 경로의 락 파일 강제 제거
+            rm -f ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile/SingletonLock || true
+            chmod -R 777 ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile || true
             
             docker network create intip-dev || true
             
             docker run -d \
               --network intip-dev \
+              --shm-size=2gb \
               -p 8104:8080 \
               -e TZ=Asia/Seoul \
               -v ${{ secrets.MOUNT_PATH }}:/intip \

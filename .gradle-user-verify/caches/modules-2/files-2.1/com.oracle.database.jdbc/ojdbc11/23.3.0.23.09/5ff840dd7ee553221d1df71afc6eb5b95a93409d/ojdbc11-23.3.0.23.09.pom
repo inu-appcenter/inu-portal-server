@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.oracle.database.jdbc</groupId>
+  <artifactId>ojdbc11</artifactId>
+  <version>23.3.0.23.09</version>
+  <packaging>jar</packaging>  
+
+  <!--
+	    ojdbc11.jar: Supports JDBC 4.3 spec and for use with JDK11, JDK12, JDK13, JDK14 and JDK15.
+  		Includes all classes to support basic functionality of the thin driver.
+ 		Refer to "List of Artifacts (BOM)" section of the Maven Central Guide
+  		https://www.oracle.com/database/technologies/maven-central-guide.html#artifacts 
+	  -->
+  <name>ojdbc11</name>
+  <description> Oracle JDBC Driver compatible with JDK11, JDK12, JDK13, JDK14 and JDK15</description>
+  <url>https://www.oracle.com/database/technologies/maven-central-guide.html</url>
+  <inceptionYear>1997</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>Oracle Free Use Terms and Conditions (FUTC)</name>
+      <url>https://www.oracle.com/downloads/licenses/oracle-free-license.html</url>
+    </license>
+  </licenses>
+ 
+  <developers>
+    <developer>
+      <organization>Oracle America, Inc.</organization>
+      <organizationUrl>http://www.oracle.com</organizationUrl>
+    </developer>
+  </developers>
+  
+  <scm>
+    <url></url>
+  </scm>
+  
+</project>
