@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.cafeteria.service.instagram;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.instagram.SecondDormitoryInstagramPythonRunner.PythonRunResult;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.instagram.dto.InstagramMenuPost;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.instagram.dto.SecondDormitoryDailyMenu;
+import kr.inuappcenterportal.inuportal.domain.featureflag.service.FeatureFlagService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class SecondDormitoryInstagramCrawlService {
     private final SecondDormitoryInstagramProperties properties;
     private final SecondDormitoryInstagramPythonRunner pythonRunner;
     private final SecondDormitoryInstagramOutputReader outputReader;
+    private final FeatureFlagService featureFlagService;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -79,6 +81,10 @@ public class SecondDormitoryInstagramCrawlService {
         PythonRunResult runResult = null;
 
         if (!properties.isEnabled()) {
+            return;
+        }
+
+        if (!featureFlagService.isEnabled("SECOND_DORMITORY_CRAWL_ENABLED")) {
             return;
         }
 
