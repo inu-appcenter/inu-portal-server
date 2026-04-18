@@ -7,6 +7,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeConte
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeScheduleExtractStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
+import kr.inuappcenterportal.inuportal.domain.featureflag.service.FeatureFlagService;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,7 @@ public class DepartmentNoticeScheduleExtractService {
     private final DepartmentNoticeScheduleExtractPersistenceService persistenceService;
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
+    private final FeatureFlagService featureFlagService;
 
     @Value("${app.department-notice.schedule-ai.base-url:}")
     private String baseUrl;
@@ -62,6 +64,10 @@ public class DepartmentNoticeScheduleExtractService {
 
     @Scheduled(cron = "0 * 3-6 * * *")
     public void extractDepartmentNoticeSchedules() {
+        if (!featureFlagService.isEnabled("AI_SCHEDULE_EXTRACT_ENABLED")) {
+            return;
+        }
+
         if (!isConfigured()) {
             log.warn("학과 공지 AI 일정 추출 설정이 없어 작업을 건너뜁니다. missingBaseUrl={}, missingApiKey={}",
                     isBlank(baseUrl), isBlank(apiKey));

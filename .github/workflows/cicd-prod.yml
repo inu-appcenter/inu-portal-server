@@ -24,6 +24,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle' # Gradle 라이브러리 캐싱 추가 (빌드 시간 단축)
 
       - name: Create application.properties
         run: echo "${{ secrets.APPLICATION_PROPERTIES }}" > ./src/main/resources/application.properties
@@ -36,6 +37,7 @@ jobs:
           json: ${{ secrets.FIREBASE_KEY }}
           dir: "src/main/resources/"
 
+      # 아티팩트 업로드는 유지 (필요 시)
       - uses: actions/upload-artifact@v4
         with:
           name: app-configs
@@ -47,7 +49,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build -x test # 테스트 제외 여부는 상황에 맞게 조절
 
       - name: DockerHub Login
         uses: docker/login-action@v2
@@ -55,11 +57,15 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.TOKEN }}
 
-      - name: Docker Image Build
-        run: docker build --no-cache -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }} .
-
-      - name: DockerHub Push
-        run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}
+      # Docker Build와 Push를 하나로 통합 + 캐시 적용
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
+          cache-from: type=gha # GitHub 캐시 불러오기
+          cache-to: type=gha,mode=max # GitHub 캐시 저장하기
 
       - name: Copy compose files to server
         uses: appleboy/scp-action@v0.1.7

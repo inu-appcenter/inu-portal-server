@@ -47,7 +47,7 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
             select dn from DepartmentNotice dn
             where dn.contentStatus = :contentStatus
               and (dn.scheduleExtractStatus is null or dn.scheduleExtractStatus in :statuses)
-            order by dn.id asc
+            order by dn.id desc
             """)
     List<DepartmentNotice> findScheduleExtractTargets(
             DepartmentNoticeContentStatus contentStatus,
