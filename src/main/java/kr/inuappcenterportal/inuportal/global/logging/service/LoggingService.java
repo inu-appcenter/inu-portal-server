@@ -87,6 +87,10 @@ public class LoggingService {
 
     @Transactional
     public void saveSummaryMemberLog(LocalDate oneDayAgo) {
+        if (summaryMemberLogRepository.findByDate(oneDayAgo).isPresent()) {
+            log.warn("회원 로그 경량화 이미 존재. 기준 날짜: {}", oneDayAgo);
+            return;
+        }
         LoggingMemberResponse loggingMemberResponse = getMemberLogResponseByDate(oneDayAgo);
 
         SummaryMemberLog summaryMemberLog = summaryMemberLogRepository.save(
@@ -102,6 +106,10 @@ public class LoggingService {
 
     @Transactional
     public void saveSummaryApiLog(LocalDate oneDayAgo) {
+        if (summaryApiLogRepository.findIdByDate(oneDayAgo).isPresent()) {
+            log.warn("API 로그 경량화 이미 존재. 기준 날짜: {}", oneDayAgo);
+            return;
+        }
         List<LoggingApiResponse> loggingApiResponses = getAPILogResponseByDate(oneDayAgo);
         if (loggingApiResponses == null) return;
 
