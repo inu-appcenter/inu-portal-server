@@ -338,6 +338,18 @@ public class NoticeService {
         return notices;
     }
 
+    @Transactional(readOnly = true)
+    public ListResponseDto<NoticeListResponseDto> searchNotice(String query, String category, int page) {
+        Pageable pageable = PageRequest.of(page > 0 ? --page : page, 8, Sort.by(Sort.Direction.DESC, "createDate", "id"));
+        Page<Notice> notices = noticeRepository.searchNotices(query, category, pageable);
+
+        return ListResponseDto.of(
+                notices.getTotalPages(),
+                notices.getTotalElements(),
+                notices.getContent().stream().map(NoticeListResponseDto::of).collect(Collectors.toList())
+        );
+    }
+
     @Transactional
     public void crawlingDepartmentNotices(Department[] departments, int start, int end) {
         for (int i = start; i < end; i++) {
