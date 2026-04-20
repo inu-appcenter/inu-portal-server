@@ -23,4 +23,17 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
     List<Keyword> findAllByMemberIdAndKeywordIsNull(Long memberId);
 
     @Query("SELECT k.memberId FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL")
-    List<Long> findMemberIdsByDepartmentAndKeywordIsNull(Department department);}
+    List<Long> findMemberIdsByDepartmentAndKeywordIsNull(Department department);
+
+    @Query("SELECT DISTINCT k.memberId FROM Keyword k " +
+            "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
+            "AND (k.category IS NULL OR k.category = :category) " +
+            "AND k.type = 'SCHOOL_NOTICE'")
+    List<Long> findMemberIdsByKeywordAndCategoryMatches(@Param("title") String title,
+                                                        @Param("category") String category);
+
+    @Query("SELECT k.memberId FROM Keyword k WHERE k.category = :category AND k.keyword IS NULL AND k.type = 'SCHOOL_NOTICE'")
+    List<Long> findMemberIdsByCategoryAndKeywordIsNull(@Param("category") String category);
+
+    List<Keyword> findAllByMemberIdAndKeywordIsNullAndType(Long memberId, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type);
+    }

@@ -9,6 +9,9 @@ import kr.inuappcenterportal.inuportal.domain.keyword.dto.res.KeywordResponse;
 import kr.inuappcenterportal.inuportal.domain.keyword.repository.KeywordRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
+import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
+import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -29,6 +32,7 @@ public class KeywordService {
     private final KeywordRepository keywordRepository;
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmAsyncService fcmAsyncService;
+    private final CategoryRepository categoryRepository;
 
     @Transactional(readOnly = true)
     public List<KeywordResponse> getKeywords(Member member) {
@@ -37,11 +41,50 @@ public class KeywordService {
     }
 
     @Transactional
-    public KeywordResponse addKeyword(Member member, String keywordString, Department department) {
-        Keyword keyword = createDepartmentKeyword(member.getId(), keywordString, department);
+    public KeywordResponse addKeyword(Member member, String keywordString, Department department, String category) {
+        Keyword keyword;
+        if (department != null) {
+            keyword = createDepartmentKeyword(member.getId(), keywordString, department);
+        } else {
+            if (category != null) {
+                validateNoticeCategory(category);
+            }
+            keyword = createSchoolNoticeKeyword(member.getId(), keywordString, category);
+        }
         keywordRepository.save(keyword);
 
         return KeywordResponse.from(keyword);
+    }
+
+    @Transactional
+    public void noticeNotifyMatchedUsersAndKeyword(Notice notice) {
+        List<Long> memberIds = keywordRepository
+                .findMemberIdsByKeywordAndCategoryMatches(notice.getTitle(), notice.getCategory());
+        if (memberIds.isEmpty()) return;
+
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .filter(t -> t.getMemberId() != null)
+                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+
+        String title = String.format("[%s] 키워드에 맞는 새 학교 공지사항이 등록되었어요.", notice.getCategory());
+        fcmAsyncService.sendAsyncKeywordNotice(tokenAndMemberId, title, notice.getTitle());
+    }
+
+    @Transactional
+    public void noticeNotifyMatchedUsers(Notice notice) {
+        List<Long> memberIds = keywordRepository.findMemberIdsByCategoryAndKeywordIsNull(notice.getCategory());
+        if (memberIds.isEmpty()) return;
+
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .filter(t -> t.getMemberId() != null)
+                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+
+        String title = String.format("[%s] 새로운 학교 공지사항이 등록되었어요.", notice.getCategory());
+        fcmAsyncService.sendAsyncKeywordNotice(tokenAndMemberId, title, notice.getTitle());
     }
 
     @Transactional
@@ -82,19 +125,59 @@ public class KeywordService {
 
     @Transactional(readOnly = true)
     public List<KeywordResponse> getDepartmentFcm(Member member) {
-        List<Keyword> keywords = keywordRepository.findAllByMemberIdAndKeywordIsNull(member.getId());
-        return keywords.stream().map(KeywordResponse::from).toList();
+        return keywordRepository.findAllByMemberIdAndKeywordIsNullAndType(member.getId(), FcmMessageType.DEPARTMENT)
+                .stream().map(KeywordResponse::from).toList();
     }
 
     @Transactional
-    public KeywordResponse addDepartmentFcm(Member member, Department department) {
-        List<Keyword> toDeleteKeywords = keywordRepository.findAllByMemberId(member.getId());
+    public List<KeywordResponse> syncDepartmentFcm(Member member, List<Department> departments) {
+        List<Keyword> toDeleteKeywords = keywordRepository.findAllByMemberIdAndKeywordIsNullAndType(member.getId(), FcmMessageType.DEPARTMENT);
         keywordRepository.deleteAll(toDeleteKeywords);
 
-        Keyword keyword = createDepartmentKeyword(member.getId(), null, department);
-        keywordRepository.save(keyword);
+        if (departments == null || departments.isEmpty()) {
+            return List.of();
+        }
 
-        return KeywordResponse.from(keyword);
+        List<Keyword> newKeywords = departments.stream()
+                .distinct()
+                .map(dept -> createDepartmentKeyword(member.getId(), null, dept))
+                .collect(Collectors.toList());
+
+        return keywordRepository.saveAll(newKeywords).stream()
+                .map(KeywordResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<KeywordResponse> getNoticeFcm(Member member) {
+        return keywordRepository.findAllByMemberIdAndKeywordIsNullAndType(member.getId(), FcmMessageType.SCHOOL_NOTICE)
+                .stream().map(KeywordResponse::from).toList();
+    }
+
+    @Transactional
+    public List<KeywordResponse> syncNoticeFcm(Member member, List<String> categories) {
+        List<Keyword> toDeleteKeywords = keywordRepository.findAllByMemberIdAndKeywordIsNullAndType(member.getId(), FcmMessageType.SCHOOL_NOTICE);
+        keywordRepository.deleteAll(toDeleteKeywords);
+
+        if (categories == null || categories.isEmpty()) {
+            return List.of();
+        }
+
+        List<Keyword> newKeywords = categories.stream()
+                .distinct()
+                .peek(this::validateNoticeCategory)
+                .map(category -> createSchoolNoticeKeyword(member.getId(), null, category))
+                .collect(Collectors.toList());
+
+        return keywordRepository.saveAll(newKeywords).stream()
+                .map(KeywordResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    private void validateNoticeCategory(String category) {
+        if (!categoryRepository.existsByCategoryAndType(category, CategoryType.NOTICE)) {
+            throw new MyException(MyErrorCode.CATEGORY_NOT_FOUND);
+        }
     }
 
     private Keyword getKeywordById(Long keywordId) {
@@ -118,6 +201,15 @@ public class KeywordService {
                 .keyword(keywordString)
                 .type(FcmMessageType.DEPARTMENT)
                 .department(department)
+                .build();
+    }
+
+    private Keyword createSchoolNoticeKeyword(Long memberId, String keywordString, String category) {
+        return Keyword.builder()
+                .memberId(memberId)
+                .keyword(keywordString)
+                .type(FcmMessageType.SCHOOL_NOTICE)
+                .category(category)
                 .build();
     }
 }
