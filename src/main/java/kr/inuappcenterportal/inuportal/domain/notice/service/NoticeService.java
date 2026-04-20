@@ -28,9 +28,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -101,7 +103,6 @@ public class NoticeService {
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
 
-    private static long id = 0;
 
     public NoticeService(
             @Qualifier("cacheManager") CacheManager cacheManager,
@@ -123,7 +124,7 @@ public class NoticeService {
         this.scheduleRepository = scheduleRepository;
     }
 
-    @Scheduled(cron = "0 0/30 * * * *")
+    @Scheduled(cron = "0 0/15 * * * *")
     @CacheEvict(value = "noticeCache", cacheManager = "cacheManager")
     @Transactional
     public void getNewNotice() {
@@ -172,62 +173,109 @@ public class NoticeService {
 
     @Transactional
     public void crawlingNotices() {
-        id = 0;
-        noticeRepository.deleteAllInBatch();
-
-        getNoticeByCategory(1516, 46, SCHOOL_NOTICE_ACADEMIC);
-        getNoticeByCategory(1517, 47, SCHOOL_NOTICE_CREDIT_EXCHANGE);
-        getNoticeByCategory(1518, 611, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING);
-        getNoticeByCategory(1519, 49, SCHOOL_NOTICE_SCHOLARSHIP);
-        getNoticeByCategory(1520, 50, SCHOOL_NOTICE_TUITION);
-        getNoticeByCategory(1530, 52, SCHOOL_NOTICE_EDUCATION_TEST);
+        syncNoticesByCategory(246, SCHOOL_NOTICE_ACADEMIC, 10);
+        syncNoticesByCategory(247, SCHOOL_NOTICE_CREDIT_EXCHANGE, 10);
+        syncNoticesByCategory(2611, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING, 10);
+        syncNoticesByCategory(249, SCHOOL_NOTICE_SCHOLARSHIP, 10);
+        syncNoticesByCategory(250, SCHOOL_NOTICE_TUITION, 10);
+        syncNoticesByCategory(252, SCHOOL_NOTICE_EDUCATION_TEST, 10);
     }
 
-    private void getNoticeByCategory(int category, int categoryNum, String categoryName) {
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        int[] categories = {246, 247, 2611, 249, 250, 252};
+        String[] categoryNames = {
+                SCHOOL_NOTICE_ACADEMIC, SCHOOL_NOTICE_CREDIT_EXCHANGE, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING,
+                SCHOOL_NOTICE_SCHOLARSHIP, SCHOOL_NOTICE_TUITION, SCHOOL_NOTICE_EDUCATION_TEST
+        };
+
+        for (int i = 0; i < categories.length; i++) {
+            try {
+                syncNoticesByCategory(categories[i], categoryNames[i], 100);
+            } catch (Exception e) {
+                log.error("초기 공지 동기화 중 오류 발생: category={}, reason={}", categoryNames[i], e.getMessage());
+            }
+        }
+        log.info("학교 공지 초기 크롤링 프로세스를 완료했습니다.");
+    }
+
+    private void syncNoticesByCategory(int categoryId, String categoryName, int rowSize) {
         try {
-            String url = "https://www.inu.ac.kr/inu/" + category + "/subview.do?enc=";
-            int index = 1;
-            boolean outLoop = false;
+            String rssUrl = "https://www.inu.ac.kr/bbs/inu/" + categoryId + "/rssList.do?row=" + rowSize;
+            Document document = Jsoup.connect(rssUrl)
+                    .userAgent(CRAWLER_USER_AGENT)
+                    .timeout(REQUEST_TIMEOUT_MILLIS)
+                    .parser(org.jsoup.parser.Parser.xmlParser())
+                    .get();
 
-            while (!outLoop) {
-                String postUrl = "fnct1|@@|%2Fbbs%2Finu%2F2" + categoryNum + "%2FartclList.do%3Fpage%3D" + index
-                        + "%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%267";
-                String encodedUrl = url + encoding(postUrl);
-                Document document = connect(encodedUrl).get();
-                Elements notice = document.select("tr");
+            Elements items = document.select("item");
+            Set<String> activeUrls = new LinkedHashSet<>();
+            String oldestDate = null;
 
-                for (Element ele : notice) {
-                    if (NO_LABEL.equals(ele.select("th.th-num").text())) {
-                        continue;
-                    }
-                    if (isAMonthAgo(ele.select("td.td-date").text())) {
-                        outLoop = true;
-                        break;
-                    }
+            for (Element item : items) {
+                String title = item.select("title").text();
+                String link = item.select("link").text();
+                if (!link.startsWith("http")) {
+                    link = "https://www.inu.ac.kr" + link;
+                }
+                activeUrls.add(link);
 
-                    String href = "www.inu.ac.kr" + ele.select("td.td-subject").select("a").attr("href");
-                    Pattern pattern = Pattern.compile("\\d+");
-                    Matcher matcher = pattern.matcher(href);
-                    matcher.find();
-                    matcher.find();
-                    String number = matcher.group();
-                    String baseUrl = "fnct1|@@|%2Fbbs%2Finu%2F2006%2F" + number
-                            + "%2FartclView.do%3Fpage%3D3%26srchColumn%3D%26srchWrd%3D%26bbsClSeq%3D%26bbsOpenWrdSeq%3D%26rgsBgndeStr%3D%26rgsEnddeStr%3D%26isViewMine%3Dfalse%26password%3D%267";
+                String pubDateStr = item.select("pubDate").text();
+                String createDate = parseRssDate(pubDateStr);
+                
+                if (oldestDate == null || createDate.compareTo(oldestDate) < 0) {
+                    oldestDate = createDate;
+                }
 
+                String writer = item.select("departmentName").text();
+                String subCategory = item.select("category").text();
+                String description = item.select("description").text();
+
+                Optional<Notice> existingNotice = noticeRepository.findByUrl(link);
+                if (existingNotice.isPresent()) {
+                    Notice notice = existingNotice.get();
+                    notice.update(subCategory, title, writer, description);
+                } else {
                     noticeRepository.save(Notice.builder()
                             .category(categoryName)
-                            .title(Objects.requireNonNull(Objects.requireNonNull(ele.select("td.td-subject").first()).selectFirst("strong").text()))
-                            .url("www.inu.ac.kr/inu/" + category + "/subview.do?enc=" + encoding(baseUrl))
-                            .writer(ele.select("td.td-write").text())
-                            .createDate(ele.select("td.td-date").text())
-                            .view(Long.parseLong(ele.select("td.td-access").text()))
-                            .id(++id)
+                            .subCategory(subCategory)
+                            .title(title)
+                            .writer(writer)
+                            .createDate(createDate)
+                            .url(link)
+                            .description(description)
                             .build());
                 }
-                index++;
             }
+
+            if (oldestDate != null) {
+                cleanupDeletedNotices(categoryName, oldestDate, activeUrls);
+            }
+
         } catch (Exception e) {
-            log.warn("학교 공지 크롤링에 실패했습니다. category={}, reason={}", categoryName, e.getMessage());
+            log.warn("학교 공지 RSS 크롤링에 실패했습니다. category={}, reason={}", categoryName, e.getMessage());
+        }
+    }
+
+    private void cleanupDeletedNotices(String categoryName, String oldestDate, Set<String> activeUrls) {
+        List<Notice> dbNotices = noticeRepository.findAllByCategoryAndCreateDateGreaterThanEqual(categoryName, oldestDate);
+        List<Notice> toDelete = dbNotices.stream()
+                .filter(notice -> !activeUrls.contains(notice.getUrl()))
+                .collect(Collectors.toList());
+
+        if (!toDelete.isEmpty()) {
+            noticeRepository.deleteAllInBatch(toDelete);
+            log.info("학교 공지 삭제 처리 완료: category={}, count={}", categoryName, toDelete.size());
+        }
+    }
+
+    private String parseRssDate(String pubDateStr) {
+        try {
+            DateTimeFormatter inputFormatter = DateTimeFormatter.RFC_1123_DATE_TIME;
+            LocalDateTime dateTime = LocalDateTime.parse(pubDateStr, inputFormatter);
+            return dateTime.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        } catch (Exception e) {
+            return LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
         }
     }
 
@@ -906,22 +954,10 @@ public class NoticeService {
         return Long.parseLong(digits);
     }
 
-    private String encoding(String baseUrl) {
-        return Base64.getEncoder().encodeToString(baseUrl.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private boolean isAMonthAgo(String date) {
-        LocalDate currentDate = LocalDate.now();
-        LocalDate formedDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy.MM.dd"));
-        LocalDate oneMonthAgo = currentDate.minusMonths(1);
-        return formedDate.isBefore(oneMonthAgo);
-    }
 
     private Sort sort(String sort) {
-        if (sort.equals("date")) {
+        if ("date".equals(sort)) {
             return Sort.by(Sort.Direction.DESC, "createDate", "id");
-        } else if (sort.equals("view")) {
-            return Sort.by(Sort.Direction.DESC, "view", "id");
         } else {
             throw new MyException(MyErrorCode.WRONG_SORT_TYPE);
         }

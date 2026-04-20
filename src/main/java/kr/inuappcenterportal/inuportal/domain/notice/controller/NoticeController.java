@@ -58,17 +58,17 @@ public class NoticeController {
         return ResponseEntity.ok(ResponseDto.of(noticeService.getNoticeList(category, sort, page), "모든 공지사항 가져오기 성공"));
     }
 
-    @Operation(summary = "상단부 인기 공지 12개 가져오기")
+    @Operation(summary = "상단부 최신 공지 12개 가져오기")
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "인기 공지 가져오기 성공",
-                    content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))
-            )
+        @ApiResponse(
+                responseCode = "200",
+                description = "최신 공지 가져오기 성공",
+                content = @Content(schema = @Schema(implementation = NoticeListResponseDto.class))
+        )
     })
     @GetMapping("/top")
     public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getPostForTop() {
-        return ResponseEntity.ok(ResponseDto.of(noticeService.getTop(), "인기 공지 가져오기 성공"));
+        return ResponseEntity.ok(ResponseDto.of(noticeService.getTop(), "최신 공지 가져오기 성공"));
     }
 
     @Operation(summary = "학과별 공지사항 가져오기", description = "url 파라미터로 학과, 정렬기준, 페이지를 보냅니다.")
