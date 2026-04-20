@@ -84,7 +84,7 @@ public class NoticeService {
     private static final String SCHOOL_NOTICE_CREDIT_EXCHANGE = "학점교류";
     private static final String SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING = "일반/행사/모집";
     private static final String SCHOOL_NOTICE_SCHOLARSHIP = "장학금";
-    private static final String SCHOOL_NOTICE_TUITION = "등록금납부";
+    private static final String SCHOOL_NOTICE_TUITION = "등록금 납부";
     private static final String SCHOOL_NOTICE_EDUCATION_TEST = "교육시험";
     private static final String SCHOOL_NOTICE_VOLUNTEER = "봉사";
     private static final String NO_LABEL = "NO";
