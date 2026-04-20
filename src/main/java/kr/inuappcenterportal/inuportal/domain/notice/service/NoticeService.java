@@ -76,16 +76,17 @@ public class NoticeService {
     private static final int DEPT_ENRICH_LIMIT_PER_DEPARTMENT = 4;
     private static final int REQUEST_TIMEOUT_MILLIS = 10_000;
     private static final String CRAWLER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
-    private static final String ACCESS_DENIED_MESSAGE = "\uC811\uADFC \uAD8C\uD55C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.";
-    private static final String GENERAL_NOTICE_LABEL = "\uC77C\uBC18\uACF5\uC9C0";
-    private static final String ALL_BOARD_NOTICE_LABEL = "\uC804\uCCB4\uAC8C\uC2DC\uD310\uACF5\uC9C0";
-    private static final String ALL_POSTER_NOTICE_LABEL = "\uC804\uCCB4\uAC8C\uC2DC\uC790\uACF5\uC9C0";
-    private static final String SCHOOL_NOTICE_ACADEMIC = "\uD559\uC0AC";
-    private static final String SCHOOL_NOTICE_CREDIT_EXCHANGE = "\uD559\uC810\uAD50\uB958";
-    private static final String SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING = "\uC77C\uBC18/\uD589\uC0AC/\uBAA8\uC9D1";
-    private static final String SCHOOL_NOTICE_SCHOLARSHIP = "\uC7A5\uD559\uAE08";
-    private static final String SCHOOL_NOTICE_TUITION = "\uB4F1\uB85D\uAE08\uB0A9\uBD80";
-    private static final String SCHOOL_NOTICE_EDUCATION_TEST = "\uAD50\uC721\uC2DC\uD5D8";
+    private static final String ACCESS_DENIED_MESSAGE = "접근 권한이 없습니다.";
+    private static final String GENERAL_NOTICE_LABEL = "일반공지";
+    private static final String ALL_BOARD_NOTICE_LABEL = "전체게시판공지";
+    private static final String ALL_POSTER_NOTICE_LABEL = "전체게시자공지";
+    private static final String SCHOOL_NOTICE_ACADEMIC = "학사";
+    private static final String SCHOOL_NOTICE_CREDIT_EXCHANGE = "학점교류";
+    private static final String SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING = "일반/행사/모집";
+    private static final String SCHOOL_NOTICE_SCHOLARSHIP = "장학금";
+    private static final String SCHOOL_NOTICE_TUITION = "등록금납부";
+    private static final String SCHOOL_NOTICE_EDUCATION_TEST = "교육시험";
+    private static final String SCHOOL_NOTICE_VOLUNTEER = "봉사";
     private static final String NO_LABEL = "NO";
     private static final int ERROR_MESSAGE_LIMIT = 500;
 
@@ -179,14 +180,15 @@ public class NoticeService {
         syncNoticesByCategory(249, SCHOOL_NOTICE_SCHOLARSHIP, 10);
         syncNoticesByCategory(250, SCHOOL_NOTICE_TUITION, 10);
         syncNoticesByCategory(252, SCHOOL_NOTICE_EDUCATION_TEST, 10);
+        syncNoticesByCategory(253, SCHOOL_NOTICE_VOLUNTEER, 10);
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
-        int[] categories = {246, 247, 2611, 249, 250, 252};
+        int[] categories = {246, 247, 2611, 249, 250, 252, 253};
         String[] categoryNames = {
                 SCHOOL_NOTICE_ACADEMIC, SCHOOL_NOTICE_CREDIT_EXCHANGE, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING,
-                SCHOOL_NOTICE_SCHOLARSHIP, SCHOOL_NOTICE_TUITION, SCHOOL_NOTICE_EDUCATION_TEST
+                SCHOOL_NOTICE_SCHOLARSHIP, SCHOOL_NOTICE_TUITION, SCHOOL_NOTICE_EDUCATION_TEST, SCHOOL_NOTICE_VOLUNTEER
         };
 
         for (int i = 0; i < categories.length; i++) {
