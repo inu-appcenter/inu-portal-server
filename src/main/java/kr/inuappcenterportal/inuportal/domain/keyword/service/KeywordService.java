@@ -43,16 +43,24 @@ public class KeywordService {
     @Transactional
     public KeywordResponse addKeyword(Member member, String keywordString, Department department, String category) {
         Keyword keyword;
+
         if (department != null) {
+            // 학과 공지 키워드 생성
             keyword = createDepartmentKeyword(member.getId(), keywordString, department);
         } else {
             if (category != null) {
                 validateNoticeCategory(category);
+                // SCHOOL_NOTICE 타입, 특정 카테고리 일치, keyword가 null인 데이터 삭제
+                keywordRepository.deleteSchoolNoticeByCategoryAndKeywordIsNull(member.getId(), category);
+            } else {
+                // SCHOOL_NOTICE 타입, keyword가 null인 모든 데이터 삭제
+                keywordRepository.deleteSchoolNoticeByKeywordIsNull(member.getId());
             }
+            // 학교 공지 키워드 생성
             keyword = createSchoolNoticeKeyword(member.getId(), keywordString, category);
         }
-        keywordRepository.save(keyword);
 
+        keywordRepository.save(keyword);
         return KeywordResponse.from(keyword);
     }
 
@@ -131,8 +139,7 @@ public class KeywordService {
 
     @Transactional
     public List<KeywordResponse> syncDepartmentFcm(Member member, List<Department> departments) {
-        List<Keyword> toDeleteKeywords = keywordRepository.findAllByMemberIdAndKeywordIsNullAndType(member.getId(), FcmMessageType.DEPARTMENT);
-        keywordRepository.deleteAll(toDeleteKeywords);
+        keywordRepository.deleteAllByMemberIdAndType(member.getId(), FcmMessageType.DEPARTMENT);
 
         if (departments == null || departments.isEmpty()) {
             return List.of();
@@ -156,8 +163,7 @@ public class KeywordService {
 
     @Transactional
     public List<KeywordResponse> syncNoticeFcm(Member member, List<String> categories) {
-        List<Keyword> toDeleteKeywords = keywordRepository.findAllByMemberIdAndKeywordIsNullAndType(member.getId(), FcmMessageType.SCHOOL_NOTICE);
-        keywordRepository.deleteAll(toDeleteKeywords);
+        keywordRepository.deleteAllByMemberIdAndType(member.getId(), FcmMessageType.SCHOOL_NOTICE);
 
         if (categories == null || categories.isEmpty()) {
             return List.of();
