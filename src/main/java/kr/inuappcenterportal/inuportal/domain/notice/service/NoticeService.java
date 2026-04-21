@@ -174,13 +174,13 @@ public class NoticeService {
 
     @Transactional
     public void crawlingNotices() {
-        syncNoticesByCategory(246, SCHOOL_NOTICE_ACADEMIC, 10);
-        syncNoticesByCategory(247, SCHOOL_NOTICE_CREDIT_EXCHANGE, 10);
-        syncNoticesByCategory(2611, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING, 10);
-        syncNoticesByCategory(249, SCHOOL_NOTICE_SCHOLARSHIP, 10);
-        syncNoticesByCategory(250, SCHOOL_NOTICE_TUITION, 10);
-        syncNoticesByCategory(252, SCHOOL_NOTICE_EDUCATION_TEST, 10);
-        syncNoticesByCategory(253, SCHOOL_NOTICE_VOLUNTEER, 10);
+        syncNoticesByCategory(246, SCHOOL_NOTICE_ACADEMIC, 10, true);
+        syncNoticesByCategory(247, SCHOOL_NOTICE_CREDIT_EXCHANGE, 10, true);
+        syncNoticesByCategory(2611, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING, 10, true);
+        syncNoticesByCategory(249, SCHOOL_NOTICE_SCHOLARSHIP, 10, true);
+        syncNoticesByCategory(250, SCHOOL_NOTICE_TUITION, 10, true);
+        syncNoticesByCategory(252, SCHOOL_NOTICE_EDUCATION_TEST, 10, true);
+        syncNoticesByCategory(253, SCHOOL_NOTICE_VOLUNTEER, 10, true);
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -193,7 +193,7 @@ public class NoticeService {
 
         for (int i = 0; i < categories.length; i++) {
             try {
-                syncNoticesByCategory(categories[i], categoryNames[i], 100);
+                syncNoticesByCategory(categories[i], categoryNames[i], 100, false);
             } catch (Exception e) {
                 log.error("초기 공지 동기화 중 오류 발생: category={}, reason={}", categoryNames[i], e.getMessage());
             }
@@ -201,7 +201,7 @@ public class NoticeService {
         log.info("학교 공지 초기 크롤링 프로세스를 완료했습니다.");
     }
 
-    private void syncNoticesByCategory(int categoryId, String categoryName, int rowSize) {
+    private void syncNoticesByCategory(int categoryId, String categoryName, int rowSize, boolean shouldNotify) {
         try {
             String rssUrl = "https://www.inu.ac.kr/bbs/inu/" + categoryId + "/rssList.do?row=" + rowSize;
             Document document = Jsoup.connect(rssUrl)
@@ -238,7 +238,7 @@ public class NoticeService {
                     Notice notice = existingNotice.get();
                     notice.update(subCategory, title, writer, description);
                 } else {
-                    noticeRepository.save(Notice.builder()
+                    Notice notice = noticeRepository.save(Notice.builder()
                             .category(categoryName)
                             .subCategory(subCategory)
                             .title(title)
@@ -247,6 +247,10 @@ public class NoticeService {
                             .url(link)
                             .description(description)
                             .build());
+
+                    if (shouldNotify) {
+                        keywordService.noticeNotifyMatchedUsers(notice);
+                    }
                 }
             }
 
@@ -509,7 +513,6 @@ public class NoticeService {
 
                     if (isNewNotice) {
                         keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
-                        keywordService.departmentNotifyMatchedUsersAndKeyword(departmentNotice, department);
                     }
 
                     count++;
