@@ -175,8 +175,15 @@ public class FcmService {
         }
 
         FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
-        DeliveryResult deliveryResult = dispatchToMembers(tokenAndMemberId, title, body, fcmMessage, fcmMessageType);
-        saveMemberFcmMessages(deliveryResult.memberFcmMessages());
+
+        List<Long> targetMemberIds = tokenAndMemberId.values().stream()
+                .filter(id -> id != null && !id.equals(UNLINKED_MEMBER_ID))
+                .distinct()
+                .toList();
+
+        saveMemberFcmMessages(createMemberFcmMessages(fcmMessage.getId(), targetMemberIds, fcmMessageType));
+
+        DeliveryResult deliveryResult = dispatchToMembers(tokenAndMemberId, title, body);
         fcmMessage.updateDeliveryResult(deliveryResult.successCount(), deliveryResult.failureCount());
     }
 
@@ -220,9 +227,7 @@ public class FcmService {
             DeliveryResult deliveryResult = dispatchToMembers(
                     dispatch.tokenAndMemberId(),
                     dispatch.title(),
-                    dispatch.content(),
-                    fcmMessage,
-                    FcmMessageType.GENERAL
+                    dispatch.content()
             );
 
             fcmMessage.updateDeliveryResult(deliveryResult.successCount(), deliveryResult.failureCount());
@@ -382,10 +387,8 @@ public class FcmService {
         return fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
     }
 
-    private DeliveryResult dispatchToMembers(Map<String, Long> tokenAndMemberId, String title, String body,
-                                             FcmMessage fcmMessage, FcmMessageType fcmMessageType) {
+    private DeliveryResult dispatchToMembers(Map<String, Long> tokenAndMemberId, String title, String body) {
         List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
-        Map<Long, MemberFcmMessage> uniqueMemberMessages = new LinkedHashMap<>();
         int batchSize = 500;
         int successCount = 0;
         int failureCount = 0;
@@ -402,22 +405,12 @@ public class FcmService {
                 List<SendResponse> responses = response.getResponses();
                 for (int j = 0; j < responses.size(); j++) {
                     SendResponse sendResponse = responses.get(j);
-                    String token = batchTokens.get(j);
-                    Long memberId = tokenAndMemberId.get(token);
-
-                    if (sendResponse.isSuccessful()) {
-                        if (memberId != null && memberId != UNLINKED_MEMBER_ID) {
-                            uniqueMemberMessages.putIfAbsent(
-                                    memberId,
-                                    MemberFcmMessage.of(fcmMessage.getId(), memberId, fcmMessageType)
-                            );
-                        }
-                        continue;
+                    if (!sendResponse.isSuccessful()) {
+                        String token = batchTokens.get(j);
+                        FirebaseMessagingException exception = sendResponse.getException();
+                        String errorMsg = exception != null ? exception.getMessage() : "unknown error";
+                        log.warn("FCM send failed: token={}, error={}", token, errorMsg);
                     }
-
-                    FirebaseMessagingException exception = sendResponse.getException();
-                    String errorMsg = exception != null ? exception.getMessage() : "unknown error";
-                    log.warn("FCM send failed: token={}, error={}", token, errorMsg);
                 }
             } catch (FirebaseMessagingException e) {
                 failureCount += batchTokens.size();
@@ -435,7 +428,7 @@ public class FcmService {
             }
         }
 
-        return new DeliveryResult(successCount, failureCount, uniqueMemberMessages.values());
+        return new DeliveryResult(successCount, failureCount);
     }
 
     private void saveMemberFcmMessages(Collection<MemberFcmMessage> memberFcmMessages) {
@@ -476,8 +469,7 @@ public class FcmService {
 
     private record DeliveryResult(
             int successCount,
-            int failureCount,
-            Collection<MemberFcmMessage> memberFcmMessages
+            int failureCount
     ) {
     }
 
