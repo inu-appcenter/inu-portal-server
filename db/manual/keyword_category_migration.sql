@@ -1,0 +1,5 @@
+-- keyword 테이블에 category 컬럼 추가
+ALTER TABLE keyword ADD COLUMN category VARCHAR(255) DEFAULT NULL;
+
+-- type 컬럼의 ENUM 값 목록에 SCHOOL_NOTICE 추가
+ALTER TABLE keyword MODIFY COLUMN type ENUM('GENERAL', 'DEPARTMENT', 'SCHOOL_NOTICE') NOT NULL;

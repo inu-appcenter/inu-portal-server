@@ -29,11 +29,14 @@ public class Keyword {
     @Enumerated(EnumType.STRING)
     private Department department;
 
+    private String category;
+
     @Builder
-    private Keyword(Long memberId, String keyword, FcmMessageType type, Department department) {
+    private Keyword(Long memberId, String keyword, FcmMessageType type, Department department, String category) {
         this.memberId = memberId;
         this.keyword = keyword;
         this.type = type;
         this.department = department;
+        this.category = category;
     }
 }

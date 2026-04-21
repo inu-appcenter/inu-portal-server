@@ -19,12 +19,21 @@ public record KeywordResponse(
         @Schema(description = "알림 Type", example = "DEPARTMENT")
         FcmMessageType type,
 
-        @Schema(description = "알림 카테고리")
-        String department
+        @Schema(description = "알림 카테고리 (학과)")
+        String department,
+
+        @Schema(description = "알림 카테고리 (학교 공지)")
+        String category
 
 ) {
     public static KeywordResponse from(Keyword keyword) {
-        return new KeywordResponse(keyword.getId(), keyword.getMemberId(),
-                keyword.getKeyword(), keyword.getType(), keyword.getDepartment().getDepartmentName());
+        return new KeywordResponse(
+                keyword.getId(),
+                keyword.getMemberId(),
+                keyword.getKeyword(),
+                keyword.getType(),
+                keyword.getDepartment() == null ? null : keyword.getDepartment().getDepartmentName(),
+                keyword.getCategory()
+        );
     }
 }

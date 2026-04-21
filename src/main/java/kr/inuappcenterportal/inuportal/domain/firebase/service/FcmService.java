@@ -169,13 +169,13 @@ public class FcmService {
     }
 
     @Transactional
-    public void sendKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body) {
+    public void sendKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType) {
         if (tokenAndMemberId.isEmpty()) {
             return;
         }
 
         FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
-        DeliveryResult deliveryResult = dispatchToMembers(tokenAndMemberId, title, body, fcmMessage, FcmMessageType.DEPARTMENT);
+        DeliveryResult deliveryResult = dispatchToMembers(tokenAndMemberId, title, body, fcmMessage, fcmMessageType);
         saveMemberFcmMessages(deliveryResult.memberFcmMessages());
         fcmMessage.updateDeliveryResult(deliveryResult.successCount(), deliveryResult.failureCount());
     }

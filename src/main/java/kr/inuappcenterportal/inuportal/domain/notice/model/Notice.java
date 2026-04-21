@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.domain.notice.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -16,10 +18,14 @@ import lombok.NoArgsConstructor;
 public class Notice {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column
     private String category;
+
+    @Column(name = "sub_category")
+    private String subCategory;
 
     @Column
     private String title;
@@ -27,22 +33,30 @@ public class Notice {
     @Column
     private String writer;
 
-    @Column(name="create_date")
+    @Column(name = "create_date")
     private String createDate;
 
-    @Column Long view;
-
-    @Column(length = 512)
+    @Column(length = 512, unique = true)
     private String url;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Builder
-    public Notice(String category, String title, String writer, String createDate, String url, long view, Long id){
-        this.id = id;
+    public Notice(String category, String subCategory, String title, String writer, String createDate, String url, String description) {
         this.category = category;
+        this.subCategory = subCategory;
         this.title = title;
         this.writer = writer;
         this.createDate = createDate;
-        this.view = view;
         this.url = url;
+        this.description = description;
+    }
+
+    public void update(String subCategory, String title, String writer, String description) {
+        this.subCategory = subCategory;
+        this.title = title;
+        this.writer = writer;
+        this.description = description;
     }
 }
