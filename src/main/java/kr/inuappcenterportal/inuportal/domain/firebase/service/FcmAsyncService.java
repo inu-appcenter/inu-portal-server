@@ -14,8 +14,8 @@ public class FcmAsyncService {
     private final FcmService fcmService;
 
     @Async("messageExecutor")
-    public void sendAsyncKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body) {
-        fcmService.sendKeywordNotice(tokenAndMemberId, title, body);
+    public void sendAsyncKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType fcmMessageType) {
+        fcmService.sendKeywordNotice(tokenAndMemberId, title, body, fcmMessageType);
     }
 
     @Async("messageExecutor")

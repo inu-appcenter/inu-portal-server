@@ -45,18 +45,13 @@ public class KeywordService {
         Keyword keyword;
 
         if (department != null) {
-            // 학과 공지 키워드 생성
+            // 학과 공지 키워드 생성 (기존 설정을 삭제하지 않음)
             keyword = createDepartmentKeyword(member.getId(), keywordString, department);
         } else {
             if (category != null) {
                 validateNoticeCategory(category);
-                // SCHOOL_NOTICE 타입, 특정 카테고리 일치, keyword가 null인 데이터 삭제
-                keywordRepository.deleteSchoolNoticeByCategoryAndKeywordIsNull(member.getId(), category);
-            } else {
-                // SCHOOL_NOTICE 타입, keyword가 null인 모든 데이터 삭제
-                keywordRepository.deleteSchoolNoticeByKeywordIsNull(member.getId());
             }
-            // 학교 공지 키워드 생성
+            // 학교 공지 키워드 생성 (기존 설정을 삭제하지 않음)
             keyword = createSchoolNoticeKeyword(member.getId(), keywordString, category);
         }
 
@@ -65,63 +60,93 @@ public class KeywordService {
     }
 
     @Transactional
-    public void noticeNotifyMatchedUsersAndKeyword(Notice notice) {
-        List<Long> memberIds = keywordRepository
-                .findMemberIdsByKeywordAndCategoryMatches(notice.getTitle(), notice.getCategory());
-        if (memberIds.isEmpty()) return;
-
-        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
-
-        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .filter(t -> t.getMemberId() != null)
-                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
-
-        String title = String.format("[%s] 키워드에 맞는 새 학교 공지사항이 등록되었어요.", notice.getCategory());
-        fcmAsyncService.sendAsyncKeywordNotice(tokenAndMemberId, title, notice.getTitle());
-    }
-
-    @Transactional
     public void noticeNotifyMatchedUsers(Notice notice) {
-        List<Long> memberIds = keywordRepository.findMemberIdsByCategoryAndKeywordIsNull(notice.getCategory());
-        if (memberIds.isEmpty()) return;
+        // 1. 키워드 매칭 유저 조회
+        List<Keyword> keywordMatches = keywordRepository.findKeywordsByKeywordAndCategoryMatches(notice.getTitle(), notice.getCategory());
+        // 2. 카테고리 구독 유저 조회 (키워드 없음)
+        List<Keyword> categorySubscribers = keywordRepository.findKeywordsByCategoryAndKeywordIsNull(notice.getCategory());
 
-        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        // 3. 중복 제거 및 우선순위 적용 (키워드 매칭 우선)
+        Map<Long, String> memberIdToTitle = new java.util.HashMap<>();
 
-        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .filter(t -> t.getMemberId() != null)
-                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+        // 키워드 매칭자들 먼저 처리 (우선순위 높음)
+        for (Keyword k : keywordMatches) {
+            if (!memberIdToTitle.containsKey(k.getMemberId())) {
+                String title = String.format("[%s-%s] 새로운 공지사항이 등록되었어요.", notice.getCategory(), k.getKeyword());
+                memberIdToTitle.put(k.getMemberId(), title);
+            }
+        }
 
-        String title = String.format("[%s] 새로운 학교 공지사항이 등록되었어요.", notice.getCategory());
-        fcmAsyncService.sendAsyncKeywordNotice(tokenAndMemberId, title, notice.getTitle());
-    }
+        // 카테고리 구독자들 처리 (이미 키워드 매칭된 유저는 제외)
+        for (Keyword k : categorySubscribers) {
+            if (!memberIdToTitle.containsKey(k.getMemberId())) {
+                String title = String.format("[%s] 새로운 공지사항이 등록되었어요.", notice.getCategory());
+                memberIdToTitle.put(k.getMemberId(), title);
+            }
+        }
 
-    @Transactional
-    public void departmentNotifyMatchedUsersAndKeyword(DepartmentNotice departmentNotice, Department department) {
-        List<Long> memberIds = keywordRepository
-                .findMemberIdsByKeywordAndDepartmentMatches(departmentNotice.getTitle(), department);
-        if (memberIds.isEmpty()) return;
+        if (memberIdToTitle.isEmpty()) return;
 
-        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        // 4. 발송 (타이틀이 서로 다를 수 있으므로 타이틀별로 그룹화하여 발송하거나 개별 발송)
+        // 여기서는 효율을 위해 타이틀별로 그룹화
+        Map<String, Map<String, Long>> titleToTokens = new java.util.HashMap<>();
+        
+        List<Long> allMemberIds = new java.util.ArrayList<>(memberIdToTitle.keySet());
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(allMemberIds);
 
-        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .filter(t -> t.getMemberId() != null)
-                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+        for (FcmToken token : fcmTokens) {
+            if (token.getMemberId() == null) continue;
+            String title = memberIdToTitle.get(token.getMemberId());
+            titleToTokens.computeIfAbsent(title, k -> new java.util.HashMap<>())
+                         .put(token.getToken(), token.getMemberId());
+        }
 
-        fcmAsyncService.sendAsyncKeywordNotice(tokenAndMemberId, "[" + department.getDepartmentName() + "] 키워드에 맞는 새 공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        titleToTokens.forEach((title, tokenMap) -> 
+            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, notice.getTitle(), FcmMessageType.SCHOOL_NOTICE)
+        );
     }
 
     @Transactional
     public void departmentNotifyMatchedUsers(DepartmentNotice departmentNotice, Department department) {
-        List<Long> memberIds = keywordRepository.findMemberIdsByDepartmentAndKeywordIsNull(department);
-        if (memberIds.isEmpty()) return;
+        // 1. 키워드 매칭 유저 조회
+        List<Keyword> keywordMatches = keywordRepository.findKeywordsByKeywordAndDepartmentMatches(departmentNotice.getTitle(), department);
+        // 2. 학과 구독 유저 조회 (키워드 없음)
+        List<Keyword> departmentSubscribers = keywordRepository.findKeywordsByDepartmentAndKeywordIsNull(department);
 
-        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        // 3. 중복 제거 및 우선순위 적용
+        Map<Long, String> memberIdToTitle = new java.util.HashMap<>();
 
-        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .filter(t -> t.getMemberId() != null)
-                .collect(Collectors.toMap(FcmToken::getToken, FcmToken::getMemberId));
+        for (Keyword k : keywordMatches) {
+            if (!memberIdToTitle.containsKey(k.getMemberId())) {
+                String title = String.format("[%s-%s] 새로운 공지사항이 등록되었어요.", department.getDepartmentName(), k.getKeyword());
+                memberIdToTitle.put(k.getMemberId(), title);
+            }
+        }
 
-        fcmAsyncService.sendAsyncKeywordNotice(tokenAndMemberId, "[" + department.getDepartmentName() + "] 새로운 공지사항이 등록되었습니다.", departmentNotice.getTitle());
+        for (Keyword k : departmentSubscribers) {
+            if (!memberIdToTitle.containsKey(k.getMemberId())) {
+                String title = String.format("[%s] 새로운 공지사항이 등록되었어요.", department.getDepartmentName());
+                memberIdToTitle.put(k.getMemberId(), title);
+            }
+        }
+
+        if (memberIdToTitle.isEmpty()) return;
+
+        // 4. 발송
+        Map<String, Map<String, Long>> titleToTokens = new java.util.HashMap<>();
+        List<Long> allMemberIds = new java.util.ArrayList<>(memberIdToTitle.keySet());
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(allMemberIds);
+
+        for (FcmToken token : fcmTokens) {
+            if (token.getMemberId() == null) continue;
+            String title = memberIdToTitle.get(token.getMemberId());
+            titleToTokens.computeIfAbsent(title, k -> new java.util.HashMap<>())
+                         .put(token.getToken(), token.getMemberId());
+        }
+
+        titleToTokens.forEach((title, tokenMap) -> 
+            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, departmentNotice.getTitle(), FcmMessageType.DEPARTMENT)
+        );
     }
 
     @Transactional
@@ -139,7 +164,8 @@ public class KeywordService {
 
     @Transactional
     public List<KeywordResponse> syncDepartmentFcm(Member member, List<Department> departments) {
-        keywordRepository.deleteAllByMemberIdAndType(member.getId(), FcmMessageType.DEPARTMENT);
+        // 키워드가 없는 '학과 전체 알림'만 삭제 (키워드 알림은 보존)
+        keywordRepository.deleteByMemberIdAndTypeAndKeywordIsNull(member.getId(), FcmMessageType.DEPARTMENT);
 
         if (departments == null || departments.isEmpty()) {
             return List.of();
@@ -163,7 +189,8 @@ public class KeywordService {
 
     @Transactional
     public List<KeywordResponse> syncNoticeFcm(Member member, List<String> categories) {
-        keywordRepository.deleteAllByMemberIdAndType(member.getId(), FcmMessageType.SCHOOL_NOTICE);
+        // 키워드가 없는 '학교 전체 알림'만 삭제 (키워드 알림은 보존)
+        keywordRepository.deleteByMemberIdAndTypeAndKeywordIsNull(member.getId(), FcmMessageType.SCHOOL_NOTICE);
 
         if (categories == null || categories.isEmpty()) {
             return List.of();

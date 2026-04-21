@@ -250,7 +250,6 @@ public class NoticeService {
 
                     if (shouldNotify) {
                         keywordService.noticeNotifyMatchedUsers(notice);
-                        keywordService.noticeNotifyMatchedUsersAndKeyword(notice);
                     }
                 }
             }
@@ -514,7 +513,6 @@ public class NoticeService {
 
                     if (isNewNotice) {
                         keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
-                        keywordService.departmentNotifyMatchedUsersAndKeyword(departmentNotice, department);
                     }
 
                     count++;
