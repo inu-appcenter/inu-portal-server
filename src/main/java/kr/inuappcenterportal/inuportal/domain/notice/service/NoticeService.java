@@ -203,6 +203,8 @@ public class NoticeService {
 
     private void syncNoticesByCategory(int categoryId, String categoryName, int rowSize, boolean shouldNotify) {
         try {
+            log.info("[학교공지] 동기화 시작: category={}, categoryId={}", categoryName, categoryId); // 시작 로그
+
             String rssUrl = "https://www.inu.ac.kr/bbs/inu/" + categoryId + "/rssList.do?row=" + rowSize;
             Document document = Jsoup.connect(rssUrl)
                     .userAgent(CRAWLER_USER_AGENT)
@@ -213,6 +215,8 @@ public class NoticeService {
             Elements items = document.select("item");
             Set<String> activeUrls = new LinkedHashSet<>();
             String oldestDate = null;
+            int newCount = 0;
+            int updateCount = 0;
 
             for (Element item : items) {
                 String title = item.select("title").text();
@@ -224,7 +228,7 @@ public class NoticeService {
 
                 String pubDateStr = item.select("pubDate").text();
                 String createDate = parseRssDate(pubDateStr);
-                
+
                 if (oldestDate == null || createDate.compareTo(oldestDate) < 0) {
                     oldestDate = createDate;
                 }
@@ -237,6 +241,7 @@ public class NoticeService {
                 if (existingNotice.isPresent()) {
                     Notice notice = existingNotice.get();
                     notice.update(subCategory, title, writer, description);
+                    updateCount++;
                 } else {
                     Notice notice = noticeRepository.save(Notice.builder()
                             .category(categoryName)
@@ -248,6 +253,9 @@ public class NoticeService {
                             .description(description)
                             .build());
 
+                    log.info("[학교공지] 새 공지 발견: [{}] {}", categoryName, title); // 개별 새 공지 로그
+                    newCount++;
+
                     if (shouldNotify) {
                         keywordService.noticeNotifyMatchedUsers(notice);
                     }
@@ -258,8 +266,10 @@ public class NoticeService {
                 cleanupDeletedNotices(categoryName, oldestDate, activeUrls);
             }
 
+            log.info("[학교공지] 동기화 완료: category={}, 신규={}, 업데이트={}", categoryName, newCount, updateCount); // 요약 로그
+
         } catch (Exception e) {
-            log.warn("학교 공지 RSS 크롤링에 실패했습니다. category={}, reason={}", categoryName, e.getMessage());
+            log.error("[학교공지] 크롤링 중 에러 발생: category={}, message={}", categoryName, e.getMessage());
         }
     }
 
@@ -270,8 +280,9 @@ public class NoticeService {
                 .collect(Collectors.toList());
 
         if (!toDelete.isEmpty()) {
+            toDelete.forEach(n -> log.info("[학교공지] 삭제된 공지 제거: [{}] {}", categoryName, n.getTitle())); // 삭제 상세 로그
             noticeRepository.deleteAllInBatch(toDelete);
-            log.info("학교 공지 삭제 처리 완료: category={}, count={}", categoryName, toDelete.size());
+            log.info("[학교공지] 삭제 처리 완료: category={}, count={}", categoryName, toDelete.size());
         }
     }
 
