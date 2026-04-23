@@ -19,6 +19,7 @@ public class WebClientConfig {
 
     HttpClient httpClient = HttpClient.create()
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
+            .responseTimeout(Duration.ofSeconds(10))
             .secure(sslSpec -> sslSpec
                     .sslContext(Http11SslContextSpec.forClient())
                     .handshakeTimeout(Duration.ofSeconds(30)));
