@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -276,7 +277,7 @@ public class WeatherService {
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
                 .bodyToMono(String.class)
-                .block();
+                .block(Duration.ofSeconds(15));
         JsonArray itemList;
         try {
             JsonObject jsonObject = JsonParser.parseString(result).getAsJsonObject();
@@ -301,7 +302,7 @@ public class WeatherService {
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
                 .bodyToMono(String.class)
-                .block();
+                .block(Duration.ofSeconds(15));
         try {
             JsonObject jsonObject = JsonParser.parseString(result).getAsJsonObject();
             JsonObject body = jsonObject.getAsJsonObject("response").getAsJsonObject("body");
@@ -325,7 +326,7 @@ public class WeatherService {
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.just(new MyException(MyErrorCode.WEATHER_REQUEST_ERROR)))
                 .bodyToMono(String.class)
-                .block();
+                .block(Duration.ofSeconds(15));
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
