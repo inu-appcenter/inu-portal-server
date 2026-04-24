@@ -383,7 +383,8 @@ public class NoticeService {
                     ele -> !ele.select("strong.notice_icon").isEmpty(),
                     false,
                     List.of("#bo_v_con", ".bo_v_con", ".view_content", ".board_view"),
-                    List.of("#bo_v_file a[href]", ".view_file_download")
+                    List.of("#bo_v_file a[href]", ".view_file_download"),
+                    ".if_date"
             );
         }
 
@@ -498,7 +499,8 @@ public class NoticeService {
                     }
 
                     String title = ele.select(config.getTitleSelector()).text();
-                    String date = ele.select(config.getDateSelector()).text();
+                    String dateStr = ele.select(config.getDateSelector()).text();
+                    LocalDate date = parseDepartmentNoticeDate(dateStr);
                     String href = resolveDepartmentNoticeUrl(ele.selectFirst(config.getLinkSelector()), url, config.isUseAbsoluteHref());
                     long views = parseLongValue(ele.select(config.getViewsSelector()).text());
 
@@ -555,6 +557,15 @@ public class NoticeService {
                 return;
             }
 
+            // 상세 페이지에서 날짜 정보가 있는 경우 업데이트 (예: SPORTS_SCIENCE 처럼 리스트 날짜가 불완전한 경우)
+            if (config.getDetailDateSelector() != null) {
+                String detailDateStr = detailDocument.select(config.getDetailDateSelector()).text();
+                if (!detailDateStr.isBlank()) {
+                    LocalDate detailDate = parseDepartmentNoticeDate(detailDateStr);
+                    departmentNotice.updateListing(departmentNotice.getTitle(), detailDate, departmentNotice.getView(), departmentNotice.getUrl());
+                }
+            }
+
             Element contentRoot = findDepartmentNoticeContentRoot(detailDocument, config);
             if (contentRoot == null && false) {
                 departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
@@ -607,8 +618,7 @@ public class NoticeService {
             List<String> inlineImageUrls,
             List<AttachmentMeta> attachmentMetas
     ) {
-        String mergedText = mergeTexts(contentText, departmentNotice.getAttachmentText(), departmentNotice.getOcrText());
-        departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), departmentNotice.getAttachmentText(), mergedText);
+        departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), departmentNotice.getAttachmentText());
 
         boolean hasBaseText = !normalizeText(contentText).isBlank();
         boolean hasParsableAttachments = attachmentMetas.stream().anyMatch(this::isParsableAttachment);
@@ -674,10 +684,9 @@ public class NoticeService {
             }
 
             String attachmentText = mergeTexts(extractedTexts);
-            String mergedText = mergeTexts(departmentNotice.getContentText(), attachmentText, departmentNotice.getOcrText());
-            departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), attachmentText, mergedText);
+            departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), attachmentText);
 
-            if (!normalizeText(mergedText).isBlank()) {
+            if (!departmentNotice.getMergedText().isBlank()) {
                 departmentNotice.markContentSuccess();
                 return;
             }
@@ -696,10 +705,9 @@ public class NoticeService {
     }
 
     private void finalizeNoticeWithoutAttachmentParse(DepartmentNotice departmentNotice, boolean hasImageAssets) {
-        String mergedText = mergeTexts(departmentNotice.getContentText(), departmentNotice.getAttachmentText(), departmentNotice.getOcrText());
-        departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), departmentNotice.getAttachmentText(), mergedText);
+        departmentNotice.updateEnrichmentTexts(departmentNotice.getOcrText(), departmentNotice.getAttachmentText());
 
-        if (!normalizeText(mergedText).isBlank()) {
+        if (!departmentNotice.getMergedText().isBlank()) {
             departmentNotice.markContentSuccess();
             return;
         }
@@ -980,6 +988,42 @@ public class NoticeService {
         }
 
         return Long.parseLong(digits);
+    }
+
+    private LocalDate parseDepartmentNoticeDate(String dateStr) {
+        String normalized = normalizeText(dateStr);
+        if (normalized.isBlank()) {
+            return LocalDate.now();
+        }
+
+        // 공백 및 시간 정보 제거 (예: "25-03-05 10:00" -> "25-03-05")
+        String dateOnly = normalized.split(" ")[0];
+
+        try {
+            // 1. yyyy.MM.dd 형식
+            if (dateOnly.matches("\\d{4}\\.\\d{2}\\.\\d{2}")) {
+                return LocalDate.parse(dateOnly, DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+            }
+            // 2. yy-MM-dd 형식 (그누보드 상세 페이지 등)
+            if (dateOnly.matches("\\d{2}-\\d{2}-\\d{2}")) {
+                return LocalDate.parse(dateOnly, DateTimeFormatter.ofPattern("yy-MM-dd"));
+            }
+            // 3. MM-dd 형식 (그누보드 목록 등)
+            if (dateOnly.matches("\\d{2}-\\d{2}")) {
+                String year = String.valueOf(LocalDate.now().getYear());
+                return LocalDate.parse(year + "-" + dateOnly, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            }
+            // 4. yyyy-MM-dd 형식
+            if (dateOnly.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                return LocalDate.parse(dateOnly, DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            
+            log.warn("정의되지 않은 날짜 형식입니다. value={}", normalized);
+            return LocalDate.now();
+        } catch (Exception e) {
+            log.warn("학과 공지 날짜 파싱에 실패했습니다. value={}, reason={}", normalized, e.getMessage());
+            return LocalDate.now();
+        }
     }
 
 

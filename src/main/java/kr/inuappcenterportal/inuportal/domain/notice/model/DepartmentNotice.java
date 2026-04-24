@@ -10,12 +10,18 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "department_notice")
+@Table(name = "department_notice", indexes = {
+        @Index(name = "idx_dept_url", columnList = "department, url", unique = true),
+        @Index(name = "idx_dept_date_id", columnList = "department, create_date DESC, id DESC"),
+        @Index(name = "idx_dept_title_date", columnList = "department, title, create_date"),
+        @Index(name = "idx_content_extract_status", columnList = "content_status, schedule_extract_status")
+})
 public class DepartmentNotice {
 
     @Id
@@ -30,7 +36,7 @@ public class DepartmentNotice {
     private String title;
 
     @Column(name="create_date", nullable = false)
-    private String createDate;
+    private LocalDate createDate;
 
     @Column(nullable = false)
     private Long view;
@@ -42,34 +48,6 @@ public class DepartmentNotice {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "content_status", length = 32)
     private DepartmentNoticeContentStatus contentStatus;
-
-    @Lob
-    @Column(name = "content_html", columnDefinition = "LONGTEXT")
-    private String contentHtml;
-
-    @Lob
-    @Column(name = "content_text", columnDefinition = "LONGTEXT")
-    private String contentText;
-
-    @Lob
-    @Column(name = "ocr_text", columnDefinition = "LONGTEXT")
-    private String ocrText;
-
-    @Lob
-    @Column(name = "attachment_text", columnDefinition = "LONGTEXT")
-    private String attachmentText;
-
-    @Lob
-    @Column(name = "merged_text", columnDefinition = "LONGTEXT")
-    private String mergedText;
-
-    @Lob
-    @Column(name = "inline_image_urls_json", columnDefinition = "LONGTEXT")
-    private String inlineImageUrlsJson;
-
-    @Lob
-    @Column(name = "attachment_meta_json", columnDefinition = "LONGTEXT")
-    private String attachmentMetaJson;
 
     @Column(name = "content_hash", length = 64)
     private String contentHash;
@@ -100,11 +78,10 @@ public class DepartmentNotice {
     @Column(name = "schedule_extract_last_error", length = 500)
     private String scheduleExtractLastError;
 
-    @Lob
-    @Column(name = "schedule_extract_response_json", columnDefinition = "LONGTEXT")
-    private String scheduleExtractResponseJson;
+    @OneToOne(mappedBy = "notice", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
+    private DepartmentNoticeContent content;
 
-    private DepartmentNotice(Department department, String title, String createDate, Long view, String url) {
+    private DepartmentNotice(Department department, String title, LocalDate createDate, Long view, String url) {
         this.department = department;
         this.title = title;
         this.createDate = createDate;
@@ -114,13 +91,14 @@ public class DepartmentNotice {
         this.contentRetryCount = 0;
         this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.PENDING;
         this.scheduleExtractRetryCount = 0;
+        this.content = DepartmentNoticeContent.builder().notice(this).build();
     }
 
-    public static DepartmentNotice create(Department department, String title, String createDate, Long view, String url) {
+    public static DepartmentNotice create(Department department, String title, LocalDate createDate, Long view, String url) {
         return new DepartmentNotice(department, title, createDate, view, url);
     }
 
-    public void updateListing(String title, String createDate, Long view, String url) {
+    public void updateListing(String title, LocalDate createDate, Long view, String url) {
         this.title = title;
         this.createDate = createDate;
         this.view = view;
@@ -139,20 +117,15 @@ public class DepartmentNotice {
             String inlineImageUrlsJson,
             String attachmentMetaJson
     ) {
-        this.contentHtml = contentHtml;
-        this.contentText = contentText;
+        this.content.updateContent(contentHtml, contentText, inlineImageUrlsJson, attachmentMetaJson);
         this.contentHash = contentHash;
         this.contentFetchedAt = contentFetchedAt;
-        this.inlineImageUrlsJson = inlineImageUrlsJson;
-        this.attachmentMetaJson = attachmentMetaJson;
         this.contentLastError = null;
         resetScheduleExtraction();
     }
 
-    public void updateEnrichmentTexts(String ocrText, String attachmentText, String mergedText) {
-        this.ocrText = ocrText;
-        this.attachmentText = attachmentText;
-        this.mergedText = mergedText;
+    public void updateEnrichmentTexts(String ocrText, String attachmentText) {
+        this.content.updateEnrichmentTexts(ocrText, attachmentText);
         this.contentLastError = null;
         resetScheduleExtraction();
     }
@@ -193,19 +166,17 @@ public class DepartmentNotice {
         this.scheduleExtractLastError = null;
     }
 
-    public void markScheduleExtractSuccess(int count, String responseJson) {
+    public void markScheduleExtractSuccess(int count) {
         this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.SUCCESS;
         this.scheduleExtractedAt = LocalDateTime.now();
         this.scheduleExtractCount = count;
-        this.scheduleExtractResponseJson = responseJson;
         this.scheduleExtractLastError = null;
     }
 
-    public void markScheduleNoSchedule(String responseJson) {
+    public void markScheduleNoSchedule() {
         this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
         this.scheduleExtractedAt = LocalDateTime.now();
         this.scheduleExtractCount = 0;
-        this.scheduleExtractResponseJson = responseJson;
         this.scheduleExtractLastError = null;
     }
 
@@ -220,36 +191,48 @@ public class DepartmentNotice {
         this.scheduleExtractedAt = null;
         this.scheduleExtractCount = null;
         this.scheduleExtractLastError = null;
-        this.scheduleExtractResponseJson = null;
+        this.content.resetScheduleExtraction();
         this.scheduleExtractRetryCount = 0;
     }
 
     public boolean hasContent() {
-        return contentText != null && !contentText.isBlank();
+        return content.getContentText() != null && !content.getContentText().isBlank();
     }
 
     public boolean hasMergedText() {
-        return mergedText != null && !mergedText.isBlank();
+        return !content.getMergedText().isBlank();
     }
 
     public boolean hasContentCrawlMetadata() {
-        return inlineImageUrlsJson != null && attachmentMetaJson != null;
+        return content.getInlineImageUrlsJson() != null && content.getAttachmentMetaJson() != null;
+    }
+
+    public String getMergedText() {
+        return content.getMergedText();
     }
 
     public String getBestEffortText() {
-        if (hasMergedText()) {
-            return mergedText;
-        }
-        if (hasContent()) {
-            return contentText;
-        }
-        if (attachmentText != null && !attachmentText.isBlank()) {
-            return attachmentText;
-        }
-        if (ocrText != null && !ocrText.isBlank()) {
-            return ocrText;
-        }
-        return "";
+        return content.getBestEffortText();
+    }
+
+    public String getContentText() {
+        return content.getContentText();
+    }
+
+    public String getAttachmentText() {
+        return content.getAttachmentText();
+    }
+
+    public String getOcrText() {
+        return content.getOcrText();
+    }
+
+    public String getAttachmentMetaJson() {
+        return content.getAttachmentMetaJson();
+    }
+
+    public String getInlineImageUrlsJson() {
+        return content.getInlineImageUrlsJson();
     }
 
     public boolean isContentCrawlBlocked() {

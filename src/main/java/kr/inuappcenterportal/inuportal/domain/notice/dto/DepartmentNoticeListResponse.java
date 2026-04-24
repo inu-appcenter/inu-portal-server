@@ -30,11 +30,14 @@ public record DepartmentNoticeListResponse(
 
 ) {
     public static DepartmentNoticeListResponse of(DepartmentNotice departmentNotice, boolean hasSchedules) {
+        String formattedDate = departmentNotice.getCreateDate() != null 
+                ? departmentNotice.getCreateDate().format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd")) 
+                : null;
         return new DepartmentNoticeListResponse(
                 departmentNotice.getId(),
                 departmentNotice.getTitle(),
                 departmentNotice.getDepartment(),
-                departmentNotice.getCreateDate(),
+                formattedDate,
                 departmentNotice.getView(),
                 departmentNotice.getUrl(),
                 hasSchedules
