@@ -28,19 +28,19 @@ public class DepartmentNoticeScheduleExtractPersistenceService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markNoSchedule(Long noticeId, String responseJson) {
+    public void markNoSchedule(Long noticeId) {
         DepartmentNotice departmentNotice = getNotice(noticeId);
         scheduleRepository.deleteBySourceNoticeIdAndAiGeneratedTrue(noticeId);
-        departmentNotice.markScheduleNoSchedule(responseJson);
+        departmentNotice.markScheduleNoSchedule();
         departmentNoticeRepository.save(departmentNotice);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveSuccess(Long noticeId, String responseJson, List<Schedule> schedules) {
+    public void saveSuccess(Long noticeId, List<Schedule> schedules) {
         DepartmentNotice departmentNotice = getNotice(noticeId);
         scheduleRepository.deleteBySourceNoticeIdAndAiGeneratedTrue(noticeId);
         scheduleRepository.saveAll(schedules);
-        departmentNotice.markScheduleExtractSuccess(schedules.size(), responseJson);
+        departmentNotice.markScheduleExtractSuccess(schedules.size());
         departmentNoticeRepository.save(departmentNotice);
     }
 

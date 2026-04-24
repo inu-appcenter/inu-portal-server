@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,15 +19,15 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
 
     Optional<DepartmentNotice> findFirstByDepartmentAndUrl(Department department, String url);
 
-    Optional<DepartmentNotice> findFirstByDepartmentAndTitleAndCreateDate(Department department, String title, String createDate);
+    Optional<DepartmentNotice> findFirstByDepartmentAndTitleAndCreateDate(Department department, String title, LocalDate createDate);
 
     @Query("""
             select dn from DepartmentNotice dn
             where dn.department = :department
               and (
-                    dn.contentText is null
-                    or dn.inlineImageUrlsJson is null
-                    or dn.attachmentMetaJson is null
+                    dn.content.contentText is null
+                    or dn.content.inlineImageUrlsJson is null
+                    or dn.content.attachmentMetaJson is null
               )
               and (dn.contentStatus is null or dn.contentStatus in :statuses)
             order by dn.id desc

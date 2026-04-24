@@ -19,4 +19,18 @@ public class DepartmentCrawlConfig {
     private boolean useAbsoluteHref;
     private List<String> contentSelectors;
     private List<String> attachmentSelectors;
+    private String detailDateSelector;
+
+    public DepartmentCrawlConfig(
+            String titleSelector,
+            String dateSelector,
+            String linkSelector,
+            String viewsSelector,
+            Predicate<Element> skipCondition,
+            boolean useAbsoluteHref,
+            List<String> contentSelectors,
+            List<String> attachmentSelectors
+    ) {
+        this(titleSelector, dateSelector, linkSelector, viewsSelector, skipCondition, useAbsoluteHref, contentSelectors, attachmentSelectors, null);
+    }
 }
