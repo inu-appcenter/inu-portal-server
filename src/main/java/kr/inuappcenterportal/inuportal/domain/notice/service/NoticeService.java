@@ -174,13 +174,13 @@ public class NoticeService {
 
     @Transactional
     public void crawlingNotices() {
-        syncNoticesByCategory(246, SCHOOL_NOTICE_ACADEMIC, 10, true);
-        syncNoticesByCategory(247, SCHOOL_NOTICE_CREDIT_EXCHANGE, 10, true);
-        syncNoticesByCategory(2611, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING, 10, true);
-        syncNoticesByCategory(249, SCHOOL_NOTICE_SCHOLARSHIP, 10, true);
-        syncNoticesByCategory(250, SCHOOL_NOTICE_TUITION, 10, true);
-        syncNoticesByCategory(252, SCHOOL_NOTICE_EDUCATION_TEST, 10, true);
-        syncNoticesByCategory(253, SCHOOL_NOTICE_VOLUNTEER, 10, true);
+        syncNoticesByCategory(246, SCHOOL_NOTICE_ACADEMIC, 100, true);
+        syncNoticesByCategory(247, SCHOOL_NOTICE_CREDIT_EXCHANGE, 100, true);
+        syncNoticesByCategory(2611, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING, 100, true);
+        syncNoticesByCategory(249, SCHOOL_NOTICE_SCHOLARSHIP, 100, true);
+        syncNoticesByCategory(250, SCHOOL_NOTICE_TUITION, 100, true);
+        syncNoticesByCategory(252, SCHOOL_NOTICE_EDUCATION_TEST, 100, true);
+        syncNoticesByCategory(253, SCHOOL_NOTICE_VOLUNTEER, 100, true);
     }
 
     @EventListener(ApplicationReadyEvent.class)
