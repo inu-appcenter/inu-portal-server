@@ -203,6 +203,11 @@ public class DepartmentNoticeScheduleExtractService {
             return DepartmentNoticeScheduleExtractStatus.SUCCESS;
         } catch (Exception e) {
             String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                errorMessage += " (Cause: " + cause.getClass().getSimpleName() + " - " + cause.getMessage() + ")";
+            }
+            
             persistenceService.markFailed(departmentNotice.getId(), limitMessage(errorMessage));
             log.warn("학과 공지 AI 일정 추출에 실패했습니다. noticeId={}, department={}, url={}, reason={}",
                     departmentNotice.getId(), departmentNotice.getDepartment().name(), departmentNotice.getUrl(), errorMessage);
