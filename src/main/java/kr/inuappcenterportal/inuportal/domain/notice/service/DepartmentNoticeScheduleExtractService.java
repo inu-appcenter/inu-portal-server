@@ -323,6 +323,7 @@ public class DepartmentNoticeScheduleExtractService {
         String contentText = normalizeText(departmentNotice.getContentText());
         String attachmentText = normalizeText(departmentNotice.getAttachmentText());
         String ocrText = normalizeText(departmentNotice.getOcrText());
+        String createDate = departmentNotice.getCreateDate() != null ? departmentNotice.getCreateDate().toString() : "";
         boolean usedBestEffortForContent = false;
 
         if (contentText.isBlank()) {
@@ -331,6 +332,7 @@ public class DepartmentNoticeScheduleExtractService {
         }
 
         appendSection(sections, "[제목]", title);
+        appendSection(sections, "[작성일]", createDate);
         appendSection(sections, "[내용]", contentText);
 
         if (!usedBestEffortForContent) {

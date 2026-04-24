@@ -119,8 +119,8 @@ public class DepartmentNotice {
         resetScheduleExtraction();
     }
 
-    public void updateEnrichmentTexts(String ocrText, String attachmentText, String mergedText) {
-        this.content.updateEnrichmentTexts(ocrText, attachmentText, mergedText);
+    public void updateEnrichmentTexts(String ocrText, String attachmentText) {
+        this.content.updateEnrichmentTexts(ocrText, attachmentText);
         this.contentLastError = null;
         resetScheduleExtraction();
     }
@@ -197,11 +197,15 @@ public class DepartmentNotice {
     }
 
     public boolean hasMergedText() {
-        return content.getMergedText() != null && !content.getMergedText().isBlank();
+        return !content.getMergedText().isBlank();
     }
 
     public boolean hasContentCrawlMetadata() {
         return content.getInlineImageUrlsJson() != null && content.getAttachmentMetaJson() != null;
+    }
+
+    public String getMergedText() {
+        return content.getMergedText();
     }
 
     public String getBestEffortText() {
@@ -218,6 +222,14 @@ public class DepartmentNotice {
 
     public String getOcrText() {
         return content.getOcrText();
+    }
+
+    public String getAttachmentMetaJson() {
+        return content.getAttachmentMetaJson();
+    }
+
+    public String getInlineImageUrlsJson() {
+        return content.getInlineImageUrlsJson();
     }
 
     public boolean isContentCrawlBlocked() {

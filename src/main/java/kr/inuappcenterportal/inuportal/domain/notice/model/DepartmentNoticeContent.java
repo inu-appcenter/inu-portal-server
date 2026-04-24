@@ -41,10 +41,6 @@ public class DepartmentNoticeContent {
     private String attachmentText;
 
     @Lob
-    @Column(name = "merged_text", columnDefinition = "LONGTEXT")
-    private String mergedText;
-
-    @Lob
     @Column(name = "inline_image_urls_json", columnDefinition = "LONGTEXT")
     private String inlineImageUrlsJson;
 
@@ -58,14 +54,13 @@ public class DepartmentNoticeContent {
 
     @Builder
     public DepartmentNoticeContent(DepartmentNotice notice, String contentHtml, String contentText, String ocrText,
-                                 String attachmentText, String mergedText, String inlineImageUrlsJson,
+                                 String attachmentText, String inlineImageUrlsJson,
                                  String attachmentMetaJson, String scheduleExtractResponseJson) {
         this.notice = notice;
         this.contentHtml = contentHtml;
         this.contentText = contentText;
         this.ocrText = ocrText;
         this.attachmentText = attachmentText;
-        this.mergedText = mergedText;
         this.inlineImageUrlsJson = inlineImageUrlsJson;
         this.attachmentMetaJson = attachmentMetaJson;
         this.scheduleExtractResponseJson = scheduleExtractResponseJson;
@@ -83,10 +78,9 @@ public class DepartmentNoticeContent {
         this.attachmentMetaJson = attachmentMetaJson;
     }
 
-    public void updateEnrichmentTexts(String ocrText, String attachmentText, String mergedText) {
+    public void updateEnrichmentTexts(String ocrText, String attachmentText) {
         this.ocrText = ocrText;
         this.attachmentText = attachmentText;
-        this.mergedText = mergedText;
     }
 
     public void updateScheduleExtractResponse(String responseJson) {
@@ -97,18 +91,18 @@ public class DepartmentNoticeContent {
         this.scheduleExtractResponseJson = null;
     }
 
+    public String getMergedText() {
+        java.util.List<String> texts = new java.util.ArrayList<>();
+        if (contentText != null && !contentText.isBlank()) texts.add(contentText.trim());
+        if (attachmentText != null && !attachmentText.isBlank()) texts.add(attachmentText.trim());
+        if (ocrText != null && !ocrText.isBlank()) texts.add(ocrText.trim());
+        return String.join("\n\n", texts);
+    }
+
     public String getBestEffortText() {
-        if (mergedText != null && !mergedText.isBlank()) {
-            return mergedText;
-        }
-        if (contentText != null && !contentText.isBlank()) {
-            return contentText;
-        }
-        if (attachmentText != null && !attachmentText.isBlank()) {
-            return attachmentText;
-        }
-        if (ocrText != null && !ocrText.isBlank()) {
-            return ocrText;
+        String merged = getMergedText();
+        if (!merged.isBlank()) {
+            return merged;
         }
         return "";
     }
