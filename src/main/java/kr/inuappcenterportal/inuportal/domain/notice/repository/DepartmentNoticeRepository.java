@@ -25,9 +25,9 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
             select dn from DepartmentNotice dn
             where dn.department = :department
               and (
-                    dn.contentText is null
-                    or dn.inlineImageUrlsJson is null
-                    or dn.attachmentMetaJson is null
+                    dn.content.contentText is null
+                    or dn.content.inlineImageUrlsJson is null
+                    or dn.content.attachmentMetaJson is null
               )
               and (dn.contentStatus is null or dn.contentStatus in :statuses)
             order by dn.id desc
