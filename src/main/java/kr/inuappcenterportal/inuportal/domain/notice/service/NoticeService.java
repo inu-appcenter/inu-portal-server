@@ -215,6 +215,7 @@ public class NoticeService {
             Elements items = document.select("item");
             Set<String> activeUrls = new LinkedHashSet<>();
             String oldestDate = null;
+            String newestDate = null;
             int newCount = 0;
             int updateCount = 0;
 
@@ -231,6 +232,9 @@ public class NoticeService {
 
                 if (oldestDate == null || createDate.compareTo(oldestDate) < 0) {
                     oldestDate = createDate;
+                }
+                if (newestDate == null || createDate.compareTo(newestDate) > 0) {
+                    newestDate = createDate;
                 }
 
                 String writer = item.select("departmentName").text();
@@ -262,8 +266,8 @@ public class NoticeService {
                 }
             }
 
-            if (oldestDate != null) {
-                cleanupDeletedNotices(categoryName, oldestDate, activeUrls);
+            if (oldestDate != null && newestDate != null) {
+                cleanupDeletedNotices(categoryName, oldestDate, newestDate, activeUrls);
             }
 
             log.info("[학교공지] 동기화 완료: category={}, 신규={}, 업데이트={}", categoryName, newCount, updateCount); // 요약 로그
@@ -273,8 +277,12 @@ public class NoticeService {
         }
     }
 
-    private void cleanupDeletedNotices(String categoryName, String oldestDate, Set<String> activeUrls) {
-        List<Notice> dbNotices = noticeRepository.findAllByCategoryAndCreateDateGreaterThanEqual(categoryName, oldestDate);
+    private void cleanupDeletedNotices(String categoryName, String oldestDate, String newestDate, Set<String> activeUrls) {
+        // 엄격한 범위 선정: oldestDate < date < newestDate
+        // 이 범위 안에 있는 공지인데 activeUrls에 없다면 100% 삭제된 것입니다.
+        // 경계선(oldestDate, newestDate와 동일한 날짜)은 지우지 않습니다.
+        List<Notice> dbNotices = noticeRepository.findAllByCategoryAndCreateDateGreaterThanAndCreateDateLessThan(categoryName, oldestDate, newestDate);
+        
         List<Notice> toDelete = dbNotices.stream()
                 .filter(notice -> !activeUrls.contains(notice.getUrl()))
                 .collect(Collectors.toList());
