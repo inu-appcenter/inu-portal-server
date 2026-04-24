@@ -16,7 +16,12 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "department_notice")
+@Table(name = "department_notice", indexes = {
+        @Index(name = "idx_dept_url", columnList = "department, url", unique = true),
+        @Index(name = "idx_dept_date_id", columnList = "department, create_date DESC, id DESC"),
+        @Index(name = "idx_dept_title_date", columnList = "department, title, create_date"),
+        @Index(name = "idx_content_extract_status", columnList = "content_status, schedule_extract_status")
+})
 public class DepartmentNotice {
 
     @Id
