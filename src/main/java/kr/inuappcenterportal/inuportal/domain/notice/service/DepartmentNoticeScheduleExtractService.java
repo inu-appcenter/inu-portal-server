@@ -133,7 +133,7 @@ public class DepartmentNoticeScheduleExtractService {
     private DepartmentNoticeScheduleExtractStatus extractSchedule(DepartmentNotice departmentNotice) {
         String requestBody = buildRequestBody(departmentNotice);
         if (isBlank(requestBody)) {
-            persistenceService.markNoSchedule(departmentNotice.getId(), "");
+            persistenceService.markNoSchedule(departmentNotice.getId());
             log.info("학과 공지 AI 일정 추출을 건너뜁니다. noticeId={}, department={}, reason={}",
                     departmentNotice.getId(), departmentNotice.getDepartment().name(), "empty_request_body");
             return DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
@@ -150,21 +150,19 @@ public class DepartmentNoticeScheduleExtractService {
             DepartmentNoticeScheduleExtractResponse response = requestScheduleExtract(requestBody);
             validateResponse(response);
 
-            String responseJson = writeJson(response);
             int responseCount = response.getData() == null ? 0 : response.getData().size();
 
-            log.info("학과 공지 AI 일정 추출 응답을 받았습니다. noticeId={}, department={}, status={}, count={}, responseLength={}, url={}",
+            log.info("학과 공지 AI 일정 추출 응답을 받았습니다. noticeId={}, department={}, status={}, count={}, url={}",
                     departmentNotice.getId(),
                     departmentNotice.getDepartment().name(),
                     response.getStatus(),
                     responseCount,
-                    responseJson.length(),
                     departmentNotice.getUrl());
 
             List<Schedule> schedules = buildSchedules(departmentNotice, response);
 
             if (response.getData() == null || response.getData().isEmpty()) {
-                persistenceService.markNoSchedule(departmentNotice.getId(), responseJson);
+                persistenceService.markNoSchedule(departmentNotice.getId());
                 log.info("학과 공지 AI 일정 추출 결과 일정이 없습니다. noticeId={}, department={}, url={}",
                         departmentNotice.getId(), departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
@@ -180,7 +178,7 @@ public class DepartmentNoticeScheduleExtractService {
                     schedules.size(),
                     departmentNotice.getUrl());
 
-            persistenceService.saveSuccess(departmentNotice.getId(), responseJson, schedules);
+            persistenceService.saveSuccess(departmentNotice.getId(), schedules);
 
             log.info("학과 공지 AI 일정 저장을 완료했습니다. noticeId={}, department={}, scheduleCount={}, url={}",
                     departmentNotice.getId(),

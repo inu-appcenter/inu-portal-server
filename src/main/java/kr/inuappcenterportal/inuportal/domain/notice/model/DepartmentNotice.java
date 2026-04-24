@@ -166,19 +166,17 @@ public class DepartmentNotice {
         this.scheduleExtractLastError = null;
     }
 
-    public void markScheduleExtractSuccess(int count, String responseJson) {
+    public void markScheduleExtractSuccess(int count) {
         this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.SUCCESS;
         this.scheduleExtractedAt = LocalDateTime.now();
         this.scheduleExtractCount = count;
-        this.content.updateScheduleExtractResponse(responseJson);
         this.scheduleExtractLastError = null;
     }
 
-    public void markScheduleNoSchedule(String responseJson) {
+    public void markScheduleNoSchedule() {
         this.scheduleExtractStatus = DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
         this.scheduleExtractedAt = LocalDateTime.now();
         this.scheduleExtractCount = 0;
-        this.content.updateScheduleExtractResponse(responseJson);
         this.scheduleExtractLastError = null;
     }
 

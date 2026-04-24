@@ -48,14 +48,10 @@ public class DepartmentNoticeContent {
     @Column(name = "attachment_meta_json", columnDefinition = "LONGTEXT")
     private String attachmentMetaJson;
 
-    @Lob
-    @Column(name = "schedule_extract_response_json", columnDefinition = "LONGTEXT")
-    private String scheduleExtractResponseJson;
-
     @Builder
     public DepartmentNoticeContent(DepartmentNotice notice, String contentHtml, String contentText, String ocrText,
                                  String attachmentText, String inlineImageUrlsJson,
-                                 String attachmentMetaJson, String scheduleExtractResponseJson) {
+                                 String attachmentMetaJson) {
         this.notice = notice;
         this.contentHtml = contentHtml;
         this.contentText = contentText;
@@ -63,7 +59,6 @@ public class DepartmentNoticeContent {
         this.attachmentText = attachmentText;
         this.inlineImageUrlsJson = inlineImageUrlsJson;
         this.attachmentMetaJson = attachmentMetaJson;
-        this.scheduleExtractResponseJson = scheduleExtractResponseJson;
     }
 
     public void updateContent(
@@ -83,13 +78,10 @@ public class DepartmentNoticeContent {
         this.attachmentText = attachmentText;
     }
 
-    public void updateScheduleExtractResponse(String responseJson) {
-        this.scheduleExtractResponseJson = responseJson;
+    public void resetScheduleExtraction() {
+        // No-op or keep empty if needed, as response JSON is removed
     }
 
-    public void resetScheduleExtraction() {
-        this.scheduleExtractResponseJson = null;
-    }
 
     public String getMergedText() {
         java.util.List<String> texts = new java.util.ArrayList<>();
