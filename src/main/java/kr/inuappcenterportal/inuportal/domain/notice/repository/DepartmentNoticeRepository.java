@@ -23,6 +23,7 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
 
     @Query("""
             select dn from DepartmentNotice dn
+            join fetch dn.content
             where dn.department = :department
               and (
                     dn.content.contentText is null
@@ -46,6 +47,7 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
 
     @Query("""
             select dn from DepartmentNotice dn
+            join fetch dn.content
             where dn.contentStatus = :contentStatus
               and (dn.scheduleExtractStatus is null or dn.scheduleExtractStatus in :statuses)
             order by dn.id desc
