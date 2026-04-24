@@ -498,7 +498,8 @@ public class NoticeService {
                     }
 
                     String title = ele.select(config.getTitleSelector()).text();
-                    String date = ele.select(config.getDateSelector()).text();
+                    String dateStr = ele.select(config.getDateSelector()).text();
+                    LocalDate date = parseDepartmentNoticeDate(dateStr);
                     String href = resolveDepartmentNoticeUrl(ele.selectFirst(config.getLinkSelector()), url, config.isUseAbsoluteHref());
                     long views = parseLongValue(ele.select(config.getViewsSelector()).text());
 
@@ -980,6 +981,20 @@ public class NoticeService {
         }
 
         return Long.parseLong(digits);
+    }
+
+    private LocalDate parseDepartmentNoticeDate(String dateStr) {
+        String normalized = normalizeText(dateStr);
+        if (normalized.isBlank()) {
+            return LocalDate.now();
+        }
+        try {
+            // yyyy.MM.dd 형식을 파싱합니다.
+            return LocalDate.parse(normalized, DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        } catch (Exception e) {
+            log.warn("학과 공지 날짜 파싱에 실패했습니다. value={}, reason={}", normalized, e.getMessage());
+            return LocalDate.now();
+        }
     }
 
 
