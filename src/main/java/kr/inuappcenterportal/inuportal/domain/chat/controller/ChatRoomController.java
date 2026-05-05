@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -91,6 +92,23 @@ public class ChatRoomController {
     public ResponseEntity<ResponseDto<List<PublicChatMessageResponseDto>>> getRecentTwoMessages(
             @Parameter(description = "조회할 채팅방의 ID", required = true) @PathVariable Long roomId) {
         List<PublicChatMessageResponseDto> messages = chatRoomService.getRecentTwoMessages(roomId);
+        return ResponseEntity.ok(ResponseDto.of(messages));
+    }
+
+    @Operation(summary = "이전 메시지 조회", description = "특정 ID보다 이전에 작성된 메시지 50개를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ChatMessageResponseDto.class)))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "채팅방에 참여하지 않은 사용자 (NOT_CHATROOM_MEMBER)")
+    })
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/{roomId}/messages")
+    public ResponseEntity<ResponseDto<List<ChatMessageResponseDto>>> getOlderMessages(
+            @Parameter(description = "채팅방의 ID", required = true) @PathVariable Long roomId,
+            @Parameter(description = "가장 오래된 메시지의 ID (이 ID 이전의 메시지를 조회)", required = true) @RequestParam Long lastId,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        List<ChatMessageResponseDto> messages = chatRoomService.getOlderMessages(roomId, memberId, lastId);
         return ResponseEntity.ok(ResponseDto.of(messages));
     }
 }

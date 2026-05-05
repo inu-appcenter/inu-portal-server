@@ -125,7 +125,7 @@ public class ChatRoomService {
         if (messages.isEmpty()) {
             List<ChatMessage> dbMessages = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(chatRoom);
             messages.addAll(dbMessages.stream()
-                    .map(ChatMessageResponseDto::of)
+                    .map(this::convertToDto)
                     .collect(Collectors.toList()));
             messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate)); // DB 메시지도 정렬
         }
@@ -134,6 +134,36 @@ public class ChatRoomService {
         String myHash = getSenderHash(memberId);
 
         return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), myHash, messages);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessageResponseDto> getOlderMessages(Long roomId, Long memberId, Long lastId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        if (!chatRoomMemberRepository.existsByChatRoomAndMember(chatRoom, member)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        List<ChatMessage> olderMessages = chatMessageRepository.findTop50ByChatRoomAndIdLessThanOrderByIdDesc(chatRoom, lastId);
+
+        return olderMessages.stream()
+                .map(this::convertToDto)
+                .sorted(Comparator.comparing(ChatMessageResponseDto::getCreateDate))
+                .collect(Collectors.toList());
+    }
+
+    private ChatMessageResponseDto convertToDto(ChatMessage message) {
+        return ChatMessageResponseDto.builder()
+                .messageId(message.getId())
+                .roomId(message.getChatRoom().getId())
+                .senderNickname(message.getSenderNickname())
+                .senderHash(getSenderHash(message.getSender().getId()))
+                .content(message.getContent())
+                .createDate(message.getCreateDate())
+                .build();
     }
 
     @Transactional(readOnly = true)
