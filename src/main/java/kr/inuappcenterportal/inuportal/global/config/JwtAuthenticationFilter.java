@@ -11,26 +11,42 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
+    private final RequestMatcher permitAllRequestMatcher;
 
-    public JwtAuthenticationFilter(TokenProvider tokenProvider, ObjectMapper objectMapper){
+    public JwtAuthenticationFilter(TokenProvider tokenProvider, ObjectMapper objectMapper, String[] permitAllPatterns){
         this.tokenProvider = tokenProvider;
         this.objectMapper = objectMapper;
+        List<RequestMatcher> matchers = Arrays.stream(permitAllPatterns)
+                .map(AntPathRequestMatcher::new)
+                .collect(Collectors.toList());
+        this.permitAllRequestMatcher = new OrRequestMatcher(matchers);
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // If the request URI matches a permitAll path, skip this filter entirely
+        if (permitAllRequestMatcher.matches(request)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
             String token = tokenProvider.resolveToken(request);
-            log.info("Request URI: {}, Token present: {}", request.getRequestURI(), token != null);
             if (token!=null&&tokenProvider.validateToken(token)) {
                 Authentication authentication = tokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);

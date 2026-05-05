@@ -280,11 +280,32 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
-        List<ChatMessage> messages = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
+        Set<PublicChatMessageResponseDto> distinctMessages = new HashSet<>(); // Use Set for deduplication
 
-        return messages.stream()
-                .map(PublicChatMessageResponseDto::from)
-                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate)) // 시간 오름차순으로 정렬
+        // 1. Get messages from Redis cache
+        List<String> cachedMessagesJson = chatRedisService.getRecentMessages(roomId);
+        for (String messageJson : cachedMessagesJson) {
+            try {
+                PublicChatMessageResponseDto dto = objectMapper.readValue(messageJson, PublicChatMessageResponseDto.class);
+                if (dto.getMessageId() != null) { // Only add if messageId exists for proper deduplication
+                    distinctMessages.add(dto);
+                }
+            } catch (JsonProcessingException e) {
+                log.error("Error deserializing cached public message from Redis: {}", messageJson, e);
+            }
+        }
+
+        // 2. Get messages from DB
+        List<ChatMessage> messagesFromDb = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
+        for (ChatMessage dbMessage : messagesFromDb) {
+            distinctMessages.add(PublicChatMessageResponseDto.from(dbMessage)); // Add to set (deduplication by equals/hashCode in DTO)
+        }
+
+        // 3. Convert set to list, sort by createDate descending, take top 2, then sort ascending for final output
+        return distinctMessages.stream()
+                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.reverseOrder()))) // Sort by recent first (descending)
+                .limit(2) // Take top 2
+                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder()))) // Final sort ascending
                 .collect(Collectors.toList());
     }
 }
