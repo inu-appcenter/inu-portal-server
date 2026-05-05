@@ -31,7 +31,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -213,6 +215,7 @@ public class ChatRoomService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
+        // 멤버 권한 검증
         if (!chatRoomMemberRepository.existsByChatRoomAndMember(chatRoom, member)) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
@@ -224,18 +227,19 @@ public class ChatRoomService {
             try {
                 messages.add(objectMapper.readValue(messageJson, ChatMessageResponseDto.class));
             } catch (JsonProcessingException e) {
-                log.error("Error deserializing cached message: {}", messageJson, e);
+                log.error("캐시 메시지 역직렬화 오류: {}", messageJson, e);
             }
         }
 
         messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
+        // 캐시 부재 시 DB 조회
         if (messages.isEmpty()) {
             List<ChatMessage> dbMessages = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(chatRoom);
             messages.addAll(dbMessages.stream()
                     .map(this::convertToDto)
                     .collect(Collectors.toList()));
-            messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder()))); // DB 메시지도 정렬
+            messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
         }
 
         Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
@@ -255,6 +259,7 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
 
+        // 과거 메시지 페이징 조회
         List<ChatMessage> olderMessages = chatMessageRepository.findTop50ByChatRoomAndIdLessThanOrderByIdDesc(chatRoom, lastId);
 
         return olderMessages.stream()
@@ -280,32 +285,32 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
-        Set<PublicChatMessageResponseDto> distinctMessages = new HashSet<>(); // Use Set for deduplication
+        Set<PublicChatMessageResponseDto> distinctMessages = new HashSet<>();
 
-        // 1. Get messages from Redis cache
+        // Redis 데이터 병합
         List<String> cachedMessagesJson = chatRedisService.getRecentMessages(roomId);
         for (String messageJson : cachedMessagesJson) {
             try {
                 PublicChatMessageResponseDto dto = objectMapper.readValue(messageJson, PublicChatMessageResponseDto.class);
-                if (dto.getMessageId() != null) { // Only add if messageId exists for proper deduplication
+                if (dto.getMessageId() != null) {
                     distinctMessages.add(dto);
                 }
             } catch (JsonProcessingException e) {
-                log.error("Error deserializing cached public message from Redis: {}", messageJson, e);
+                log.error("Redis 메시지 역직렬화 오류: {}", messageJson, e);
             }
         }
 
-        // 2. Get messages from DB
+        // DB 데이터 병합 및 중복 제거
         List<ChatMessage> messagesFromDb = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
         for (ChatMessage dbMessage : messagesFromDb) {
-            distinctMessages.add(PublicChatMessageResponseDto.from(dbMessage)); // Add to set (deduplication by equals/hashCode in DTO)
+            distinctMessages.add(PublicChatMessageResponseDto.from(dbMessage));
         }
 
-        // 3. Convert set to list, sort by createDate descending, take top 2, then sort ascending for final output
+        // 최신순 필터링 후 오름차순 정렬
         return distinctMessages.stream()
-                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.reverseOrder()))) // Sort by recent first (descending)
-                .limit(2) // Take top 2
-                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder()))) // Final sort ascending
+                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(2)
+                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
     }
 }

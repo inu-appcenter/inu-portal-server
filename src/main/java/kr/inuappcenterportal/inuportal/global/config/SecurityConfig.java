@@ -22,23 +22,6 @@ public class SecurityConfig {
     private final TokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
 
-    private static final String[] PERMIT_ALL_PATTERNS = {
-            "/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**",
-            "/images/**",
-            "/actuator/**", "/ws-chat/**", "/api/search", "/api/notices", "/api/notices/**",
-            "/api/schedules", "/api/schedules/**", "/api/chat-rooms/{roomId}/messages/public",
-
-            // GET
-            "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/councilNotices",
-            "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**",
-            "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**",
-            "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**",
-            "/api/feature-flags",
-
-            // POST
-            "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**"
-    };
-
     @Autowired
     public SecurityConfig(TokenProvider tokenProvider, ObjectMapper objectMapper){
         this.tokenProvider = tokenProvider;
@@ -55,8 +38,15 @@ public class SecurityConfig {
 
         httpSecurity
                 .authorizeHttpRequests(auth -> auth
-                        // 전체 허용 설정 - PERMIT_ALL_PATTERNS에 정의된 모든 경로
-                        .requestMatchers(PERMIT_ALL_PATTERNS).permitAll()
+                        // 최우선 허용 설정
+                        .requestMatchers(HttpMethod.GET, "/api/chat-rooms/*/messages/public").permitAll()
+                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**").permitAll()
+
+                        // 공통 GET 허용 설정
+                        .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags").permitAll()
+
+                        // 인증 없이 접근 가능한 POST 설정
+                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**").permitAll()
 
                         // ADMIN 권한 전용 설정
                         .requestMatchers(HttpMethod.POST, "/api/chat-rooms", "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync").hasRole("ADMIN")
@@ -75,7 +65,7 @@ public class SecurityConfig {
                 );
 
         httpSecurity
-                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, objectMapper, PERMIT_ALL_PATTERNS), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, objectMapper), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint(objectMapper)));
 
