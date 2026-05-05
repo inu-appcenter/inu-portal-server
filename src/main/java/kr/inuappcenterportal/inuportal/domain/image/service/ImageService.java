@@ -36,11 +36,17 @@ public class ImageService {
     public void saveChatImage(Long roomId, Long messageId, List<MultipartFile> images, String basePath) throws IOException {
         Path roomPath = Paths.get(basePath, roomId.toString());
         Path thumbnailPath = roomPath.resolve("thumbnail");
+
+        log.info("[DEBUG] Room Path: {}", roomPath.toAbsolutePath());
+        log.info("[DEBUG] Thumbnail Path: {}", thumbnailPath.toAbsolutePath());
+
         if (!Files.exists(roomPath)) {
             Files.createDirectories(roomPath);
+            log.info("[DEBUG] Room Directory Created");
         }
         if (!Files.exists(thumbnailPath)) {
             Files.createDirectories(thumbnailPath);
+            log.info("[DEBUG] Thumbnail Directory Created");
         }
         saveImage(messageId, images, roomPath.toString());
         saveThumbnail(images.get(0), thumbnailPath.toString(), messageId);
