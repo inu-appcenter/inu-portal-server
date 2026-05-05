@@ -19,31 +19,31 @@ import javax.sql.DataSource;
 @ConditionalOnProperty(name = "app.local-auth.enabled", havingValue = "false", matchIfMissing = true)
 public class OracleConfig {
 
-    @Value("${school.datasource.jdbc-url}")
+    @Value("${schoolDbUrl}")
     private String url;
-    @Value("${school.datasource.username}")
+    @Value("${schoolDbUser}")
     private String username;
-    @Value("${school.datasource.password}")
+    @Value("${schoolDbPassword}")
     private String password;
-    @Value("${school.datasource.driver-class-name}")
-    private String driverClassName;
 
     @Bean(name = "oracleDataSource")
+    @ConfigurationProperties(prefix = "school.datasource")
     public DataSource secondDataSource() {
-        HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setJdbcUrl(url);
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-        dataSource.setDriverClassName(driverClassName);
-
-        dataSource.setMaximumPoolSize(8);
-        dataSource.setMinimumIdle(1);
-        dataSource.setConnectionTimeout(60000);
-
-        return dataSource;
+        /*HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(url);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setDataSourceClassName("oracle.jdbc.OracleDriver");
+        config.setMaximumPoolSize(8);
+        config.setMinimumIdle(1);
+        config.setConnectionTimeout(60000);
+        config.setIdleTimeout(600000);
+        return new HikariDataSource(config);*/
+        return DataSourceBuilder.create().type(HikariDataSource.class).build();
     }
 
     @Bean(name = "oracleJdbc")
+    @Autowired
     public JdbcTemplate jdbcTemplate(@Qualifier("oracleDataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }

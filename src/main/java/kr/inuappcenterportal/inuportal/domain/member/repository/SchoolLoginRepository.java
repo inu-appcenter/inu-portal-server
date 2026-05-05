@@ -30,6 +30,15 @@ public class SchoolLoginRepository {
         log.info("school login request. studentId:{}", username);
         try {
             JdbcTemplate jdbcTemplate = oracleJdbcProvider.getIfAvailable();
+
+            if (jdbcTemplate != null && jdbcTemplate.getDataSource() != null) {
+                try (java.sql.Connection conn = jdbcTemplate.getDataSource().getConnection()) {
+                    log.info("== DEBUG: 연결된 DB URL은 [{}] 입니다 ==", conn.getMetaData().getURL());
+                } catch (Exception e) {
+                    log.warn("== DEBUG: DB URL 확인 실패: {} ==", e.getMessage());
+                }
+            }
+
             if (jdbcTemplate == null) {
                 log.warn("oracleJdbc is not configured. studentId:{}", username);
                 return false;
