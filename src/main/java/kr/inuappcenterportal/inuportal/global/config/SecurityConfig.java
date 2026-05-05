@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,"/api/portal/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/chat-rooms").hasRole("ADMIN")
                         .requestMatchers("/api/chat-rooms/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/chat/messages").authenticated() // 추가: 이미지 포함 메시지 전송 엔드포인트
                         .requestMatchers("/api/members/all","/api/reports").hasRole("ADMIN")
                         .requestMatchers("/api/members/**","/api/members","/api/tokens").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/cafeterias","/api/weathers","/api/councilNotices","/api/councilNotices/**","/api/petitions","/api/petitions/**","/api/reservations/quantity/**").permitAll()
@@ -60,7 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/logs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/feature-flags").permitAll()
                         .requestMatchers("/api/admin/feature-flags/**").hasRole("ADMIN")
-
+                        .anyRequest().authenticated() // 추가: 나머지 모든 요청은 인증 필요
                 );
         httpSecurity
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
