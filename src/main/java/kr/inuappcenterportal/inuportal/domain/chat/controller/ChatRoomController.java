@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.chat.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +22,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.List;
 
 @Tag(name = "ChatRoom", description = "채팅방 관리 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/chat-rooms")
-@SecurityRequirement(name = "Auth") // 이 컨트롤러의 모든 API는 인증 필요
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
@@ -36,6 +38,7 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
+    @SecurityRequirement(name = "Auth")
     @PostMapping
     public ResponseEntity<ResponseDto<ChatRoomResponseDto>> createChatRoom(
             @Parameter(description = "채팅방 생성 정보", required = true) @Valid @RequestBody ChatRoomCreateRequestDto requestDto,
@@ -52,6 +55,7 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 채팅방"),
             @ApiResponse(responseCode = "409", description = "채팅방 인원이 가득 참 (CHATROOM_FULL)")
     })
+    @SecurityRequirement(name = "Auth")
     @PostMapping("/{roomId}/join")
     public ResponseEntity<ResponseDto<ChatRoomResponseDto>> joinChatRoom(
             @Parameter(description = "참여할 채팅방의 ID", required = true) @PathVariable Long roomId,
@@ -68,6 +72,7 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "403", description = "채팅방에 참여하지 않은 사용자 (NOT_CHATROOM_MEMBER)"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 채팅방")
     })
+    @SecurityRequirement(name = "Auth")
     @GetMapping("/{roomId}")
     public ResponseEntity<ResponseDto<ChatRoomResponseDto>> getChatRoomDetails(
             @Parameter(description = "조회할 채팅방의 ID", required = true) @PathVariable Long roomId,
@@ -75,5 +80,17 @@ public class ChatRoomController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         ChatRoomResponseDto chatRoomDetails = chatRoomService.getChatRoomMessages(roomId, memberId);
         return ResponseEntity.ok(ResponseDto.of(chatRoomDetails));
+    }
+
+    @Operation(summary = "채팅방 최신 메시지 2개 조회 (Public)", description = "로그인 없이 누구나 특정 채팅방의 최신 메시지 2개를 조회할 수 있습니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = PublicChatMessageResponseDto.class)))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 채팅방")
+    })
+    @GetMapping("/{roomId}/messages/public")
+    public ResponseEntity<ResponseDto<List<PublicChatMessageResponseDto>>> getRecentTwoMessages(
+            @Parameter(description = "조회할 채팅방의 ID", required = true) @PathVariable Long roomId) {
+        List<PublicChatMessageResponseDto> messages = chatRoomService.getRecentTwoMessages(roomId);
+        return ResponseEntity.ok(ResponseDto.of(messages));
     }
 }

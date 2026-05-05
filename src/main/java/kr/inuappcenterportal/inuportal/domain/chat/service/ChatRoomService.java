@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoomMember;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
@@ -133,5 +134,18 @@ public class ChatRoomService {
         String myHash = getSenderHash(memberId);
 
         return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), myHash, messages);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublicChatMessageResponseDto> getRecentTwoMessages(Long roomId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        List<ChatMessage> messages = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
+
+        return messages.stream()
+                .map(PublicChatMessageResponseDto::from)
+                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate)) // 시간 오름차순으로 정렬
+                .collect(Collectors.toList());
     }
 }

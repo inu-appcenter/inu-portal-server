@@ -6,5 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-    List<ChatMessage> findTop50ByChatRoomOrderByCreateDateDesc(ChatRoom chatRoom); // CreatedAt -> CreateDate
+    List<ChatMessage> findTop50ByChatRoomOrderByCreateDateDesc(ChatRoom chatRoom);
+    List<ChatMessage> findTop2ByChatRoomOrderByCreateDateDesc(ChatRoom chatRoom); // 최신 메시지 2개 조회
 }
