@@ -57,6 +57,8 @@ dependencies {
 
     implementation 'org.sejda.imageio:webp-imageio:0.1.6'
 
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.8.2'
+
     implementation 'com.github.ben-manes.caffeine:caffeine'
 
     implementation("com.google.firebase:firebase-admin:9.2.0")

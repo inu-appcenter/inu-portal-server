@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -15,7 +17,6 @@ import lombok.NoArgsConstructor;
 public class ChatMessage extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,11 +37,14 @@ public class ChatMessage extends BaseTimeEntity {
     private int imageCount;
 
     @Builder
-    public ChatMessage(ChatRoom chatRoom, Member sender, String content, String senderNickname, int imageCount) {
+    public ChatMessage(Long id, ChatRoom chatRoom, Member sender, String content, String senderNickname, int imageCount, LocalDateTime createDate, LocalDateTime modifiedDate) {
+        this.id = id;
         this.chatRoom = chatRoom;
         this.sender = sender;
         this.content = content;
         this.senderNickname = senderNickname;
         this.imageCount = imageCount;
+        this.createDate = createDate;
+        this.modifiedDate = modifiedDate;
     }
 }

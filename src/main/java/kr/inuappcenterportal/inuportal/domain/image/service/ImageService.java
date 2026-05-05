@@ -37,16 +37,16 @@ public class ImageService {
         Path roomPath = Paths.get(basePath, roomId.toString());
         Path thumbnailPath = roomPath.resolve("thumbnail");
 
-        log.info("[DEBUG] Room Path: {}", roomPath.toAbsolutePath());
-        log.info("[DEBUG] Thumbnail Path: {}", thumbnailPath.toAbsolutePath());
+        log.info("[DEBUG] 채팅방 경로: {}", roomPath.toAbsolutePath());
+        log.info("[DEBUG] 썸네일 경로: {}", thumbnailPath.toAbsolutePath());
 
         if (!Files.exists(roomPath)) {
             Files.createDirectories(roomPath);
-            log.info("[DEBUG] Room Directory Created");
+            log.info("[DEBUG] 채팅방 디렉토리 생성 완료");
         }
         if (!Files.exists(thumbnailPath)) {
             Files.createDirectories(thumbnailPath);
-            log.info("[DEBUG] Thumbnail Directory Created");
+            log.info("[DEBUG] 썸네일 디렉토리 생성 완료");
         }
         saveImage(messageId, images, roomPath.toString());
         saveThumbnail(images.get(0), thumbnailPath.toString(), messageId);

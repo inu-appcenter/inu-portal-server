@@ -17,9 +17,9 @@ public class BaseTimeEntity {
 
     @CreatedDate
     @Column(name = "create_date", updatable = false) // 생성일은 업데이트되지 않도록 설정
-    private LocalDateTime createDate; // LocalDate 대신 LocalDateTime 사용
+    protected LocalDateTime createDate; // LocalDate 대신 LocalDateTime 사용
 
     @LastModifiedDate
     @Column(name = "modified_date")
-    private LocalDateTime modifiedDate;
+    protected LocalDateTime modifiedDate;
 }

@@ -18,6 +18,7 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
+import io.hypersistence.tsid.TSID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -75,8 +76,10 @@ public class ChatRoomService {
 
         LocalDateTime now = LocalDateTime.now();
         String senderHash = getSenderHash(memberId);
+        Long messageId = TSID.fast().toLong();
 
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
+                .messageId(messageId)
                 .roomId(messageDto.getRoomId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
@@ -92,11 +95,14 @@ public class ChatRoomService {
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
         ChatMessage chatMessage = ChatMessage.builder()
+                .id(messageId)
                 .chatRoom(chatRoom)
                 .sender(sender)
                 .content(messageDto.getContent())
                 .senderNickname(nickname)
                 .imageCount(messageDto.getImageCount())
+                .createDate(now)
+                .modifiedDate(now)
                 .build();
 
         chatBatchService.addMessageToQueue(chatMessage);
@@ -117,13 +123,19 @@ public class ChatRoomService {
             nickname = sender.getNickname();
         }
 
+        Long messageId = TSID.fast().toLong();
+        LocalDateTime now = LocalDateTime.now();
+
         // 이미지 포함 메시지는 ID가 즉시 필요하므로 즉시 저장
         ChatMessage chatMessage = ChatMessage.builder()
+                .id(messageId)
                 .chatRoom(chatRoom)
                 .sender(sender)
                 .content(messageDto.getContent())
                 .senderNickname(nickname)
                 .imageCount(images.size())
+                .createDate(now)
+                .modifiedDate(now)
                 .build();
         chatMessageRepository.save(chatMessage);
 
