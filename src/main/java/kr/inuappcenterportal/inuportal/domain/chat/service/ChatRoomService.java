@@ -228,14 +228,14 @@ public class ChatRoomService {
             }
         }
 
-        messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate));
+        messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
         if (messages.isEmpty()) {
             List<ChatMessage> dbMessages = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(chatRoom);
             messages.addAll(dbMessages.stream()
                     .map(this::convertToDto)
                     .collect(Collectors.toList()));
-            messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate)); // DB 메시지도 정렬
+            messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder()))); // DB 메시지도 정렬
         }
 
         Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
