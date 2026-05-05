@@ -39,7 +39,7 @@ public class SecurityConfig {
         httpSecurity
                 .authorizeHttpRequests(auth -> auth
                         // 전체 허용 설정
-                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**", "/{roomId}/messages/public").permitAll()
+                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**", "/api/chat-rooms/{roomId}/messages/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**").permitAll()
 
