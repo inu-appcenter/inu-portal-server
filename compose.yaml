@@ -11,6 +11,7 @@ services:
       - "8086:8086"
     volumes:
       - ${MOUNT_PATH}:/intip
+      - ${MOUNT_PATH}:/intip-dev
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
