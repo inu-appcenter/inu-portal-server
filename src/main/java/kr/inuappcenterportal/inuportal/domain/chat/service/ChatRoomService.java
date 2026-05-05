@@ -116,17 +116,13 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findById(messageDto.getRoomId())
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
-        String nickname;
-        if (messageDto.getIsAnonymous()) {
-            nickname = chatRedisService.getOrAssignAnonymousNickname(messageDto.getRoomId(), memberId);
-        } else {
-            nickname = sender.getNickname();
-        }
+        String nickname = messageDto.getIsAnonymous()
+                ? chatRedisService.getOrAssignAnonymousNickname(messageDto.getRoomId(), memberId)
+                : sender.getNickname();
 
         Long messageId = TSID.fast().toLong();
         LocalDateTime now = LocalDateTime.now();
 
-        // 이미지 포함 메시지는 ID가 즉시 필요하므로 즉시 저장
         ChatMessage chatMessage = ChatMessage.builder()
                 .id(messageId)
                 .chatRoom(chatRoom)
@@ -137,20 +133,20 @@ public class ChatRoomService {
                 .createDate(now)
                 .modifiedDate(now)
                 .build();
+
         chatMessageRepository.save(chatMessage);
 
-        // 이미지 저장
-        imageService.saveChatImage(chatRoom.getId(), chatMessage.getId(), images, chatImagePath);
+        imageService.saveChatImage(chatRoom.getId(), messageId, images, chatImagePath);
 
         String senderHash = getSenderHash(memberId);
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
-                .messageId(chatMessage.getId())
+                .messageId(messageId)
                 .roomId(chatRoom.getId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
-                .content(chatMessage.getContent())
-                .imageCount(chatMessage.getImageCount())
-                .createDate(chatMessage.getCreateDate())
+                .content(messageDto.getContent())
+                .imageCount(images.size())
+                .createDate(now)
                 .build();
 
         broadcastAndCache(chatRoom.getId(), responseDto);

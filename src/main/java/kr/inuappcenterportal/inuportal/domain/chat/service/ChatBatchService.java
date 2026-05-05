@@ -25,22 +25,18 @@ public class ChatBatchService {
         messageQueue.add(chatMessage);
     }
 
-    @Scheduled(fixedDelay = 2000) // 2초마다 실행
+    @Scheduled(fixedDelay = 2000)
     public void saveMessages() {
-        if (messageQueue.isEmpty()) {
-            return;
-        }
+        if (messageQueue.isEmpty()) return;
 
         List<ChatMessage> messagesToSave = new ArrayList<>();
         messageQueue.drainTo(messagesToSave);
 
-        if (messagesToSave.isEmpty()) {
-            return;
-        }
+        if (messagesToSave.isEmpty()) return;
 
-        log.info("Saving {} messages to DB", messagesToSave.size());
+        log.info("DB에 메시지 저장 중 {} ", messagesToSave.size());
 
-        String sql = "INSERT INTO chat_message (id, chat_room_id, member_id, content, sender_nickname, image_count, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO chat_message (id, chat_room_id, member_id, content, senderNickname, imageCount, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.batchUpdate(sql,
                 messagesToSave,
