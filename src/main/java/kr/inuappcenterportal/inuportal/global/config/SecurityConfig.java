@@ -35,7 +35,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity
-                .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/actuator/**").permitAll()
+                .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/actuator/**", "/ws-chat/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members","/api/tokens").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/reports/**").hasAnyRole("USER","ADMIN")
                         .requestMatchers(HttpMethod.POST,"/api/portal/**").hasAnyRole("USER","ADMIN")
