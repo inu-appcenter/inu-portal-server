@@ -1,8 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.chat.service;
 
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -15,11 +15,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ChatBatchService {
 
     private final JdbcTemplate jdbcTemplate;
     private final BlockingQueue<ChatMessage> messageQueue = new LinkedBlockingQueue<>();
+
+    public ChatBatchService(@Qualifier("jdbcTemplate") JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     public void addMessageToQueue(ChatMessage chatMessage) {
         messageQueue.add(chatMessage);

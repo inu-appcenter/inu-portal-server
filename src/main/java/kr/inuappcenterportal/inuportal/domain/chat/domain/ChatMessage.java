@@ -30,10 +30,10 @@ public class ChatMessage extends BaseTimeEntity {
     @Column(nullable = false, length = 1000)
     private String content;
 
-    @Column(nullable = false)
+    @Column(name = "senderNickname", nullable = false)
     private String senderNickname; // 실명 또는 익명 닉네임 저장용
 
-    @Column(nullable = false)
+    @Column(name = "imageCount", nullable = false)
     private int imageCount;
 
     @Builder
