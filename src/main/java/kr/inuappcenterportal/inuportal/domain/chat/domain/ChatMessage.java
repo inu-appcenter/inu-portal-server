@@ -32,11 +32,15 @@ public class ChatMessage extends BaseTimeEntity {
     @Column(nullable = false)
     private String senderNickname; // 실명 또는 익명 닉네임 저장용
 
+    @Column(nullable = false)
+    private int imageCount;
+
     @Builder
-    public ChatMessage(ChatRoom chatRoom, Member sender, String content, String senderNickname) {
+    public ChatMessage(ChatRoom chatRoom, Member sender, String content, String senderNickname, int imageCount) {
         this.chatRoom = chatRoom;
         this.sender = sender;
         this.content = content;
         this.senderNickname = senderNickname;
+        this.imageCount = imageCount;
     }
 }

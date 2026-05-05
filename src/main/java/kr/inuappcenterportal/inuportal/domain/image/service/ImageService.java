@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -30,6 +31,19 @@ public class ImageService {
     public void saveImageWithThumbnail(Long id, List<MultipartFile> images, String path) throws IOException {
         saveImage(id,images,path);
         saveThumbnail(images.get(0),path+"/thumbnail",id);
+    }
+
+    public void saveChatImage(Long roomId, Long messageId, List<MultipartFile> images, String basePath) throws IOException {
+        Path roomPath = Paths.get(basePath, roomId.toString());
+        Path thumbnailPath = roomPath.resolve("thumbnail");
+        if (!Files.exists(roomPath)) {
+            Files.createDirectories(roomPath);
+        }
+        if (!Files.exists(thumbnailPath)) {
+            Files.createDirectories(thumbnailPath);
+        }
+        saveImage(messageId, images, roomPath.toString());
+        saveThumbnail(images.get(0), thumbnailPath.toString(), messageId);
     }
 
     public void saveImage(Long id, List<MultipartFile> images, String path) throws IOException {
@@ -110,6 +124,17 @@ public class ImageService {
         deleteImages(id, path);
         if (images == null) images = new ArrayList<>();
         saveImageWithThumbnail(id, images, path);
+    }
+
+    public void deleteChatRoomImages(Long roomId, String basePath) throws IOException {
+        Path roomPath = Paths.get(basePath, roomId.toString());
+        if (Files.exists(roomPath)) {
+            try (Stream<Path> walk = Files.walk(roomPath)) {
+                walk.sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+            }
+        }
     }
 
 

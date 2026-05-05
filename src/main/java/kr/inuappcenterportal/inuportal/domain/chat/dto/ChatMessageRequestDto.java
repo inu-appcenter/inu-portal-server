@@ -16,4 +16,6 @@ public class ChatMessageRequestDto {
 
     @NotNull(message = "익명 여부는 필수입니다.")
     private Boolean isAnonymous;
+
+    private int imageCount;
 }

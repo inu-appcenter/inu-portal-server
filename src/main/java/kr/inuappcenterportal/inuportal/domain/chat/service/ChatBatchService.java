@@ -40,7 +40,7 @@ public class ChatBatchService {
 
         log.info("Saving {} messages to DB", messagesToSave.size());
 
-        String sql = "INSERT INTO chat_message (chat_room_id, member_id, content, sender_nickname, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO chat_message (chat_room_id, member_id, content, sender_nickname, image_count, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.batchUpdate(sql,
                 messagesToSave,
@@ -50,8 +50,9 @@ public class ChatBatchService {
                     ps.setLong(2, message.getSender().getId());
                     ps.setString(3, message.getContent());
                     ps.setString(4, message.getSenderNickname());
-                    ps.setTimestamp(5, Timestamp.valueOf(message.getCreateDate()));
-                    ps.setTimestamp(6, Timestamp.valueOf(message.getModifiedDate()));
+                    ps.setInt(5, message.getImageCount());
+                    ps.setTimestamp(6, Timestamp.valueOf(message.getCreateDate()));
+                    ps.setTimestamp(7, Timestamp.valueOf(message.getModifiedDate()));
                 });
     }
 }

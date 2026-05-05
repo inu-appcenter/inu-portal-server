@@ -39,50 +39,6 @@ public class ChatController {
     @MessageMapping("/message")
     public void message(ChatMessageRequestDto messageDto, Authentication authentication) {
         Long memberId = Long.parseLong(authentication.getName());
-        Member sender = memberRepository.findById(memberId)
-                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-
-        String nickname;
-        if (messageDto.getIsAnonymous()) {
-            nickname = chatRedisService.getOrAssignAnonymousNickname(messageDto.getRoomId(), memberId);
-        } else {
-            nickname = sender.getNickname();
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-
-        String senderHash = chatRoomService.getSenderHash(memberId);
-
-        // 메시지 생성 및 브로드캐스팅
-        ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
-                .roomId(messageDto.getRoomId())
-                .senderNickname(nickname)
-                .senderHash(senderHash)
-                .content(messageDto.getContent())
-                .createDate(now)
-                .build();
-
-        messagingTemplate.convertAndSend("/sub/room/" + messageDto.getRoomId(), responseDto);
-
-        // Redis에 메시지 캐싱
-        try {
-            String messageJson = objectMapper.writeValueAsString(responseDto);
-            chatRedisService.saveMessageToCache(messageDto.getRoomId(), messageJson);
-        } catch (JsonProcessingException e) {
-            log.error("메시지 캐싱 중 직렬화 오류 발생: {}", responseDto, e);
-        }
-
-        // 비동기 저장을 위해 메시지 큐에 삽입
-        ChatRoom chatRoom = chatRoomRepository.findById(messageDto.getRoomId())
-                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
-
-        ChatMessage chatMessage = ChatMessage.builder()
-                .chatRoom(chatRoom)
-                .sender(sender)
-                .content(messageDto.getContent())
-                .senderNickname(nickname)
-                .build();
-        
-        chatBatchService.addMessageToQueue(chatMessage);
+        chatRoomService.sendMessage(messageDto, memberId);
     }
 }
