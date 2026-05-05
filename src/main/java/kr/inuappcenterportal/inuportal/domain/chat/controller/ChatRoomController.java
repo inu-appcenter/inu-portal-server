@@ -2,7 +2,6 @@ package kr.inuappcenterportal.inuportal.domain.chat.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
@@ -15,7 +14,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.List;
 
 @Tag(name = "ChatRoom", description = "채팅방 관련 API")
 @RestController
@@ -45,13 +43,13 @@ public class ChatRoomController {
         return ResponseEntity.ok(ResponseDto.of(chatRoom));
     }
 
-    @Operation(summary = "채팅방 초기 메시지 로드", description = "채팅방 입장 시 최근 메시지 목록을 로드합니다. (Redis 캐시 우선)")
-    @GetMapping("/{roomId}/messages")
-    public ResponseEntity<ResponseDto<List<ChatMessageResponseDto>>> getChatRoomMessages(
+    @Operation(summary = "채팅방 정보 및 메시지 조회", description = "채팅방의 상세 정보와 최근 메시지 목록을 조회합니다.")
+    @GetMapping("/{roomId}")
+    public ResponseEntity<ResponseDto<ChatRoomResponseDto>> getChatRoomDetails(
             @PathVariable Long roomId,
             @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        List<ChatMessageResponseDto> messages = chatRoomService.getChatRoomMessages(roomId, memberId);
-        return ResponseEntity.ok(ResponseDto.of(messages));
+        ChatRoomResponseDto chatRoomDetails = chatRoomService.getChatRoomMessages(roomId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(chatRoomDetails));
     }
 }

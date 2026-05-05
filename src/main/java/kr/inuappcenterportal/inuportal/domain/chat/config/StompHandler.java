@@ -30,12 +30,16 @@ public class StompHandler implements ChannelInterceptor {
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String token = accessor.getFirstNativeHeader("Auth");
 
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+
             if (token != null && tokenProvider.validateToken(token)) {
                 Authentication authentication = tokenProvider.getAuthentication(token);
                 accessor.setUser(authentication);
-                log.info("WebSocket Connected: user={}", authentication.getName());
+                log.info("웹소켓 연결 성공: 사용자={}", authentication.getName());
             } else {
-                log.error("WebSocket Authentication Failed: Invalid Token");
+                log.error("웹소켓 인증 실패: 유효하지 않은 토큰이거나 인증 헤더가 누락되었습니다. 토큰={}", token);
                 throw new AccessDeniedException("유효하지 않은 토큰입니다.");
             }
         }

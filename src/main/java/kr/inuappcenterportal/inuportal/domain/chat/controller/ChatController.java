@@ -2,13 +2,14 @@ package kr.inuappcenterportal.inuportal.domain.chat.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoom;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatMessage;
+import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoom;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatBatchService;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRedisService;
+import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -32,6 +33,7 @@ public class ChatController {
     private final ChatBatchService chatBatchService;
     private final MemberRepository memberRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomService chatRoomService;
     private final ObjectMapper objectMapper;
 
     @MessageMapping("/message")
@@ -49,10 +51,13 @@ public class ChatController {
 
         LocalDateTime now = LocalDateTime.now();
 
+        String senderHash = chatRoomService.getSenderHash(memberId);
+
         // 메시지 생성 및 브로드캐스팅
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .roomId(messageDto.getRoomId())
                 .senderNickname(nickname)
+                .senderHash(senderHash)
                 .content(messageDto.getContent())
                 .createDate(now)
                 .build();
@@ -64,7 +69,7 @@ public class ChatController {
             String messageJson = objectMapper.writeValueAsString(responseDto);
             chatRedisService.saveMessageToCache(messageDto.getRoomId(), messageJson);
         } catch (JsonProcessingException e) {
-            log.error("Error serializing message for cache: {}", responseDto, e);
+            log.error("메시지 캐싱 중 직렬화 오류 발생: {}", responseDto, e);
         }
 
         // 비동기 저장을 위해 메시지 큐에 삽입
