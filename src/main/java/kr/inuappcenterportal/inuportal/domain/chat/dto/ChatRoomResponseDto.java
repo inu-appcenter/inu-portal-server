@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.chat.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoom;
 import lombok.Builder;
@@ -13,6 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL) // null인 필드는 응답에 포함하지 않음
 public class ChatRoomResponseDto {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
     private String title;
     private int maxCapacity;

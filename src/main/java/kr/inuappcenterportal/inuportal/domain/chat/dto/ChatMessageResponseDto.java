@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.chat.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatMessage;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,7 +11,9 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 public class ChatMessageResponseDto {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long messageId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long roomId;
     private String senderNickname;
     private String senderHash; // 본인 여부 확인용 해시
