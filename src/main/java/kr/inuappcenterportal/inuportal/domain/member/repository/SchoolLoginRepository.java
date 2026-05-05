@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.member.repository;
 
 import kr.inuappcenterportal.inuportal.global.config.LocalAuthProperties;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,12 +11,15 @@ import java.util.List;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class SchoolLoginRepository {
 
-    @Qualifier("oracleJdbc")
     private final ObjectProvider<JdbcTemplate> oracleJdbcProvider;
     private final LocalAuthProperties localAuthProperties;
+
+    public SchoolLoginRepository(@Qualifier("oracleJdbc") ObjectProvider<JdbcTemplate> oracleJdbcProvider, LocalAuthProperties localAuthProperties) {
+        this.oracleJdbcProvider = oracleJdbcProvider;
+        this.localAuthProperties = localAuthProperties;
+    }
 
     public boolean loginCheck(String username, String password) {
         if (localAuthProperties.isEnabled()) {
