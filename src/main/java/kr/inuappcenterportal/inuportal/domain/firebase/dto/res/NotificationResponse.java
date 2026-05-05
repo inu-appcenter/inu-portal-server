@@ -5,8 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalDateTime; // LocalDate 대신 LocalDateTime 사용
 
 public record NotificationResponse(
 
@@ -26,7 +25,7 @@ public record NotificationResponse(
         FcmMessageType type,
 
         @Schema(description = "알림 생성 시간")
-        LocalDate createDate
+        LocalDateTime createDate // LocalDate 대신 LocalDateTime 사용
 
 ) {
     public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage) {

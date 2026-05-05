@@ -1,40 +1,10 @@
 package kr.inuappcenterportal.inuportal;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.security.SecuritySchemes;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.EnableScheduling; // 추가
 
-@OpenAPIDefinition(
-        security = {
-                @SecurityRequirement(name = "Auth"),
-                @SecurityRequirement(name = "refresh")
-        }
-)
-@SecuritySchemes({
-        @SecurityScheme(name = "Auth",
-                type = SecuritySchemeType.APIKEY,
-                description = "JWT token",
-                in = SecuritySchemeIn.HEADER,
-                paramName = "Auth"),
-        @SecurityScheme(name = "refresh",
-                type = SecuritySchemeType.APIKEY,
-                description = "JWT refresh token",
-                in = SecuritySchemeIn.HEADER,
-                paramName = "refresh")
-})
-@EnableJpaAuditing
-@EnableScheduling
-@EnableCaching
-@EnableAsync
+@EnableScheduling // 추가
 @SpringBootApplication
 public class InuPortalApplication {
 

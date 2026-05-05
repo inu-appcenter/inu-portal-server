@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -78,9 +79,9 @@ public class ReportServiceTest {
                 .postId(105L)
                 .memberId(3L)
                 .build();
-        ReflectionTestUtils.setField(report1,"createDate",LocalDate.now());
-        ReflectionTestUtils.setField(report2,"createDate",LocalDate.now());
-        ReflectionTestUtils.setField(report3,"createDate",LocalDate.now());
+        ReflectionTestUtils.setField(report1,"createDate",LocalDateTime.now());
+        ReflectionTestUtils.setField(report2,"createDate",LocalDateTime.now());
+        ReflectionTestUtils.setField(report3,"createDate",LocalDateTime.now());
 
         List<Report> reportList = Arrays.asList(report1, report2,report3);
         Page<Report> mockPage = new PageImpl<>(reportList, pageable, reportList.size());

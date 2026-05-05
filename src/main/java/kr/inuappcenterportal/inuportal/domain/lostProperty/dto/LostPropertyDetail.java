@@ -5,8 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalDateTime; // LocalDate 대신 LocalDateTime 사용
 
 @Getter
 @Builder
@@ -15,8 +14,8 @@ public class LostPropertyDetail {
     private String name;
     private String content;
     private int imageCount;
-    @DateTimeFormat(pattern = "yyyy.MM.dd")
-    private LocalDate createDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss") // 패턴 변경
+    private LocalDateTime createDate; // LocalDate 대신 LocalDateTime 사용
     @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
     private LocalDateTime modifiedDate;
 

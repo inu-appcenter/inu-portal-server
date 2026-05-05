@@ -1,7 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.lostProperty.implement;
 
-import kr.inuappcenterportal.inuportal.domain.book.dto.BookPreview;
-import kr.inuappcenterportal.inuportal.domain.book.model.Book;
 import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyDetail;
 import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyPreview;
 import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyRegister;
@@ -17,9 +15,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.stream.Collectors; // Collectors 임포트 추가
 
 @Component
 @RequiredArgsConstructor
@@ -59,7 +57,7 @@ public class LostPropertyProcessor {
         return lostProperties.stream()
                 .map(lostProperty -> new LostPropertyPreview(lostProperty.getId(), lostProperty.getName(), lostProperty.getContent(),
                         lostProperty.getImageCount(), lostProperty.getCreateDate(), lostProperty.getModifiedDate()))
-                .toList();
+                .collect(Collectors.toList()); // toList() 대신 Collectors.toList() 사용
     }
 
     private static ListResponseDto<LostPropertyPreview> getPreviewListResponseDto(Page<LostProperty> lostProperties, List<LostPropertyPreview> lostPropertyPreviews) {
