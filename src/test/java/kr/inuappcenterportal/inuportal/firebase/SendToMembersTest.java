@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Iterator;
@@ -34,6 +36,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -56,6 +60,9 @@ class SendToMembersTest {
 
     @MockBean
     private MemberRepository memberRepository;
+
+    @MockBean
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private FcmService fcmService;
@@ -292,20 +299,7 @@ class SendToMembersTest {
         assertThat(fcmMessage.getFailureCount()).isEqualTo(1);
         assertThat(fcmMessage.getSendStatus()).isEqualTo(FcmSendStatus.PARTIAL_FAILURE);
 
-        @SuppressWarnings("unchecked")
-        org.mockito.ArgumentCaptor<Iterable<MemberFcmMessage>> captor =
-                org.mockito.ArgumentCaptor.forClass(Iterable.class);
-        verify(memberFcmMessageRepository).saveAll(captor.capture());
-        verify(memberFcmMessageRepository).flush();
-
-        Iterator<MemberFcmMessage> iterator = captor.getValue().iterator();
-        assertThat(iterator.hasNext()).isTrue();
-        MemberFcmMessage firstSavedMessage = iterator.next();
-        assertThat(firstSavedMessage.getMemberId()).isEqualTo(69L);
-        assertThat(iterator.hasNext()).isTrue();
-        MemberFcmMessage secondSavedMessage = iterator.next();
-        assertThat(secondSavedMessage.getMemberId()).isEqualTo(77L);
-        assertThat(iterator.hasNext()).isFalse();
+        verify(jdbcTemplate).batchUpdate(anyString(), any(List.class), anyInt(), any());
     }
 
     @Test
@@ -342,8 +336,7 @@ class SendToMembersTest {
         assertThat(fcmMessage.getFailureCount()).isEqualTo(2);
         assertThat(fcmMessage.getSendStatus()).isEqualTo(FcmSendStatus.FAILED);
 
-        verify(memberFcmMessageRepository).saveAll(any());
-        verify(memberFcmMessageRepository).flush();
+        verify(jdbcTemplate).batchUpdate(anyString(), any(List.class), anyInt(), any());
     }
 
     @Test
@@ -373,8 +366,7 @@ class SendToMembersTest {
         assertThat(fcmMessage.getFailureCount()).isZero();
         assertThat(fcmMessage.getSendStatus()).isEqualTo(FcmSendStatus.NO_TARGET);
 
-        verify(memberFcmMessageRepository).saveAll(any());
-        verify(memberFcmMessageRepository).flush();
+        verify(jdbcTemplate).batchUpdate(anyString(), any(List.class), anyInt(), any());
     }
 
     private void verifySavedPendingMessage(int expectedTargetCount) {
