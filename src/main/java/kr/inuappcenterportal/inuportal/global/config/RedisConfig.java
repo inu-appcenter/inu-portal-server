@@ -54,7 +54,7 @@ public class RedisConfig {
     }
 
     @Bean
-    @Profile("!local")
+    @Profile("!local & !test")
     public RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory connectionFactory, RedisKeyExpirationListener expirationListener) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
