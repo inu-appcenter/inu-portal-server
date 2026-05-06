@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.service.RedisKeyExpirationLis
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
@@ -35,21 +36,29 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, Object> redisTemplate() {
-        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
+    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(connectionFactory);
         redisTemplate.setKeySerializer(new StringRedisSerializer());
-        redisTemplate.setValueSerializer(new StringRedisSerializer()); // 직렬화 설정 추가
-        redisTemplate.setConnectionFactory(redisConnectionFactory());
+        redisTemplate.setValueSerializer(new StringRedisSerializer());
         redisTemplate.setEnableTransactionSupport(true);
         return redisTemplate;
     }
 
     @Bean
+    public RedisTemplate<String, byte[]> redisTemplateForImage(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, byte[]> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(connectionFactory);
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        return redisTemplate;
+    }
+
+    @Bean
+    @Profile("!local")
     public RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory connectionFactory, RedisKeyExpirationListener expirationListener) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        // "__keyevent@*__:expired"는 모든 키 만료 이벤트를 수신하는 패턴입니다.
-        container.addMessageListener(expirationListener, new PatternTopic("__keyevent@*__:expired"));
+        container.addMessageListener(expirationListener, new PatternTopic("__keyevent@*__:expired")); //모든 키 만료 이벤트를 수신하는 패턴
         return container;
     }
 }
