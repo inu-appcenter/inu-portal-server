@@ -149,6 +149,12 @@ public class MemberService {
         return getMemberResponseDto(member);
     }
 
+    @Transactional
+    public void updateChatNotification(Long memberId, boolean chatNotification) {
+        Member member = findMemberById(memberId);
+        member.updateChatNotification(chatNotification);
+    }
+
     private MemberResponseDto getMemberResponseDto(Member member) {
         if (member.getRoles().contains("ROLE_ADMIN")) {
             return MemberResponseDto.adminMember(member);

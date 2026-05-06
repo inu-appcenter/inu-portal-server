@@ -13,6 +13,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.UpdateChatNotificationDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
@@ -173,5 +174,15 @@ public class MemberController {
     @PutMapping("/terms")
     public ResponseEntity<ResponseDto<MemberResponseDto>> agreeTerms(@AuthenticationPrincipal Member member){
         return ResponseEntity.ok(ResponseDto.of(memberService.agreeTerms(member.getId()),"회원 약관 동의 성공"));
+    }
+
+    @Operation(summary = "채팅 알림 설정 수정", description = "채팅 알림 수신 여부를 설정합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.<br>요청 바디에 {chatNotification: boolean}을 담아 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "채팅 알림 설정 수정 성공")
+    })
+    @PutMapping("/me/settings/chat-notification")
+    public ResponseEntity<ResponseDto<Void>> updateChatNotification(@AuthenticationPrincipal Member member, @RequestBody UpdateChatNotificationDto dto) {
+        memberService.updateChatNotification(member.getId(), dto.isChatNotification());
+        return ResponseEntity.ok(ResponseDto.of(null, "채팅 알림 설정 수정 성공"));
     }
 }

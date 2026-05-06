@@ -67,6 +67,9 @@ public class Member implements UserDetails {
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
+    @Column(name = "chat_notification", nullable = false)
+    private boolean chatNotification = true;
+
     @OneToMany(mappedBy = "member", fetch = FetchType.LAZY, cascade = jakarta.persistence.CascadeType.ALL)
     private List<Scrap> scraps;
 
@@ -123,6 +126,10 @@ public class Member implements UserDetails {
 
     public void updateLastSeenAt() {
         this.lastSeenAt = LocalDateTime.now();
+    }
+
+    public void updateChatNotification(boolean chatNotification) {
+        this.chatNotification = chatNotification;
     }
 
     public boolean shouldUpdateLastSeenAt(LocalDateTime now, long thresholdMinutes) {

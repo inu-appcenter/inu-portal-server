@@ -15,6 +15,7 @@ public interface MemberRepository extends JpaRepository<Member,Long> {
     boolean existsByNickname(String nickname);
     Optional<Member> findByStudentId(String studentId);
     boolean existsByStudentId(String studentId);
+    Optional<Member> findByNickname(String nickname); // 추가된 부분
 
     @Query("SELECT m.id FROM Member m")
     List<Long> findAllIds();

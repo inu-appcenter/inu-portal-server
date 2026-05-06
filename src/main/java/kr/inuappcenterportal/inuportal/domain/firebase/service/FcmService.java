@@ -241,6 +241,37 @@ public class FcmService {
         }
     }
 
+    /**
+     * DB에 이력을 남기지 않고 여러 사용자에게 알림을 보냅니다.
+     * @param memberIds 대상 사용자 ID 목록
+     * @param title 알림 제목
+     * @param body 알림 내용
+     */
+    @Async("messageExecutor")
+    @Transactional(readOnly = true)
+    public void sendUntrackedNotification(List<Long> memberIds, String title, String body) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return;
+        }
+        List<FcmToken> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        if (tokens.isEmpty()) {
+            return;
+        }
+
+        Map<String, Long> tokenAndMemberId = tokens.stream()
+                .collect(Collectors.toMap(
+                        FcmToken::getToken,
+                        FcmToken::getMemberId,
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
+
+        DeliveryResult deliveryResult = dispatchToMembers(tokenAndMemberId, title, body);
+        log.info("Untracked notification sent: targets={}, success={}, failure={}",
+                tokenAndMemberId.size(), deliveryResult.successCount(), deliveryResult.failureCount());
+    }
+
+
     @Transactional(readOnly = true)
     public List<AdminNotificationResponse> countAdminFcmMessagesSuccess(int page) {
         Pageable pageable = PageRequest.of(page - 1, 8, Sort.by(Sort.Direction.DESC, "id"));
