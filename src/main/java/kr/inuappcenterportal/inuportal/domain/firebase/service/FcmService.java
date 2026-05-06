@@ -279,7 +279,7 @@ public class FcmService {
         List<Long> distinctIds = distinctMemberIds(memberIds);
         if (distinctIds.isEmpty()) return;
 
-        String sql = "INSERT INTO member_fcm_message (fcm_message_id, member_id, fcm_message_type, create_date, last_modified_date) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO member_fcm_message (fcm_message_id, member_id, fcm_message_type, create_date, modified_date) VALUES (?, ?, ?, ?, ?)";
         LocalDateTime now = LocalDateTime.now();
 
         jdbcTemplate.batchUpdate(sql, distinctIds, 500, (PreparedStatement ps, Long memberId) -> {
