@@ -18,5 +18,7 @@ public class ResponseDto<T> {
         return ResponseDto.<T>builder().data(data).msg(msg).build();
     }
 
-
+    public static <T> ResponseDto<T> of(T data){
+        return ResponseDto.<T>builder().data(data).msg(null).build();
+    }
 }

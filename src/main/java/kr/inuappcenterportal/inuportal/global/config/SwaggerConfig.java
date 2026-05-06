@@ -1,9 +1,10 @@
 package kr.inuappcenterportal.inuportal.global.config;
 
-
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,9 +20,22 @@ public class SwaggerConfig {
     );
 
     @Bean
-    public OpenAPI openAPI(){
+    public OpenAPI openAPI() {
         return new OpenAPI()
-                .components(new Components())
+                .components(new Components()
+                        .addSecuritySchemes("AuthToken", new SecurityScheme()
+                                .name("Auth")
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.HEADER)
+                                .description("JWT Access Token"))
+                        .addSecuritySchemes("RefreshToken", new SecurityScheme()
+                                .name("refresh")
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.HEADER)
+                                .description("JWT Refresh Token")))
+                .addSecurityItem(new SecurityRequirement()
+                        .addList("AuthToken")
+                        .addList("RefreshToken"))
                 .servers(SERVERS)
                 .info(apiInfo());
     }
@@ -33,9 +47,36 @@ public class SwaggerConfig {
     }
 
     private Info apiInfo() {
+        String description = """            
+            1. 이미지 관련
+            - 이미지: /images/{도메인}/{id}-{이미지번호} (예: /images/post/1-1)
+            - 썸네일: /images/{도메인}/thumbnail/{id} (예: /images/post/thumbnail/1)
+            
+            2. 채팅(WebSocket)
+            - 연결: /ws
+            - 발행: /pub/message
+            - 구독: /sub/room/{roomId}
+            
+            메시지 송수신 시 형식
+            [송신 예시]
+            {
+              "roomId": 1,
+              "content": "안녕하세요!",
+              "isAnonymous": true
+            }
+            [수신 예시]
+            {
+              "roomId": 1,
+              "senderNickname": "익명1",
+              "senderHash": "a1b2c3d4...",
+              "content": "안녕하세요!",
+              "createDate": "2024-07-26T10:00:00"
+            }
+            """;
+
         return new Info()
-                .title("INTIP API명세서")
-                .description("이미지 호출 : /images/도메인/id-이미지번호  ex) /images/post-1-1 \n 썸네일 호출 : /images/도메인/thumbnail/id  ex /images/post/thumbnail/1")
+                .title("INTIP API 명세서")
+                .description(description)
                 .version("1.0.0");
     }
 }

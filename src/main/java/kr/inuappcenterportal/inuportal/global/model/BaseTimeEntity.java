@@ -8,8 +8,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalDateTime; // LocalDate 대신 LocalDateTime 사용
 
 @Getter
 @MappedSuperclass
@@ -17,10 +16,10 @@ import java.time.LocalDateTime;
 public class BaseTimeEntity {
 
     @CreatedDate
-    @Column(name = "create_date")
-    private LocalDate createDate;
+    @Column(name = "create_date", updatable = false) // 생성일은 업데이트되지 않도록 설정
+    protected LocalDateTime createDate; // LocalDate 대신 LocalDateTime 사용
 
     @LastModifiedDate
     @Column(name = "modified_date")
-    private LocalDateTime modifiedDate;
+    protected LocalDateTime modifiedDate;
 }

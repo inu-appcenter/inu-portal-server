@@ -27,46 +27,48 @@ public class SecurityConfig {
         this.tokenProvider = tokenProvider;
         this.objectMapper = objectMapper;
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
 
         httpSecurity
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        httpSecurity
-                .authorizeHttpRequests(auth->auth.requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**","/images/**","/actuator/**").permitAll()
-                        .requestMatchers(HttpMethod.POST,"/api/members/**","/api/members","/api/tokens").permitAll()
-                        .requestMatchers(HttpMethod.POST,"/api/reports/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.POST,"/api/portal/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers("/api/members/all","/api/reports").hasRole("ADMIN")
-                        .requestMatchers("/api/members/**","/api/members","/api/tokens").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/posts/**","/api/posts","/api/cafeterias","/api/weathers","/api/councilNotices","/api/councilNotices/**","/api/petitions","/api/petitions/**","/api/reservations/quantity/**").permitAll()
-                        .requestMatchers("/api/posts/**","/api/posts","/api/fires/**","/api/petitions","/api/petitions/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers("/api/replies/**","/api/reservations/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers("/api/search","/api/notices","/api/notices/**","api/schedules","api/schedules/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/directory", "/api/directory/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/directory/sync").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/directory/sources/sync").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/directory/college-office-contacts/sync").hasRole("ADMIN")
-                        .requestMatchers("/api/folders/**","/api/folders","/api/search/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/categories/**","/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs","/api/clubs/**").permitAll()
-                        .requestMatchers("/api/images","/api/images/**","/api/categories","/api/councilNotices","/api/councilNotices/**","/api/books/**", "/api/items/**", "/api/lost/**","/api/clubs/**").hasRole("ADMIN")
-                        .requestMatchers("/api/keywords/**").hasAnyRole("USER","ADMIN")
-                        .requestMatchers("/api/tokens/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/logs/**").hasAnyRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/logs/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/feature-flags").permitAll()
-                        .requestMatchers("/api/admin/feature-flags/**").hasRole("ADMIN")
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-                );
         httpSecurity
-                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider,objectMapper), UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(exception->exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))
+                .authorizeHttpRequests(auth -> auth
+                        // 최우선 허용 설정
+                        .requestMatchers(HttpMethod.GET, "/api/chat-rooms/*/messages/public").permitAll()
+                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**").permitAll()
+
+                        // 공통 GET 허용 설정
+                        .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags").permitAll()
+
+                        // 인증 없이 접근 가능한 POST 설정
+                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**").permitAll()
+
+                        // ADMIN 권한 전용 설정
+                        .requestMatchers(HttpMethod.POST, "/api/chat-rooms", "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/logs/**").hasRole("ADMIN")
+                        .requestMatchers("/api/members/all", "/api/reports", "/api/images", "/api/images/**", "/api/categories", "/api/councilNotices", "/api/councilNotices/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs/**", "/api/tokens/admin/**", "/api/admin/feature-flags/**").hasRole("ADMIN")
+
+                        // USER 또는 ADMIN 권한 설정
+                        .requestMatchers(HttpMethod.POST, "/api/reports/**", "/api/portal/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/chat-rooms/**", "/api/members/**", "/api/members", "/api/tokens", "/api/posts/**", "/api/posts", "/api/fires/**", "/api/petitions", "/api/petitions/**", "/api/replies/**", "/api/reservations/**", "/api/folders/**", "/api/folders", "/api/search/**", "/api/keywords/**").hasAnyRole("USER", "ADMIN")
+
+                        // 추가 인증 필요 설정
+                        .requestMatchers(HttpMethod.POST, "/api/chat/messages").authenticated()
+
+                        // 나머지 모든 요청
+                        .anyRequest().authenticated()
+                );
+
+        httpSecurity
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, objectMapper), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint(objectMapper)));
 
         return httpSecurity.build();
     }
-
-
 }
