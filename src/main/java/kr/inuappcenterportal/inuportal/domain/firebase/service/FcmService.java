@@ -62,6 +62,7 @@ public class FcmService {
     private final FirebaseMessaging firebaseMessaging;
     private final MemberRepository memberRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final FcmTransactionService fcmTransactionService;
 
     @Transactional
     public void saveToken(TokenRequestDto tokenRequestDto, Long memberId) {
@@ -189,7 +190,7 @@ public class FcmService {
         batchInsertMemberFcmMessages(fcmMessage.getId(), targetMemberIds, fcmMessageType);
 
         DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessage.getId(), tokenAndMemberId, title, body);
-        updateFinalStatus(fcmMessage.getId(), deliveryResult.successCount(), deliveryResult.failureCount());
+        fcmTransactionService.updateFinalStatus(fcmMessage.getId(), deliveryResult.successCount(), deliveryResult.failureCount());
     }
 
     @Transactional
@@ -216,7 +217,7 @@ public class FcmService {
      */
     public void sendToMembers(AdminNotificationDispatch dispatch) {
         // 1. 상태를 PROCESSING으로 변경
-        updateStatusToProcessing(dispatch.fcmMessageId());
+        fcmTransactionService.updateStatusToProcessing(dispatch.fcmMessageId());
 
         // 2. 수신 이력 대량 저장 (JdbcTemplate 사용)
         if (!dispatch.targetMemberIds().isEmpty()) {
@@ -226,7 +227,7 @@ public class FcmService {
         if (!dispatch.hasTarget()) {
             log.info("Admin member notification stored without push targets: fcmMessageId={}, memberTargets={}",
                     dispatch.fcmMessageId(), dispatch.memberTargetCount());
-            updateFinalStatus(dispatch.fcmMessageId(), 0, 0);
+            fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), 0, 0);
             return;
         }
 
@@ -240,39 +241,15 @@ public class FcmService {
             );
 
             // 4. 최종 상태 업데이트
-            updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
+            fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
 
             log.info("Admin member notification finished: fcmMessageId={}, target={}, success={}, failure={}",
                     dispatch.fcmMessageId(), dispatch.targetCount(), deliveryResult.successCount(), deliveryResult.failureCount());
         } catch (Exception e) {
             log.error("Admin member notification failed: fcmMessageId={}, target={}, message={}",
                     dispatch.fcmMessageId(), dispatch.targetCount(), e.getMessage(), e);
-            markAsFailed(dispatch.fcmMessageId(), dispatch.targetCount());
+            fcmTransactionService.markAsFailed(dispatch.fcmMessageId(), dispatch.targetCount());
         }
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateStatusToProcessing(Long fcmMessageId) {
-        fcmMessageRepository.findById(fcmMessageId).ifPresent(FcmMessage::markProcessing);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateIncrementalResult(Long fcmMessageId, int batchSuccess, int batchFailure) {
-        fcmMessageRepository.findById(fcmMessageId).ifPresent(message ->
-                message.incrementDeliveryResult(batchSuccess, batchFailure));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateFinalStatus(Long fcmMessageId, int totalSuccess, int totalFailure) {
-        fcmMessageRepository.findById(fcmMessageId).ifPresent(message -> {
-            message.updateDeliveryResult(totalSuccess, totalFailure);
-            message.completeProcessing();
-        });
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markAsFailed(Long fcmMessageId, int targetCount) {
-        fcmMessageRepository.findById(fcmMessageId).ifPresent(message -> message.markFailed(targetCount));
     }
 
     private void batchInsertMemberFcmMessages(Long fcmMessageId, List<Long> memberIds, FcmMessageType type) {
@@ -326,7 +303,7 @@ public class FcmService {
             successCount += batchSuccess;
             failureCount += batchFailure;
             // 각 배치마다 즉시 DB에 반영
-            updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
+            fcmTransactionService.updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
         }
 
         return new DeliveryResult(successCount, failureCount);
