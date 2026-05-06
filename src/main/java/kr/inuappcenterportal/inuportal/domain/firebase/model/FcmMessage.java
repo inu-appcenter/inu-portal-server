@@ -66,6 +66,29 @@ public class FcmMessage extends BaseTimeEntity {
         this.sendStatus = this.targetCount == 0 ? FcmSendStatus.NO_TARGET : FcmSendStatus.PENDING;
     }
 
+    public void markProcessing() {
+        if (this.sendStatus == FcmSendStatus.PENDING) {
+            this.sendStatus = FcmSendStatus.PROCESSING;
+        }
+    }
+
+    public void incrementDeliveryResult(int batchSuccess, int batchFailure) {
+        this.sendCount += Math.max(batchSuccess, 0);
+        this.failureCount += Math.max(batchFailure, 0);
+    }
+
+    public void completeProcessing() {
+        if (this.targetCount == 0) {
+            this.sendStatus = FcmSendStatus.NO_TARGET;
+        } else if (this.failureCount == 0) {
+            this.sendStatus = FcmSendStatus.SUCCESS;
+        } else if (this.sendCount == 0) {
+            this.sendStatus = FcmSendStatus.FAILED;
+        } else {
+            this.sendStatus = FcmSendStatus.PARTIAL_FAILURE;
+        }
+    }
+
     public void updateDeliveryResult(int successCount, int failureCount) {
         this.sendCount = Math.max(successCount, 0);
         this.failureCount = Math.max(failureCount, 0);
