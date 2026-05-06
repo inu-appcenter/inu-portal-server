@@ -75,7 +75,14 @@ public enum MyErrorCode {
     NOT_FOUND_LOG(HttpStatus.NOT_FOUND,"존재하지 않는 로그입니다."),
     FEATURE_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "현재 비활성화된 기능입니다."),
     FEATURE_FLAG_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 feature flag입니다."),
-    DUPLICATE_FEATURE_FLAG_KEY(HttpStatus.BAD_REQUEST, "이미 존재하는 feature flag key입니다."),;
+    DUPLICATE_FEATURE_FLAG_KEY(HttpStatus.BAD_REQUEST, "이미 존재하는 feature flag key입니다."),
+
+    // Chat 관련 에러 코드 추가
+    NOT_FOUND_CHATROOM(HttpStatus.NOT_FOUND, "존재하지 않는 채팅방입니다."),
+    ALREADY_JOINED_CHATROOM(HttpStatus.CONFLICT, "이미 참여 중인 채팅방입니다."),
+    CHATROOM_FULL(HttpStatus.FORBIDDEN, "채팅방의 최대 인원이 초과되었습니다."),
+    NOT_CHATROOM_MEMBER(HttpStatus.FORBIDDEN, "채팅방 참여자가 아닙니다."),
+    ;
 
 
     private final HttpStatus status;

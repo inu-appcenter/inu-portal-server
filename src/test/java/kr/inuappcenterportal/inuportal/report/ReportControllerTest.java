@@ -31,6 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.lang.reflect.Field;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -123,9 +124,9 @@ public class ReportControllerTest {
         Class<?> c = report1.getClass();
         Field createDate = c.getSuperclass().getDeclaredField("createDate");
         createDate.setAccessible(true);
-        createDate.set(report1,LocalDate.now());
-        createDate.set(report2,LocalDate.now());
-        createDate.set(report3,LocalDate.now());
+        createDate.set(report1,LocalDateTime.now());
+        createDate.set(report2,LocalDateTime.now());
+        createDate.set(report3,LocalDateTime.now());
 
         List<Report> reportList = Arrays.asList(report1, report2,report3);
         Page<Report> mockPage = new PageImpl<>(reportList, pageable, reportList.size());
