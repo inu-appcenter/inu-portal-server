@@ -10,6 +10,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNotice
 import kr.inuappcenterportal.inuportal.domain.featureflag.service.FeatureFlagService;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
+import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -57,6 +59,7 @@ public class DepartmentNoticeScheduleExtractService {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
     private final FeatureFlagService featureFlagService;
+    private final KeywordService keywordService;
 
     @Value("${app.department-notice.schedule-ai.base-url:}")
     private String baseUrl;
@@ -125,7 +128,7 @@ public class DepartmentNoticeScheduleExtractService {
                     return;
                 }
 
-                DepartmentNoticeScheduleExtractStatus status = extractSchedule(notice);
+                DepartmentNoticeScheduleExtractStatus status = extractSchedule(notice, false);
                 processedCount++;
 
                 if (status == DepartmentNoticeScheduleExtractStatus.SUCCESS) {
@@ -150,23 +153,43 @@ public class DepartmentNoticeScheduleExtractService {
         }
     }
 
-    private DepartmentNoticeScheduleExtractStatus extractSchedule(DepartmentNotice departmentNotice) {
-        String requestBody = buildRequestBody(departmentNotice);
-        if (isBlank(requestBody)) {
-            persistenceService.markNoSchedule(departmentNotice.getId());
-            log.info("학과 공지 AI 일정 추출을 건너뜁니다. noticeId={}, department={}, reason={}",
-                    departmentNotice.getId(), departmentNotice.getDepartment().name(), "empty_request_body");
-            return DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
+    @Async("sendExecutor")
+    public void extractScheduleAsync(DepartmentNotice notice, boolean shouldNotify) {
+        if (!featureFlagService.isEnabled("AI_SCHEDULE_EXTRACT_ENABLED")) {
+            if (shouldNotify) {
+                keywordService.departmentNotifyMatchedUsers(notice, notice.getDepartment(), null);
+            }
+            return;
         }
 
-        persistenceService.markProcessing(departmentNotice.getId());
-        log.info("학과 공지 AI 일정 추출 요청을 시작합니다. noticeId={}, department={}, requestLength={}, url={}",
-                departmentNotice.getId(),
-                departmentNotice.getDepartment().name(),
-                requestBody.length(),
-                departmentNotice.getUrl());
+        if (!isConfigured()) {
+            if (shouldNotify) {
+                keywordService.departmentNotifyMatchedUsers(notice, notice.getDepartment(), null);
+            }
+            return;
+        }
 
+        extractSchedule(notice, shouldNotify);
+    }
+
+    private DepartmentNoticeScheduleExtractStatus extractSchedule(DepartmentNotice departmentNotice, boolean shouldNotify) {
+        Integer extractedCount = null;
         try {
+            String requestBody = buildRequestBody(departmentNotice);
+            if (isBlank(requestBody)) {
+                persistenceService.markNoSchedule(departmentNotice.getId());
+                log.info("학과 공지 AI 일정 추출을 건너뜁니다. noticeId={}, department={}, reason={}",
+                        departmentNotice.getId(), departmentNotice.getDepartment().name(), "empty_request_body");
+                return DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
+            }
+
+            persistenceService.markProcessing(departmentNotice.getId());
+            log.info("학과 공지 AI 일정 추출 요청을 시작합니다. noticeId={}, department={}, requestLength={}, url={}",
+                    departmentNotice.getId(),
+                    departmentNotice.getDepartment().name(),
+                    requestBody.length(),
+                    departmentNotice.getUrl());
+
             DepartmentNoticeScheduleExtractResponse response = requestScheduleExtract(requestBody);
             validateResponse(response);
 
@@ -185,10 +208,12 @@ public class DepartmentNoticeScheduleExtractService {
                 persistenceService.markNoSchedule(departmentNotice.getId());
                 log.info("학과 공지 AI 일정 추출 결과 일정이 없습니다. noticeId={}, department={}, url={}",
                         departmentNotice.getId(), departmentNotice.getDepartment().name(), departmentNotice.getUrl());
+                extractedCount = 0;
                 return DepartmentNoticeScheduleExtractStatus.NO_SCHEDULE;
             }
 
             if (schedules.isEmpty()) {
+                extractedCount = 0;
                 throw new IllegalStateException("AI 일정 추출 응답에서 저장 가능한 일정 날짜를 찾지 못했습니다.");
             }
 
@@ -199,6 +224,7 @@ public class DepartmentNoticeScheduleExtractService {
                     departmentNotice.getUrl());
 
             persistenceService.saveSuccess(departmentNotice.getId(), schedules);
+            extractedCount = schedules.size();
 
             return DepartmentNoticeScheduleExtractStatus.SUCCESS;
         } catch (Exception e) {
@@ -207,11 +233,19 @@ public class DepartmentNoticeScheduleExtractService {
             if (cause != null) {
                 errorMessage += " (Cause: " + cause.getClass().getSimpleName() + " - " + cause.getMessage() + ")";
             }
-            
+
             persistenceService.markFailed(departmentNotice.getId(), limitMessage(errorMessage));
             log.warn("학과 공지 AI 일정 추출에 실패했습니다. noticeId={}, department={}, url={}, reason={}",
                     departmentNotice.getId(), departmentNotice.getDepartment().name(), departmentNotice.getUrl(), errorMessage);
             return DepartmentNoticeScheduleExtractStatus.FAILED;
+        } finally {
+            if (shouldNotify) {
+                try {
+                    keywordService.departmentNotifyMatchedUsers(departmentNotice, departmentNotice.getDepartment(), extractedCount);
+                } catch (Exception notifyEx) {
+                    log.error("학과 공지 추출 후 알림 발송 중 오류가 발생했습니다. noticeId={}", departmentNotice.getId(), notifyEx);
+                }
+            }
         }
     }
 

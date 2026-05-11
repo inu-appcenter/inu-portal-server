@@ -100,6 +100,7 @@ public class NoticeService {
     private final KeywordService keywordService;
     private final ObjectMapper objectMapper;
     private final ScheduleRepository scheduleRepository;
+    private final DepartmentNoticeScheduleExtractService scheduleExtractService;
 
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
@@ -113,7 +114,8 @@ public class NoticeService {
             DepartmentCrawlerStateRepository departmentCrawlerStateRepository,
             KeywordService keywordService,
             ObjectMapper objectMapper,
-            ScheduleRepository scheduleRepository
+            ScheduleRepository scheduleRepository,
+            DepartmentNoticeScheduleExtractService scheduleExtractService
     ) {
         this.noticeRepository = noticeRepository;
         this.departmentNoticeRepository = departmentNoticeRepository;
@@ -123,6 +125,7 @@ public class NoticeService {
         this.keywordService = keywordService;
         this.objectMapper = objectMapper;
         this.scheduleRepository = scheduleRepository;
+        this.scheduleExtractService = scheduleExtractService;
     }
 
     @Scheduled(cron = "0 0/15 * * * *")
@@ -533,7 +536,7 @@ public class NoticeService {
                     syncDepartmentNoticeContent(departmentNotice, config);
 
                     if (isNewNotice) {
-                        keywordService.departmentNotifyMatchedUsers(departmentNotice, department);
+                        scheduleExtractService.extractScheduleAsync(departmentNotice, true);
                     }
 
                     count++;
@@ -974,7 +977,8 @@ public class NoticeService {
     private Connection connect(String url) {
         return Jsoup.connect(url)
                 .userAgent(CRAWLER_USER_AGENT)
-                .timeout(REQUEST_TIMEOUT_MILLIS);
+                .timeout(REQUEST_TIMEOUT_MILLIS)
+                .maxBodySize(0);
     }
 
     private boolean containsAccessDenied(Document document) {

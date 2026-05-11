@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -140,9 +142,11 @@ public class LoggingService {
     @Transactional
     public int deleteNextBatchOfOldLogs(LocalDate cutoffDate) {
         int BATCH_SIZE = 1000;
+        LocalDateTime start = cutoffDate.atStartOfDay();
+        LocalDateTime end = cutoffDate.atTime(LocalTime.MAX);
 
         List<Logging> logsToDelete =
-                loggingRepository.findAllByCreateDate(cutoffDate, PageRequest.of(0, BATCH_SIZE));
+                loggingRepository.findAllByCreateDateBetween(start, end, PageRequest.of(0, BATCH_SIZE));
 
         if (logsToDelete.isEmpty()) {
             return 0;
@@ -165,14 +169,18 @@ public class LoggingService {
     }
 
     private LoggingMemberResponse getMemberLogResponseByDate(LocalDate date) {
-        List<String> memberIds = loggingRepository.findDistinctMemberIdsByCreateDate(date);
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.atTime(LocalTime.MAX);
+        List<String> memberIds = loggingRepository.findDistinctMemberIdsByCreateDate(start, end);
         Integer memberCount = memberIds.size();
 
         return LoggingMemberResponse.of(memberCount, memberIds);
     }
 
     private List<LoggingApiResponse> getAPILogResponseByDate(LocalDate date) {
-        return loggingRepository.findApILogsByCreateDate(date, EXCLUDED_URIS, PageRequest.of(0, 20));
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.atTime(LocalTime.MAX);
+        return loggingRepository.findApILogsByCreateDate(start, end, EXCLUDED_URIS, PageRequest.of(0, 20));
     }
 
     private String getClientId(Member member, HttpServletRequest request) {
