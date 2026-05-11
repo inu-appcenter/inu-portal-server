@@ -13,6 +13,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatMessageReposit
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -31,10 +32,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -46,6 +45,7 @@ public class ChatRoomService {
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
+    private final BlockRepository blockRepository;
     private final ChatRedisService chatRedisService;
     private final ChatBatchService chatBatchService;
     private final ImageService imageService;
@@ -194,6 +194,62 @@ public class ChatRoomService {
 
         return new UnreadTotalCountResponseDto(totalUnread);
     }
+    
+    @Transactional(readOnly = true)
+    public List<MyChatRoomResponseDto> getMyChatRooms(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        List<ChatRoomMember> joinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(member, ChatMemberStatus.JOINED);
+        List<Long> blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+
+        return joinedRooms.stream().map(m -> {
+            ChatRoom room = m.getChatRoom();
+            
+            Optional<ChatMessage> lastMsgOpt = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(room).stream()
+                    .filter(msg -> !blockedMemberIds.contains(msg.getSender().getId()))
+                    .findFirst();
+
+            long unreadCount = chatMessageRepository.countByChatRoomAndIdGreaterThan(room, m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
+
+            String title = room.getTitle();
+            String senderName = "";
+            Long senderProfileImageNumber = null;
+            LocalDateTime lastMessageTime = room.getCreateDate();
+            String lastMessageContent = "아직 대화가 없습니다.";
+
+            if (room.getType() == ChatRoomType.PERSONAL) {
+                Optional<ChatRoomMember> otherMemberOpt = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED)
+                        .stream().filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
+                if (otherMemberOpt.isPresent()) {
+                    title = otherMemberOpt.get().getMember().getNickname();
+                }
+            }
+
+            if (lastMsgOpt.isPresent()) {
+                ChatMessage lastMsg = lastMsgOpt.get();
+                senderName = lastMsg.getSenderNickname();
+                senderProfileImageNumber = lastMsg.getSender().getFireId();
+                lastMessageTime = lastMsg.getCreateDate();
+                lastMessageContent = lastMsg.getContent();
+            }
+
+            return MyChatRoomResponseDto.builder()
+                    .roomId(room.getId())
+                    .title(title)
+                    .type(room.getType())
+                    .lastMessage(lastMessageContent)
+                    .lastMessageTime(lastMessageTime)
+                    .unreadCount(unreadCount)
+                    .senderName(senderName)
+                    .senderProfileImageNumber(senderProfileImageNumber)
+                    .build();
+        })
+        .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
+        .collect(Collectors.toList());
+    }
+
 
     @Transactional
     public ChatRoomResponseDto createChatRoom(ChatRoomCreateRequestDto requestDto, Long memberId) {
@@ -417,36 +473,5 @@ public class ChatRoomService {
                 .unreadCount(0)
                 .createDate(message.getCreateDate())
                 .build();
-    }
-
-    @Transactional(readOnly = true)
-    public List<PublicChatMessageResponseDto> getRecentTwoMessages(Long roomId) {
-        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
-
-        Set<PublicChatMessageResponseDto> distinctMessages = new HashSet<>();
-
-        List<String> cachedMessagesJson = chatRedisService.getRecentMessages(roomId);
-        for (String messageJson : cachedMessagesJson) {
-            try {
-                PublicChatMessageResponseDto dto = objectMapper.readValue(messageJson, PublicChatMessageResponseDto.class);
-                if (dto.getMessageId() != null) {
-                    distinctMessages.add(dto);
-                }
-            } catch (JsonProcessingException e) {
-                log.error("Redis 메시지 역직렬화 오류: {}", messageJson, e);
-            }
-        }
-
-        List<ChatMessage> messagesFromDb = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
-        for (ChatMessage dbMessage : messagesFromDb) {
-            distinctMessages.add(PublicChatMessageResponseDto.from(dbMessage));
-        }
-
-        return distinctMessages.stream()
-                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.reverseOrder())))
-                .limit(2)
-                .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())))
-                .collect(Collectors.toList());
     }
 }

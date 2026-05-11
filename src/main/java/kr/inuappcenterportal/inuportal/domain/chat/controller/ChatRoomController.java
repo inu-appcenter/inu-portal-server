@@ -13,6 +13,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomMemberResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.MyChatRoomResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.UnreadTotalCountResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
@@ -34,6 +35,16 @@ import java.util.List;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+
+    @Operation(summary = "내가 참여중인 채팅방 목록 조회")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/my")
+    public ResponseEntity<ResponseDto<List<MyChatRoomResponseDto>>> getMyChatRooms(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        List<MyChatRoomResponseDto> myChatRooms = chatRoomService.getMyChatRooms(memberId);
+        return ResponseEntity.ok(ResponseDto.of(myChatRooms));
+    }
 
     @Operation(summary = "전체 안 읽은 메시지 수 조회", description = "로그인한 유저가 참여 중인 모든 채팅방의 안 읽은 메시지 수 합계를 조회합니다.")
     @SecurityRequirement(name = "Auth")
@@ -126,18 +137,6 @@ public class ChatRoomController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         ChatRoomResponseDto chatRoomDetails = chatRoomService.getChatRoomMessages(roomId, memberId);
         return ResponseEntity.ok(ResponseDto.of(chatRoomDetails));
-    }
-
-    @Operation(summary = "채팅방 최신 메시지 2개 조회 (Public)", description = "로그인 없이 누구나 특정 채팅방의 최신 메시지 2개를 조회할 수 있습니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = PublicChatMessageResponseDto.class)))),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 채팅방")
-    })
-    @GetMapping("/{roomId}/messages/public")
-    public ResponseEntity<ResponseDto<List<PublicChatMessageResponseDto>>> getRecentTwoMessages(
-            @Parameter(description = "조회할 채팅방의 ID", required = true) @PathVariable Long roomId) {
-        List<PublicChatMessageResponseDto> messages = chatRoomService.getRecentTwoMessages(roomId);
-        return ResponseEntity.ok(ResponseDto.of(messages));
     }
 
     @Operation(summary = "이전 메시지 조회", description = "특정 ID보다 이전에 작성된 메시지 50개를 조회합니다.")
