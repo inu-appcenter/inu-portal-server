@@ -16,6 +16,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomMemberResponseDto
 import kr.inuappcenterportal.inuportal.domain.chat.dto.MyChatRoomResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.UnreadTotalCountResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.PersonalChatRoomRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,17 @@ public class ChatRoomController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         UnreadTotalCountResponseDto countDto = chatRoomService.getTotalUnreadCount(memberId);
         return ResponseEntity.ok(ResponseDto.of(countDto));
+    }
+
+    @Operation(summary = "개인/그룹 채팅방 생성/조회", description = "상대방 유저 ID 리스트를 기반으로 개인톡/그룹톡방을 생성하거나 기존 방을 반환합니다. 모든 상대방과 친구여야 합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/personal")
+    public ResponseEntity<ResponseDto<ChatRoomResponseDto>> getOrCreatePersonalChatRoom(
+            @Valid @RequestBody PersonalChatRoomRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        ChatRoomResponseDto chatRoom = chatRoomService.getOrCreatePersonalChatRoom(requestDto, memberId);
+        return ResponseEntity.ok(ResponseDto.of(chatRoom));
     }
 
     @Operation(summary = "채팅방 생성", description = "새로운 채팅방을 생성합니다. 생성자는 자동으로 채팅방에 참여됩니다.")

@@ -84,6 +84,7 @@ public enum MyErrorCode {
     NOT_CHATROOM_MEMBER(HttpStatus.FORBIDDEN, "채팅방 참여자가 아닙니다."),
     CHATROOM_CLOSED(HttpStatus.FORBIDDEN, "폐쇄된 채팅방입니다."),
     NOT_CHATROOM_OWNER(HttpStatus.FORBIDDEN, "채팅방 방장이 아닙니다."),
+    NOT_FRIEND(HttpStatus.FORBIDDEN, "친구 관계가 아닙니다."),
     ;
 
 

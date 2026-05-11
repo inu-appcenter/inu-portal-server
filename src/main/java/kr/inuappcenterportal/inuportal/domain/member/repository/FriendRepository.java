@@ -12,5 +12,6 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
     Optional<Friend> findByRequesterAndReceiver(Member requester, Member receiver);
     List<Friend> findAllByRequesterAndStatus(Member requester, FriendStatus status);
     List<Friend> findAllByReceiverAndStatus(Member receiver, FriendStatus status);
+    boolean existsByRequesterAndReceiverAndStatus(Member requester, Member receiver, FriendStatus status);
     boolean existsByRequesterAndReceiver(Member requester, Member receiver);
 }

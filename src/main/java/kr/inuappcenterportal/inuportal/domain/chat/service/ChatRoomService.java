@@ -12,8 +12,10 @@ import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
+import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
+import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -30,10 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -49,6 +48,7 @@ public class ChatRoomService {
     private final ChatRedisService chatRedisService;
     private final ChatBatchService chatBatchService;
     private final ImageService imageService;
+    private final FriendRepository friendRepository;
     private final SimpMessageSendingOperations messagingTemplate;
     private final ObjectMapper objectMapper;
 
@@ -251,6 +251,68 @@ public class ChatRoomService {
         .collect(Collectors.toList());
     }
 
+
+    @Transactional
+    public ChatRoomResponseDto getOrCreatePersonalChatRoom(PersonalChatRoomRequestDto requestDto, Long memberId) {
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        List<Long> targetIds = requestDto.getTargetMemberIds();
+        if (targetIds == null || targetIds.isEmpty()) {
+            throw new MyException(MyErrorCode.EMPTY_REQUEST);
+        }
+
+        Set<Long> allMemberIds = new HashSet<>(targetIds);
+        allMemberIds.add(memberId);
+
+        // 친구 여부 확인
+        for (Long targetId : targetIds) {
+            Member target = memberRepository.findById(targetId)
+                    .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+            boolean isFriend = friendRepository.existsByRequesterAndReceiverAndStatus(requester, target, FriendStatus.ACCEPTED) ||
+                               friendRepository.existsByRequesterAndReceiverAndStatus(target, requester, FriendStatus.ACCEPTED);
+            if (!isFriend) {
+                throw new MyException(MyErrorCode.NOT_FRIEND);
+            }
+        }
+
+        // 기존 채팅방 확인
+        List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester, ChatMemberStatus.JOINED);
+        for (ChatRoomMember m : myJoinedRooms) {
+            ChatRoom room = m.getChatRoom();
+            if (room.getType() == ChatRoomType.PERSONAL) {
+                List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+                Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId()).collect(Collectors.toSet());
+                if (roomMemberIds.equals(allMemberIds)) {
+                    Long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
+                    return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId), true);
+                }
+            }
+        }
+
+        // 새 채팅방 생성
+        String title = (allMemberIds.size() == 2) ? "" : "그룹 채팅"; // 1:1이면 상대방 이름으로 처리될 것이므로 빈값
+        ChatRoom chatRoom = ChatRoom.builder()
+                .title(title)
+                .maxCapacity(100) // 개인톡/단톡은 넉넉하게
+                .isAnonymous(false)
+                .type(ChatRoomType.PERSONAL)
+                .creator(requester)
+                .build();
+        chatRoomRepository.save(chatRoom);
+
+        for (Long id : allMemberIds) {
+            Member member = memberRepository.findById(id).orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+            ChatRoomMember chatRoomMember = ChatRoomMember.builder()
+                    .chatRoom(chatRoom)
+                    .member(member)
+                    .build();
+            chatRoomMemberRepository.save(chatRoomMember);
+            chatRedisService.addUserToRoom(chatRoom.getId(), id);
+        }
+
+        return ChatRoomResponseDto.of(chatRoom, allMemberIds.size(), getSenderHash(memberId), true);
+    }
 
     @Transactional
     public ChatRoomResponseDto createChatRoom(ChatRoomCreateRequestDto requestDto, Long memberId) {
