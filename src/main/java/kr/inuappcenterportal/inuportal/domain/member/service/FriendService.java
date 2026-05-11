@@ -32,12 +32,12 @@ public class FriendService {
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (requester.getId().equals(receiver.getId())) {
-            throw new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI); // 적절한 에러코드가 없어 임시 사용 (본인 신청 불가)
+            throw new MyException(MyErrorCode.NOT_SELF_FRIEND_REQUEST);
         }
 
         if (friendRepository.existsByRequesterAndReceiver(requester, receiver) || 
             friendRepository.existsByRequesterAndReceiver(receiver, requester)) {
-            throw new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI); // 이미 친구거나 요청 중
+            throw new MyException(MyErrorCode.ALREADY_FRIEND_OR_REQUESTED);
         }
 
         Friend friend = Friend.builder()
@@ -98,10 +98,10 @@ public class FriendService {
     @Transactional
     public void acceptFriend(Long memberId, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
-                .orElseThrow(() -> new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI));
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
 
         if (!friend.getReceiver().getId().equals(memberId)) {
-            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
         }
 
         friend.accept();
@@ -110,10 +110,10 @@ public class FriendService {
     @Transactional
     public void deleteFriend(Long memberId, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
-                .orElseThrow(() -> new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI));
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
 
         if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
-            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+            throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
         }
 
         friendRepository.delete(friend);

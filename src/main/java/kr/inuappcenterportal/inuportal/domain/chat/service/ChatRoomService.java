@@ -262,6 +262,10 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.EMPTY_REQUEST);
         }
 
+        if (targetIds.contains(memberId)) {
+            throw new MyException(MyErrorCode.NOT_SELF_CHAT); // 자기 자신과는 채팅방을 만들 수 없음
+        }
+
         Set<Long> allMemberIds = new HashSet<>(targetIds);
         allMemberIds.add(memberId);
 

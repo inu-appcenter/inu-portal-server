@@ -31,7 +31,7 @@ public class BlockService {
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (blocker.getId().equals(blocked.getId())) {
-            throw new MyException(MyErrorCode.BAD_REQUEST_FIRE_AI);
+            throw new MyException(MyErrorCode.NOT_SELF_BLOCK);
         }
 
         if (blockRepository.existsByBlockerAndBlocked(blocker, blocked)) {
