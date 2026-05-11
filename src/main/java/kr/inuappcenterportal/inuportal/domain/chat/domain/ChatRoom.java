@@ -1,6 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.chat.domain;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomStatus;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -25,10 +27,24 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean isAnonymous;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ChatRoomType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ChatRoomStatus status;
+
     @Builder
-    public ChatRoom(String title, int maxCapacity, boolean isAnonymous) {
+    public ChatRoom(String title, int maxCapacity, boolean isAnonymous, ChatRoomType type) {
         this.title = title;
         this.maxCapacity = maxCapacity;
         this.isAnonymous = isAnonymous;
+        this.type = type;
+        this.status = ChatRoomStatus.ACTIVE;
+    }
+
+    public void close() {
+        this.status = ChatRoomStatus.CLOSED;
     }
 }
