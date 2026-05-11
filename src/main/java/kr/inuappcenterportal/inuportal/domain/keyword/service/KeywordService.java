@@ -107,7 +107,7 @@ public class KeywordService {
     }
 
     @Transactional
-    public void departmentNotifyMatchedUsers(DepartmentNotice departmentNotice, Department department) {
+    public void departmentNotifyMatchedUsers(DepartmentNotice departmentNotice, Department department, Integer scheduleCount) {
         // 1. 키워드 매칭 유저 조회
         List<Keyword> keywordMatches = keywordRepository.findKeywordsByKeywordAndDepartmentMatches(departmentNotice.getTitle(), department);
         // 2. 학과 구독 유저 조회 (키워드 없음)
@@ -144,8 +144,14 @@ public class KeywordService {
                          .put(token.getToken(), token.getMemberId());
         }
 
+        String body = departmentNotice.getTitle();
+        if (scheduleCount != null && scheduleCount > 0) {
+            body += String.format("\n[횃불이 AI] 일정 %d개가 포함되어 있어요.", scheduleCount);
+        }
+
+        final String finalBody = body;
         titleToTokens.forEach((title, tokenMap) -> 
-            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, departmentNotice.getTitle(), FcmMessageType.DEPARTMENT)
+            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, finalBody, FcmMessageType.DEPARTMENT)
         );
     }
 
