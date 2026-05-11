@@ -41,6 +41,21 @@ public class FriendController {
         return ResponseEntity.ok(ResponseDto.of(friendService.getPendingRequests(memberId)));
     }
 
+    @Operation(summary = "내가 보낸 대기 중인 친구 요청 목록 조회")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/pending/sent")
+    public ResponseEntity<ResponseDto<List<FriendResponseDto>>> getSentPendingRequests(@AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ResponseDto.of(friendService.getSentPendingRequests(memberId)));
+    }
+
+    @Operation(summary = "친구 검색 (학번 기반)")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/search")
+    public ResponseEntity<ResponseDto<FriendResponseDto>> searchFriend(@RequestParam String studentId) {
+        return ResponseEntity.ok(ResponseDto.of(friendService.searchMemberByStudentId(studentId)));
+    }
+
     @Operation(summary = "친구 요청 수락")
     @SecurityRequirement(name = "Auth")
     @PostMapping("/{friendId}/accept")

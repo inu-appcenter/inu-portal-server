@@ -65,6 +65,36 @@ public class FriendService {
         ).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<FriendResponseDto> getSentPendingRequests(Long memberId) {
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        List<Friend> requests = friendRepository.findAllByRequesterAndStatus(requester, FriendStatus.PENDING);
+
+        return requests.stream().map(f -> FriendResponseDto.builder()
+                .friendId(f.getId())
+                .memberId(f.getReceiver().getId())
+                .nickname(f.getReceiver().getNickname())
+                .studentId(f.getReceiver().getStudentId())
+                .fireId(f.getReceiver().getFireId())
+                .build()
+        ).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public FriendResponseDto searchMemberByStudentId(String studentId) {
+        Member member = memberRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        return FriendResponseDto.builder()
+                .memberId(member.getId())
+                .nickname(member.getNickname())
+                .studentId(member.getStudentId())
+                .fireId(member.getFireId())
+                .build();
+    }
+
     @Transactional
     public void acceptFriend(Long memberId, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
