@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomMemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -64,6 +65,39 @@ public class ChatRoomController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         ChatRoomResponseDto chatRoom = chatRoomService.joinChatRoom(roomId, memberId);
         return ResponseEntity.ok(ResponseDto.of(chatRoom));
+    }
+
+    @Operation(summary = "채팅방 나가기", description = "채팅방을 나갑니다. 실제 데이터는 삭제되지 않으며 상태만 변경됩니다.")
+    @SecurityRequirement(name = "Auth")
+    @DeleteMapping("/{roomId}/leave")
+    public ResponseEntity<ResponseDto<Void>> leaveChatRoom(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        chatRoomService.leaveChatRoom(roomId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "채팅방 폐쇄", description = "오픈채팅방을 폐쇄합니다. 신규 참여가 불가능해집니다.")
+    @SecurityRequirement(name = "Auth")
+    @PatchMapping("/{roomId}/close")
+    public ResponseEntity<ResponseDto<Void>> closeChatRoom(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        chatRoomService.closeChatRoom(roomId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "채팅방 참여자 목록 조회", description = "채팅방에 참여 중인 유저 목록을 조회합니다.")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/{roomId}/members")
+    public ResponseEntity<ResponseDto<List<ChatRoomMemberResponseDto>>> getParticipants(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        List<ChatRoomMemberResponseDto> members = chatRoomService.getParticipants(roomId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(members));
     }
 
     @Operation(summary = "채팅방 정보 및 메시지 조회", description = "특정 채팅방의 상세 정보(참여 인원, 내 해시 등)와 최근 메시지 목록을 조회합니다.")

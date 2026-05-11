@@ -82,6 +82,7 @@ public enum MyErrorCode {
     ALREADY_JOINED_CHATROOM(HttpStatus.CONFLICT, "이미 참여 중인 채팅방입니다."),
     CHATROOM_FULL(HttpStatus.FORBIDDEN, "채팅방의 최대 인원이 초과되었습니다."),
     NOT_CHATROOM_MEMBER(HttpStatus.FORBIDDEN, "채팅방 참여자가 아닙니다."),
+    CHATROOM_CLOSED(HttpStatus.FORBIDDEN, "폐쇄된 채팅방입니다."),
     ;
 
 

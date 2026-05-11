@@ -3,6 +3,8 @@ package kr.inuappcenterportal.inuportal.domain.chat.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoom;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomStatus;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,17 +21,21 @@ public class ChatRoomResponseDto {
     private String title;
     private int maxCapacity;
     private boolean isAnonymous;
+    private ChatRoomType type;
+    private ChatRoomStatus status;
     private int currentParticipants;
     private LocalDateTime createDate;
     private String myHash; // 본인 확인용 해시
     private List<ChatMessageResponseDto> messages; // 메시지 목록
 
     @Builder
-    public ChatRoomResponseDto(Long id, String title, int maxCapacity, boolean isAnonymous, int currentParticipants, LocalDateTime createDate, String myHash, List<ChatMessageResponseDto> messages) {
+    public ChatRoomResponseDto(Long id, String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, List<ChatMessageResponseDto> messages) {
         this.id = id;
         this.title = title;
         this.maxCapacity = maxCapacity;
         this.isAnonymous = isAnonymous;
+        this.type = type;
+        this.status = status;
         this.currentParticipants = currentParticipants;
         this.createDate = createDate;
         this.myHash = myHash;
@@ -42,6 +48,8 @@ public class ChatRoomResponseDto {
                 .title(chatRoom.getTitle())
                 .maxCapacity(chatRoom.getMaxCapacity())
                 .isAnonymous(chatRoom.isAnonymous())
+                .type(chatRoom.getType())
+                .status(chatRoom.getStatus())
                 .currentParticipants(currentParticipants)
                 .createDate(chatRoom.getCreateDate())
                 .build();
@@ -53,6 +61,8 @@ public class ChatRoomResponseDto {
                 .title(chatRoom.getTitle())
                 .maxCapacity(chatRoom.getMaxCapacity())
                 .isAnonymous(chatRoom.isAnonymous())
+                .type(chatRoom.getType())
+                .status(chatRoom.getStatus())
                 .currentParticipants(currentParticipants)
                 .createDate(chatRoom.getCreateDate())
                 .myHash(myHash)
@@ -65,6 +75,8 @@ public class ChatRoomResponseDto {
                 .title(chatRoom.getTitle())
                 .maxCapacity(chatRoom.getMaxCapacity())
                 .isAnonymous(chatRoom.isAnonymous())
+                .type(chatRoom.getType())
+                .status(chatRoom.getStatus())
                 .currentParticipants(currentParticipants)
                 .createDate(chatRoom.getCreateDate())
                 .myHash(myHash)

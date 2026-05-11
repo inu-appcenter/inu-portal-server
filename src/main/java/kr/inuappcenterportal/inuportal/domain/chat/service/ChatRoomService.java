@@ -5,11 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatMessage;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoom;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoomMember;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageRequestDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatMemberStatus;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomStatus;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
@@ -34,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -67,8 +67,11 @@ public class ChatRoomService {
         Member sender = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
+        ChatRoom chatRoom = chatRoomRepository.findById(messageDto.getRoomId())
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
         String nickname;
-        if (messageDto.getIsAnonymous()) {
+        if (chatRoom.isAnonymous()) {
             nickname = chatRedisService.getOrAssignAnonymousNickname(messageDto.getRoomId(), memberId);
         } else {
             nickname = sender.getNickname();
@@ -88,11 +91,7 @@ public class ChatRoomService {
                 .createDate(now)
                 .build();
 
-        // 브로드캐스팅 및 캐싱 로직은 별도 메서드로 분리하면 좋을 듯
         broadcastAndCache(messageDto.getRoomId(), responseDto);
-
-        ChatRoom chatRoom = chatRoomRepository.findById(messageDto.getRoomId())
-                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
         ChatMessage chatMessage = ChatMessage.builder()
                 .id(messageId)
@@ -106,6 +105,10 @@ public class ChatRoomService {
                 .build();
 
         chatBatchService.addMessageToQueue(chatMessage);
+
+        // 마지막 읽은 메시지 업데이트 (본인)
+        chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
+                .ifPresent(m -> m.updateLastReadMessageId(messageId));
     }
 
     @Transactional
@@ -116,7 +119,7 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findById(messageDto.getRoomId())
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
-        String nickname = messageDto.getIsAnonymous()
+        String nickname = chatRoom.isAnonymous()
                 ? chatRedisService.getOrAssignAnonymousNickname(messageDto.getRoomId(), memberId)
                 : sender.getNickname();
 
@@ -151,6 +154,10 @@ public class ChatRoomService {
 
         broadcastAndCache(chatRoom.getId(), responseDto);
 
+        // 마지막 읽은 메시지 업데이트 (본인)
+        chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
+                .ifPresent(m -> m.updateLastReadMessageId(messageId));
+
         return responseDto;
     }
 
@@ -170,10 +177,13 @@ public class ChatRoomService {
         Member creator = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
+        boolean isAnonymous = requestDto.getType() == ChatRoomType.PERSONAL ? false : requestDto.getIsAnonymous();
+
         ChatRoom chatRoom = ChatRoom.builder()
                 .title(requestDto.getTitle())
                 .maxCapacity(requestDto.getMaxCapacity())
-                .isAnonymous(requestDto.getIsAnonymous())
+                .isAnonymous(isAnonymous)
+                .type(requestDto.getType())
                 .build();
         chatRoomRepository.save(chatRoom);
 
@@ -192,15 +202,26 @@ public class ChatRoomService {
     public ChatRoomResponseDto joinChatRoom(Long roomId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        if (chatRoom.getStatus() == ChatRoomStatus.CLOSED) {
+            throw new MyException(MyErrorCode.CHATROOM_CLOSED);
+        }
+
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
-
-        if (chatRoomMemberRepository.existsByChatRoomAndMember(chatRoom, member)) {
+        Optional<ChatRoomMember> existingMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member);
+        if (existingMember.isPresent()) {
+            ChatRoomMember m = existingMember.get();
+            if (m.getStatus() == ChatMemberStatus.LEFT) {
+                m.rejoin();
+                chatRedisService.addUserToRoom(roomId, memberId);
+            }
+            Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
             return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), getSenderHash(memberId));
         }
 
+        Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
         if (currentParticipants >= chatRoom.getMaxCapacity()) {
             throw new MyException(MyErrorCode.CHATROOM_FULL);
         }
@@ -216,6 +237,56 @@ public class ChatRoomService {
         return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue() + 1, getSenderHash(memberId));
     }
 
+    @Transactional
+    public void leaveChatRoom(Long roomId, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        chatRoomMember.leave();
+        chatRedisService.removeUserFromRoom(roomId, memberId);
+    }
+
+    @Transactional
+    public void closeChatRoom(Long roomId, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        // 방장 권한 체크 (현재는 첫 번째 멤버가 방장이라고 가정하거나, 별도 필드 필요)
+        // 여기서는 일단 모든 참여자가 닫을 수 있다고 가정하거나, 추후 방장 필드 추가 필요
+        // 요구사항에 맞춰 CLOSED 상태로 변경
+        chatRoom.close();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatRoomMemberResponseDto> getParticipants(Long roomId, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        List<ChatRoomMember> members = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+
+        return members.stream().map(m -> {
+            Member member = m.getMember();
+            String nickname;
+            if (chatRoom.isAnonymous()) {
+                nickname = chatRedisService.getOrAssignAnonymousNickname(roomId, member.getId());
+            } else {
+                nickname = member.getNickname();
+            }
+
+            return ChatRoomMemberResponseDto.builder()
+                    .nickname(nickname)
+                    .studentId(chatRoom.isAnonymous() ? null : member.getStudentId())
+                    .fireId(chatRoom.isAnonymous() ? null : member.getFireId())
+                    .isMe(member.getId().equals(memberId))
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
     @Transactional(readOnly = true)
     public ChatRoomResponseDto getChatRoomMessages(Long roomId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
@@ -223,8 +294,10 @@ public class ChatRoomService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        // 멤버 권한 검증
-        if (!chatRoomMemberRepository.existsByChatRoomAndMember(chatRoom, member)) {
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        if (chatRoomMember.getStatus() == ChatMemberStatus.LEFT) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
 
@@ -241,13 +314,17 @@ public class ChatRoomService {
 
         messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
-        // 캐시 부재 시 DB 조회
         if (messages.isEmpty()) {
             List<ChatMessage> dbMessages = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(chatRoom);
             messages.addAll(dbMessages.stream()
                     .map(this::convertToDto)
                     .collect(Collectors.toList()));
             messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
+        }
+
+        // 마지막 읽은 메시지 ID 업데이트 (조회 시 최신 메시지 읽음 처리)
+        if (!messages.isEmpty()) {
+            chatRoomMember.updateLastReadMessageId(messages.get(messages.size() - 1).getMessageId());
         }
 
         Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
