@@ -977,7 +977,8 @@ public class NoticeService {
     private Connection connect(String url) {
         return Jsoup.connect(url)
                 .userAgent(CRAWLER_USER_AGENT)
-                .timeout(REQUEST_TIMEOUT_MILLIS);
+                .timeout(REQUEST_TIMEOUT_MILLIS)
+                .maxBodySize(0);
     }
 
     private boolean containsAccessDenied(Document document) {
