@@ -40,6 +40,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -536,7 +538,16 @@ public class NoticeService {
                     syncDepartmentNoticeContent(departmentNotice, config);
 
                     if (isNewNotice) {
-                        scheduleExtractService.extractScheduleAsync(departmentNotice, true);
+                        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                                @Override
+                                public void afterCommit() {
+                                    scheduleExtractService.extractScheduleAsync(departmentNotice, true);
+                                }
+                            });
+                        } else {
+                            scheduleExtractService.extractScheduleAsync(departmentNotice, true);
+                        }
                     }
 
                     count++;
