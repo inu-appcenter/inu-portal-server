@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.chat.domain;
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomStatus;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -35,13 +36,18 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(nullable = false)
     private ChatRoomStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private Member creator;
+
     @Builder
-    public ChatRoom(String title, int maxCapacity, boolean isAnonymous, ChatRoomType type) {
+    public ChatRoom(String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, Member creator) {
         this.title = title;
         this.maxCapacity = maxCapacity;
         this.isAnonymous = isAnonymous;
         this.type = type;
         this.status = ChatRoomStatus.ACTIVE;
+        this.creator = creator;
     }
 
     public void close() {

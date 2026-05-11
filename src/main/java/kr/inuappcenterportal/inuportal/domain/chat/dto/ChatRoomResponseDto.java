@@ -26,10 +26,11 @@ public class ChatRoomResponseDto {
     private int currentParticipants;
     private LocalDateTime createDate;
     private String myHash; // 본인 확인용 해시
+    private boolean isOwner; // 내가 이 방의 방장인지 여부
     private List<ChatMessageResponseDto> messages; // 메시지 목록
 
     @Builder
-    public ChatRoomResponseDto(Long id, String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, List<ChatMessageResponseDto> messages) {
+    public ChatRoomResponseDto(Long id, String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, boolean isOwner, List<ChatMessageResponseDto> messages) {
         this.id = id;
         this.title = title;
         this.maxCapacity = maxCapacity;
@@ -39,10 +40,11 @@ public class ChatRoomResponseDto {
         this.currentParticipants = currentParticipants;
         this.createDate = createDate;
         this.myHash = myHash;
+        this.isOwner = isOwner;
         this.messages = messages;
     }
 
-    public static ChatRoomResponseDto of(ChatRoom chatRoom, int currentParticipants) {
+    public static ChatRoomResponseDto of(ChatRoom chatRoom, int currentParticipants, boolean isOwner) {
         return ChatRoomResponseDto.builder()
                 .id(chatRoom.getId())
                 .title(chatRoom.getTitle())
@@ -52,10 +54,11 @@ public class ChatRoomResponseDto {
                 .status(chatRoom.getStatus())
                 .currentParticipants(currentParticipants)
                 .createDate(chatRoom.getCreateDate())
+                .isOwner(isOwner)
                 .build();
     }
 
-    public static ChatRoomResponseDto of(ChatRoom chatRoom, int currentParticipants, String myHash) {
+    public static ChatRoomResponseDto of(ChatRoom chatRoom, int currentParticipants, String myHash, boolean isOwner) {
         return ChatRoomResponseDto.builder()
                 .id(chatRoom.getId())
                 .title(chatRoom.getTitle())
@@ -66,10 +69,11 @@ public class ChatRoomResponseDto {
                 .currentParticipants(currentParticipants)
                 .createDate(chatRoom.getCreateDate())
                 .myHash(myHash)
+                .isOwner(isOwner)
                 .build();
     }
 
-    public static ChatRoomResponseDto of(ChatRoom chatRoom, int currentParticipants, String myHash, List<ChatMessageResponseDto> messages) {
+    public static ChatRoomResponseDto of(ChatRoom chatRoom, int currentParticipants, String myHash, boolean isOwner, List<ChatMessageResponseDto> messages) {
         return ChatRoomResponseDto.builder()
                 .id(chatRoom.getId())
                 .title(chatRoom.getTitle())
@@ -80,6 +84,7 @@ public class ChatRoomResponseDto {
                 .currentParticipants(currentParticipants)
                 .createDate(chatRoom.getCreateDate())
                 .myHash(myHash)
+                .isOwner(isOwner)
                 .messages(messages)
                 .build();
     }

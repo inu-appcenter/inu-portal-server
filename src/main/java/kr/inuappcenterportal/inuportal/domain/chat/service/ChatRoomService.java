@@ -244,6 +244,7 @@ public class ChatRoomService {
                     .unreadCount(unreadCount)
                     .senderName(senderName)
                     .senderProfileImageNumber(senderProfileImageNumber)
+                    .isOwner(room.getCreator().getId().equals(memberId))
                     .build();
         })
         .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
@@ -263,6 +264,7 @@ public class ChatRoomService {
                 .maxCapacity(requestDto.getMaxCapacity())
                 .isAnonymous(isAnonymous)
                 .type(requestDto.getType())
+                .creator(creator)
                 .build();
         chatRoomRepository.save(chatRoom);
 
@@ -274,7 +276,7 @@ public class ChatRoomService {
 
         chatRedisService.addUserToRoom(chatRoom.getId(), memberId);
 
-        return ChatRoomResponseDto.of(chatRoom, 1, getSenderHash(memberId));
+        return ChatRoomResponseDto.of(chatRoom, 1, getSenderHash(memberId), true);
     }
 
     @Transactional
@@ -289,6 +291,8 @@ public class ChatRoomService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
+        Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
+
         Optional<ChatRoomMember> existingMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member);
         if (existingMember.isPresent()) {
             ChatRoomMember m = existingMember.get();
@@ -296,11 +300,10 @@ public class ChatRoomService {
                 m.rejoin();
                 chatRedisService.addUserToRoom(roomId, memberId);
             }
-            Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
-            return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), getSenderHash(memberId));
+            boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
+            return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), getSenderHash(memberId), isOwner);
         }
 
-        Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
         if (currentParticipants >= chatRoom.getMaxCapacity()) {
             throw new MyException(MyErrorCode.CHATROOM_FULL);
         }
@@ -313,7 +316,8 @@ public class ChatRoomService {
 
         chatRedisService.addUserToRoom(roomId, memberId);
 
-        return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue() + 1, getSenderHash(memberId));
+        boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
+        return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue() + 1, getSenderHash(memberId), isOwner);
     }
 
     @Transactional
@@ -334,6 +338,11 @@ public class ChatRoomService {
     public void closeChatRoom(Long roomId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        if (!chatRoom.getCreator().getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
+        }
+
         chatRoom.close();
     }
 
@@ -358,6 +367,7 @@ public class ChatRoomService {
                     .studentId(chatRoom.isAnonymous() ? null : member.getStudentId())
                     .fireId(chatRoom.isAnonymous() ? null : member.getFireId())
                     .isMe(member.getId().equals(memberId))
+                    .isOwner(member.getId().equals(chatRoom.getCreator().getId()))
                     .build();
         }).collect(Collectors.toList());
     }
@@ -424,8 +434,9 @@ public class ChatRoomService {
 
         Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
         String myHash = getSenderHash(memberId);
+        boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
 
-        return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), myHash, messages);
+        return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), myHash, isOwner, messages);
     }
 
     @Transactional(readOnly = true)

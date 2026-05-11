@@ -18,9 +18,10 @@ public class MyChatRoomResponseDto {
     private long unreadCount;
     private String senderName; // 마지막 채팅 보낸 사람 닉네임 (또는 상대방 이름)
     private Long senderProfileImageNumber; // 마지막 채팅 보낸 사람 (또는 상대방) 이미지 번호
+    private boolean isOwner; // 내가 이 방의 방장인지 여부
 
     @Builder
-    public MyChatRoomResponseDto(Long roomId, String title, ChatRoomType type, String lastMessage, LocalDateTime lastMessageTime, long unreadCount, String senderName, Long senderProfileImageNumber) {
+    public MyChatRoomResponseDto(Long roomId, String title, ChatRoomType type, String lastMessage, LocalDateTime lastMessageTime, long unreadCount, String senderName, Long senderProfileImageNumber, boolean isOwner) {
         this.roomId = roomId;
         this.title = title;
         this.type = type;
@@ -29,5 +30,6 @@ public class MyChatRoomResponseDto {
         this.unreadCount = unreadCount;
         this.senderName = senderName;
         this.senderProfileImageNumber = senderProfileImageNumber;
+        this.isOwner = isOwner;
     }
 }
