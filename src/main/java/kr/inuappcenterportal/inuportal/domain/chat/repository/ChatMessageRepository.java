@@ -9,4 +9,5 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findTop50ByChatRoomOrderByCreateDateDesc(ChatRoom chatRoom);
     List<ChatMessage> findTop50ByChatRoomAndIdLessThanOrderByIdDesc(ChatRoom chatRoom, Long lastId);
     List<ChatMessage> findTop2ByChatRoomOrderByCreateDateDesc(ChatRoom chatRoom); // 최신 메시지 2개 조회
+    long countByChatRoomAndIdGreaterThan(ChatRoom chatRoom, Long lastReadMessageId);
 }

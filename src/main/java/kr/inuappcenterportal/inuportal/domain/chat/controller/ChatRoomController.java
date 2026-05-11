@@ -13,6 +13,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomMemberResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.UnreadTotalCountResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -33,6 +34,16 @@ import java.util.List;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+
+    @Operation(summary = "전체 안 읽은 메시지 수 조회", description = "로그인한 유저가 참여 중인 모든 채팅방의 안 읽은 메시지 수 합계를 조회합니다.")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/unread-total-count")
+    public ResponseEntity<ResponseDto<UnreadTotalCountResponseDto>> getTotalUnreadCount(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        UnreadTotalCountResponseDto countDto = chatRoomService.getTotalUnreadCount(memberId);
+        return ResponseEntity.ok(ResponseDto.of(countDto));
+    }
 
     @Operation(summary = "채팅방 생성", description = "새로운 채팅방을 생성합니다. 생성자는 자동으로 채팅방에 참여됩니다.")
     @ApiResponses(value = {

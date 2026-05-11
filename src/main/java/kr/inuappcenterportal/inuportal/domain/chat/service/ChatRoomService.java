@@ -81,6 +81,8 @@ public class ChatRoomService {
         String senderHash = getSenderHash(memberId);
         Long messageId = TSID.fast().toLong();
 
+        int initialUnreadCount = (int) chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
+
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
                 .roomId(messageDto.getRoomId())
@@ -88,6 +90,7 @@ public class ChatRoomService {
                 .senderHash(senderHash)
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
+                .unreadCount(Math.max(0, initialUnreadCount))
                 .createDate(now)
                 .build();
 
@@ -106,7 +109,6 @@ public class ChatRoomService {
 
         chatBatchService.addMessageToQueue(chatMessage);
 
-        // 마지막 읽은 메시지 업데이트 (본인)
         chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
                 .ifPresent(m -> m.updateLastReadMessageId(messageId));
     }
@@ -141,6 +143,8 @@ public class ChatRoomService {
 
         imageService.saveChatImage(chatRoom.getId(), messageId, images, chatImagePath);
 
+        int initialUnreadCount = (int) chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
+
         String senderHash = getSenderHash(memberId);
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
@@ -149,12 +153,12 @@ public class ChatRoomService {
                 .senderHash(senderHash)
                 .content(messageDto.getContent())
                 .imageCount(images.size())
+                .unreadCount(Math.max(0, initialUnreadCount))
                 .createDate(now)
                 .build();
 
         broadcastAndCache(chatRoom.getId(), responseDto);
 
-        // 마지막 읽은 메시지 업데이트 (본인)
         chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
                 .ifPresent(m -> m.updateLastReadMessageId(messageId));
 
@@ -170,6 +174,25 @@ public class ChatRoomService {
         } catch (JsonProcessingException e) {
             log.error("메시지 캐싱 중 직렬화 오류 발생: {}", responseDto, e);
         }
+    }
+
+    private void broadcastReadUpdate(Long roomId) {
+        messagingTemplate.convertAndSend("/sub/room/" + roomId + "/read", "updated");
+    }
+
+    @Transactional(readOnly = true)
+    public UnreadTotalCountResponseDto getTotalUnreadCount(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        List<ChatRoomMember> joinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(member, ChatMemberStatus.JOINED);
+        long totalUnread = 0;
+
+        for (ChatRoomMember m : joinedRooms) {
+            totalUnread += chatMessageRepository.countByChatRoomAndIdGreaterThan(m.getChatRoom(), m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
+        }
+
+        return new UnreadTotalCountResponseDto(totalUnread);
     }
 
     @Transactional
@@ -255,10 +278,6 @@ public class ChatRoomService {
     public void closeChatRoom(Long roomId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
-
-        // 방장 권한 체크 (현재는 첫 번째 멤버가 방장이라고 가정하거나, 별도 필드 필요)
-        // 여기서는 일단 모든 참여자가 닫을 수 있다고 가정하거나, 추후 방장 필드 추가 필요
-        // 요구사항에 맞춰 CLOSED 상태로 변경
         chatRoom.close();
     }
 
@@ -287,7 +306,7 @@ public class ChatRoomService {
         }).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ChatRoomResponseDto getChatRoomMessages(Long roomId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
@@ -322,9 +341,29 @@ public class ChatRoomService {
             messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
         }
 
-        // 마지막 읽은 메시지 ID 업데이트 (조회 시 최신 메시지 읽음 처리)
+        List<Long> readIds = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED)
+                .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId()).collect(Collectors.toList());
+
+        messages = messages.stream().map(msg -> {
+            int unread = (int) readIds.stream().filter(lastRead -> lastRead < msg.getMessageId()).count();
+            return ChatMessageResponseDto.builder()
+                    .messageId(msg.getMessageId())
+                    .roomId(msg.getRoomId())
+                    .senderNickname(msg.getSenderNickname())
+                    .senderHash(msg.getSenderHash())
+                    .content(msg.getContent())
+                    .imageCount(msg.getImageCount())
+                    .unreadCount(unread)
+                    .createDate(msg.getCreateDate())
+                    .build();
+        }).collect(Collectors.toList());
+
         if (!messages.isEmpty()) {
-            chatRoomMember.updateLastReadMessageId(messages.get(messages.size() - 1).getMessageId());
+            Long lastMessageId = messages.get(messages.size() - 1).getMessageId();
+            if (chatRoomMember.getLastReadMessageId() == null || lastMessageId > chatRoomMember.getLastReadMessageId()) {
+                chatRoomMember.updateLastReadMessageId(lastMessageId);
+                broadcastReadUpdate(roomId);
+            }
         }
 
         Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
@@ -344,11 +383,25 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
 
-        // 과거 메시지 페이징 조회
         List<ChatMessage> olderMessages = chatMessageRepository.findTop50ByChatRoomAndIdLessThanOrderByIdDesc(chatRoom, lastId);
+        List<Long> readIds = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED)
+                .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId()).collect(Collectors.toList());
 
         return olderMessages.stream()
-                .map(this::convertToDto)
+                .map(msg -> {
+                    ChatMessageResponseDto dto = convertToDto(msg);
+                    int unread = (int) readIds.stream().filter(lastRead -> lastRead < dto.getMessageId()).count();
+                    return ChatMessageResponseDto.builder()
+                            .messageId(dto.getMessageId())
+                            .roomId(dto.getRoomId())
+                            .senderNickname(dto.getSenderNickname())
+                            .senderHash(dto.getSenderHash())
+                            .content(dto.getContent())
+                            .imageCount(dto.getImageCount())
+                            .unreadCount(unread)
+                            .createDate(dto.getCreateDate())
+                            .build();
+                })
                 .sorted(Comparator.comparing(ChatMessageResponseDto::getCreateDate))
                 .collect(Collectors.toList());
     }
@@ -361,6 +414,7 @@ public class ChatRoomService {
                 .senderHash(getSenderHash(message.getSender().getId()))
                 .content(message.getContent())
                 .imageCount(message.getImageCount())
+                .unreadCount(0)
                 .createDate(message.getCreateDate())
                 .build();
     }
@@ -372,7 +426,6 @@ public class ChatRoomService {
 
         Set<PublicChatMessageResponseDto> distinctMessages = new HashSet<>();
 
-        // Redis 데이터 병합
         List<String> cachedMessagesJson = chatRedisService.getRecentMessages(roomId);
         for (String messageJson : cachedMessagesJson) {
             try {
@@ -385,13 +438,11 @@ public class ChatRoomService {
             }
         }
 
-        // DB 데이터 병합 및 중복 제거
         List<ChatMessage> messagesFromDb = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
         for (ChatMessage dbMessage : messagesFromDb) {
             distinctMessages.add(PublicChatMessageResponseDto.from(dbMessage));
         }
 
-        // 최신순 필터링 후 오름차순 정렬
         return distinctMessages.stream()
                 .sorted(Comparator.comparing(PublicChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(2)
