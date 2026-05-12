@@ -84,8 +84,9 @@ public class ChatRoomService {
         String senderHash = getSenderHash(memberId);
         Long messageId = TSID.fast().toLong();
 
-        int initialUnreadCount = (int) chatRoomMemberRepository
-                .findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
+        Set<String> activeUserIds = chatRedisService.getRoomUserIds(messageDto.getRoomId());
+        int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
@@ -94,11 +95,15 @@ public class ChatRoomService {
                 .senderHash(senderHash)
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
-                .unreadCount(Math.max(0, initialUnreadCount))
+                .unreadCount(initialUnreadCount)
                 .createDate(now)
                 .build();
 
         broadcastAndCache(messageDto.getRoomId(), responseDto);
+
+        // 현재 방에 있는 사람들의 읽음 상태를 DB에 일괄 업데이트
+        List<Long> activeMemberIds = activeUserIds.stream().map(Long::parseLong).toList();
+        chatRoomMemberRepository.updateLastReadMessageIdByRoomAndMemberIds(chatRoom, activeMemberIds, messageId);
 
         ChatMessage chatMessage = ChatMessage.builder()
                 .id(messageId)
@@ -112,9 +117,6 @@ public class ChatRoomService {
                 .build();
 
         chatBatchService.addMessageToQueue(chatMessage);
-
-        chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
-                .ifPresent(m -> m.updateLastReadMessageId(messageId));
 
         sendChatNotification(chatRoom, sender, nickname, messageDto.getContent());
     }
@@ -150,8 +152,9 @@ public class ChatRoomService {
 
         imageService.saveChatImage(chatRoom.getId(), messageId, images, chatImagePath);
 
-        int initialUnreadCount = (int) chatRoomMemberRepository
-                .findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
+        Set<String> activeUserIds = chatRedisService.getRoomUserIds(chatRoom.getId());
+        int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
         String senderHash = getSenderHash(memberId);
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
@@ -161,14 +164,15 @@ public class ChatRoomService {
                 .senderHash(senderHash)
                 .content(messageDto.getContent())
                 .imageCount(images.size())
-                .unreadCount(Math.max(0, initialUnreadCount))
+                .unreadCount(initialUnreadCount)
                 .createDate(now)
                 .build();
 
         broadcastAndCache(chatRoom.getId(), responseDto);
 
-        chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
-                .ifPresent(m -> m.updateLastReadMessageId(messageId));
+        // 현재 방에 있는 사람들의 읽음 상태를 DB에 일괄 업데이트
+        List<Long> activeMemberIds = activeUserIds.stream().map(Long::parseLong).toList();
+        chatRoomMemberRepository.updateLastReadMessageIdByRoomAndMemberIds(chatRoom, activeMemberIds, messageId);
 
         sendChatNotification(chatRoom, sender, nickname, images.isEmpty() ? messageDto.getContent() : "사진을 보냈습니다.");
 
