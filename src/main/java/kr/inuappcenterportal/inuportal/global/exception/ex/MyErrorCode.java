@@ -91,6 +91,7 @@ public enum MyErrorCode {
     NOT_SELF_BLOCK(HttpStatus.BAD_REQUEST, "자기 자신을 차단할 수 없습니다."),
     NOT_SELF_CHAT(HttpStatus.BAD_REQUEST, "자기 자신과는 채팅방을 만들 수 없습니다."),
     HAS_NOT_FRIEND_AUTHORIZATION(HttpStatus.FORBIDDEN, "친구 관련 작업을 수행할 권한이 없습니다."),
+    NOT_ADMIN(HttpStatus.FORBIDDEN, "관리자 권한이 없습니다."),
     ;
 
 

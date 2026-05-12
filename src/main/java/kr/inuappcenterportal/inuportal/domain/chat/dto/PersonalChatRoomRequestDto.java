@@ -9,4 +9,5 @@ import java.util.List;
 @NoArgsConstructor
 public class PersonalChatRoomRequestDto {
     private List<Long> targetMemberIds;
+    private boolean isAdminMode;
 }

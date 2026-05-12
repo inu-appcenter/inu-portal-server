@@ -36,18 +36,22 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(nullable = false)
     private ChatRoomStatus status;
 
+    @Column(nullable = false)
+    private boolean isOfficial;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
     private Member creator;
 
     @Builder
-    public ChatRoom(String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, Member creator) {
+    public ChatRoom(String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, Member creator, boolean isOfficial) {
         this.title = title;
         this.maxCapacity = maxCapacity;
         this.isAnonymous = isAnonymous;
         this.type = type;
         this.status = ChatRoomStatus.ACTIVE;
         this.creator = creator;
+        this.isOfficial = isOfficial;
     }
 
     public void close() {

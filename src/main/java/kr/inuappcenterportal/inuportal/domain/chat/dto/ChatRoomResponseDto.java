@@ -27,10 +27,11 @@ public class ChatRoomResponseDto {
     private LocalDateTime createDate;
     private String myHash; // 본인 확인용 해시
     private boolean isOwner; // 내가 이 방의 방장인지 여부
+    private boolean isOfficial; // 운영자 공식 메시지 여부
     private List<ChatMessageResponseDto> messages; // 메시지 목록
 
     @Builder
-    public ChatRoomResponseDto(Long id, String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, boolean isOwner, List<ChatMessageResponseDto> messages) {
+    public ChatRoomResponseDto(Long id, String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, boolean isOwner, boolean isOfficial, List<ChatMessageResponseDto> messages) {
         this.id = id;
         this.title = title;
         this.maxCapacity = maxCapacity;
@@ -41,6 +42,7 @@ public class ChatRoomResponseDto {
         this.createDate = createDate;
         this.myHash = myHash;
         this.isOwner = isOwner;
+        this.isOfficial = isOfficial;
         this.messages = messages;
     }
 
@@ -55,6 +57,7 @@ public class ChatRoomResponseDto {
                 .currentParticipants(currentParticipants)
                 .createDate(chatRoom.getCreateDate())
                 .isOwner(isOwner)
+                .isOfficial(chatRoom.isOfficial())
                 .build();
     }
 
@@ -70,6 +73,7 @@ public class ChatRoomResponseDto {
                 .createDate(chatRoom.getCreateDate())
                 .myHash(myHash)
                 .isOwner(isOwner)
+                .isOfficial(chatRoom.isOfficial())
                 .build();
     }
 
@@ -85,6 +89,7 @@ public class ChatRoomResponseDto {
                 .createDate(chatRoom.getCreateDate())
                 .myHash(myHash)
                 .isOwner(isOwner)
+                .isOfficial(chatRoom.isOfficial())
                 .messages(messages)
                 .build();
     }

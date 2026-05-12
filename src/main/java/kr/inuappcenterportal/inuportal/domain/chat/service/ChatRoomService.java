@@ -245,6 +245,7 @@ public class ChatRoomService {
                     .senderName(senderName)
                     .senderProfileImageNumber(senderProfileImageNumber)
                     .isOwner(room.getCreator().getId().equals(memberId))
+                    .isOfficial(room.isOfficial())
                     .build();
         })
         .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
@@ -269,39 +270,55 @@ public class ChatRoomService {
         Set<Long> allMemberIds = new HashSet<>(targetIds);
         allMemberIds.add(memberId);
 
-        // 친구 여부 확인
-        for (Long targetId : targetIds) {
-            Member target = memberRepository.findById(targetId)
-                    .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-            boolean isFriend = friendRepository.existsByRequesterAndReceiverAndStatus(requester, target, FriendStatus.ACCEPTED) ||
-                               friendRepository.existsByRequesterAndReceiverAndStatus(target, requester, FriendStatus.ACCEPTED);
-            if (!isFriend) {
-                throw new MyException(MyErrorCode.NOT_FRIEND);
+        boolean isOfficial = false;
+        if (requestDto.isAdminMode()) {
+            if (!requester.getRoles().contains("ROLE_ADMIN")) {
+                throw new MyException(MyErrorCode.NOT_ADMIN);
             }
+            isOfficial = true;
         }
 
         // 기존 채팅방 확인
         List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester, ChatMemberStatus.JOINED);
         for (ChatRoomMember m : myJoinedRooms) {
             ChatRoom room = m.getChatRoom();
-            if (room.getType() == ChatRoomType.PERSONAL) {
+            if (room.getType() == ChatRoomType.PERSONAL && room.isOfficial() == isOfficial) {
                 List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
                 Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId()).collect(Collectors.toSet());
                 if (roomMemberIds.equals(allMemberIds)) {
                     Long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
-                    return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId), true);
+                    boolean isOwner = room.getCreator().getId().equals(memberId);
+                    return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId), isOwner);
+                }
+            }
+        }
+
+        // 친구 여부 확인 (공식 모드 아닐 때만)
+        if (!isOfficial) {
+            for (Long targetId : targetIds) {
+                Member target = memberRepository.findById(targetId)
+                        .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+                boolean isFriend = friendRepository.existsByRequesterAndReceiverAndStatus(requester, target, FriendStatus.ACCEPTED) ||
+                                   friendRepository.existsByRequesterAndReceiverAndStatus(target, requester, FriendStatus.ACCEPTED);
+                if (!isFriend) {
+                    throw new MyException(MyErrorCode.NOT_FRIEND);
                 }
             }
         }
 
         // 새 채팅방 생성
-        String title = (allMemberIds.size() == 2) ? "" : "그룹 채팅"; // 1:1이면 상대방 이름으로 처리될 것이므로 빈값
+        String title = (allMemberIds.size() == 2) ? "" : "그룹 채팅";
+        if (isOfficial) {
+            title = "운영자 공식 메시지";
+        }
+
         ChatRoom chatRoom = ChatRoom.builder()
                 .title(title)
                 .maxCapacity(100) // 개인톡/단톡은 넉넉하게
                 .isAnonymous(false)
                 .type(ChatRoomType.PERSONAL)
                 .creator(requester)
+                .isOfficial(isOfficial)
                 .build();
         chatRoomRepository.save(chatRoom);
 
@@ -331,6 +348,7 @@ public class ChatRoomService {
                 .isAnonymous(isAnonymous)
                 .type(requestDto.getType())
                 .creator(creator)
+                .isOfficial(false)
                 .build();
         chatRoomRepository.save(chatRoom);
 
