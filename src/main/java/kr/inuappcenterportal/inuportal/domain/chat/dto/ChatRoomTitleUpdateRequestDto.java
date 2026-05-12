@@ -1,14 +1,12 @@
 package kr.inuappcenterportal.inuportal.domain.chat.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Getter
 @NoArgsConstructor
-public class PersonalChatRoomRequestDto {
-    private List<Long> targetMemberIds;
-    private boolean isAdminMode;
+public class ChatRoomTitleUpdateRequestDto {
+    @NotBlank(message = "채팅방 이름은 필수입니다.")
     private String title;
 }

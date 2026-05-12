@@ -57,4 +57,8 @@ public class ChatRoom extends BaseTimeEntity {
     public void close() {
         this.status = ChatRoomStatus.CLOSED;
     }
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
 }

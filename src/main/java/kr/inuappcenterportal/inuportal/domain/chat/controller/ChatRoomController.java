@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomTitleUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomMemberResponseDto;
@@ -123,6 +124,18 @@ public class ChatRoomController {
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
+    @Operation(summary = "채팅방 이름 변경", description = "채팅방의 이름을 변경합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PatchMapping("/{roomId}/title")
+    public ResponseEntity<ResponseDto<Void>> updateChatRoomTitle(
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatRoomTitleUpdateRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        chatRoomService.updateChatRoomTitle(roomId, requestDto, memberId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
     @Operation(summary = "채팅방 참여자 목록 조회", description = "채팅방에 참여 중인 유저 목록을 조회합니다.")
     @SecurityRequirement(name = "Auth")
     @GetMapping("/{roomId}/members")
@@ -167,6 +180,7 @@ public class ChatRoomController {
         List<ChatMessageResponseDto> messages = chatRoomService.getOlderMessages(roomId, memberId, lastId);
         return ResponseEntity.ok(ResponseDto.of(messages));
     }
+
     @Operation(summary = "채팅방 최신 메시지 2개 조회 (Public)", description = "로그인 없이 누구나 특정 오픈 채팅방의 최신 메시지 2개를 조회할 수 있습니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = PublicChatMessageResponseDto.class)))),

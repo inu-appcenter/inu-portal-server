@@ -220,11 +220,14 @@ public class ChatRoomService {
             LocalDateTime lastMessageTime = room.getCreateDate();
             String lastMessageContent = "아직 대화가 없습니다.";
 
-            if (room.getType() == ChatRoomType.PERSONAL) {
+            // 1:1 개인 채팅이면서 방 제목이 비어있는 경우에만 상대방 닉네임을 제목으로 사용
+            if (room.getType() == ChatRoomType.PERSONAL && (title == null || title.isEmpty())) {
                 Optional<ChatRoomMember> otherMemberOpt = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED)
                         .stream().filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
                 if (otherMemberOpt.isPresent()) {
                     title = otherMemberOpt.get().getMember().getNickname();
+                } else {
+                    title = "알 수 없음";
                 }
             }
 
@@ -309,9 +312,11 @@ public class ChatRoomService {
         }
 
         // 새 채팅방 생성
-        String title = (allMemberIds.size() == 2) ? "" : "그룹 채팅";
+        String title = requestDto.getTitle();
         if (isOfficial) {
-            title = "운영자 공식 메시지";
+            title = "INTIP 운영자";
+        } else if (title == null || title.trim().isEmpty()) {
+            title = (allMemberIds.size() == 2) ? "" : "그룹 채팅";
         }
 
         ChatRoom chatRoom = ChatRoom.builder()
@@ -572,6 +577,22 @@ public class ChatRoomService {
         return messages.stream()
                 .map(PublicChatMessageResponseDto::from)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void updateChatRoomTitle(Long roomId, ChatRoomTitleUpdateRequestDto requestDto, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        // 채팅방 멤버인지 확인
+        if (!chatRoomMemberRepository.existsByChatRoomAndMember(chatRoom, member)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        chatRoom.updateTitle(requestDto.getTitle());
     }
 
     private ChatMessageResponseDto convertToDto(ChatMessage message) {
