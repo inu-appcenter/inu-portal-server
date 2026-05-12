@@ -672,6 +672,34 @@ public class ChatRoomService {
         chatRoom.updateTitle(requestDto.getTitle());
     }
 
+    @Transactional
+    public void enterChatRoom(Long roomId, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        // 1. Redis에 접속 정보 추가
+        chatRedisService.addUserToRoom(roomId, memberId);
+
+        // 2. 안 읽은 메시지 읽음 처리 (마지막 메시지 ID로 갱신)
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        chatMessageRepository.findTopByChatRoomOrderByCreateDateDesc(chatRoom).ifPresent(lastMsg -> {
+            chatRoomMember.updateLastReadMessageId(lastMsg.getId());
+        });
+
+        // 3. 다른 참여자들에게 '상태 업데이트(읽음)' 신호 전송
+        messagingTemplate.convertAndSend("/sub/room/" + roomId, "updated");
+    }
+
+    @Transactional
+    public void exitChatRoom(Long roomId, Long memberId) {
+        // Redis에서 접속 정보 제거
+        chatRedisService.removeUserFromRoom(roomId, memberId);
+    }
+
     private ChatMessageResponseDto convertToDto(ChatMessage message) {
         return ChatMessageResponseDto.builder()
                 .messageId(message.getId())

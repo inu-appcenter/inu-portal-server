@@ -41,4 +41,16 @@ public class ChatController {
         Long memberId = Long.parseLong(authentication.getName());
         chatRoomService.sendMessage(messageDto, memberId);
     }
+
+    @MessageMapping("/enter")
+    public void enter(ChatMessageRequestDto messageDto, Authentication authentication) {
+        Long memberId = Long.parseLong(authentication.getName());
+        chatRoomService.enterChatRoom(messageDto.getRoomId(), memberId);
+    }
+
+    @MessageMapping("/leave")
+    public void leave(ChatMessageRequestDto messageDto, Authentication authentication) {
+        Long memberId = Long.parseLong(authentication.getName());
+        chatRoomService.exitChatRoom(messageDto.getRoomId(), memberId);
+    }
 }
