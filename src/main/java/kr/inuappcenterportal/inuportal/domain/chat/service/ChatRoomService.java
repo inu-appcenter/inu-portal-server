@@ -212,6 +212,7 @@ public class ChatRoomService {
                     .findFirst();
 
             long unreadCount = chatMessageRepository.countByChatRoomAndIdGreaterThan(room, m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
+            long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
 
             String title = room.getTitle();
             String senderName = "";
@@ -246,6 +247,7 @@ public class ChatRoomService {
                     .senderProfileImageNumber(senderProfileImageNumber)
                     .isOwner(room.getCreator().getId().equals(memberId))
                     .isOfficial(room.isOfficial())
+                    .currentParticipants((int) currentParticipants)
                     .build();
         })
         .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
