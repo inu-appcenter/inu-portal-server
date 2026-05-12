@@ -210,7 +210,9 @@ public class ChatRoomService {
         List<Long> blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
                 .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
 
-        return joinedRooms.stream().map(m -> {
+        return joinedRooms.stream()
+                .filter(m -> m.getChatRoom().getStatus() == ChatRoomStatus.ACTIVE)
+                .map(m -> {
             ChatRoom room = m.getChatRoom();
 
             Optional<ChatMessage> lastMsgOpt = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(room)
