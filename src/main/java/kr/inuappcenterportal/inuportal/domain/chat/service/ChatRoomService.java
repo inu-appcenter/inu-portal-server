@@ -230,15 +230,22 @@ public class ChatRoomService {
             LocalDateTime lastMessageTime = room.getCreateDate();
             String lastMessageContent = "아직 대화가 없습니다.";
 
-            // 1:1 개인 채팅이면서 방 제목이 비어있는 경우에만 상대방 닉네임을 제목으로 사용
-            if (room.getType() == ChatRoomType.PERSONAL && (title == null || title.isEmpty())) {
-                Optional<ChatRoomMember> otherMemberOpt = chatRoomMemberRepository
-                        .findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED)
-                        .stream().filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
-                if (otherMemberOpt.isPresent()) {
-                    title = otherMemberOpt.get().getMember().getNickname();
-                } else {
-                    title = "알 수 없음";
+            // 개인 채팅방 처리
+            if (room.getType() == ChatRoomType.PERSONAL) {
+                List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+                // 1:1 채팅방(참여 인원 2명)인 경우 항상 상대방 닉네임 사용
+                if (roomMembers.size() == 2) {
+                    Optional<ChatRoomMember> otherMemberOpt = roomMembers.stream()
+                            .filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
+                    title = otherMemberOpt.map(chatRoomMember -> chatRoomMember.getMember().getNickname()).orElse("알 수 없음");
+                } 
+                // 단체방인데 제목이 없는 경우만 상대방 닉네임 하나 노출 (또는 기본값 유지)
+                else if (title == null || title.isEmpty()) {
+                    title = roomMembers.stream()
+                            .filter(orm -> !orm.getMember().getId().equals(memberId))
+                            .findFirst()
+                            .map(crm -> crm.getMember().getNickname())
+                            .orElse("알 수 없음");
                 }
             }
 
@@ -555,10 +562,34 @@ public class ChatRoomService {
         }
 
         Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
-        String myHash = getSenderHash(memberId);
         boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
 
-        return ChatRoomResponseDto.of(chatRoom, currentParticipants.intValue(), myHash, isOwner, messages);
+        String title = chatRoom.getTitle();
+        if (chatRoom.getType() == ChatRoomType.PERSONAL) {
+            List<ChatRoomMember> members = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+            if (members.size() == 2) {
+                title = members.stream()
+                        .filter(m -> !m.getMember().getId().equals(memberId))
+                        .findFirst()
+                        .map(crm -> crm.getMember().getNickname())
+                        .orElse("알 수 없음");
+            }
+        }
+
+        return ChatRoomResponseDto.builder()
+                .id(chatRoom.getId())
+                .title(title)
+                .maxCapacity(chatRoom.getMaxCapacity())
+                .isAnonymous(chatRoom.isAnonymous())
+                .type(chatRoom.getType())
+                .status(chatRoom.getStatus())
+                .currentParticipants(currentParticipants.intValue())
+                .createDate(chatRoom.getCreateDate())
+                .myHash(getSenderHash(memberId))
+                .isOwner(isOwner)
+                .isOfficial(chatRoom.isOfficial())
+                .messages(messages)
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -630,6 +661,11 @@ public class ChatRoomService {
             boolean isAdmin = member.getRoles().contains("ROLE_ADMIN");
             if (!chatRoom.getCreator().getId().equals(memberId) && !isAdmin) {
                 throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
+            }
+        } else if (chatRoom.getType() == ChatRoomType.PERSONAL) {
+            // 1:1 채팅방은 이름 변경 불가
+            if (chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED) == 2) {
+                throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
             }
         }
 

@@ -15,5 +15,6 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     int countByChatRoom(ChatRoom chatRoom);
     List<ChatRoomMember> findAllByMemberAndStatus(Member member, ChatMemberStatus status);
     List<ChatRoomMember> findAllByChatRoomAndStatus(ChatRoom chatRoom, ChatMemberStatus status);
+    int countByChatRoomAndStatus(ChatRoom chatRoom, ChatMemberStatus status);
     long countByChatRoomAndLastReadMessageIdLessThan(ChatRoom chatRoom, Long messageId);
 }
