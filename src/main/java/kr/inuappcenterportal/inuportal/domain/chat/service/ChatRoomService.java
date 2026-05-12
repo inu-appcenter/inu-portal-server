@@ -81,7 +81,8 @@ public class ChatRoomService {
         String senderHash = getSenderHash(memberId);
         Long messageId = TSID.fast().toLong();
 
-        int initialUnreadCount = (int) chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
+        int initialUnreadCount = (int) chatRoomMemberRepository
+                .findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
 
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
@@ -114,7 +115,8 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatMessageResponseDto sendMessageWithImages(ChatMessageRequestDto messageDto, List<MultipartFile> images, Long memberId) throws IOException {
+    public ChatMessageResponseDto sendMessageWithImages(ChatMessageRequestDto messageDto, List<MultipartFile> images,
+            Long memberId) throws IOException {
         Member sender = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
@@ -143,7 +145,8 @@ public class ChatRoomService {
 
         imageService.saveChatImage(chatRoom.getId(), messageId, images, chatImagePath);
 
-        int initialUnreadCount = (int) chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
+        int initialUnreadCount = (int) chatRoomMemberRepository
+                .findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED).size() - 1;
 
         String senderHash = getSenderHash(memberId);
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
@@ -185,33 +188,38 @@ public class ChatRoomService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        List<ChatRoomMember> joinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(member, ChatMemberStatus.JOINED);
+        List<ChatRoomMember> joinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(member,
+                ChatMemberStatus.JOINED);
         long totalUnread = 0;
 
         for (ChatRoomMember m : joinedRooms) {
-            totalUnread += chatMessageRepository.countByChatRoomAndIdGreaterThan(m.getChatRoom(), m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
+            totalUnread += chatMessageRepository.countByChatRoomAndIdGreaterThan(m.getChatRoom(),
+                    m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
         }
 
         return new UnreadTotalCountResponseDto(totalUnread);
     }
-    
+
     @Transactional(readOnly = true)
     public List<MyChatRoomResponseDto> getMyChatRooms(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        List<ChatRoomMember> joinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(member, ChatMemberStatus.JOINED);
+        List<ChatRoomMember> joinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(member,
+                ChatMemberStatus.JOINED);
         List<Long> blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
                 .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
 
         return joinedRooms.stream().map(m -> {
             ChatRoom room = m.getChatRoom();
-            
-            Optional<ChatMessage> lastMsgOpt = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(room).stream()
+
+            Optional<ChatMessage> lastMsgOpt = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(room)
+                    .stream()
                     .filter(msg -> !blockedMemberIds.contains(msg.getSender().getId()))
                     .findFirst();
 
-            long unreadCount = chatMessageRepository.countByChatRoomAndIdGreaterThan(room, m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
+            long unreadCount = chatMessageRepository.countByChatRoomAndIdGreaterThan(room,
+                    m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
             long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
 
             String title = room.getTitle();
@@ -222,7 +230,8 @@ public class ChatRoomService {
 
             // 1:1 개인 채팅이면서 방 제목이 비어있는 경우에만 상대방 닉네임을 제목으로 사용
             if (room.getType() == ChatRoomType.PERSONAL && (title == null || title.isEmpty())) {
-                Optional<ChatRoomMember> otherMemberOpt = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED)
+                Optional<ChatRoomMember> otherMemberOpt = chatRoomMemberRepository
+                        .findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED)
                         .stream().filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
                 if (otherMemberOpt.isPresent()) {
                     title = otherMemberOpt.get().getMember().getNickname();
@@ -253,10 +262,9 @@ public class ChatRoomService {
                     .currentParticipants((int) currentParticipants)
                     .build();
         })
-        .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
-        .collect(Collectors.toList());
+                .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
+                .collect(Collectors.toList());
     }
-
 
     @Transactional
     public ChatRoomResponseDto getOrCreatePersonalChatRoom(PersonalChatRoomRequestDto requestDto, Long memberId) {
@@ -284,16 +292,20 @@ public class ChatRoomService {
         }
 
         // 기존 채팅방 확인
-        List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester, ChatMemberStatus.JOINED);
+        List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester,
+                ChatMemberStatus.JOINED);
         for (ChatRoomMember m : myJoinedRooms) {
             ChatRoom room = m.getChatRoom();
             if (room.getType() == ChatRoomType.PERSONAL && room.isOfficial() == isOfficial) {
-                List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
-                Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId()).collect(Collectors.toSet());
+                List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
+                        ChatMemberStatus.JOINED);
+                Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId())
+                        .collect(Collectors.toSet());
                 if (roomMemberIds.equals(allMemberIds)) {
                     Long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
                     boolean isOwner = room.getCreator().getId().equals(memberId);
-                    return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId), isOwner);
+                    return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId),
+                            isOwner);
                 }
             }
         }
@@ -303,8 +315,10 @@ public class ChatRoomService {
             for (Long targetId : targetIds) {
                 Member target = memberRepository.findById(targetId)
                         .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-                boolean isFriend = friendRepository.existsByRequesterAndReceiverAndStatus(requester, target, FriendStatus.ACCEPTED) ||
-                                   friendRepository.existsByRequesterAndReceiverAndStatus(target, requester, FriendStatus.ACCEPTED);
+                boolean isFriend = friendRepository.existsByRequesterAndReceiverAndStatus(requester, target,
+                        FriendStatus.ACCEPTED) ||
+                        friendRepository.existsByRequesterAndReceiverAndStatus(target, requester,
+                                FriendStatus.ACCEPTED);
                 if (!isFriend) {
                     throw new MyException(MyErrorCode.NOT_FRIEND);
                 }
@@ -330,7 +344,8 @@ public class ChatRoomService {
         chatRoomRepository.save(chatRoom);
 
         for (Long id : allMemberIds) {
-            Member member = memberRepository.findById(id).orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+            Member member = memberRepository.findById(id)
+                    .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
             ChatRoomMember chatRoomMember = ChatRoomMember.builder()
                     .chatRoom(chatRoom)
                     .member(member)
@@ -430,8 +445,17 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
-        if (!chatRoom.getCreator().getId().equals(memberId)) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        // 방장이거나 관리자인지 확인
+        boolean isAdmin = member.getRoles().contains("ROLE_ADMIN");
+        if (!chatRoom.getCreator().getId().equals(memberId) && !isAdmin) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
+        }
+
+        if (chatRoom.getType() != ChatRoomType.OPEN) {
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
 
         chatRoom.close();
@@ -442,7 +466,8 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
-        List<ChatRoomMember> members = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        List<ChatRoomMember> members = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom,
+                ChatMemberStatus.JOINED);
 
         return members.stream().map(m -> {
             Member member = m.getMember();
@@ -488,18 +513,21 @@ public class ChatRoomService {
             }
         }
 
-        messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
+        messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate,
+                Comparator.nullsLast(Comparator.naturalOrder())));
 
         if (messages.isEmpty()) {
             List<ChatMessage> dbMessages = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(chatRoom);
             messages.addAll(dbMessages.stream()
                     .map(this::convertToDto)
                     .collect(Collectors.toList()));
-            messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate, Comparator.nullsLast(Comparator.naturalOrder())));
+            messages.sort(Comparator.comparing(ChatMessageResponseDto::getCreateDate,
+                    Comparator.nullsLast(Comparator.naturalOrder())));
         }
 
         List<Long> readIds = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED)
-                .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId()).collect(Collectors.toList());
+                .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId())
+                .collect(Collectors.toList());
 
         messages = messages.stream().map(msg -> {
             int unread = (int) readIds.stream().filter(lastRead -> lastRead < msg.getMessageId()).count();
@@ -517,7 +545,8 @@ public class ChatRoomService {
 
         if (!messages.isEmpty()) {
             Long lastMessageId = messages.get(messages.size() - 1).getMessageId();
-            if (chatRoomMember.getLastReadMessageId() == null || lastMessageId > chatRoomMember.getLastReadMessageId()) {
+            if (chatRoomMember.getLastReadMessageId() == null
+                    || lastMessageId > chatRoomMember.getLastReadMessageId()) {
                 chatRoomMember.updateLastReadMessageId(lastMessageId);
                 broadcastReadUpdate(roomId);
             }
@@ -541,9 +570,11 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
 
-        List<ChatMessage> olderMessages = chatMessageRepository.findTop50ByChatRoomAndIdLessThanOrderByIdDesc(chatRoom, lastId);
+        List<ChatMessage> olderMessages = chatMessageRepository.findTop50ByChatRoomAndIdLessThanOrderByIdDesc(chatRoom,
+                lastId);
         List<Long> readIds = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED)
-                .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId()).collect(Collectors.toList());
+                .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId())
+                .collect(Collectors.toList());
 
         return olderMessages.stream()
                 .map(msg -> {
@@ -587,9 +618,17 @@ public class ChatRoomService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        // 채팅방 멤버인지 확인
+        // 1. 채팅방 멤버인지 확인
         if (!chatRoomMemberRepository.existsByChatRoomAndMember(chatRoom, member)) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        // 2. 오픈채팅인 경우 방장인지 확인 (관리자는 허용)
+        if (chatRoom.getType() == ChatRoomType.OPEN) {
+            boolean isAdmin = member.getRoles().contains("ROLE_ADMIN");
+            if (!chatRoom.getCreator().getId().equals(memberId) && !isAdmin) {
+                throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
+            }
         }
 
         chatRoom.updateTitle(requestDto.getTitle());
