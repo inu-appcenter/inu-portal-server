@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
@@ -81,6 +82,14 @@ public class ChatRedisService {
     public Long getRoomUserCount(Long roomId) {
         String key = String.format(ROOM_USERS_KEY_PREFIX, roomId);
         return redisTemplate.opsForSet().size(key);
+    }
+
+    /**
+     * 현재 채팅방 접속자 ID 목록 조회
+     */
+    public Set<String> getRoomUserIds(Long roomId) {
+        String key = String.format(ROOM_USERS_KEY_PREFIX, roomId);
+        return redisTemplate.opsForSet().members(key);
     }
 
     /**

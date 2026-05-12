@@ -19,6 +19,8 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import io.hypersistence.tsid.TSID;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class ChatRoomService {
     private final ChatBatchService chatBatchService;
     private final ImageService imageService;
     private final FriendRepository friendRepository;
+    private final FcmService fcmService;
     private final SimpMessageSendingOperations messagingTemplate;
     private final ObjectMapper objectMapper;
 
@@ -112,6 +115,8 @@ public class ChatRoomService {
 
         chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
                 .ifPresent(m -> m.updateLastReadMessageId(messageId));
+
+        sendChatNotification(chatRoom, sender, nickname, messageDto.getContent());
     }
 
     @Transactional
@@ -164,6 +169,8 @@ public class ChatRoomService {
 
         chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
                 .ifPresent(m -> m.updateLastReadMessageId(messageId));
+
+        sendChatNotification(chatRoom, sender, nickname, images.isEmpty() ? messageDto.getContent() : "사진을 보냈습니다.");
 
         return responseDto;
     }
@@ -700,6 +707,52 @@ public class ChatRoomService {
     public void exitChatRoom(Long roomId, Long memberId) {
         // Redis에서 접속 정보 제거
         chatRedisService.removeUserFromRoom(roomId, memberId);
+    }
+
+    private void sendChatNotification(ChatRoom room, Member sender, String senderNickname, String content) {
+        // 1. 현재 방에 접속 중인 사용자 ID 목록 가져오기
+        Set<String> activeUserIds = chatRedisService.getRoomUserIds(room.getId());
+
+        // 2. 알림을 받을 멤버 필터링 (참여 중인 멤버 - 나 - 현재 접속자)
+        List<ChatRoomMember> joinedMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+        List<Long> targetMemberIds = joinedMembers.stream()
+                .map(ChatRoomMember::getMember)
+                .filter(m -> !m.getId().equals(sender.getId())) // 발신자 제외
+                .filter(m -> !activeUserIds.contains(String.valueOf(m.getId()))) // 현재 접속자 제외
+                .map(Member::getId)
+                .toList();
+
+        if (targetMemberIds.isEmpty()) {
+            return;
+        }
+
+        // 3. 알림 제목 및 내용 구성
+        String title;
+        String body;
+
+        if (room.isOfficial()) {
+            title = "INTIP 운영자";
+            body = content;
+        } else if (room.getType() == ChatRoomType.PERSONAL) {
+            if (joinedMembers.size() == 2) {
+                // 1:1 채팅
+                title = senderNickname;
+                body = content;
+            } else {
+                // 그룹 채팅
+                title = (room.getTitle() == null || room.getTitle().isEmpty()) ? "그룹 채팅" : room.getTitle();
+                body = senderNickname + ": " + content;
+            }
+        } else {
+            // 오픈 채팅 (익명 포함)
+            title = room.getTitle();
+            body = senderNickname + ": " + content;
+        }
+
+        // 4. 알림 전송 (비동기 처리됨)
+        // 채팅 알림도 이력에 남기기 위해 sendToMembers (또는 이력을 남기지 않으려면 sendUntrackedNotification) 사용 가능
+        // 사용자가 알림 이력 조회를 원하므로 sendKeywordNotice 스타일의 배치를 활용하거나 간단한 래퍼를 사용
+        fcmService.sendUntrackedNotification(targetMemberIds, title, body);
     }
 
     private ChatMessageResponseDto convertToDto(ChatMessage message) {
