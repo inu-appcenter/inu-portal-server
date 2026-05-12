@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
 import java.time.LocalDateTime;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 
 @Slf4j
 @Controller
@@ -41,10 +42,16 @@ public class ChatController {
         Long memberId = Long.parseLong(authentication.getName());
         chatRoomService.sendMessage(messageDto, memberId);
     }
-
     @MessageMapping("/enter")
-    public void enter(ChatMessageRequestDto messageDto, Authentication authentication) {
+    public void enter(ChatMessageRequestDto messageDto, Authentication authentication, SimpMessageHeaderAccessor headerAccessor) {
         Long memberId = Long.parseLong(authentication.getName());
+        
+        // 세션 속성에 현재 채팅방 ID 저장 (연결 끊김 시 자동 처리를 위함)
+        if (headerAccessor.getSessionAttributes() != null) {
+            headerAccessor.getSessionAttributes().put("roomId", messageDto.getRoomId());
+            headerAccessor.getSessionAttributes().put("memberId", memberId);
+        }
+        
         chatRoomService.enterChatRoom(messageDto.getRoomId(), memberId);
     }
 

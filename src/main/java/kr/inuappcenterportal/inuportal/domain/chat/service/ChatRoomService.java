@@ -257,6 +257,8 @@ public class ChatRoomService {
                 lastMessageContent = lastMsg.getContent();
             }
 
+            int memberCount = chatRoomMemberRepository.countByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+
             return MyChatRoomResponseDto.builder()
                     .roomId(room.getId())
                     .title(title)
@@ -268,7 +270,7 @@ public class ChatRoomService {
                     .senderProfileImageNumber(senderProfileImageNumber)
                     .isOwner(room.getCreator().getId().equals(memberId))
                     .isOfficial(room.isOfficial())
-                    .currentParticipants((int) currentParticipants)
+                    .currentParticipants(memberCount)
                     .build();
         })
                 .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
@@ -561,7 +563,7 @@ public class ChatRoomService {
             }
         }
 
-        Long currentParticipants = chatRedisService.getRoomUserCount(roomId);
+        int memberCount = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
         boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
 
         String title = chatRoom.getTitle();
@@ -583,7 +585,7 @@ public class ChatRoomService {
                 .isAnonymous(chatRoom.isAnonymous())
                 .type(chatRoom.getType())
                 .status(chatRoom.getStatus())
-                .currentParticipants(currentParticipants.intValue())
+                .currentParticipants(memberCount)
                 .createDate(chatRoom.getCreateDate())
                 .myHash(getSenderHash(memberId))
                 .isOwner(isOwner)
