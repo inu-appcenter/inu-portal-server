@@ -539,6 +539,21 @@ public class ChatRoomService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<PublicChatMessageResponseDto> getPublicMessages(Long roomId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        if (chatRoom.getType() != ChatRoomType.OPEN) {
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION); // 오픈채팅이 아니면 접근 불가
+        }
+
+        List<ChatMessage> messages = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
+        return messages.stream()
+                .map(PublicChatMessageResponseDto::from)
+                .collect(Collectors.toList());
+    }
+
     private ChatMessageResponseDto convertToDto(ChatMessage message) {
         return ChatMessageResponseDto.builder()
                 .messageId(message.getId())

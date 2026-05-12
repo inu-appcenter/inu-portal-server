@@ -167,4 +167,16 @@ public class ChatRoomController {
         List<ChatMessageResponseDto> messages = chatRoomService.getOlderMessages(roomId, memberId, lastId);
         return ResponseEntity.ok(ResponseDto.of(messages));
     }
+    @Operation(summary = "채팅방 최신 메시지 2개 조회 (Public)", description = "로그인 없이 누구나 특정 오픈 채팅방의 최신 메시지 2개를 조회할 수 있습니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = PublicChatMessageResponseDto.class)))),
+            @ApiResponse(responseCode = "403", description = "오픈채팅방이 아님"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 채팅방")
+    })
+    @GetMapping("/{roomId}/messages/public")
+    public ResponseEntity<ResponseDto<List<PublicChatMessageResponseDto>>> getPublicMessages(
+            @PathVariable Long roomId) {
+        List<PublicChatMessageResponseDto> messages = chatRoomService.getPublicMessages(roomId);
+        return ResponseEntity.ok(ResponseDto.of(messages));
+    }
 }
