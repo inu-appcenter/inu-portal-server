@@ -84,7 +84,7 @@ class SendToMembersTest {
 
         when(fcmTokenRepository.findAllTokens()).thenReturn(List.of(linkedToken, unlinkedToken));
         when(memberRepository.findAllIds()).thenReturn(List.of(69L, 96L));
-        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+        when(fcmMessageRepository.saveAndFlush(any(FcmMessage.class))).thenAnswer(invocation -> {
             FcmMessage message = invocation.getArgument(0);
             ReflectionTestUtils.setField(message, "id", 1L);
             return message;
@@ -114,7 +114,7 @@ class SendToMembersTest {
 
         when(fcmTokenRepository.findAllByMemberIdIsNotNull()).thenReturn(List.of(fcmToken1, fcmToken2));
         when(memberRepository.findIdsWithLinkedFcmToken()).thenReturn(List.of(69L, 96L));
-        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+        when(fcmMessageRepository.saveAndFlush(any(FcmMessage.class))).thenAnswer(invocation -> {
             FcmMessage message = invocation.getArgument(0);
             ReflectionTestUtils.setField(message, "id", 1L);
             return message;
@@ -138,7 +138,7 @@ class SendToMembersTest {
 
         when(fcmTokenRepository.findAllByMemberIdIsNull()).thenReturn(List.of(fcmToken1, fcmToken2));
         when(memberRepository.findIdsWithoutLinkedFcmToken()).thenReturn(List.of(10L, 20L));
-        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+        when(fcmMessageRepository.saveAndFlush(any(FcmMessage.class))).thenAnswer(invocation -> {
             FcmMessage message = invocation.getArgument(0);
             ReflectionTestUtils.setField(message, "id", 1L);
             return message;
@@ -177,7 +177,7 @@ class SendToMembersTest {
                 .thenReturn(List.of(fcmToken1, fcmToken2));
         when(memberRepository.findAllById(eq(List.of(69L, 96L, 999L))))
                 .thenReturn(List.of(member1, member2));
-        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+        when(fcmMessageRepository.saveAndFlush(any(FcmMessage.class))).thenAnswer(invocation -> {
             FcmMessage message = invocation.getArgument(0);
             ReflectionTestUtils.setField(message, "id", 1L);
             return message;
@@ -210,7 +210,7 @@ class SendToMembersTest {
                 .thenReturn(List.of(69L, 96L));
         when(fcmTokenRepository.findFcmTokensByMemberIds(eq(List.of(69L, 96L))))
                 .thenReturn(List.of(fcmToken1, fcmToken2));
-        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+        when(fcmMessageRepository.saveAndFlush(any(FcmMessage.class))).thenAnswer(invocation -> {
             FcmMessage message = invocation.getArgument(0);
             ReflectionTestUtils.setField(message, "id", 1L);
             return message;
@@ -244,7 +244,7 @@ class SendToMembersTest {
                 .thenReturn(List.of(69L, 96L));
         when(fcmTokenRepository.findFcmTokensByMemberIds(eq(List.of(69L, 96L))))
                 .thenReturn(List.of(fcmToken1, fcmToken2));
-        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+        when(fcmMessageRepository.saveAndFlush(any(FcmMessage.class))).thenAnswer(invocation -> {
             FcmMessage message = invocation.getArgument(0);
             ReflectionTestUtils.setField(message, "id", 1L);
             return message;
@@ -362,7 +362,7 @@ class SendToMembersTest {
 
     private void verifySavedPendingMessage(int expectedTargetCount) {
         org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
-        verify(fcmMessageRepository).save(captor.capture());
+        verify(fcmMessageRepository).saveAndFlush(captor.capture());
         FcmMessage savedMessage = captor.getValue();
         assertThat(savedMessage.isAdminMessage()).isTrue();
         assertThat(savedMessage.getTargetCount()).isEqualTo(expectedTargetCount);
