@@ -17,6 +17,8 @@ public class OpenChatRoomResponseDto {
     private String title;
     @Schema(description = "채팅방 설명")
     private String description;
+    @Schema(description = "채팅방 썸네일")
+    private String thumbnailUrl;
     @Schema(description = "방장 닉네임")
     private String ownerNickname;
     @Schema(description = "최대 인원")
@@ -37,6 +39,7 @@ public class OpenChatRoomResponseDto {
                 .roomId(room.getId())
                 .title(room.getTitle())
                 .description(room.getDescription())
+                .thumbnailUrl(room.getThumbnailUrl())
                 .ownerNickname(ownerNickname)
                 .maxCapacity(room.getMaxCapacity())
                 .currentParticipants(currentParticipants)

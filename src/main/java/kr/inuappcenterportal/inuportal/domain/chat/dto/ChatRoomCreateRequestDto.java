@@ -23,4 +23,6 @@ public class ChatRoomCreateRequestDto {
     private ChatRoomType type;
 
     private String description;
+
+    private String thumbnailUrl;
 }

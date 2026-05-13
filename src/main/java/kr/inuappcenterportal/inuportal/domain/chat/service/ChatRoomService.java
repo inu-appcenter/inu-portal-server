@@ -297,6 +297,7 @@ public class ChatRoomService {
                             .isOwner(room.getCreator().getId().equals(memberId))
                             .isOfficial(room.isOfficial())
                             .currentParticipants(memberCount)
+                            .thumbnailUrl(room.getThumbnailUrl())
                             .build();
                 })
                 .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
@@ -456,6 +457,7 @@ public class ChatRoomService {
                 .type(requestDto.getType())
                 .creator(creator)
                 .isOfficial(false)
+                .thumbnailUrl(requestDto.getThumbnailUrl())
                 .build();
         chatRoomRepository.save(chatRoom);
 
@@ -483,6 +485,9 @@ public class ChatRoomService {
         Optional<ChatRoomMember> existingMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member);
         if (existingMember.isPresent()) {
             ChatRoomMember m = existingMember.get();
+            if (m.getStatus() == ChatMemberStatus.KICKED) {
+                throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION); // 강퇴당한 경우 재입장 불가
+            }
             if (m.getStatus() == ChatMemberStatus.LEFT) {
                 m.rejoin();
             }
@@ -823,6 +828,70 @@ public class ChatRoomService {
         } else {
             return member.getNickname();
         }
+    }
+
+    @Transactional
+    public void updateRoomInfo(Long roomId, ChatRoomUpdateRequestDto requestDto, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        if (!chatRoom.getCreator().getId().equals(memberId) && !member.getRoles().contains("ROLE_ADMIN")) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
+        }
+
+        int currentParticipants = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        if (requestDto.getMaxCapacity() < currentParticipants) {
+            throw new MyException(MyErrorCode.INVALID_INPUT); // 현재 인원보다 적게 설정 불가
+        }
+
+        chatRoom.updateInfo(requestDto.getTitle(), requestDto.getDescription(), requestDto.getThumbnailUrl(),
+                requestDto.getMaxCapacity());
+    }
+
+    @Transactional
+    public void delegateOwner(Long roomId, ChatRoomDelegateRequestDto requestDto, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        if (!chatRoom.getCreator().getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
+        }
+
+        Member newOwner = memberRepository.findById(requestDto.getNewOwnerId())
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember newOwnerMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, newOwner)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        if (newOwnerMember.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        chatRoom.updateCreator(newOwner);
+    }
+
+    @Transactional
+    public void kickMember(Long roomId, Long targetMemberId, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        if (!chatRoom.getCreator().getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
+        }
+
+        if (targetMemberId.equals(memberId)) {
+            throw new MyException(MyErrorCode.INVALID_INPUT); // 자신을 강퇴할 수 없음
+        }
+
+        Member targetMember = memberRepository.findById(targetMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, targetMember)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        chatRoomMember.kick();
+        chatRedisService.removeUserFromRoom(roomId, targetMemberId);
+        messagingTemplate.convertAndSend("/sub/room/" + roomId, "updated");
     }
 
     private void sendChatNotification(ChatRoom room, Member sender, String senderNickname, String content) {

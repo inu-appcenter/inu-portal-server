@@ -55,4 +55,8 @@ public class ChatRoomMember extends BaseTimeEntity {
     public void rejoin() {
         this.status = ChatMemberStatus.JOINED;
     }
+
+    public void kick() {
+        this.status = ChatMemberStatus.KICKED;
+    }
 }

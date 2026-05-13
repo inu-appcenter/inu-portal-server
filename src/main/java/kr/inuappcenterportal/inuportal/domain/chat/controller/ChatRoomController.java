@@ -9,15 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomCreateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomTitleUpdateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatMessageResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.ChatRoomMemberResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.MyChatRoomResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.UnreadTotalCountResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.PublicChatMessageResponseDto;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.PersonalChatRoomRequestDto;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
-import kr.inuappcenterportal.inuportal.domain.chat.dto.OpenChatRoomResponseDto;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -151,6 +141,42 @@ public class ChatRoomController {
             @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
         chatRoomService.updateChatRoomTitle(roomId, requestDto, memberId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "채팅방 정보 수정", description = "채팅방의 이름, 설명, 썸네일, 최대 인원을 수정합니다. 방장만 가능합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PatchMapping("/{roomId}/info")
+    public ResponseEntity<ResponseDto<Void>> updateChatRoomInfo(
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatRoomUpdateRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        chatRoomService.updateRoomInfo(roomId, requestDto, memberId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "방장 위임", description = "채팅방의 방장을 다른 멤버에게 위임합니다. 방장만 가능합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PatchMapping("/{roomId}/delegate")
+    public ResponseEntity<ResponseDto<Void>> delegateOwner(
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatRoomDelegateRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        chatRoomService.delegateOwner(roomId, requestDto, memberId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "멤버 강퇴", description = "채팅방의 특정 멤버를 강퇴합니다. 방장만 가능하며, 강퇴된 사용자는 재입장이 불가합니다.")
+    @SecurityRequirement(name = "Auth")
+    @DeleteMapping("/{roomId}/members/{targetMemberId}")
+    public ResponseEntity<ResponseDto<Void>> kickMember(
+            @PathVariable Long roomId,
+            @PathVariable Long targetMemberId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        chatRoomService.kickMember(roomId, targetMemberId, memberId);
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
