@@ -74,7 +74,9 @@ public class ChatRoomService {
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
         String nickname;
-        if (chatRoom.isAnonymous()) {
+        if (chatRoom.isOfficial() && sender.getRoles().contains("ROLE_ADMIN")) {
+            nickname = chatRedisService.getOrAssignAdminNickname(messageDto.getRoomId(), memberId);
+        } else if (chatRoom.isAnonymous()) {
             nickname = chatRedisService.getOrAssignAnonymousNickname(messageDto.getRoomId(), memberId);
         } else {
             nickname = sender.getNickname();
@@ -130,9 +132,14 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findById(messageDto.getRoomId())
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
 
-        String nickname = chatRoom.isAnonymous()
-                ? chatRedisService.getOrAssignAnonymousNickname(messageDto.getRoomId(), memberId)
-                : sender.getNickname();
+        String nickname;
+        if (chatRoom.isOfficial() && sender.getRoles().contains("ROLE_ADMIN")) {
+            nickname = chatRedisService.getOrAssignAdminNickname(chatRoom.getId(), memberId);
+        } else if (chatRoom.isAnonymous()) {
+            nickname = chatRedisService.getOrAssignAnonymousNickname(chatRoom.getId(), memberId);
+        } else {
+            nickname = sender.getNickname();
+        }
 
         Long messageId = TSID.fast().toLong();
         LocalDateTime now = LocalDateTime.now();
@@ -243,20 +250,24 @@ public class ChatRoomService {
 
             // 개인 채팅방 처리
             if (room.getType() == ChatRoomType.PERSONAL) {
-                List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
-                // 1:1 채팅방(참여 인원 2명)인 경우 항상 상대방 닉네임 사용
-                if (roomMembers.size() == 2) {
-                    Optional<ChatRoomMember> otherMemberOpt = roomMembers.stream()
-                            .filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
-                    title = otherMemberOpt.map(chatRoomMember -> chatRoomMember.getMember().getNickname()).orElse("알 수 없음");
-                } 
-                // 단체방인데 제목이 없는 경우만 상대방 닉네임 하나 노출 (또는 기본값 유지)
-                else if (title == null || title.isEmpty()) {
-                    title = roomMembers.stream()
-                            .filter(orm -> !orm.getMember().getId().equals(memberId))
-                            .findFirst()
-                            .map(crm -> crm.getMember().getNickname())
-                            .orElse("알 수 없음");
+                if (room.isOfficial() && !member.getRoles().contains("ROLE_ADMIN")) {
+                    title = "INTIP 운영자";
+                } else {
+                    List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+                    // 1:1 채팅방(참여 인원 2명)인 경우 항상 상대방 닉네임 사용
+                    if (roomMembers.size() == 2) {
+                        Optional<ChatRoomMember> otherMemberOpt = roomMembers.stream()
+                                .filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
+                        title = otherMemberOpt.map(chatRoomMember -> chatRoomMember.getMember().getNickname()).orElse("알 수 없음");
+                    }
+                    // 단체방인데 제목이 없는 경우만 상대방 닉네임 하나 노출 (또는 기본값 유지)
+                    else if (title == null || title.isEmpty()) {
+                        title = roomMembers.stream()
+                                .filter(orm -> !orm.getMember().getId().equals(memberId))
+                                .findFirst()
+                                .map(crm -> crm.getMember().getNickname())
+                                .orElse("알 수 없음");
+                    }
                 }
             }
 
@@ -314,20 +325,47 @@ public class ChatRoomService {
         }
 
         // 기존 채팅방 확인
-        List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester,
-                ChatMemberStatus.JOINED);
-        for (ChatRoomMember m : myJoinedRooms) {
-            ChatRoom room = m.getChatRoom();
-            if (room.getType() == ChatRoomType.PERSONAL && room.isOfficial() == isOfficial) {
-                List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
-                        ChatMemberStatus.JOINED);
-                Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId())
-                        .collect(Collectors.toSet());
-                if (roomMemberIds.equals(allMemberIds)) {
-                    Long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
-                    boolean isOwner = room.getCreator().getId().equals(memberId);
-                    return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId),
-                            isOwner);
+        if (isOfficial) {
+            // 공식 상담방인 경우, 대상 학생이 포함된 기존 공식 방이 있는지 확인 (통합 상담방 모델)
+            for (Long targetId : targetIds) {
+                Member target = memberRepository.findById(targetId)
+                        .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+                List<ChatRoomMember> targetJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(target, ChatMemberStatus.JOINED);
+                for (ChatRoomMember tm : targetJoinedRooms) {
+                    ChatRoom room = tm.getChatRoom();
+                    if (room.getType() == ChatRoomType.PERSONAL && room.isOfficial()) {
+                        // 이미 관리자가 참여 중인지 확인
+                        if (!chatRoomMemberRepository.existsByChatRoomAndMember(room, requester)) {
+                            ChatRoomMember newAdminMember = ChatRoomMember.builder()
+                                    .chatRoom(room)
+                                    .member(requester)
+                                    .build();
+                            chatRoomMemberRepository.save(newAdminMember);
+                            chatRedisService.addUserToRoom(room.getId(), memberId);
+                        }
+                        Long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
+                        boolean isOwner = room.getCreator().getId().equals(memberId);
+                        return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId), isOwner);
+                    }
+                }
+            }
+        } else {
+            // 일반 개인 채팅방인 경우, 정확히 멤버가 일치하는 방 찾기
+            List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester,
+                    ChatMemberStatus.JOINED);
+            for (ChatRoomMember m : myJoinedRooms) {
+                ChatRoom room = m.getChatRoom();
+                if (room.getType() == ChatRoomType.PERSONAL && !room.isOfficial()) {
+                    List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
+                            ChatMemberStatus.JOINED);
+                    Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId())
+                            .collect(Collectors.toSet());
+                    if (roomMemberIds.equals(allMemberIds)) {
+                        Long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
+                        boolean isOwner = room.getCreator().getId().equals(memberId);
+                        return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId),
+                                isOwner);
+                    }
                 }
             }
         }
@@ -494,7 +532,9 @@ public class ChatRoomService {
         return members.stream().map(m -> {
             Member member = m.getMember();
             String nickname;
-            if (chatRoom.isAnonymous()) {
+            if (chatRoom.isOfficial() && member.getRoles().contains("ROLE_ADMIN")) {
+                nickname = chatRedisService.getOrAssignAdminNickname(roomId, member.getId());
+            } else if (chatRoom.isAnonymous()) {
                 nickname = chatRedisService.getOrAssignAnonymousNickname(roomId, member.getId());
             } else {
                 nickname = member.getNickname();
@@ -579,13 +619,17 @@ public class ChatRoomService {
 
         String title = chatRoom.getTitle();
         if (chatRoom.getType() == ChatRoomType.PERSONAL) {
-            List<ChatRoomMember> members = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
-            if (members.size() == 2) {
-                title = members.stream()
-                        .filter(m -> !m.getMember().getId().equals(memberId))
-                        .findFirst()
-                        .map(crm -> crm.getMember().getNickname())
-                        .orElse("알 수 없음");
+            if (chatRoom.isOfficial() && !member.getRoles().contains("ROLE_ADMIN")) {
+                title = "INTIP 운영자";
+            } else {
+                List<ChatRoomMember> members = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+                if (members.size() == 2) {
+                    title = members.stream()
+                            .filter(m -> !m.getMember().getId().equals(memberId))
+                            .findFirst()
+                            .map(crm -> crm.getMember().getNickname())
+                            .orElse("알 수 없음");
+                }
             }
         }
 
@@ -760,10 +804,15 @@ public class ChatRoomService {
     }
 
     private ChatMessageResponseDto convertToDto(ChatMessage message) {
+        String nickname = message.getSenderNickname();
+        if (message.getChatRoom().isOfficial() && message.getSender().getRoles().contains("ROLE_ADMIN")) {
+            nickname = chatRedisService.getOrAssignAdminNickname(message.getChatRoom().getId(), message.getSender().getId());
+        }
+
         return ChatMessageResponseDto.builder()
                 .messageId(message.getId())
                 .roomId(message.getChatRoom().getId())
-                .senderNickname(message.getSenderNickname())
+                .senderNickname(nickname)
                 .senderHash(getSenderHash(message.getSender().getId()))
                 .content(message.getContent())
                 .imageCount(message.getImageCount())
