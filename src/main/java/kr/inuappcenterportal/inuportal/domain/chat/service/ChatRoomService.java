@@ -313,16 +313,24 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.NOT_SELF_CHAT); // 자기 자신과는 채팅방을 만들 수 없음
         }
 
-        Set<Long> allMemberIds = new HashSet<>(targetIds);
-        allMemberIds.add(memberId);
-
         boolean isOfficial = false;
         if (requestDto.isAdminMode()) {
             if (!requester.getRoles().contains("ROLE_ADMIN")) {
                 throw new MyException(MyErrorCode.NOT_ADMIN);
             }
+            // 운영자 채팅 대상 확인 (운영자끼리는 불가능)
+            for (Long targetId : targetIds) {
+                Member target = memberRepository.findById(targetId)
+                        .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+                if (target.getRoles().contains("ROLE_ADMIN")) {
+                    throw new MyException(MyErrorCode.INVALID_OFFICIAL_CHAT_TARGET);
+                }
+            }
             isOfficial = true;
         }
+
+        Set<Long> allMemberIds = new HashSet<>(targetIds);
+        allMemberIds.add(memberId);
 
         // 기존 채팅방 확인
         if (isOfficial) {
