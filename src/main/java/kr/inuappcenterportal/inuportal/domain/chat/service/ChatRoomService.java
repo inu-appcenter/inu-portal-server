@@ -258,7 +258,7 @@ public class ChatRoomService {
                         } else {
                             List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
                                     ChatMemberStatus.JOINED);
-                            // 1:1 채팅방(참여 인원 2명)인 경우 항상 상대방 닉네임 사용
+                            // 1:1 채팅방(참여 인원 2명)인 경우 항상 상대방 정보 사용
                             if (roomMembers.size() == 2) {
                                 Optional<ChatRoomMember> otherMemberOpt = roomMembers.stream()
                                         .filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
@@ -266,12 +266,23 @@ public class ChatRoomService {
                                     Member otherMember = otherMemberOpt.get().getMember();
                                     title = otherMember.getNickname();
                                     friendAlias = getFriendAlias(memberId, otherMember);
+                                    senderProfileImageNumber = otherMember.getFireId(); // 상대방 프로필 번호로 고정
                                 } else {
                                     title = "알 수 없음";
                                 }
                             }
-                            // 단체방인데 제목이 없는 경우만 상대방 닉네임 하나 노출 (또는 기본값 유지)
-                            else if (title == null || title.isEmpty()) {
+                            // 3인 이상 단체 개인방인 경우 프로필 번호를 null로 설정
+                            else if (roomMembers.size() >= 3) {
+                                senderProfileImageNumber = null;
+                            }
+                            
+                            // 단체방인데 제목이 없는 경우만 상대방 닉네임들 노출
+                            if ((title == null || title.isEmpty()) && roomMembers.size() > 2) {
+                                title = roomMembers.stream()
+                                        .filter(orm -> !orm.getMember().getId().equals(memberId))
+                                        .map(crm -> crm.getMember().getNickname())
+                                        .collect(Collectors.joining(", "));
+                            } else if ((title == null || title.isEmpty())) {
                                 title = roomMembers.stream()
                                         .filter(orm -> !orm.getMember().getId().equals(memberId))
                                         .findFirst()
@@ -284,7 +295,10 @@ public class ChatRoomService {
                     if (lastMsgOpt.isPresent()) {
                         ChatMessage lastMsg = lastMsgOpt.get();
                         senderName = lastMsg.getSenderNickname();
-                        senderProfileImageNumber = lastMsg.getSender().getFireId();
+                        // 오픈 채팅인 경우에만 마지막 채팅자의 프로필 이미지 번호 사용 (개인 채팅은 위에서 이미 결정됨)
+                        if (room.getType() != ChatRoomType.PERSONAL) {
+                            senderProfileImageNumber = lastMsg.getSender().getFireId();
+                        }
                         lastMessageTime = lastMsg.getCreateDate();
                         lastMessageContent = lastMsg.getContent();
                     }
