@@ -182,11 +182,7 @@ public class MemberService {
             throw new MyException(MyErrorCode.USER_NOT_FOUND);
         }
 
-        String studentId = target.getStudentId();
-        String maskedStudentId = studentId;
-        if (studentId != null && studentId.length() >= 6) {
-            maskedStudentId = studentId.substring(0, 4) + "*".repeat(studentId.length() - 6) + studentId.substring(studentId.length() - 2);
-        }
+        String maskedStudentId = target.getMaskedStudentId();
 
         String friendStatus = "NONE";
         Long friendId = null;

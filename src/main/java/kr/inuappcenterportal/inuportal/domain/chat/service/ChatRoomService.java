@@ -594,7 +594,8 @@ public class ChatRoomService {
 
             return ChatRoomMemberResponseDto.builder()
                     .nickname(nickname)
-                    .studentId(chatRoom.isAnonymous() ? null : member.getStudentId())
+                    .memberId(member.getId())
+                    .studentId(chatRoom.isAnonymous() ? null : member.getMaskedStudentId())
                     .fireId(chatRoom.isAnonymous() ? null : member.getFireId())
                     .isMe(member.getId().equals(memberId))
                     .isOwner(member.getId().equals(chatRoom.getCreator().getId()))

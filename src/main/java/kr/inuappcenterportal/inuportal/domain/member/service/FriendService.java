@@ -72,7 +72,7 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getRequester().getId())
                 .nickname(f.getRequester().getNickname())
-                .studentId(f.getRequester().getStudentId())
+                .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
                 .build()
         ).collect(Collectors.toList());
@@ -89,7 +89,7 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getReceiver().getId())
                 .nickname(f.getReceiver().getNickname())
-                .studentId(f.getReceiver().getStudentId())
+                .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
                 .build()
         ).collect(Collectors.toList());
@@ -110,7 +110,7 @@ public class FriendService {
         return FriendResponseDto.builder()
                 .memberId(target.getId())
                 .nickname(target.getNickname())
-                .studentId(target.getStudentId())
+                .studentId(target.getMaskedStudentId())
                 .fireId(target.getFireId())
                 .build();
     }
@@ -157,7 +157,7 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getReceiver().getId())
                 .nickname(f.getReceiver().getNickname())
-                .studentId(f.getReceiver().getStudentId())
+                .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
                 .friendAlias(f.getRequesterAlias())
                 .build()
@@ -167,7 +167,7 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getRequester().getId())
                 .nickname(f.getRequester().getNickname())
-                .studentId(f.getRequester().getStudentId())
+                .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
                 .friendAlias(f.getReceiverAlias())
                 .build()

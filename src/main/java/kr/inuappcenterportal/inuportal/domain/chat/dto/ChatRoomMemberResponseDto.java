@@ -6,14 +6,16 @@ import lombok.Getter;
 @Getter
 public class ChatRoomMemberResponseDto {
     private String nickname;
+    private Long memberId;
     private String studentId;
     private Long fireId;
     private boolean isMe;
     private boolean isOwner;
 
     @Builder
-    public ChatRoomMemberResponseDto(String nickname, String studentId, Long fireId, boolean isMe, boolean isOwner) {
+    public ChatRoomMemberResponseDto(String nickname, Long memberId, String studentId, Long fireId, boolean isMe, boolean isOwner) {
         this.nickname = nickname;
+        this.memberId = memberId;
         this.studentId = studentId;
         this.fireId = fireId;
         this.isMe = isMe;

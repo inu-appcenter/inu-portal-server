@@ -145,6 +145,13 @@ public class Member implements UserDetails {
         touchProfileModifiedAt();
     }
 
+    public String getMaskedStudentId() {
+        if (this.studentId == null || this.studentId.length() < 6) {
+            return this.studentId;
+        }
+        return this.studentId.substring(0, 4) + "*".repeat(this.studentId.length() - 6) + this.studentId.substring(this.studentId.length() - 2);
+    }
+
     @PrePersist
     private void initializeTimestamps() {
         LocalDateTime now = LocalDateTime.now();
