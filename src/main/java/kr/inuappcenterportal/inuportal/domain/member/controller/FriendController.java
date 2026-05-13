@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.service.FriendService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -81,5 +82,17 @@ public class FriendController {
     public ResponseEntity<ResponseDto<List<FriendResponseDto>>> getFriendList(@AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ResponseDto.of(friendService.getFriendList(memberId)));
+    }
+
+    @Operation(summary = "친구 별명 설정")
+    @SecurityRequirement(name = "Auth")
+    @PatchMapping("/{friendId}/alias")
+    public ResponseEntity<ResponseDto<Void>> updateFriendAlias(
+            @PathVariable Long friendId,
+            @Valid @RequestBody FriendAliasRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        friendService.updateFriendAlias(memberId, friendId, requestDto);
+        return ResponseEntity.ok(ResponseDto.of(null));
     }
 }

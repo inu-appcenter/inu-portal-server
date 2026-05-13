@@ -22,9 +22,10 @@ public class MyChatRoomResponseDto {
     private boolean isOfficial; // 운영자 공식 메시지 여부
     private int currentParticipants; // 현재 참여 인원수
     private String thumbnailUrl; // 채팅방 썸네일 URL
+    private String friendAlias; // 상대방이 친구일 경우 지정된 별명
 
     @Builder
-    public MyChatRoomResponseDto(Long roomId, String title, ChatRoomType type, String lastMessage, LocalDateTime lastMessageTime, long unreadCount, String senderName, Long senderProfileImageNumber, boolean isOwner, boolean isOfficial, int currentParticipants, String thumbnailUrl) {
+    public MyChatRoomResponseDto(Long roomId, String title, ChatRoomType type, String lastMessage, LocalDateTime lastMessageTime, long unreadCount, String senderName, Long senderProfileImageNumber, boolean isOwner, boolean isOfficial, int currentParticipants, String thumbnailUrl, String friendAlias) {
         this.roomId = roomId;
         this.title = title;
         this.type = type;
@@ -37,5 +38,6 @@ public class MyChatRoomResponseDto {
         this.isOfficial = isOfficial;
         this.currentParticipants = currentParticipants;
         this.thumbnailUrl = thumbnailUrl;
+        this.friendAlias = friendAlias;
     }
 }

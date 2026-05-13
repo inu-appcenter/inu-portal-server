@@ -22,6 +22,8 @@ public class MemberProfileResponseDto {
     private String maskedStudentId;
     @Schema(description = "친구 상태 (NONE, PENDING, RECEIVED, ACCEPTED)")
     private String friendStatus;
+    @Schema(description = "친구 별명 (친구인 경우에만 존재)")
+    private String friendAlias;
     @Schema(description = "친구 데이터 ID (친구 삭제 시 필요)")
     private Long friendId;
 }

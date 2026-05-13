@@ -212,7 +212,27 @@ public class MemberService {
                 .department(target.getDepartment())
                 .maskedStudentId(maskedStudentId)
                 .friendStatus(friendStatus)
+                .friendAlias(friendId != null ? getFriendAlias(viewerId, target) : null)
                 .friendId(friendId)
                 .build();
+    }
+
+    private String getFriendAlias(Long viewerId, Member target) {
+        if (viewerId == null || target == null) return null;
+
+        Member viewer = findMemberById(viewerId);
+        java.util.Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(viewer, target);
+        if (friendOpt.isPresent()) {
+            Friend f = friendOpt.get();
+            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getRequesterAlias();
+        }
+
+        java.util.Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, viewer);
+        if (reverseFriendOpt.isPresent()) {
+            Friend f = reverseFriendOpt.get();
+            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getReceiverAlias();
+        }
+
+        return null;
     }
 }

@@ -249,6 +249,7 @@ public class ChatRoomService {
                     Long senderProfileImageNumber = null;
                     LocalDateTime lastMessageTime = room.getCreateDate();
                     String lastMessageContent = "아직 대화가 없습니다.";
+                    String friendAlias = null;
 
                     // 개인 채팅방 처리
                     if (room.getType() == ChatRoomType.PERSONAL) {
@@ -261,8 +262,13 @@ public class ChatRoomService {
                             if (roomMembers.size() == 2) {
                                 Optional<ChatRoomMember> otherMemberOpt = roomMembers.stream()
                                         .filter(orm -> !orm.getMember().getId().equals(memberId)).findFirst();
-                                title = otherMemberOpt.map(chatRoomMember -> chatRoomMember.getMember().getNickname())
-                                        .orElse("알 수 없음");
+                                if (otherMemberOpt.isPresent()) {
+                                    Member otherMember = otherMemberOpt.get().getMember();
+                                    title = otherMember.getNickname();
+                                    friendAlias = getFriendAlias(memberId, otherMember);
+                                } else {
+                                    title = "알 수 없음";
+                                }
                             }
                             // 단체방인데 제목이 없는 경우만 상대방 닉네임 하나 노출 (또는 기본값 유지)
                             else if (title == null || title.isEmpty()) {
@@ -298,6 +304,7 @@ public class ChatRoomService {
                             .isOfficial(room.isOfficial())
                             .currentParticipants(memberCount)
                             .thumbnailUrl(room.getThumbnailUrl())
+                            .friendAlias(friendAlias)
                             .build();
                 })
                 .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
@@ -959,5 +966,25 @@ public class ChatRoomService {
                 .unreadCount(0)
                 .createDate(message.getCreateDate())
                 .build();
+    }
+
+    private String getFriendAlias(Long viewerId, Member target) {
+        if (viewerId == null || target == null) return null;
+
+        Optional<kr.inuappcenterportal.inuportal.domain.member.model.Friend> friendOpt = friendRepository.findByRequesterAndReceiver(
+                memberRepository.findById(viewerId).orElse(null), target);
+        if (friendOpt.isPresent()) {
+            kr.inuappcenterportal.inuportal.domain.member.model.Friend f = friendOpt.get();
+            if (f.getStatus() == kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED) return f.getRequesterAlias();
+        }
+
+        Optional<kr.inuappcenterportal.inuportal.domain.member.model.Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(
+                target, memberRepository.findById(viewerId).orElse(null));
+        if (reverseFriendOpt.isPresent()) {
+            kr.inuappcenterportal.inuportal.domain.member.model.Friend f = reverseFriendOpt.get();
+            if (f.getStatus() == kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED) return f.getReceiverAlias();
+        }
+
+        return null;
     }
 }
