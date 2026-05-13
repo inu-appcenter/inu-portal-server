@@ -25,6 +25,7 @@ public class PublicChatMessageResponseDto {
     private LocalDateTime createDate;
 
     private Integer imageCount;
+    private int unreadCount;
 
     @Override
     public boolean equals(Object o) {

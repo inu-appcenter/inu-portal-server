@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
@@ -19,6 +20,7 @@ public class ChatRedisService {
     private static final String ROOM_USERS_KEY_PREFIX = "room:%d:users";
     private static final String ROOM_ANON_MAP_KEY_PREFIX = "room:%d:anon_map"; // memberId -> anonNum
     private static final String ROOM_ANON_NUMBERS_KEY_PREFIX = "room:%d:anon_numbers"; // 사용된 익명 번호 Set
+    private static final String ROOM_ADMIN_MAP_KEY_PREFIX = "room:%d:admin_map"; // memberId -> adminNum
     private static final String ROOM_MESSAGES_KEY_PREFIX = "room:%d:messages";
     private static final int MAX_ANON_NUMBER = 9999;
     private static final int MAX_RETRY_COUNT = 10; // 무한 루프 방지
@@ -60,6 +62,27 @@ public class ChatRedisService {
     }
 
     /**
+     * 운영자 닉네임 조회 및 할당 (순차 번호 방식)
+     */
+    public String getOrAssignAdminNickname(Long roomId, Long memberId) {
+        String mapKey = String.format(ROOM_ADMIN_MAP_KEY_PREFIX, roomId);
+        String memberIdStr = String.valueOf(memberId);
+
+        // 기존에 할당된 번호가 있는지 확인
+        Object assignedNum = redisTemplate.opsForHash().get(mapKey, memberIdStr);
+        if (assignedNum != null) {
+            return "운영자" + assignedNum;
+        }
+
+        // 새로운 순차 번호 할당 (현재 매핑된 수 + 1)
+        Long nextNum = redisTemplate.opsForHash().size(mapKey) + 1;
+        String nextNumStr = String.valueOf(nextNum);
+
+        redisTemplate.opsForHash().put(mapKey, memberIdStr, nextNumStr);
+        return "운영자" + nextNumStr;
+    }
+
+    /**
      * 채팅방 접속자 추가 (Set)
      */
     public void addUserToRoom(Long roomId, Long memberId) {
@@ -81,6 +104,14 @@ public class ChatRedisService {
     public Long getRoomUserCount(Long roomId) {
         String key = String.format(ROOM_USERS_KEY_PREFIX, roomId);
         return redisTemplate.opsForSet().size(key);
+    }
+
+    /**
+     * 현재 채팅방 접속자 ID 목록 조회
+     */
+    public Set<String> getRoomUserIds(Long roomId) {
+        String key = String.format(ROOM_USERS_KEY_PREFIX, roomId);
+        return redisTemplate.opsForSet().members(key);
     }
 
     /**

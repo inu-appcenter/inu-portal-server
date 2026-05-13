@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
 import kr.inuappcenterportal.inuportal.domain.category.model.Category;
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.post.dto.CategoryPostResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostDto;
@@ -58,6 +59,8 @@ public class PostServiceTest {
     ImageService imageService;
     @Mock
     ReportRepository reportRepository;
+    @Mock
+    BlockRepository blockRepository;
     @Mock
     ReplyService replyService;
     @Mock
@@ -398,8 +401,8 @@ public class PostServiceTest {
         Page<Post> page1 = new PageImpl<>(Collections.singletonList(post1));
         Page<Post> page2 = new PageImpl<>(Collections.singletonList(post2));
 
-        when(postRepository.findAllByCategoryExcludingPostIds(eq("자유게시판"), any(), any())).thenReturn(page1);
-        when(postRepository.findAllByCategoryExcludingPostIds(eq("학사"), any(), any())).thenReturn(page2);
+        when(postRepository.findAllByCategoryExcludingPostIds(eq("자유게시판"), any(), any(), any())).thenReturn(page1);
+        when(postRepository.findAllByCategoryExcludingPostIds(eq("학사"), any(), any(), any())).thenReturn(page2);
         when(memberRepository.findById(member.getId())).thenReturn(Optional.of(member));
 
         // when
