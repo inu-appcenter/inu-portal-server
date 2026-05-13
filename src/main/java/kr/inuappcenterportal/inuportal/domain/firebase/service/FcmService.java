@@ -339,6 +339,36 @@ public class FcmService {
                 tokenAndMemberId.size(), deliveryResult.successCount(), deliveryResult.failureCount());
     }
 
+    /**
+     * DB에 이력을 남기면서(알림함 노출) 푸시 알림을 보냅니다.
+     */
+    @Async("messageExecutor")
+    @Transactional
+    public void sendTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return;
+        }
+
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .collect(Collectors.toMap(
+                        FcmToken::getToken,
+                        fcmToken -> fcmToken.getMemberId() == null ? UNLINKED_MEMBER_ID : fcmToken.getMemberId(),
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
+
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
+        batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
+
+        if (!tokenAndMemberId.isEmpty()) {
+            DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessage.getId(), tokenAndMemberId, title, body);
+            fcmTransactionService.updateFinalStatus(fcmMessage.getId(), deliveryResult.successCount(), deliveryResult.failureCount());
+        } else {
+            fcmTransactionService.updateFinalStatus(fcmMessage.getId(), 0, 0);
+        }
+    }
+
 
     @Transactional(readOnly = true)
     public List<AdminNotificationResponse> countAdminFcmMessagesSuccess(int page) {

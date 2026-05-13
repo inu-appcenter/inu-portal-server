@@ -19,16 +19,18 @@ public class ChatMessageResponseDto {
     private String senderHash; // 본인 여부 확인용 해시
     private String content;
     private int imageCount;
+    private int unreadCount;
     private LocalDateTime createDate; // createdAt 대신 createDate 사용
 
     @Builder
-    public ChatMessageResponseDto(Long messageId, Long roomId, String senderNickname, String senderHash, String content, int imageCount, LocalDateTime createDate) {
+    public ChatMessageResponseDto(Long messageId, Long roomId, String senderNickname, String senderHash, String content, int imageCount, int unreadCount, LocalDateTime createDate) {
         this.messageId = messageId;
         this.roomId = roomId;
         this.senderNickname = senderNickname;
         this.senderHash = senderHash;
         this.content = content;
         this.imageCount = imageCount;
+        this.unreadCount = unreadCount;
         this.createDate = createDate;
     }
 

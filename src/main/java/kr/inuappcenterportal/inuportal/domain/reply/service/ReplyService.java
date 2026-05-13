@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.reply.service;
 
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.domain.post.repository.PostRepository;
 import kr.inuappcenterportal.inuportal.domain.reply.dto.ReReplyResponseDto;
@@ -33,6 +34,7 @@ public class ReplyService {
     private final PostRepository postRepository;
     private final LikeReplyRepository likeReplyRepository;
     private final RedisService redisService;
+    private final BlockRepository blockRepository;
 
     @Transactional
     public Long saveReply(Member member, ReplyDto replyDto, Long postId) throws NoSuchAlgorithmException {
@@ -132,11 +134,20 @@ public class ReplyService {
     public List<ReplyResponseDto> getReplies(Long postId, Member member) {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> replies = replyRepository.findAllNonDeletedOrHavingChildren(post);
+        
+        List<Long> blockedMemberIds = new ArrayList<>();
+        if (member != null) {
+            blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                    .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+        }
+
         Set<Long> likedReplyIds = getMemberLikedIds(replies,member);
+        List<Long> finalBlockedMemberIds = blockedMemberIds;
         return replies.stream()
                 .filter(reply -> reply.getReply() == null)
+                .filter(reply -> reply.getMember() == null || !finalBlockedMemberIds.contains(reply.getMember().getId())) // 차단 필터
                 .map(reply -> {
-                    List<ReReplyResponseDto> reReplies = getReReplies(replies,reply,likedReplyIds,post,member);
+                    List<ReReplyResponseDto> reReplies = getReReplies(replies,reply,likedReplyIds,post,member, finalBlockedMemberIds);
                     boolean isLiked = likedReplyIds.contains(reply.getId());
                     String writer = writerName(reply,post);
                     long fireId = writer.equals("(알수없음)") ? 13 : reply.getMember().getFireId();
@@ -145,9 +156,10 @@ public class ReplyService {
                 .collect(Collectors.toList());
     }
 
-    private List<ReReplyResponseDto> getReReplies(List<Reply> replies, Reply reply, Set<Long> likedReplyIds, Post post, Member member){
+    private List<ReReplyResponseDto> getReReplies(List<Reply> replies, Reply reply, Set<Long> likedReplyIds, Post post, Member member, List<Long> blockedMemberIds){
         return  replies.stream()
                 .filter(reReply -> reReply.getReply() != null && reReply.getReply().getId().equals(reply.getId()))
+                .filter(reReply -> reReply.getMember() == null || !blockedMemberIds.contains(reReply.getMember().getId())) // 차단 필터
                 .map(reReply -> {
                     boolean isLiked = likedReplyIds.contains(reReply.getId());
                     String writer = writerName(reReply,post);
@@ -189,8 +201,18 @@ public class ReplyService {
     public List<ReReplyResponseDto> getBestReplies(Long postId,Member member){
         Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
         List<Reply> replies = replyRepository.findBestReplies(post);
+
+        List<Long> blockedMemberIds = new ArrayList<>();
+        if (member != null) {
+            blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                    .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+        }
+
         Set<Long> likedReplyIds = getMemberLikedIds(replies,member);
-        return replies.stream().map(reply -> {
+        List<Long> finalBlockedMemberIds = blockedMemberIds;
+        return replies.stream()
+                .filter(reply -> reply.getMember() == null || !finalBlockedMemberIds.contains(reply.getMember().getId())) // 차단 필터
+                .map(reply -> {
             String writer = writerName(reply,post);
             long fireId = writer.equals("(알수없음)")||writer.equals("(삭제됨)")?13: reply.getMember().getFireId();
             boolean isLiked = likedReplyIds.contains(reply.getId());

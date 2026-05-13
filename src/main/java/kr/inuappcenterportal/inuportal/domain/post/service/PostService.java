@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.post.service;
 
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
 import kr.inuappcenterportal.inuportal.domain.category.model.Category;
@@ -51,6 +52,7 @@ public class PostService {
     private final RedisService redisService;
     private final ImageService imageService;
     private final ReportRepository reportRepository;
+    private final BlockRepository blockRepository;
 
     @Value("${postImagePath}")
     private String path;
@@ -66,6 +68,7 @@ public class PostService {
                        RedisService redisService,
                        ImageService imageService,
                        ReportRepository reportRepository,
+                       BlockRepository blockRepository,
                        @Qualifier("cacheManager") CacheManager cacheManager,
                        @Qualifier("localCacheManager") CacheManager localCacheManager) {
         this.postRepository = postRepository;
@@ -77,6 +80,7 @@ public class PostService {
         this.redisService = redisService;
         this.imageService = imageService;
         this.reportRepository = reportRepository;
+        this.blockRepository = blockRepository;
         this.cacheManager = cacheManager;
         this.localCacheManager = localCacheManager;
     }
@@ -164,6 +168,13 @@ public class PostService {
         if(member!=null&&reportRepository.existsByPostIdAndMemberId(postId,member.getId())){
             throw new MyException(MyErrorCode.BANNED_POST);
         }
+
+        if (member != null && post.getMember() != null) {
+            if (blockRepository.existsByBlockerAndBlocked(member, post.getMember()) ||
+                blockRepository.existsByBlockerAndBlocked(post.getMember(), member)) {
+                throw new MyException(MyErrorCode.BANNED_POST); // 차단된 유저의 글 접근 차단
+            }
+        }
         if(redisService.isFirstConnect(address,postId,"post")){
             redisService.insertAddress(address,postId,"post");
             post.upViewCount();
@@ -211,11 +222,19 @@ public class PostService {
             }
         }
 
+        List<Long> blockedMemberIds = null;
+        if (member != null) {
+            blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                    .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+            if (blockedMemberIds.isEmpty()) blockedMemberIds = null;
+        }
+
         Pageable pageable = PageRequest.of(0, count, Sort.by(Sort.Direction.DESC, "createDate", "id"));
         List<Long> finalPostIds = postIds;
+        List<Long> finalBlockedMemberIds = blockedMemberIds;
         return categories.stream()
                 .map(category -> {
-                    List<PostListResponseDto> posts = postRepository.findAllByCategoryExcludingPostIds(category.getCategory(), finalPostIds, pageable)
+                    List<PostListResponseDto> posts = postRepository.findAllByCategoryExcludingPostIds(category.getCategory(), finalPostIds, finalBlockedMemberIds, pageable)
                             .stream()
                             .map(this::getPostListResponseDto)
                             .collect(Collectors.toList());
@@ -244,13 +263,20 @@ public class PostService {
         }
 
         Pageable pageable;
+        List<Long> blockedMemberIds = null;
+        if (member != null) {
+            blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                    .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+            if (blockedMemberIds.isEmpty()) blockedMemberIds = null;
+        }
+
         if (sort.equals("random")) {
             pageable = PageRequest.of(page>0?--page:page,8);
-            dto = postRepository.findAllRandomized(category,postIds,pageable);
+            dto = postRepository.findAllRandomized(category,postIds,blockedMemberIds,pageable);
         } else {
 
             pageable = PageRequest.of(page>0?--page:page,8,sortData(sort));
-            dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable);
+            dto = postRepository.findAllByCategoryExcludingPostIds(category,postIds,blockedMemberIds,pageable);
         }
 
         long total = dto.getTotalElements();
@@ -477,14 +503,24 @@ public class PostService {
                 postIds = null;
             }
         }
+
+        List<Long> blockedMemberIds = null;
+        if (member != null) {
+            blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                    .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+            if (blockedMemberIds.isEmpty()) blockedMemberIds = null;
+        }
+
         if(lastPostId==null){
-            return postRepository.findAllByCategoryExcludingPostIds(category,postIds,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findAllByCategoryExcludingPostIds(category,postIds,blockedMemberIds,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else if(category!=null){
-            return postRepository.findByCategoryAndIdLessThanAndIsDeletedFalse(category,lastPostId,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            // 카테고리가 있는 경우의 findByCategoryAndIdLessThanAndIsDeletedFalse는 Repository에 blockedMemberIds 파라미터가 없으므로 findFilteredPosts를 사용하도록 우회하거나 Repository를 수정해야 함
+            // 여기서는 일관성을 위해 findFilteredPosts를 사용하도록 수정
+            return postRepository.findFilteredPosts(category,lastPostId,postIds,blockedMemberIds,pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
         else {
-            return postRepository.findFilteredPosts(category,lastPostId,postIds, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
+            return postRepository.findFilteredPosts(category,lastPostId,postIds,blockedMemberIds, pageable).stream().map(this::getPostListResponseDto).collect(Collectors.toList());
         }
     }
 

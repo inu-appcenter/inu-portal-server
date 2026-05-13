@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.chat.dto;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -17,4 +18,7 @@ public class ChatRoomCreateRequestDto {
 
     @NotNull(message = "익명 채팅방 여부는 필수입니다.")
     private Boolean isAnonymous;
+
+    @NotNull(message = "채팅방 유형은 필수입니다.")
+    private ChatRoomType type;
 }
