@@ -4,5 +4,6 @@ public enum FcmMessageType {
     GENERAL,
     DEPARTMENT,
     SCHOOL_NOTICE,
-    CHAT
+    CHAT,
+    FRIEND
 }

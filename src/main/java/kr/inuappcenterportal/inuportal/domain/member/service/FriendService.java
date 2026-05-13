@@ -5,8 +5,11 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,8 @@ public class FriendService {
 
     private final FriendRepository friendRepository;
     private final MemberRepository memberRepository;
+    private final BlockRepository blockRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public void requestFriend(Long memberId, FriendRequestDto requestDto) {
@@ -40,12 +45,19 @@ public class FriendService {
             throw new MyException(MyErrorCode.ALREADY_FRIEND_OR_REQUESTED);
         }
 
+        if (blockRepository.existsByBlockerAndBlocked(requester, receiver) || 
+            blockRepository.existsByBlockerAndBlocked(receiver, requester)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
         Friend friend = Friend.builder()
                 .requester(requester)
                 .receiver(receiver)
                 .status(FriendStatus.PENDING)
                 .build();
         friendRepository.save(friend);
+
+        fcmService.sendTrackedNotification(List.of(receiver.getId()), "친구 요청", requester.getNickname() + "님이 친구 요청을 보냈습니다.", FcmMessageType.FRIEND);
     }
 
     @Transactional(readOnly = true)
@@ -83,15 +95,22 @@ public class FriendService {
     }
 
     @Transactional(readOnly = true)
-    public FriendResponseDto searchMemberByStudentId(String studentId) {
-        Member member = memberRepository.findByStudentId(studentId)
+    public FriendResponseDto searchMemberByStudentId(Long memberId, String studentId) {
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+        Member target = memberRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
+        if (blockRepository.existsByBlockerAndBlocked(requester, target) || 
+            blockRepository.existsByBlockerAndBlocked(target, requester)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
         return FriendResponseDto.builder()
-                .memberId(member.getId())
-                .nickname(member.getNickname())
-                .studentId(member.getStudentId())
-                .fireId(member.getFireId())
+                .memberId(target.getId())
+                .nickname(target.getNickname())
+                .studentId(target.getStudentId())
+                .fireId(target.getFireId())
                 .build();
     }
 
@@ -105,6 +124,8 @@ public class FriendService {
         }
 
         friend.accept();
+
+        fcmService.sendTrackedNotification(List.of(friend.getRequester().getId()), "친구 수락", friend.getReceiver().getNickname() + "님이 친구 요청을 수락했습니다.", FcmMessageType.FRIEND);
     }
 
     @Transactional
@@ -114,6 +135,10 @@ public class FriendService {
 
         if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+        }
+
+        if (friend.getStatus() == FriendStatus.PENDING && friend.getReceiver().getId().equals(memberId)) {
+            fcmService.sendTrackedNotification(List.of(friend.getRequester().getId()), "친구 요청 결과", "친구 요청이 거절되었습니다.", FcmMessageType.FRIEND);
         }
 
         friendRepository.delete(friend);

@@ -52,8 +52,9 @@ public class FriendController {
     @Operation(summary = "친구 검색 (학번 기반)")
     @SecurityRequirement(name = "Auth")
     @GetMapping("/search")
-    public ResponseEntity<ResponseDto<FriendResponseDto>> searchFriend(@RequestParam String studentId) {
-        return ResponseEntity.ok(ResponseDto.of(friendService.searchMemberByStudentId(studentId)));
+    public ResponseEntity<ResponseDto<FriendResponseDto>> searchFriend(@RequestParam String studentId, @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ResponseDto.of(friendService.searchMemberByStudentId(memberId, studentId)));
     }
 
     @Operation(summary = "친구 요청 수락")

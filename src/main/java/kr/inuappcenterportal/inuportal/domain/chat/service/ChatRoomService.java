@@ -313,6 +313,16 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.NOT_SELF_CHAT); // 자기 자신과는 채팅방을 만들 수 없음
         }
 
+        // 차단 여부 확인 (개인 채팅인 경우)
+        for (Long targetId : targetIds) {
+            Member target = memberRepository.findById(targetId)
+                    .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+            if (blockRepository.existsByBlockerAndBlocked(requester, target) ||
+                blockRepository.existsByBlockerAndBlocked(target, requester)) {
+                throw new MyException(MyErrorCode.USER_NOT_FOUND); // 검색과 동일하게 USER_NOT_FOUND로 응답
+            }
+        }
+
         boolean isOfficial = false;
         if (requestDto.isAdminMode()) {
             if (!requester.getRoles().contains("ROLE_ADMIN")) {
@@ -595,11 +605,19 @@ public class ChatRoomService {
                     Comparator.nullsLast(Comparator.naturalOrder())));
         }
 
+        List<Long> blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+        Set<String> blockedHashes = blockedMemberIds.stream()
+                .map(this::getSenderHash)
+                .collect(Collectors.toSet());
+
         List<Long> readIds = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED)
                 .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId())
                 .collect(Collectors.toList());
 
-        messages = messages.stream().map(msg -> {
+        messages = messages.stream()
+                .filter(msg -> msg.getSenderHash() == null || !blockedHashes.contains(msg.getSenderHash()))
+                .map(msg -> {
             int unread = (int) readIds.stream().filter(lastRead -> lastRead < msg.getMessageId()).count();
             return ChatMessageResponseDto.builder()
                     .messageId(msg.getMessageId())
@@ -674,9 +692,16 @@ public class ChatRoomService {
                 .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId())
                 .collect(Collectors.toList());
 
+        List<Long> blockedMemberIds = blockRepository.findAllByBlocker(member).stream()
+                .map(b -> b.getBlocked().getId()).collect(Collectors.toList());
+        Set<String> blockedHashes = blockedMemberIds.stream()
+                .map(this::getSenderHash)
+                .collect(Collectors.toSet());
+
         return olderMessages.stream()
-                .map(msg -> {
-                    ChatMessageResponseDto dto = convertToDto(msg);
+                .map(this::convertToDto)
+                .filter(dto -> dto.getSenderHash() == null || !blockedHashes.contains(dto.getSenderHash()))
+                .map(dto -> {
                     int unread = (int) readIds.stream().filter(lastRead -> lastRead < dto.getMessageId()).count();
                     return ChatMessageResponseDto.builder()
                             .messageId(dto.getMessageId())
@@ -702,7 +727,7 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION); // 오픈채팅이 아니면 접근 불가
         }
 
-        List<ChatMessage> messages = chatMessageRepository.findTop2ByChatRoomOrderByCreateDateDesc(chatRoom);
+        List<ChatMessage> messages = chatMessageRepository.findTop50ByChatRoomOrderByCreateDateDesc(chatRoom);
         return messages.stream()
                 .map(PublicChatMessageResponseDto::from)
                 .collect(Collectors.toList());
