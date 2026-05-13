@@ -391,8 +391,9 @@ public class ChatRoomService {
                         Long currentParticipants = (long) chatRoomMemberRepository.countByChatRoomAndStatus(room,
                                 ChatMemberStatus.JOINED);
                         boolean isOwner = room.getCreator().getId().equals(memberId);
+                        boolean pushEnabled = tm.getPushEnabled() != null ? tm.getPushEnabled() : true;
                         return ChatRoomResponseDto.of(room, currentParticipants.intValue(), getSenderHash(memberId),
-                                isOwner);
+                                isOwner, pushEnabled);
                     }
                 }
             }
@@ -411,8 +412,9 @@ public class ChatRoomService {
                         int memberCount = chatRoomMemberRepository.countByChatRoomAndStatus(room,
                                 ChatMemberStatus.JOINED);
                         boolean isOwner = room.getCreator().getId().equals(memberId);
+                        boolean pushEnabled = m.getPushEnabled() != null ? m.getPushEnabled() : true;
                         return ChatRoomResponseDto.of(room, memberCount, getSenderHash(memberId),
-                                isOwner);
+                                isOwner, pushEnabled);
                     }
                 }
             }
@@ -461,7 +463,7 @@ public class ChatRoomService {
             chatRoomMemberRepository.save(chatRoomMember);
         }
 
-        return ChatRoomResponseDto.of(chatRoom, allMemberIds.size(), getSenderHash(memberId), true);
+        return ChatRoomResponseDto.of(chatRoom, allMemberIds.size(), getSenderHash(memberId), true, true);
     }
 
     @Transactional
@@ -489,7 +491,7 @@ public class ChatRoomService {
                 .build();
         chatRoomMemberRepository.save(chatRoomMember);
 
-        return ChatRoomResponseDto.of(chatRoom, 1, getSenderHash(memberId), true);
+        return ChatRoomResponseDto.of(chatRoom, 1, getSenderHash(memberId), true, true);
     }
 
     @Transactional
@@ -515,7 +517,8 @@ public class ChatRoomService {
             }
             int memberCount = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
             boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
-            return ChatRoomResponseDto.of(chatRoom, memberCount, getSenderHash(memberId), isOwner);
+            boolean pushEnabled = m.getPushEnabled() != null ? m.getPushEnabled() : true;
+            return ChatRoomResponseDto.of(chatRoom, memberCount, getSenderHash(memberId), isOwner, pushEnabled);
         }
 
         int totalParticipants = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
@@ -531,7 +534,8 @@ public class ChatRoomService {
 
         boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
         int finalParticipants = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
-        return ChatRoomResponseDto.of(chatRoom, finalParticipants, getSenderHash(memberId), isOwner);
+        boolean pushEnabled = chatRoomMember.getPushEnabled() != null ? chatRoomMember.getPushEnabled() : true;
+        return ChatRoomResponseDto.of(chatRoom, finalParticipants, getSenderHash(memberId), isOwner, pushEnabled);
     }
 
     @Transactional
