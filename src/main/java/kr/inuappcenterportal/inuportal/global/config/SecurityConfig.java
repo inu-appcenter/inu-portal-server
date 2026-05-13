@@ -55,7 +55,7 @@ public class SecurityConfig {
 
                         // USER 또는 ADMIN 권한 설정
                         .requestMatchers(HttpMethod.POST, "/api/reports/**", "/api/portal/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/chat-rooms/**", "/api/members/**", "/api/members", "/api/tokens", "/api/posts/**", "/api/posts", "/api/fires/**", "/api/petitions", "/api/petitions/**", "/api/replies/**", "/api/reservations/**", "/api/folders/**", "/api/folders", "/api/search/**", "/api/keywords/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/chat-rooms/**", "/api/members/**", "/api/members", "/api/friends", "/api/friends/**", "/api/tokens", "/api/posts/**", "/api/posts", "/api/fires/**", "/api/petitions", "/api/petitions/**", "/api/replies/**", "/api/reservations/**", "/api/folders/**", "/api/folders", "/api/search/**", "/api/keywords/**").hasAnyRole("USER", "ADMIN")
 
                         // 추가 인증 필요 설정
                         .requestMatchers(HttpMethod.POST, "/api/chat/messages").authenticated()
