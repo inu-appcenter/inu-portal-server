@@ -34,13 +34,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -315,7 +313,6 @@ public class FcmService {
      * @param title 알림 제목
      * @param body 알림 내용
      */
-    @Async("messageExecutor")
     @Transactional(readOnly = true)
     public void sendUntrackedNotification(List<Long> memberIds, String title, String body) {
         if (memberIds == null || memberIds.isEmpty()) {
@@ -342,7 +339,6 @@ public class FcmService {
     /**
      * DB에 이력을 남기면서(알림함 노출) 푸시 알림을 보냅니다.
      */
-    @Async("messageExecutor")
     @Transactional
     public void sendTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type) {
         if (memberIds == null || memberIds.isEmpty()) {
@@ -422,7 +418,7 @@ public class FcmService {
                 .isAdminMessage(adminMessage)
                 .build();
         fcmMessage.markPending(targetCount);
-        return fcmMessageRepository.save(fcmMessage);
+        return fcmMessageRepository.saveAndFlush(fcmMessage);
     }
 
     private NotificationTargets getAdminNotificationTargets(AdminNotificationRequest request) {
