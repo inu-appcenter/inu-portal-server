@@ -706,6 +706,7 @@ public class ChatRoomService {
                 .myHash(getSenderHash(memberId))
                 .isOwner(isOwner)
                 .isOfficial(chatRoom.isOfficial())
+                .pushEnabled(chatRoomMember.getPushEnabled() != null ? chatRoomMember.getPushEnabled() : true)
                 .messages(messages)
                 .build();
     }
