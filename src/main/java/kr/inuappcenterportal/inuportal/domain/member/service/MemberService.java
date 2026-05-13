@@ -235,4 +235,11 @@ public class MemberService {
 
         return null;
     }
+
+    @Transactional
+    public boolean toggleChatPush(Long memberId) {
+        Member member = findMemberById(memberId);
+        member.toggleChatPush();
+        return member.getChatPushEnabled();
+    }
 }

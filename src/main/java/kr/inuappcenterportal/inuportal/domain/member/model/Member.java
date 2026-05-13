@@ -67,6 +67,9 @@ public class Member implements UserDetails {
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
+    @Column(name = "chat_push_enabled")
+    private Boolean chatPushEnabled = true;
+
     @OneToMany(mappedBy = "member", fetch = FetchType.LAZY, cascade = jakarta.persistence.CascadeType.ALL)
     private List<Scrap> scraps;
 
@@ -131,6 +134,11 @@ public class Member implements UserDetails {
         }
 
         return !this.lastSeenAt.isAfter(now.minusMinutes(thresholdMinutes));
+    }
+
+    public void toggleChatPush() {
+        this.chatPushEnabled = !this.chatPushEnabled;
+        touchProfileModifiedAt();
     }
 
     @PrePersist

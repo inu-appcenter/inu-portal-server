@@ -40,6 +40,9 @@ public class MemberResponseDto {
     @Schema(description = "마지막 접속 시각")
     private LocalDateTime lastSeenAt;
 
+    @Schema(description = "전체 채팅 알림 수신 여부")
+    private Boolean chatPushEnabled;
+
     @Builder
     private MemberResponseDto(Member member, String role, Department department) {
         this.id = member.getId();
@@ -51,6 +54,7 @@ public class MemberResponseDto {
         this.joinedAt = member.getJoinedAt();
         this.profileModifiedAt = member.getProfileModifiedAt();
         this.lastSeenAt = member.getLastSeenAt();
+        this.chatPushEnabled = member.getChatPushEnabled();
     }
 
     public static MemberResponseDto userMember(Member member){

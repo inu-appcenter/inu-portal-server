@@ -185,4 +185,11 @@ public class MemberController {
     public ResponseEntity<ResponseDto<MemberResponseDto>> agreeTerms(@AuthenticationPrincipal Member member){
         return ResponseEntity.ok(ResponseDto.of(memberService.agreeTerms(member.getId()),"회원 약관 동의 성공"));
     }
+
+    @Operation(summary = "전체 채팅 푸시 알림 설정 토글", description = "전체 채팅 푸시 알림을 켜거나 끕니다.")
+    @PatchMapping("/push-setting/chat")
+    public ResponseEntity<ResponseDto<Boolean>> toggleChatPush(@AuthenticationPrincipal Member member) {
+        boolean isEnabled = memberService.toggleChatPush(member.getId());
+        return ResponseEntity.ok(ResponseDto.of(isEnabled, "전체 채팅 알림 설정이 " + (isEnabled ? "켜졌습니다" : "꺼졌습니다")));
+    }
 }

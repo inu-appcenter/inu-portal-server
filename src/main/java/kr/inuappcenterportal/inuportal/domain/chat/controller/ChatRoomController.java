@@ -237,4 +237,15 @@ public class ChatRoomController {
         List<PublicChatMessageResponseDto> messages = chatRoomService.getPublicMessages(roomId);
         return ResponseEntity.ok(ResponseDto.of(messages));
     }
+
+    @Operation(summary = "채팅방 푸시 알림 설정 토글", description = "특정 채팅방의 푸시 알림을 켜거나 끕니다.")
+    @SecurityRequirement(name = "Auth")
+    @PatchMapping("/{roomId}/push-setting")
+    public ResponseEntity<ResponseDto<Boolean>> toggleRoomPush(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        boolean isEnabled = chatRoomService.toggleRoomPush(roomId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(isEnabled, "채팅방 알림 설정이 " + (isEnabled ? "켜졌습니다" : "꺼졌습니다")));
+    }
 }

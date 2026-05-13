@@ -34,6 +34,9 @@ public class ChatRoomMember extends BaseTimeEntity {
     @Column(nullable = false)
     private ChatMemberStatus status;
 
+    @Column(name = "push_enabled")
+    private Boolean pushEnabled = true;
+
     @Builder
     public ChatRoomMember(ChatRoom chatRoom, Member member) {
         this.chatRoom = chatRoom;
@@ -58,5 +61,9 @@ public class ChatRoomMember extends BaseTimeEntity {
 
     public void kick() {
         this.status = ChatMemberStatus.KICKED;
+    }
+
+    public void togglePush() {
+        this.pushEnabled = !this.pushEnabled;
     }
 }

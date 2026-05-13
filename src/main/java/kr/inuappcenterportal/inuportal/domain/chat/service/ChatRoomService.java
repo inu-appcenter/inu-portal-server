@@ -242,7 +242,7 @@ public class ChatRoomService {
 
                     long unreadCount = chatMessageRepository.countByChatRoomAndIdGreaterThan(room,
                             m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId());
-                    // long currentParticipants = chatRedisService.getRoomUserCount(room.getId());
+                    boolean pushEnabled = m.getPushEnabled() != null ? m.getPushEnabled() : true;
 
                     String title = room.getTitle();
                     String senderName = "";
@@ -305,6 +305,7 @@ public class ChatRoomService {
                             .currentParticipants(memberCount)
                             .thumbnailUrl(room.getThumbnailUrl())
                             .friendAlias(friendAlias)
+                            .pushEnabled(pushEnabled)
                             .build();
                 })
                 .sorted(Comparator.comparing(MyChatRoomResponseDto::getLastMessageTime, Comparator.reverseOrder()))
@@ -909,7 +910,9 @@ public class ChatRoomService {
         List<ChatRoomMember> joinedMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
                 ChatMemberStatus.JOINED);
         List<Long> targetMemberIds = joinedMembers.stream()
+                .filter(m -> m.getPushEnabled() != null ? m.getPushEnabled() : true)
                 .map(ChatRoomMember::getMember)
+                .filter(m -> m.getChatPushEnabled() != null ? m.getChatPushEnabled() : true)
                 .filter(m -> !m.getId().equals(sender.getId())) // 발신자 제외
                 .filter(m -> !activeUserIds.contains(String.valueOf(m.getId()))) // 현재 접속자 제외
                 .map(Member::getId)
@@ -966,6 +969,20 @@ public class ChatRoomService {
                 .unreadCount(0)
                 .createDate(message.getCreateDate())
                 .build();
+    }
+
+    @Transactional
+    public boolean toggleRoomPush(Long roomId, Long memberId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(room, member)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        chatRoomMember.togglePush();
+        return chatRoomMember.getPushEnabled();
     }
 
     private String getFriendAlias(Long viewerId, Member target) {
