@@ -137,7 +137,11 @@ public class Member implements UserDetails {
     }
 
     public void toggleChatPush() {
-        this.chatPushEnabled = !this.chatPushEnabled;
+        if (this.chatPushEnabled == null) {
+            this.chatPushEnabled = false; // 기본값이 true이므로 토글하면 false
+        } else {
+            this.chatPushEnabled = !this.chatPushEnabled;
+        }
         touchProfileModifiedAt();
     }
 

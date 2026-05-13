@@ -64,6 +64,10 @@ public class ChatRoomMember extends BaseTimeEntity {
     }
 
     public void togglePush() {
-        this.pushEnabled = !this.pushEnabled;
+        if (this.pushEnabled == null) {
+            this.pushEnabled = false; // 기본값이 true이므로 토글하면 false가 됨
+        } else {
+            this.pushEnabled = !this.pushEnabled;
+        }
     }
 }
