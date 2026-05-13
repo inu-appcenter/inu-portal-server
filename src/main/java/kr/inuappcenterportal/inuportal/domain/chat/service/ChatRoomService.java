@@ -19,8 +19,7 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
-import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
 import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import io.hypersistence.tsid.TSID;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +50,7 @@ public class ChatRoomService {
     private final ChatBatchService chatBatchService;
     private final ImageService imageService;
     private final FriendRepository friendRepository;
-    private final FcmService fcmService;
+    private final FcmAsyncService fcmAsyncService;
     private final SimpMessageSendingOperations messagingTemplate;
     private final ObjectMapper objectMapper;
 
@@ -837,7 +836,7 @@ public class ChatRoomService {
         // 채팅 알림도 이력에 남기기 위해 sendToMembers (또는 이력을 남기지 않으려면 sendUntrackedNotification)
         // 사용 가능
         // 사용자가 알림 이력 조회를 원하므로 sendKeywordNotice 스타일의 배치를 활용하거나 간단한 래퍼를 사용
-        fcmService.sendUntrackedNotification(targetMemberIds, title, body);
+        fcmAsyncService.sendAsyncUntrackedNotification(targetMemberIds, title, body);
     }
 
     private ChatMessageResponseDto convertToDto(ChatMessage message) {
