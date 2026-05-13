@@ -23,7 +23,7 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .components(new Components()
-                        .addSecuritySchemes("AuthToken", new SecurityScheme()
+                        .addSecuritySchemes("Auth", new SecurityScheme()
                                 .name("Auth")
                                 .type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.HEADER)
@@ -34,7 +34,7 @@ public class SwaggerConfig {
                                 .in(SecurityScheme.In.HEADER)
                                 .description("JWT Refresh Token")))
                 .addSecurityItem(new SecurityRequirement()
-                        .addList("AuthToken")
+                        .addList("Auth")
                         .addList("RefreshToken"))
                 .servers(SERVERS)
                 .info(apiInfo());

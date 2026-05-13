@@ -20,13 +20,13 @@ import java.util.List;
 @Tag(name = "Friend", description = "친구 관리 API")
 @RestController
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Auth")
 @RequestMapping("/api/friends")
 public class FriendController {
 
     private final FriendService friendService;
 
     @Operation(summary = "친구 신청 (닉네임 기반)")
-    @SecurityRequirement(name = "Auth")
     @PostMapping("/request")
     public ResponseEntity<ResponseDto<Void>> requestFriend(@Valid @RequestBody FriendRequestDto requestDto, @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
