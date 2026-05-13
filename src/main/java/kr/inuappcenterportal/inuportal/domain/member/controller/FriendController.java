@@ -24,7 +24,7 @@ public class FriendController {
 
     private final FriendService friendService;
 
-    @Operation(summary = "친구 신청 (학번 기반)")
+    @Operation(summary = "친구 신청 (닉네임 기반)")
     @SecurityRequirement(name = "Auth")
     @PostMapping("/request")
     public ResponseEntity<ResponseDto<Void>> requestFriend(@Valid @RequestBody FriendRequestDto requestDto, @AuthenticationPrincipal UserDetails userDetails) {
@@ -49,12 +49,12 @@ public class FriendController {
         return ResponseEntity.ok(ResponseDto.of(friendService.getSentPendingRequests(memberId)));
     }
 
-    @Operation(summary = "친구 검색 (학번 기반)")
+    @Operation(summary = "친구 검색 (닉네임 기반)")
     @SecurityRequirement(name = "Auth")
     @GetMapping("/search")
-    public ResponseEntity<ResponseDto<FriendResponseDto>> searchFriend(@RequestParam String studentId, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ResponseDto<FriendResponseDto>> searchFriend(@RequestParam String nickname, @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        return ResponseEntity.ok(ResponseDto.of(friendService.searchMemberByStudentId(memberId, studentId)));
+        return ResponseEntity.ok(ResponseDto.of(friendService.searchMemberByNickname(memberId, nickname)));
     }
 
     @Operation(summary = "친구 요청 수락")

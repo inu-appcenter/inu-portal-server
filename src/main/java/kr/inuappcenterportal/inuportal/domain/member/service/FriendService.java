@@ -33,7 +33,7 @@ public class FriendService {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
         
-        Member receiver = memberRepository.findByStudentId(requestDto.getStudentId())
+        Member receiver = memberRepository.findByNickname(requestDto.getNickname())
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (requester.getId().equals(receiver.getId())) {
@@ -95,10 +95,10 @@ public class FriendService {
     }
 
     @Transactional(readOnly = true)
-    public FriendResponseDto searchMemberByStudentId(Long memberId, String studentId) {
+    public FriendResponseDto searchMemberByNickname(Long memberId, String nickname) {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-        Member target = memberRepository.findByStudentId(studentId)
+        Member target = memberRepository.findByNickname(nickname)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (blockRepository.existsByBlockerAndBlocked(requester, target) || 
