@@ -30,6 +30,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -448,6 +450,7 @@ public class ChatRoomService {
 
         ChatRoom chatRoom = ChatRoom.builder()
                 .title(requestDto.getTitle())
+                .description(requestDto.getDescription())
                 .maxCapacity(requestDto.getMaxCapacity())
                 .isAnonymous(isAnonymous)
                 .type(requestDto.getType())
@@ -789,6 +792,37 @@ public class ChatRoomService {
     public void exitChatRoom(Long roomId, Long memberId) {
         // Redis에서 접속 정보 제거
         chatRedisService.removeUserFromRoom(roomId, memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OpenChatRoomResponseDto> getOpenChatRooms(Long memberId, String search, Pageable pageable) {
+        Page<ChatRoom> chatRooms = chatRoomRepository.findOpenChatRooms(search, pageable);
+
+        Set<Long> joinedRoomIds = new HashSet<>();
+        if (memberId != null) {
+            Member member = memberRepository.findById(memberId)
+                    .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+            joinedRoomIds = chatRoomMemberRepository.findAllByMemberAndStatus(member, ChatMemberStatus.JOINED)
+                    .stream().map(cm -> cm.getChatRoom().getId()).collect(Collectors.toSet());
+        }
+
+        final Set<Long> finalJoinedRoomIds = joinedRoomIds;
+        return chatRooms.map(room -> {
+            int participantCount = chatRoomMemberRepository.countByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+            String ownerNickname = getDisplayNickname(room, room.getCreator());
+            boolean isJoined = finalJoinedRoomIds.contains(room.getId());
+            return OpenChatRoomResponseDto.of(room, participantCount, ownerNickname, isJoined);
+        });
+    }
+
+    private String getDisplayNickname(ChatRoom chatRoom, Member member) {
+        if (chatRoom.isOfficial() && member.getRoles().contains("ROLE_ADMIN")) {
+            return chatRedisService.getOrAssignAdminNickname(chatRoom.getId(), member.getId());
+        } else if (chatRoom.isAnonymous()) {
+            return chatRedisService.getOrAssignAnonymousNickname(chatRoom.getId(), member.getId());
+        } else {
+            return member.getNickname();
+        }
     }
 
     private void sendChatNotification(ChatRoom room, Member sender, String senderNickname, String content) {

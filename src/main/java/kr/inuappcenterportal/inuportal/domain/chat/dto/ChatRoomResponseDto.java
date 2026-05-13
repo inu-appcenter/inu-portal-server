@@ -19,6 +19,7 @@ public class ChatRoomResponseDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
     private String title;
+    private String description;
     private int maxCapacity;
     private boolean isAnonymous;
     private ChatRoomType type;
@@ -31,9 +32,10 @@ public class ChatRoomResponseDto {
     private List<ChatMessageResponseDto> messages; // 메시지 목록
 
     @Builder
-    public ChatRoomResponseDto(Long id, String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, boolean isOwner, boolean isOfficial, List<ChatMessageResponseDto> messages) {
+    public ChatRoomResponseDto(Long id, String title, String description, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, boolean isOwner, boolean isOfficial, List<ChatMessageResponseDto> messages) {
         this.id = id;
         this.title = title;
+        this.description = description;
         this.maxCapacity = maxCapacity;
         this.isAnonymous = isAnonymous;
         this.type = type;
@@ -50,6 +52,7 @@ public class ChatRoomResponseDto {
         return ChatRoomResponseDto.builder()
                 .id(chatRoom.getId())
                 .title(chatRoom.getTitle())
+                .description(chatRoom.getDescription())
                 .maxCapacity(chatRoom.getMaxCapacity())
                 .isAnonymous(chatRoom.isAnonymous())
                 .type(chatRoom.getType())
@@ -65,6 +68,7 @@ public class ChatRoomResponseDto {
         return ChatRoomResponseDto.builder()
                 .id(chatRoom.getId())
                 .title(chatRoom.getTitle())
+                .description(chatRoom.getDescription())
                 .maxCapacity(chatRoom.getMaxCapacity())
                 .isAnonymous(chatRoom.isAnonymous())
                 .type(chatRoom.getType())
@@ -81,6 +85,7 @@ public class ChatRoomResponseDto {
         return ChatRoomResponseDto.builder()
                 .id(chatRoom.getId())
                 .title(chatRoom.getTitle())
+                .description(chatRoom.getDescription())
                 .maxCapacity(chatRoom.getMaxCapacity())
                 .isAnonymous(chatRoom.isAnonymous())
                 .type(chatRoom.getType())

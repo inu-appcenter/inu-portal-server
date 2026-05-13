@@ -22,6 +22,9 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(nullable = false)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(nullable = false)
     private int maxCapacity;
 
@@ -44,8 +47,9 @@ public class ChatRoom extends BaseTimeEntity {
     private Member creator;
 
     @Builder
-    public ChatRoom(String title, int maxCapacity, boolean isAnonymous, ChatRoomType type, Member creator, boolean isOfficial) {
+    public ChatRoom(String title, String description, int maxCapacity, boolean isAnonymous, ChatRoomType type, Member creator, boolean isOfficial) {
         this.title = title;
+        this.description = description;
         this.maxCapacity = maxCapacity;
         this.isAnonymous = isAnonymous;
         this.type = type;

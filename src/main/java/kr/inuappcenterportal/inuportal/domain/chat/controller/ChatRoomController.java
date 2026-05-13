@@ -25,6 +25,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import kr.inuappcenterportal.inuportal.domain.chat.dto.OpenChatRoomResponseDto;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -37,6 +42,19 @@ import java.util.List;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+
+    @Operation(summary = "전체 오픈채팅방 목록 조회", description = "활성화된 모든 오픈채팅방 목록을 페이징하여 조회합니다. 로그인한 경우 참여 여부가 포함됩니다.")
+    @GetMapping("/open")
+    public ResponseEntity<ResponseDto<Page<OpenChatRoomResponseDto>>> getOpenChatRooms(
+            @Parameter(description = "검색어 (제목)") @RequestParam(required = false) String search,
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = (userDetails != null) ? Long.parseLong(userDetails.getUsername()) : null;
+        Pageable pageable = PageRequest.of(page, size);
+        Page<OpenChatRoomResponseDto> openChatRooms = chatRoomService.getOpenChatRooms(memberId, search, pageable);
+        return ResponseEntity.ok(ResponseDto.of(openChatRooms));
+    }
 
     @Operation(summary = "내가 참여중인 채팅방 목록 조회")
     @SecurityRequirement(name = "Auth")
