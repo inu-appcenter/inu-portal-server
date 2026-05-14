@@ -31,10 +31,11 @@ public class ChatRoomResponseDto {
     private boolean isOwner; // 내가 이 방의 방장인지 여부
     private boolean isOfficial; // 운영자 공식 메시지 여부
     private boolean pushEnabled; // 채팅방 알림 켜짐 여부
+    private String friendAlias; // 상대방이 친구일 경우 지정된 별명
     private List<ChatMessageResponseDto> messages; // 메시지 목록
 
     @Builder
-    public ChatRoomResponseDto(Long id, String title, String description, String thumbnailUrl, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, boolean isOwner, boolean isOfficial, boolean pushEnabled, List<ChatMessageResponseDto> messages) {
+    public ChatRoomResponseDto(Long id, String title, String description, String thumbnailUrl, int maxCapacity, boolean isAnonymous, ChatRoomType type, ChatRoomStatus status, int currentParticipants, LocalDateTime createDate, String myHash, boolean isOwner, boolean isOfficial, boolean pushEnabled, String friendAlias, List<ChatMessageResponseDto> messages) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -49,6 +50,7 @@ public class ChatRoomResponseDto {
         this.isOwner = isOwner;
         this.isOfficial = isOfficial;
         this.pushEnabled = pushEnabled;
+        this.friendAlias = friendAlias;
         this.messages = messages;
     }
 

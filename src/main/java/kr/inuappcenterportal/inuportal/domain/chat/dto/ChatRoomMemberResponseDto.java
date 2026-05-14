@@ -11,14 +11,16 @@ public class ChatRoomMemberResponseDto {
     private Long fireId;
     private boolean isMe;
     private boolean isOwner;
+    private String friendAlias;
 
     @Builder
-    public ChatRoomMemberResponseDto(String nickname, Long memberId, String studentId, Long fireId, boolean isMe, boolean isOwner) {
+    public ChatRoomMemberResponseDto(String nickname, Long memberId, String studentId, Long fireId, boolean isMe, boolean isOwner, String friendAlias) {
         this.nickname = nickname;
         this.memberId = memberId;
         this.studentId = studentId;
         this.fireId = fireId;
         this.isMe = isMe;
         this.isOwner = isOwner;
+        this.friendAlias = friendAlias;
     }
 }

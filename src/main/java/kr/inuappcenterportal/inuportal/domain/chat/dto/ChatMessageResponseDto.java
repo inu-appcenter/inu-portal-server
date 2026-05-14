@@ -20,10 +20,12 @@ public class ChatMessageResponseDto {
     private String content;
     private int imageCount;
     private int unreadCount;
+    private String senderAlias;
+    private Long senderId;
     private LocalDateTime createDate; // createdAt 대신 createDate 사용
 
     @Builder
-    public ChatMessageResponseDto(Long messageId, Long roomId, String senderNickname, String senderHash, String content, int imageCount, int unreadCount, LocalDateTime createDate) {
+    public ChatMessageResponseDto(Long messageId, Long roomId, String senderNickname, String senderHash, String content, int imageCount, int unreadCount, String senderAlias, Long senderId, LocalDateTime createDate) {
         this.messageId = messageId;
         this.roomId = roomId;
         this.senderNickname = senderNickname;
@@ -31,6 +33,8 @@ public class ChatMessageResponseDto {
         this.content = content;
         this.imageCount = imageCount;
         this.unreadCount = unreadCount;
+        this.senderAlias = senderAlias;
+        this.senderId = senderId;
         this.createDate = createDate;
     }
 
@@ -40,6 +44,7 @@ public class ChatMessageResponseDto {
                 .roomId(chatMessage.getChatRoom().getId())
                 .senderNickname(chatMessage.getSenderNickname())
                 .senderHash(null) // DB 조회 시에는 null (필요 시 채워넣기)
+                .senderId(chatMessage.getSender().getId())
                 .content(chatMessage.getContent())
                 .imageCount(chatMessage.getImageCount())
                 .createDate(chatMessage.getCreateDate()) // getCreatedAt() 대신 getCreateDate() 사용

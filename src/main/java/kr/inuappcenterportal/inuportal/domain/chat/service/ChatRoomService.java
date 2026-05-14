@@ -96,6 +96,7 @@ public class ChatRoomService {
                 .roomId(messageDto.getRoomId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
+                .senderId(memberId)
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
                 .unreadCount(initialUnreadCount)
@@ -170,6 +171,7 @@ public class ChatRoomService {
                 .roomId(chatRoom.getId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
+                .senderId(memberId)
                 .content(messageDto.getContent())
                 .imageCount(images.size())
                 .unreadCount(initialUnreadCount)
@@ -592,6 +594,11 @@ public class ChatRoomService {
                 nickname = member.getNickname();
             }
 
+            String friendAlias = null;
+            if (!chatRoom.isAnonymous()) {
+                friendAlias = getFriendAlias(memberId, member);
+            }
+
             return ChatRoomMemberResponseDto.builder()
                     .nickname(nickname)
                     .memberId(member.getId())
@@ -599,6 +606,7 @@ public class ChatRoomService {
                     .fireId(chatRoom.isAnonymous() ? null : member.getFireId())
                     .isMe(member.getId().equals(memberId))
                     .isOwner(member.getId().equals(chatRoom.getCreator().getId()))
+                    .friendAlias(friendAlias)
                     .build();
         }).collect(Collectors.toList());
     }
@@ -650,18 +658,30 @@ public class ChatRoomService {
                 .stream().map(m -> m.getLastReadMessageId() == null ? 0L : m.getLastReadMessageId())
                 .collect(Collectors.toList());
 
+        // 친구 별명 매핑을 위한 친구 목록 조회 (익명 방이 아닐 때만)
+        Map<Long, String> friendAliasMap = new HashMap<>();
+        if (!chatRoom.isAnonymous()) {
+            List<kr.inuappcenterportal.inuportal.domain.member.model.Friend> friends = friendRepository.findAllByRequesterAndStatus(member, kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED);
+            friends.forEach(f -> friendAliasMap.put(f.getReceiver().getId(), f.getRequesterAlias()));
+            List<kr.inuappcenterportal.inuportal.domain.member.model.Friend> reverseFriends = friendRepository.findAllByReceiverAndStatus(member, kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED);
+            reverseFriends.forEach(f -> friendAliasMap.put(f.getRequester().getId(), f.getReceiverAlias()));
+        }
+
         messages = messages.stream()
                 .filter(msg -> msg.getSenderHash() == null || !blockedHashes.contains(msg.getSenderHash()))
                 .map(msg -> {
                     int unread = (int) readIds.stream().filter(lastRead -> lastRead < msg.getMessageId()).count();
+                    String senderAlias = (msg.getSenderId() != null) ? friendAliasMap.get(msg.getSenderId()) : null;
                     return ChatMessageResponseDto.builder()
                             .messageId(msg.getMessageId())
                             .roomId(msg.getRoomId())
                             .senderNickname(msg.getSenderNickname())
                             .senderHash(msg.getSenderHash())
+                            .senderId(msg.getSenderId())
                             .content(msg.getContent())
                             .imageCount(msg.getImageCount())
                             .unreadCount(unread)
+                            .senderAlias(senderAlias)
                             .createDate(msg.getCreateDate())
                             .build();
                 }).collect(Collectors.toList());
@@ -679,6 +699,7 @@ public class ChatRoomService {
         boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
 
         String title = chatRoom.getTitle();
+        String friendAlias = null;
         if (chatRoom.getType() == ChatRoomType.PERSONAL) {
             if (chatRoom.isOfficial() && !member.getRoles().contains("ROLE_ADMIN")) {
                 title = "INTIP 운영자";
@@ -686,11 +707,18 @@ public class ChatRoomService {
                 List<ChatRoomMember> members = chatRoomMemberRepository.findAllByChatRoomAndStatus(chatRoom,
                         ChatMemberStatus.JOINED);
                 if (members.size() == 2) {
-                    title = members.stream()
+                    Optional<ChatRoomMember> otherMemberOpt = members.stream()
                             .filter(m -> !m.getMember().getId().equals(memberId))
-                            .findFirst()
-                            .map(crm -> crm.getMember().getNickname())
-                            .orElse("알 수 없음");
+                            .findFirst();
+                    if (otherMemberOpt.isPresent()) {
+                        Member otherMember = otherMemberOpt.get().getMember();
+                        title = otherMember.getNickname();
+                        if (!chatRoom.isAnonymous()) {
+                            friendAlias = getFriendAlias(memberId, otherMember);
+                        }
+                    } else {
+                        title = "알 수 없음";
+                    }
                 }
             }
         }
@@ -708,6 +736,7 @@ public class ChatRoomService {
                 .isOwner(isOwner)
                 .isOfficial(chatRoom.isOfficial())
                 .pushEnabled(chatRoomMember.getPushEnabled() != null ? chatRoomMember.getPushEnabled() : true)
+                .friendAlias(friendAlias)
                 .messages(messages)
                 .build();
     }
@@ -735,19 +764,31 @@ public class ChatRoomService {
                 .map(this::getSenderHash)
                 .collect(Collectors.toSet());
 
+        // 친구 별명 매핑을 위한 친구 목록 조회 (익명 방이 아닐 때만)
+        Map<Long, String> friendAliasMap = new HashMap<>();
+        if (!chatRoom.isAnonymous()) {
+            List<kr.inuappcenterportal.inuportal.domain.member.model.Friend> friends = friendRepository.findAllByRequesterAndStatus(member, kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED);
+            friends.forEach(f -> friendAliasMap.put(f.getReceiver().getId(), f.getRequesterAlias()));
+            List<kr.inuappcenterportal.inuportal.domain.member.model.Friend> reverseFriends = friendRepository.findAllByReceiverAndStatus(member, kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED);
+            reverseFriends.forEach(f -> friendAliasMap.put(f.getRequester().getId(), f.getReceiverAlias()));
+        }
+
         return olderMessages.stream()
                 .map(this::convertToDto)
                 .filter(dto -> dto.getSenderHash() == null || !blockedHashes.contains(dto.getSenderHash()))
                 .map(dto -> {
                     int unread = (int) readIds.stream().filter(lastRead -> lastRead < dto.getMessageId()).count();
+                    String senderAlias = (dto.getSenderId() != null) ? friendAliasMap.get(dto.getSenderId()) : null;
                     return ChatMessageResponseDto.builder()
                             .messageId(dto.getMessageId())
                             .roomId(dto.getRoomId())
                             .senderNickname(dto.getSenderNickname())
                             .senderHash(dto.getSenderHash())
+                            .senderId(dto.getSenderId())
                             .content(dto.getContent())
                             .imageCount(dto.getImageCount())
                             .unreadCount(unread)
+                            .senderAlias(senderAlias)
                             .createDate(dto.getCreateDate())
                             .build();
                 })
@@ -984,6 +1025,7 @@ public class ChatRoomService {
                 .roomId(message.getChatRoom().getId())
                 .senderNickname(nickname)
                 .senderHash(getSenderHash(message.getSender().getId()))
+                .senderId(message.getSender().getId())
                 .content(message.getContent())
                 .imageCount(message.getImageCount())
                 .unreadCount(0)
