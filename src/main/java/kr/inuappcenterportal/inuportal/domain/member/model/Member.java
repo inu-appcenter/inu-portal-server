@@ -67,6 +67,9 @@ public class Member implements UserDetails {
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
+    @Column(name = "chat_push_enabled")
+    private Boolean chatPushEnabled = true;
+
     @OneToMany(mappedBy = "member", fetch = FetchType.LAZY, cascade = jakarta.persistence.CascadeType.ALL)
     private List<Scrap> scraps;
 
@@ -131,6 +134,22 @@ public class Member implements UserDetails {
         }
 
         return !this.lastSeenAt.isAfter(now.minusMinutes(thresholdMinutes));
+    }
+
+    public void toggleChatPush() {
+        if (this.chatPushEnabled == null) {
+            this.chatPushEnabled = false; // 기본값이 true이므로 토글하면 false
+        } else {
+            this.chatPushEnabled = !this.chatPushEnabled;
+        }
+        touchProfileModifiedAt();
+    }
+
+    public String getMaskedStudentId() {
+        if (this.studentId == null || this.studentId.length() < 6) {
+            return this.studentId;
+        }
+        return this.studentId.substring(0, 4) + "*".repeat(this.studentId.length() - 6) + this.studentId.substring(this.studentId.length() - 2);
     }
 
     @PrePersist

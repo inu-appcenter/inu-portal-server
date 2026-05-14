@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
@@ -107,6 +108,16 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(memberService.getAllMember(),"모든 회원 가져오기 성공"));
     }
 
+    @Operation(summary = "타인 프로필 조회", description = "타인의 프로필 정보를 조회합니다. 학번은 마스킹 처리되어 반환됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "프로필 조회 성공", content = @Content(schema = @Schema(implementation = MemberProfileResponseDto.class))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회원입니다.")
+    })
+    @GetMapping("/{memberId}/profile")
+    public ResponseEntity<ResponseDto<MemberProfileResponseDto>> getMemberProfile(@PathVariable Long memberId, @AuthenticationPrincipal Member viewer) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.getMemberProfile(viewer.getId(), memberId), "프로필 조회 성공"));
+    }
+
     @Operation(summary = "회원이 작성한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like)를, 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원이 작성한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
@@ -173,5 +184,12 @@ public class MemberController {
     @PutMapping("/terms")
     public ResponseEntity<ResponseDto<MemberResponseDto>> agreeTerms(@AuthenticationPrincipal Member member){
         return ResponseEntity.ok(ResponseDto.of(memberService.agreeTerms(member.getId()),"회원 약관 동의 성공"));
+    }
+
+    @Operation(summary = "전체 채팅 푸시 알림 설정 토글", description = "전체 채팅 푸시 알림을 켜거나 끕니다.")
+    @PatchMapping("/push-setting/chat")
+    public ResponseEntity<ResponseDto<Boolean>> toggleChatPush(@AuthenticationPrincipal Member member) {
+        boolean isEnabled = memberService.toggleChatPush(member.getId());
+        return ResponseEntity.ok(ResponseDto.of(isEnabled, "전체 채팅 알림 설정이 " + (isEnabled ? "켜졌습니다" : "꺼졌습니다")));
     }
 }

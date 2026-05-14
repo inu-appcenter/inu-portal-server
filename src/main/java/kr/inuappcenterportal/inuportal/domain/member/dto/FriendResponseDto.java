@@ -10,13 +10,15 @@ public class FriendResponseDto {
     private String nickname;
     private String studentId;
     private Long fireId;
+    private String friendAlias;
 
     @Builder
-    public FriendResponseDto(Long friendId, Long memberId, String nickname, String studentId, Long fireId) {
+    public FriendResponseDto(Long friendId, Long memberId, String nickname, String studentId, Long fireId, String friendAlias) {
         this.friendId = friendId;
         this.memberId = memberId;
         this.nickname = nickname;
         this.studentId = studentId;
         this.fireId = fireId;
+        this.friendAlias = friendAlias;
     }
 }

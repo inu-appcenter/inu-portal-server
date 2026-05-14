@@ -1,11 +1,12 @@
 package kr.inuappcenterportal.inuportal.domain.member.service;
 
-import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
-import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
-import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
-import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
+import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
+import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +31,8 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
     private final SchoolLoginRepository schoolLoginRepository;
+    private final FriendRepository friendRepository;
+    private final BlockRepository blockRepository;
 
     @Transactional
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto) {
@@ -167,5 +171,71 @@ public class MemberService {
     private Member findMemberById(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+    }
+
+    public MemberProfileResponseDto getMemberProfile(Long viewerId, Long targetId) {
+        Member viewer = findMemberById(viewerId);
+        Member target = findMemberById(targetId);
+
+        if (blockRepository.existsByBlockerAndBlocked(viewer, target) ||
+            blockRepository.existsByBlockerAndBlocked(target, viewer)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
+        String maskedStudentId = target.getMaskedStudentId();
+
+        String friendStatus = "NONE";
+        Long friendId = null;
+
+        Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(viewer, target);
+        if (friendOpt.isPresent()) {
+            Friend f = friendOpt.get();
+            friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "PENDING";
+            friendId = f.getId();
+        } else {
+            Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, viewer);
+            if (reverseFriendOpt.isPresent()) {
+                Friend f = reverseFriendOpt.get();
+                friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "RECEIVED";
+                friendId = f.getId();
+            }
+        }
+
+        return MemberProfileResponseDto.builder()
+                .memberId(target.getId())
+                .nickname(target.getNickname())
+                .fireId(target.getFireId())
+                .department(target.getDepartment())
+                .maskedStudentId(maskedStudentId)
+                .friendStatus(friendStatus)
+                .friendAlias(friendId != null ? getFriendAlias(viewerId, target) : null)
+                .friendId(friendId)
+                .build();
+    }
+
+    private String getFriendAlias(Long viewerId, Member target) {
+        if (viewerId == null || target == null) return null;
+
+        Member viewer = findMemberById(viewerId);
+        java.util.Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(viewer, target);
+        if (friendOpt.isPresent()) {
+            Friend f = friendOpt.get();
+            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getRequesterAlias();
+        }
+
+        java.util.Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, viewer);
+        if (reverseFriendOpt.isPresent()) {
+            Friend f = reverseFriendOpt.get();
+            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getReceiverAlias();
+        }
+
+        return null;
+    }
+
+    @Transactional
+    public boolean toggleChatPush(Long memberId) {
+        Member member = findMemberById(memberId);
+        member.toggleChatPush();
+        return member.getChatPushEnabled();
     }
 }

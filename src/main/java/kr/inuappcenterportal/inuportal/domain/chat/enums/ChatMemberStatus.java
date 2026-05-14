@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ChatMemberStatus {
     JOINED("참여 중"),
-    LEFT("나감");
+    LEFT("나감"),
+    KICKED("강퇴됨");
 
     private final String description;
 }

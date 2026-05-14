@@ -21,4 +21,8 @@ public class ChatRoomCreateRequestDto {
 
     @NotNull(message = "채팅방 유형은 필수입니다.")
     private ChatRoomType type;
+
+    private String description;
+
+    private String thumbnailUrl;
 }

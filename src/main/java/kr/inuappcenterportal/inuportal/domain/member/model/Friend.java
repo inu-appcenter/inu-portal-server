@@ -30,6 +30,12 @@ public class Friend extends BaseTimeEntity {
     @Column(nullable = false)
     private FriendStatus status;
 
+    @Column(name = "requester_alias")
+    private String requesterAlias;
+
+    @Column(name = "receiver_alias")
+    private String receiverAlias;
+
     @Builder
     public Friend(Member requester, Member receiver, FriendStatus status) {
         this.requester = requester;
@@ -39,5 +45,13 @@ public class Friend extends BaseTimeEntity {
 
     public void accept() {
         this.status = FriendStatus.ACCEPTED;
+    }
+
+    public void updateAlias(Long memberId, String alias) {
+        if (this.requester.getId().equals(memberId)) {
+            this.requesterAlias = alias;
+        } else if (this.receiver.getId().equals(memberId)) {
+            this.receiverAlias = alias;
+        }
     }
 }

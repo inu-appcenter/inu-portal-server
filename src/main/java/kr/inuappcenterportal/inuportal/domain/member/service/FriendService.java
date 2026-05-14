@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.member.service;
 
+import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
@@ -33,7 +34,7 @@ public class FriendService {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
         
-        Member receiver = memberRepository.findByStudentId(requestDto.getStudentId())
+        Member receiver = memberRepository.findByNickname(requestDto.getNickname())
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (requester.getId().equals(receiver.getId())) {
@@ -71,7 +72,7 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getRequester().getId())
                 .nickname(f.getRequester().getNickname())
-                .studentId(f.getRequester().getStudentId())
+                .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
                 .build()
         ).collect(Collectors.toList());
@@ -88,17 +89,17 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getReceiver().getId())
                 .nickname(f.getReceiver().getNickname())
-                .studentId(f.getReceiver().getStudentId())
+                .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
                 .build()
         ).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public FriendResponseDto searchMemberByStudentId(Long memberId, String studentId) {
+    public FriendResponseDto searchMemberByNickname(Long memberId, String nickname) {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-        Member target = memberRepository.findByStudentId(studentId)
+        Member target = memberRepository.findByNickname(nickname)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (blockRepository.existsByBlockerAndBlocked(requester, target) || 
@@ -109,7 +110,7 @@ public class FriendService {
         return FriendResponseDto.builder()
                 .memberId(target.getId())
                 .nickname(target.getNickname())
-                .studentId(target.getStudentId())
+                .studentId(target.getMaskedStudentId())
                 .fireId(target.getFireId())
                 .build();
     }
@@ -156,8 +157,9 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getReceiver().getId())
                 .nickname(f.getReceiver().getNickname())
-                .studentId(f.getReceiver().getStudentId())
+                .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
+                .friendAlias(f.getRequesterAlias())
                 .build()
         ).collect(Collectors.toList());
 
@@ -165,11 +167,41 @@ public class FriendService {
                 .friendId(f.getId())
                 .memberId(f.getRequester().getId())
                 .nickname(f.getRequester().getNickname())
-                .studentId(f.getRequester().getStudentId())
+                .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
+                .friendAlias(f.getReceiverAlias())
                 .build()
         ).collect(Collectors.toList()));
 
         return list;
+    }
+
+    @Transactional
+    public void updateFriendAlias(Long memberId, Long friendId, FriendAliasRequestDto requestDto) {
+        Friend friend = friendRepository.findById(friendId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+
+        if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+        }
+
+        if (friend.getStatus() != FriendStatus.ACCEPTED) {
+            throw new MyException(MyErrorCode.NOT_FRIEND);
+        }
+
+        friend.updateAlias(memberId, requestDto.getAlias());
+    }
+
+    public String getFriendAlias(Long viewerId, Member target) {
+        Member viewer = memberRepository.findById(viewerId).orElse(null);
+        if (viewer == null || target == null) return null;
+
+        return friendRepository.findByRequesterAndReceiver(viewer, target)
+                .filter(f -> f.getStatus() == FriendStatus.ACCEPTED)
+                .map(Friend::getRequesterAlias)
+                .orElseGet(() -> friendRepository.findByRequesterAndReceiver(target, viewer)
+                        .filter(f -> f.getStatus() == FriendStatus.ACCEPTED)
+                        .map(Friend::getReceiverAlias)
+                        .orElse(null));
     }
 }

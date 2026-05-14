@@ -93,6 +93,7 @@ public enum MyErrorCode {
     HAS_NOT_FRIEND_AUTHORIZATION(HttpStatus.FORBIDDEN, "친구 관련 작업을 수행할 권한이 없습니다."),
     NOT_ADMIN(HttpStatus.FORBIDDEN, "관리자 권한이 없습니다."),
     INVALID_OFFICIAL_CHAT_TARGET(HttpStatus.BAD_REQUEST, "운영자 채팅은 일반 학생하고만 가능합니다."),
+    INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 입력값입니다."),
     ;
 
 

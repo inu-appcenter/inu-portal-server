@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.service.FriendService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +20,13 @@ import java.util.List;
 @Tag(name = "Friend", description = "친구 관리 API")
 @RestController
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Auth")
 @RequestMapping("/api/friends")
 public class FriendController {
 
     private final FriendService friendService;
 
-    @Operation(summary = "친구 신청 (학번 기반)")
-    @SecurityRequirement(name = "Auth")
+    @Operation(summary = "친구 신청 (닉네임 기반)")
     @PostMapping("/request")
     public ResponseEntity<ResponseDto<Void>> requestFriend(@Valid @RequestBody FriendRequestDto requestDto, @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
@@ -49,12 +50,12 @@ public class FriendController {
         return ResponseEntity.ok(ResponseDto.of(friendService.getSentPendingRequests(memberId)));
     }
 
-    @Operation(summary = "친구 검색 (학번 기반)")
+    @Operation(summary = "친구 검색 (닉네임 기반)")
     @SecurityRequirement(name = "Auth")
     @GetMapping("/search")
-    public ResponseEntity<ResponseDto<FriendResponseDto>> searchFriend(@RequestParam String studentId, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ResponseDto<FriendResponseDto>> searchFriend(@RequestParam String nickname, @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        return ResponseEntity.ok(ResponseDto.of(friendService.searchMemberByStudentId(memberId, studentId)));
+        return ResponseEntity.ok(ResponseDto.of(friendService.searchMemberByNickname(memberId, nickname)));
     }
 
     @Operation(summary = "친구 요청 수락")
@@ -81,5 +82,17 @@ public class FriendController {
     public ResponseEntity<ResponseDto<List<FriendResponseDto>>> getFriendList(@AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ResponseDto.of(friendService.getFriendList(memberId)));
+    }
+
+    @Operation(summary = "친구 별명 설정")
+    @SecurityRequirement(name = "Auth")
+    @PatchMapping("/{friendId}/alias")
+    public ResponseEntity<ResponseDto<Void>> updateFriendAlias(
+            @PathVariable Long friendId,
+            @Valid @RequestBody FriendAliasRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        friendService.updateFriendAlias(memberId, friendId, requestDto);
+        return ResponseEntity.ok(ResponseDto.of(null));
     }
 }
