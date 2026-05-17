@@ -173,9 +173,9 @@ public class FcmService {
     }
 
     @Transactional
-    public void sendKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType) {
+    public Long prepareKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType) {
         if (tokenAndMemberId.isEmpty()) {
-            return;
+            return null;
         }
 
         FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
@@ -187,8 +187,15 @@ public class FcmService {
 
         batchInsertMemberFcmMessages(fcmMessage.getId(), targetMemberIds, fcmMessageType);
 
-        DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessage.getId(), tokenAndMemberId, title, body);
-        fcmTransactionService.updateFinalStatus(fcmMessage.getId(), deliveryResult.successCount(), deliveryResult.failureCount());
+        return fcmMessage.getId();
+    }
+
+    public void dispatchKeywordNotice(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body) {
+        if (fcmMessageId == null || tokenAndMemberId.isEmpty()) {
+            return;
+        }
+        DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body);
+        fcmTransactionService.updateFinalStatus(fcmMessageId, deliveryResult.successCount(), deliveryResult.failureCount());
     }
 
     @Transactional
@@ -340,9 +347,9 @@ public class FcmService {
      * DB에 이력을 남기면서(알림함 노출) 푸시 알림을 보냅니다.
      */
     @Transactional
-    public void sendTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type) {
+    public TrackedNotificationDispatch prepareTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type) {
         if (memberIds == null || memberIds.isEmpty()) {
-            return;
+            return null;
         }
 
         List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
@@ -357,11 +364,18 @@ public class FcmService {
         FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
         batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
 
-        if (!tokenAndMemberId.isEmpty()) {
-            DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessage.getId(), tokenAndMemberId, title, body);
-            fcmTransactionService.updateFinalStatus(fcmMessage.getId(), deliveryResult.successCount(), deliveryResult.failureCount());
+        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body);
+    }
+
+    public void dispatchTrackedNotification(TrackedNotificationDispatch dispatch) {
+        if (dispatch == null) {
+            return;
+        }
+        if (!dispatch.tokenAndMemberId().isEmpty()) {
+            DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body());
+            fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
         } else {
-            fcmTransactionService.updateFinalStatus(fcmMessage.getId(), 0, 0);
+            fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), 0, 0);
         }
     }
 
@@ -532,6 +546,14 @@ public class FcmService {
     private record NotificationTargets(
             Map<String, Long> tokenAndMemberId,
             List<Long> targetMemberIds
+    ) {
+    }
+
+    public record TrackedNotificationDispatch(
+            Long fcmMessageId,
+            Map<String, Long> tokenAndMemberId,
+            String title,
+            String body
     ) {
     }
 }
