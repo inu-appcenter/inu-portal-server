@@ -16,7 +16,8 @@ public class FcmAsyncService {
 
     @Async("messageExecutor")
     public void sendAsyncKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType fcmMessageType) {
-        fcmService.sendKeywordNotice(tokenAndMemberId, title, body, fcmMessageType);
+        Long fcmMessageId = fcmService.prepareKeywordNotice(tokenAndMemberId, title, body, fcmMessageType);
+        fcmService.dispatchKeywordNotice(fcmMessageId, tokenAndMemberId, title, body);
     }
 
     @Async("messageExecutor")
@@ -29,7 +30,8 @@ public class FcmAsyncService {
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type) {
-        fcmService.sendTrackedNotification(memberIds, title, body, type);
+        FcmService.TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type);
+        fcmService.dispatchTrackedNotification(dispatch);
     }
 
     @Async("messageExecutor")
