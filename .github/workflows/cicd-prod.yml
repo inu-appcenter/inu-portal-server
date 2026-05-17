@@ -24,7 +24,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle' # Gradle 라이브러리 캐싱 추가 (빌드 시간 단축)
+          cache: 'gradle'
 
       - name: Create application.properties
         run: echo "${{ secrets.APPLICATION_PROPERTIES }}" > ./src/main/resources/application.properties
@@ -37,7 +37,6 @@ jobs:
           json: ${{ secrets.FIREBASE_KEY }}
           dir: "src/main/resources/"
 
-      # 아티팩트 업로드는 유지 (필요 시)
       - uses: actions/upload-artifact@v4
         with:
           name: app-configs
@@ -49,7 +48,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build -x test # 테스트 제외 여부는 상황에 맞게 조절
+        run: ./gradlew build -x test
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -60,15 +59,24 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.TOKEN }}
 
-      # Docker Build와 Push를 하나로 통합 + 캐시 적용
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
-          cache-from: type=gha # GitHub 캐시 불러오기
-          cache-to: type=gha,mode=max # GitHub 캐시 저장하기
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sync Instagram scraper files to Prod
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_ADDRESS }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/README.md"
+          target: ${{ secrets.MOUNT_PATH }}
 
       - name: Copy compose files to server
         uses: appleboy/scp-action@v0.1.7
@@ -78,7 +86,7 @@ jobs:
           key: ${{ secrets.SERVER_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           source: "compose.yaml,elastic-agent.yml"
-          target: "/home/serverking/intip"
+          target: ${{ secrets.MOUNT_PATH }}
 
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
@@ -88,12 +96,15 @@ jobs:
           key: ${{ secrets.SERVER_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd /home/serverking/intip
+            cd ${{ secrets.MOUNT_PATH }}
             
             export DOCKERHUB_USERNAME=${{ secrets.USERNAME }}
             export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
             export MOUNT_PATH=${{ secrets.MOUNT_PATH }}
             export KIBANA_URL=${{ secrets.KIBANA_URL }}
+            
+            rm -f ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile/SingletonLock || true
+            chmod -R 777 ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile || true
             
             docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
             docker compose pull app
