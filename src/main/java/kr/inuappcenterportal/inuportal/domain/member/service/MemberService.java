@@ -101,12 +101,27 @@ public class MemberService {
     @Transactional
     public TokenDto schoolLogin(LoginDto loginDto) {
         String studentId = loginDto.getStudentId();
+        
+        Optional<Member> existingMemberOpt = memberRepository.findByStudentId(studentId);
+        
+        if (existingMemberOpt.isPresent()) {
+            Member member = existingMemberOpt.get();
+            boolean isTestUser = member.getRoles().stream()
+                    .anyMatch(role -> role.endsWith("_TEST"));
+            if (isTestUser) {
+                if (!studentId.equals(loginDto.getPassword())) {
+                    throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
+                }
+                return login(member);
+            }
+        }
+
         if (!schoolLoginRepository.loginCheck(studentId, loginDto.getPassword())) {
             throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
         }
 
         List<String> roles = schoolLoginRepository.resolveRoles(studentId);
-        Member member = memberRepository.findByStudentId(studentId)
+        Member member = existingMemberOpt
                 .map(existingMember -> synchronizeRoles(existingMember, roles))
                 .orElseGet(() -> createMember(studentId, roles));
         return login(member);
