@@ -6,6 +6,10 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
@@ -94,13 +98,13 @@ public class FcmService {
     @Async("messageExecutor")
     public void sendToAdmin(String title, String body) {
         List<String> target = fcmTokenRepository.findAllAdminTokens();
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size(), null);
 
         if (target.isEmpty()) {
             return;
         }
 
-        MulticastMessage message = createMulticastMessage(target, title, body);
+        MulticastMessage message = createMulticastMessage(target, title, body, null, null);
         try {
             BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
             fcmMessage.updateDeliveryResult(response.getSuccessCount(), response.getFailureCount());
@@ -120,7 +124,7 @@ public class FcmService {
     @Async("messageExecutor")
     public void sendToAll(String title, String body) {
         List<String> target = fcmTokenRepository.findAllStringTokens();
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size(), null);
 
         if (target.isEmpty()) {
             return;
@@ -160,6 +164,7 @@ public class FcmService {
                                 .setBody(title)
                                 .build()
                 )
+                .putData("type", "GENERAL")
                 .build();
         try {
             firebaseMessaging.send(message);
@@ -173,12 +178,12 @@ public class FcmService {
     }
 
     @Transactional
-    public Long prepareKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType) {
+    public Long prepareKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType, Long targetId) {
         if (tokenAndMemberId.isEmpty()) {
             return null;
         }
 
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
 
         List<Long> targetMemberIds = tokenAndMemberId.values().stream()
                 .filter(id -> id != null && !id.equals(UNLINKED_MEMBER_ID))
@@ -190,11 +195,11 @@ public class FcmService {
         return fcmMessage.getId();
     }
 
-    public void dispatchKeywordNotice(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body) {
+    public void dispatchKeywordNotice(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId) {
         if (fcmMessageId == null || tokenAndMemberId.isEmpty()) {
             return;
         }
-        DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body);
+        DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId);
         fcmTransactionService.updateFinalStatus(fcmMessageId, deliveryResult.successCount(), deliveryResult.failureCount());
     }
 
@@ -205,7 +210,8 @@ public class FcmService {
                 request.title(),
                 request.content(),
                 true,
-                notificationTargets.tokenAndMemberId().size()
+                notificationTargets.tokenAndMemberId().size(),
+                null
         );
 
         return new AdminNotificationDispatch(
@@ -242,7 +248,9 @@ public class FcmService {
                     dispatch.fcmMessageId(),
                     dispatch.tokenAndMemberId(),
                     dispatch.title(),
-                    dispatch.content()
+                    dispatch.content(),
+                    FcmMessageType.GENERAL,
+                    null
             );
 
             // 4. 최종 상태 업데이트
@@ -273,7 +281,7 @@ public class FcmService {
         });
     }
 
-    private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body) {
+    private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId) {
         List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
         int batchSize = 500;
         int successCount = 0;
@@ -281,7 +289,7 @@ public class FcmService {
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
-            MulticastMessage message = createMulticastMessage(batchTokens, title, body);
+            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId);
 
             int batchSuccess = 0;
             int batchFailure = 0;
@@ -338,7 +346,7 @@ public class FcmService {
                         LinkedHashMap::new
                 ));
 
-        DeliveryResult deliveryResult = dispatchToMembersInternal(null, tokenAndMemberId, title, body);
+        DeliveryResult deliveryResult = dispatchToMembersInternal(null, tokenAndMemberId, title, body, null, null);
         log.info("Untracked notification sent: targets={}, success={}, failure={}",
                 tokenAndMemberId.size(), deliveryResult.successCount(), deliveryResult.failureCount());
     }
@@ -347,7 +355,7 @@ public class FcmService {
      * DB에 이력을 남기면서(알림함 노출) 푸시 알림을 보냅니다.
      */
     @Transactional
-    public TrackedNotificationDispatch prepareTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type) {
+    public TrackedNotificationDispatch prepareTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type, Long targetId) {
         if (memberIds == null || memberIds.isEmpty()) {
             return null;
         }
@@ -361,10 +369,10 @@ public class FcmService {
                         LinkedHashMap::new
                 ));
 
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
         batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
 
-        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body);
+        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId);
     }
 
     public void dispatchTrackedNotification(TrackedNotificationDispatch dispatch) {
@@ -372,7 +380,7 @@ public class FcmService {
             return;
         }
         if (!dispatch.tokenAndMemberId().isEmpty()) {
-            DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body());
+            DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(), dispatch.type(), dispatch.targetId());
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
         } else {
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), 0, 0);
@@ -415,21 +423,101 @@ public class FcmService {
         return ListResponseDto.of(messages.getTotalPages(), messages.getTotalElements(), notificationResponses);
     }
 
-    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body) {
+    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId) {
+        MulticastMessage.Builder builder = MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .setNotification(Notification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build());
+
+        if (type != null) {
+            builder.putData("type", type.name());
+        }
+        if (targetId != null) {
+            builder.putData("targetId", String.valueOf(targetId));
+            
+            // 공지사항인 경우 noticeId로도 탑재해 주어 클라이언트 편의 제공
+            if (type == FcmMessageType.SCHOOL_NOTICE || type == FcmMessageType.DEPARTMENT) {
+                builder.putData("noticeId", String.valueOf(targetId));
+            }
+        }
+        return builder.build();
+    }
+
+    /**
+     * 채팅 알림을 위한 특화된 푸시 발송 메서드 (OS별 그룹화 및 무음 처리 지원)
+     */
+    @Transactional(readOnly = true)
+    public void sendChatNotification(List<Long> memberIds, String title, String body, Long chatRoomId, boolean isMuted) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return;
+        }
+        List<FcmToken> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        if (tokens.isEmpty()) {
+            return;
+        }
+
+        List<String> tokenStrings = tokens.stream().map(FcmToken::getToken).toList();
+        int batchSize = 500;
+        for (int i = 0; i < tokenStrings.size(); i += batchSize) {
+            List<String> batchTokens = tokenStrings.subList(i, Math.min(i + batchSize, tokenStrings.size()));
+            MulticastMessage message = createChatMessage(batchTokens, title, body, chatRoomId, isMuted);
+            try {
+                BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
+                log.info("Chat push sent: room={}, isMuted={}, targets={}, success={}, failure={}",
+                        chatRoomId, isMuted, batchTokens.size(), response.getSuccessCount(), response.getFailureCount());
+            } catch (Exception e) {
+                log.error("Chat push failed: room={}, isMuted={}, targets={}, error={}",
+                        chatRoomId, isMuted, batchTokens.size(), e.getMessage(), e);
+            }
+        }
+    }
+
+    private MulticastMessage createChatMessage(List<String> tokens, String title, String body, Long chatRoomId, boolean isMuted) {
+        String roomIdStr = String.valueOf(chatRoomId);
+        
+        AndroidNotification.Builder androidNotiBuilder = AndroidNotification.builder()
+                .setTag("room_" + roomIdStr);
+                
+        Aps.Builder apsBuilder = Aps.builder()
+                .setThreadId("room_" + roomIdStr);
+                
+        if (isMuted) {
+            // Android: 무음용 채널 (앱에서 조용히 노출하도록 알림 중요도 낮춤)
+            androidNotiBuilder.setChannelId("chat_channel_muted");
+        } else {
+            // Android: 소리/진동용 기본 채널
+            androidNotiBuilder.setChannelId("chat_channel_default");
+            // iOS: 소리가 나도록 default 설정
+            apsBuilder.setSound("default");
+        }
+
         return MulticastMessage.builder()
                 .addAllTokens(tokens)
                 .setNotification(Notification.builder()
                         .setTitle(title)
                         .setBody(body)
                         .build())
+                // 웹뷰에서 라우팅할 때 참조할 공통 데이터 페이로드
+                .putData("type", "CHAT")
+                .putData("chatRoomId", roomIdStr)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setNotification(androidNotiBuilder.build())
+                        .build())
+                .setApnsConfig(ApnsConfig.builder()
+                        .setAps(apsBuilder.build())
+                        .build())
                 .build();
     }
 
-    private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount) {
+
+    private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount, Long targetId) {
         FcmMessage fcmMessage = FcmMessage.builder()
                 .title(title)
                 .body(body)
                 .isAdminMessage(adminMessage)
+                .targetId(targetId)
                 .build();
         fcmMessage.markPending(targetCount);
         return fcmMessageRepository.saveAndFlush(fcmMessage);
@@ -553,7 +641,9 @@ public class FcmService {
             Long fcmMessageId,
             Map<String, Long> tokenAndMemberId,
             String title,
-            String body
+            String body,
+            FcmMessageType type,
+            Long targetId
     ) {
     }
 }

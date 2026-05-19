@@ -25,11 +25,14 @@ public record NotificationResponse(
         FcmMessageType type,
 
         @Schema(description = "알림 생성 시간")
-        LocalDateTime createDate // LocalDate 대신 LocalDateTime 사용
+        LocalDateTime createDate, // LocalDate 대신 LocalDateTime 사용
+
+        @Schema(description = "이동 대상 Id (noticeId, friendId 등)")
+        Long targetId
 
 ) {
     public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage) {
         return new NotificationResponse(fcmMessage.getId(), memberFcmMessage.getMemberId(),
-                fcmMessage.getTitle(), fcmMessage.getBody(), memberFcmMessage.getFcmMessageType(), memberFcmMessage.getCreateDate());
+                fcmMessage.getTitle(), fcmMessage.getBody(), memberFcmMessage.getFcmMessageType(), memberFcmMessage.getCreateDate(), fcmMessage.getTargetId());
     }
 }
