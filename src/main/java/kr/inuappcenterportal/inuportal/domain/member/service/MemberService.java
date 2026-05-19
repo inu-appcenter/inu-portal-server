@@ -188,64 +188,7 @@ public class MemberService {
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
     }
 
-    public MemberProfileResponseDto getMemberProfile(Long viewerId, Long targetId) {
-        Member viewer = findMemberById(viewerId);
-        Member target = findMemberById(targetId);
 
-        if (blockRepository.existsByBlockerAndBlocked(viewer, target) ||
-            blockRepository.existsByBlockerAndBlocked(target, viewer)) {
-            throw new MyException(MyErrorCode.USER_NOT_FOUND);
-        }
-
-        String maskedStudentId = target.getMaskedStudentId();
-
-        String friendStatus = "NONE";
-        Long friendId = null;
-
-        Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(viewer, target);
-        if (friendOpt.isPresent()) {
-            Friend f = friendOpt.get();
-            friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "PENDING";
-            friendId = f.getId();
-        } else {
-            Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, viewer);
-            if (reverseFriendOpt.isPresent()) {
-                Friend f = reverseFriendOpt.get();
-                friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "RECEIVED";
-                friendId = f.getId();
-            }
-        }
-
-        return MemberProfileResponseDto.builder()
-                .memberId(target.getId())
-                .nickname(target.getNickname())
-                .fireId(target.getFireId())
-                .department(target.getDepartment())
-                .maskedStudentId(maskedStudentId)
-                .friendStatus(friendStatus)
-                .friendAlias(friendId != null ? getFriendAlias(viewerId, target) : null)
-                .friendId(friendId)
-                .build();
-    }
-
-    private String getFriendAlias(Long viewerId, Member target) {
-        if (viewerId == null || target == null) return null;
-
-        Member viewer = findMemberById(viewerId);
-        java.util.Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(viewer, target);
-        if (friendOpt.isPresent()) {
-            Friend f = friendOpt.get();
-            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getRequesterAlias();
-        }
-
-        java.util.Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, viewer);
-        if (reverseFriendOpt.isPresent()) {
-            Friend f = reverseFriendOpt.get();
-            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getReceiverAlias();
-        }
-
-        return null;
-    }
 
     @Transactional
     public boolean toggleChatPush(Long memberId) {

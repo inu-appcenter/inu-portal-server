@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.member.service;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -70,7 +71,6 @@ public class FriendService {
         
         return requests.stream().map(f -> FriendResponseDto.builder()
                 .friendId(f.getId())
-                .memberId(f.getRequester().getId())
                 .nickname(f.getRequester().getNickname())
                 .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
@@ -87,7 +87,6 @@ public class FriendService {
 
         return requests.stream().map(f -> FriendResponseDto.builder()
                 .friendId(f.getId())
-                .memberId(f.getReceiver().getId())
                 .nickname(f.getReceiver().getNickname())
                 .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
@@ -108,7 +107,6 @@ public class FriendService {
         }
 
         return FriendResponseDto.builder()
-                .memberId(target.getId())
                 .nickname(target.getNickname())
                 .studentId(target.getMaskedStudentId())
                 .fireId(target.getFireId())
@@ -155,7 +153,6 @@ public class FriendService {
 
         List<FriendResponseDto> list = sent.stream().map(f -> FriendResponseDto.builder()
                 .friendId(f.getId())
-                .memberId(f.getReceiver().getId())
                 .nickname(f.getReceiver().getNickname())
                 .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
@@ -165,7 +162,6 @@ public class FriendService {
 
         list.addAll(received.stream().map(f -> FriendResponseDto.builder()
                 .friendId(f.getId())
-                .memberId(f.getRequester().getId())
                 .nickname(f.getRequester().getNickname())
                 .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
@@ -203,5 +199,40 @@ public class FriendService {
                         .filter(f -> f.getStatus() == FriendStatus.ACCEPTED)
                         .map(Friend::getReceiverAlias)
                         .orElse(null));
+    }
+
+    @Transactional(readOnly = true)
+    public MemberProfileResponseDto getFriendProfile(Long viewerId, Long friendId) {
+        Friend friend = friendRepository.findById(friendId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+
+        if (!friend.getRequester().getId().equals(viewerId) && !friend.getReceiver().getId().equals(viewerId)) {
+            throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+        }
+
+        if (friend.getStatus() != FriendStatus.ACCEPTED) {
+            throw new MyException(MyErrorCode.NOT_FRIEND);
+        }
+
+        Member target = friend.getRequester().getId().equals(viewerId) ? friend.getReceiver() : friend.getRequester();
+        Member viewer = friend.getRequester().getId().equals(viewerId) ? friend.getRequester() : friend.getReceiver();
+
+        if (blockRepository.existsByBlockerAndBlocked(target, viewer) ||
+            blockRepository.existsByBlockerAndBlocked(viewer, target)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
+        String friendAlias = friend.getRequester().getId().equals(viewerId) ? friend.getRequesterAlias() : friend.getReceiverAlias();
+
+        return MemberProfileResponseDto.builder()
+                .memberId(null)
+                .nickname(target.getNickname())
+                .fireId(target.getFireId())
+                .department(target.getDepartment())
+                .maskedStudentId(target.getMaskedStudentId())
+                .friendStatus("ACCEPTED")
+                .friendAlias(friendAlias)
+                .friendId(friend.getId())
+                .build();
     }
 }

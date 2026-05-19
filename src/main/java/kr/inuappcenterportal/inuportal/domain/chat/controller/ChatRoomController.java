@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -170,13 +171,13 @@ public class ChatRoomController {
 
     @Operation(summary = "멤버 강퇴", description = "채팅방의 특정 멤버를 강퇴합니다. 방장만 가능하며, 강퇴된 사용자는 재입장이 불가합니다.")
     @SecurityRequirement(name = "Auth")
-    @DeleteMapping("/{roomId}/members/{targetMemberId}")
+    @DeleteMapping("/{roomId}/members/{targetChatRoomMemberId}")
     public ResponseEntity<ResponseDto<Void>> kickMember(
             @PathVariable Long roomId,
-            @PathVariable Long targetMemberId,
+            @PathVariable Long targetChatRoomMemberId,
             @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        chatRoomService.kickMember(roomId, targetMemberId, memberId);
+        chatRoomService.kickMember(roomId, targetChatRoomMemberId, memberId);
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
@@ -189,6 +190,18 @@ public class ChatRoomController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         List<ChatRoomMemberResponseDto> members = chatRoomService.getParticipants(roomId, memberId);
         return ResponseEntity.ok(ResponseDto.of(members));
+    }
+
+    @Operation(summary = "채팅방 내 유저 프로필 조회", description = "채팅방 내 특정 참가자의 프로필을 조회합니다. 익명방인 경우 학번/횃불이 정보가 숨겨지며 임시 닉네임만 표시됩니다.")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/{roomId}/members/{chatRoomMemberId}/profile")
+    public ResponseEntity<ResponseDto<MemberProfileResponseDto>> getChatRoomMemberProfile(
+            @PathVariable Long roomId,
+            @PathVariable Long chatRoomMemberId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        MemberProfileResponseDto profile = chatRoomService.getChatRoomMemberProfile(roomId, chatRoomMemberId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(profile, "참여자 프로필 조회 성공"));
     }
 
     @Operation(summary = "채팅방 정보 및 메시지 조회", description = "특정 채팅방의 상세 정보(참여 인원, 내 해시 등)와 최근 메시지 목록을 조회합니다.")

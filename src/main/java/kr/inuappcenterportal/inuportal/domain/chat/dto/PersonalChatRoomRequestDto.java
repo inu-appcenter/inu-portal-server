@@ -8,7 +8,7 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class PersonalChatRoomRequestDto {
-    private List<Long> targetMemberIds;
+    private List<Long> targetFriendIds;
     private boolean adminMode;
     private String title;
 }

@@ -12,8 +12,10 @@ import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
@@ -83,6 +85,9 @@ public class ChatRoomService {
             nickname = sender.getNickname();
         }
 
+        ChatRoomMember senderChatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
         LocalDateTime now = LocalDateTime.now();
         String senderHash = getSenderHash(memberId);
         Long messageId = TSID.fast().toLong();
@@ -96,7 +101,7 @@ public class ChatRoomService {
                 .roomId(messageDto.getRoomId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
-                .senderId(memberId)
+                .senderChatRoomMemberId(senderChatRoomMember.getId())
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
                 .unreadCount(initialUnreadCount)
@@ -165,13 +170,16 @@ public class ChatRoomService {
         int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
         int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
+        ChatRoomMember senderChatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
         String senderHash = getSenderHash(memberId);
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
                 .roomId(chatRoom.getId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
-                .senderId(memberId)
+                .senderChatRoomMemberId(senderChatRoomMember.getId())
                 .content(messageDto.getContent())
                 .imageCount(images.size())
                 .unreadCount(initialUnreadCount)
@@ -333,10 +341,23 @@ public class ChatRoomService {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        List<Long> targetIds = requestDto.getTargetMemberIds();
-        if (targetIds == null || targetIds.isEmpty()) {
+        List<Long> targetFriendIds = requestDto.getTargetFriendIds();
+        if (targetFriendIds == null || targetFriendIds.isEmpty()) {
             throw new MyException(MyErrorCode.EMPTY_REQUEST);
         }
+
+        List<Long> targetIds = targetFriendIds.stream()
+                .map(friendId -> {
+                    Friend friend = friendRepository.findById(friendId)
+                            .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+                    if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
+                        throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+                    }
+                    if (friend.getStatus() != FriendStatus.ACCEPTED) {
+                        throw new MyException(MyErrorCode.NOT_FRIEND);
+                    }
+                    return friend.getRequester().getId().equals(memberId) ? friend.getReceiver().getId() : friend.getRequester().getId();
+                }).collect(Collectors.toList());
 
         if (targetIds.contains(memberId)) {
             throw new MyException(MyErrorCode.NOT_SELF_CHAT); // 자기 자신과는 채팅방을 만들 수 없음
@@ -601,7 +622,7 @@ public class ChatRoomService {
 
             return ChatRoomMemberResponseDto.builder()
                     .nickname(nickname)
-                    .memberId(member.getId())
+                    .chatRoomMemberId(m.getId())
                     .studentId(chatRoom.isAnonymous() ? null : member.getMaskedStudentId())
                     .fireId(chatRoom.isAnonymous() ? null : member.getFireId())
                     .isMe(member.getId().equals(memberId))
@@ -670,6 +691,10 @@ public class ChatRoomService {
         int memberCount = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
         boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
 
+        List<ChatRoomMember> roomMembersForMapping = chatRoomMemberRepository.findAllByChatRoom(chatRoom);
+        Map<Long, Long> chatRoomMemberIdToMemberIdMap = roomMembersForMapping.stream()
+                .collect(Collectors.toMap(ChatRoomMember::getId, rm -> rm.getMember().getId(), (e1, e2) -> e1));
+
         String title = chatRoom.getTitle();
         String friendAlias = null;
         Long otherMemberId = null;
@@ -709,11 +734,14 @@ public class ChatRoomService {
                     // 별명 매핑 로직
                     String senderAlias = null;
                     if (!chatRoom.isAnonymous()) {
-                        // 1. senderId가 있는 경우 (신규 메시지 또는 DB 메시지)
-                        if (msg.getSenderId() != null) {
-                            senderAlias = friendAliasMap.get(msg.getSenderId());
+                        // 1. senderChatRoomMemberId가 있는 경우 (신규 메시지 또는 DB 메시지)
+                        if (msg.getSenderChatRoomMemberId() != null) {
+                            Long actualSenderMemberId = chatRoomMemberIdToMemberIdMap.get(msg.getSenderChatRoomMemberId());
+                            if (actualSenderMemberId != null) {
+                                senderAlias = friendAliasMap.get(actualSenderMemberId);
+                            }
                         }
-                        // 2. 1:1 채팅이고 senderId가 없으나(캐시된 구형 메시지) 본인이 아닌 경우
+                        // 2. 1:1 채팅이고 senderChatRoomMemberId가 없으나(캐시된 구형 메시지) 본인이 아닌 경우
                         if (senderAlias == null && finalOtherMemberId != null && !myHash.equals(msg.getSenderHash())) {
                             senderAlias = finalFriendAlias;
                         }
@@ -724,7 +752,7 @@ public class ChatRoomService {
                             .roomId(msg.getRoomId())
                             .senderNickname(msg.getSenderNickname())
                             .senderHash(msg.getSenderHash())
-                            .senderId(msg.getSenderId())
+                            .senderChatRoomMemberId(msg.getSenderChatRoomMemberId())
                             .content(msg.getContent())
                             .imageCount(msg.getImageCount())
                             .unreadCount(unread)
@@ -792,18 +820,28 @@ public class ChatRoomService {
             reverseFriends.forEach(f -> friendAliasMap.put(f.getRequester().getId(), f.getReceiverAlias()));
         }
 
+        List<ChatRoomMember> roomMembersForMapping = chatRoomMemberRepository.findAllByChatRoom(chatRoom);
+        Map<Long, Long> chatRoomMemberIdToMemberIdMap = roomMembersForMapping.stream()
+                .collect(Collectors.toMap(ChatRoomMember::getId, rm -> rm.getMember().getId(), (e1, e2) -> e1));
+
         return olderMessages.stream()
                 .map(this::convertToDto)
                 .filter(dto -> dto.getSenderHash() == null || !blockedHashes.contains(dto.getSenderHash()))
                 .map(dto -> {
                     int unread = (int) readIds.stream().filter(lastRead -> lastRead < dto.getMessageId()).count();
-                    String senderAlias = (dto.getSenderId() != null) ? friendAliasMap.get(dto.getSenderId()) : null;
+                    String senderAlias = null;
+                    if (dto.getSenderChatRoomMemberId() != null) {
+                        Long actualSenderMemberId = chatRoomMemberIdToMemberIdMap.get(dto.getSenderChatRoomMemberId());
+                        if (actualSenderMemberId != null) {
+                            senderAlias = friendAliasMap.get(actualSenderMemberId);
+                        }
+                    }
                     return ChatMessageResponseDto.builder()
                             .messageId(dto.getMessageId())
                             .roomId(dto.getRoomId())
                             .senderNickname(dto.getSenderNickname())
                             .senderHash(dto.getSenderHash())
-                            .senderId(dto.getSenderId())
+                            .senderChatRoomMemberId(dto.getSenderChatRoomMemberId())
                             .content(dto.getContent())
                             .imageCount(dto.getImageCount())
                             .unreadCount(unread)
@@ -946,40 +984,116 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
         }
 
-        Member newOwner = memberRepository.findById(requestDto.getNewOwnerId())
-                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-
-        ChatRoomMember newOwnerMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, newOwner)
+        ChatRoomMember newOwnerMember = chatRoomMemberRepository.findById(requestDto.getNewOwnerChatRoomMemberId())
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        if (!newOwnerMember.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
 
         if (newOwnerMember.getStatus() != ChatMemberStatus.JOINED) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
 
-        chatRoom.updateCreator(newOwner);
+        chatRoom.updateCreator(newOwnerMember.getMember());
     }
 
     @Transactional
-    public void kickMember(Long roomId, Long targetMemberId, Long memberId) {
+    public void kickMember(Long roomId, Long targetChatRoomMemberId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
         if (!chatRoom.getCreator().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
         }
 
-        if (targetMemberId.equals(memberId)) {
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findById(targetChatRoomMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        if (!chatRoomMember.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        if (chatRoomMember.getMember().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.INVALID_INPUT); // 자신을 강퇴할 수 없음
         }
 
-        Member targetMember = memberRepository.findById(targetMemberId)
-                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, targetMember)
-                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
-
         chatRoomMember.kick();
-        chatRedisService.removeUserFromRoom(roomId, targetMemberId);
+        chatRedisService.removeUserFromRoom(roomId, chatRoomMember.getMember().getId());
         messagingTemplate.convertAndSend("/sub/room/" + roomId, "updated");
+    }
+
+    @Transactional(readOnly = true)
+    public MemberProfileResponseDto getChatRoomMemberProfile(Long roomId, Long chatRoomMemberId, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+        ChatRoomMember requesterMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, requester)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (requesterMember.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        ChatRoomMember targetMember = chatRoomMemberRepository.findById(chatRoomMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (!targetMember.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        Member target = targetMember.getMember();
+
+        if (blockRepository.existsByBlockerAndBlocked(target, requester) ||
+            blockRepository.existsByBlockerAndBlocked(requester, target)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
+        String nickname;
+        if (chatRoom.isOfficial() && target.getRoles().contains("ROLE_ADMIN")) {
+            nickname = chatRedisService.getOrAssignAdminNickname(roomId, target.getId());
+        } else if (chatRoom.isAnonymous()) {
+            nickname = chatRedisService.getOrAssignAnonymousNickname(roomId, target.getId());
+        } else {
+            nickname = target.getNickname();
+        }
+
+        String studentId = null;
+        Long fireId = null;
+        String friendStatus = "NONE";
+        Long friendId = null;
+        String friendAlias = null;
+
+        if (!chatRoom.isAnonymous()) {
+            studentId = target.getMaskedStudentId();
+            fireId = target.getFireId();
+
+            Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(requester, target);
+            if (friendOpt.isPresent()) {
+                Friend f = friendOpt.get();
+                friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "PENDING";
+                friendId = f.getId();
+                friendAlias = f.getRequesterAlias();
+            } else {
+                Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, requester);
+                if (reverseFriendOpt.isPresent()) {
+                    Friend f = reverseFriendOpt.get();
+                    friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "RECEIVED";
+                    friendId = f.getId();
+                    friendAlias = f.getReceiverAlias();
+                }
+            }
+        }
+
+        return MemberProfileResponseDto.builder()
+                .memberId(null)
+                .nickname(nickname)
+                .fireId(fireId)
+                .department(chatRoom.isAnonymous() ? null : target.getDepartment())
+                .maskedStudentId(studentId)
+                .friendStatus(friendStatus)
+                .friendAlias(friendAlias)
+                .friendId(friendId)
+                .build();
     }
 
     private void sendChatNotification(ChatRoom room, Member sender, String senderNickname, String content) {
@@ -1062,12 +1176,16 @@ public class ChatRoomService {
                     message.getSender().getId());
         }
 
+        Long senderChatRoomMemberId = chatRoomMemberRepository.findByChatRoomAndMember(message.getChatRoom(), message.getSender())
+                .map(ChatRoomMember::getId)
+                .orElse(null);
+
         return ChatMessageResponseDto.builder()
                 .messageId(message.getId())
                 .roomId(message.getChatRoom().getId())
                 .senderNickname(nickname)
                 .senderHash(getSenderHash(message.getSender().getId()))
-                .senderId(message.getSender().getId())
+                .senderChatRoomMemberId(senderChatRoomMemberId)
                 .content(message.getContent())
                 .imageCount(message.getImageCount())
                 .unreadCount(0)
