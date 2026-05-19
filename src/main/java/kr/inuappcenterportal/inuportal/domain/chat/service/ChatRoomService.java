@@ -986,50 +986,73 @@ public class ChatRoomService {
         // 1. 현재 방에 접속 중인 사용자 ID 목록 가져오기
         Set<String> activeUserIds = chatRedisService.getRoomUserIds(room.getId());
 
-        // 2. 알림을 받을 멤버 필터링 (참여 중인 멤버 - 나 - 현재 접속자)
+        // 2. 알림 대상 멤버 전체 필터링 (참여 중인 멤버 중 발신자 제외, 현재 접속자 제외, 멤버 전역 알림 허용 여부 확인)
         List<ChatRoomMember> joinedMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
                 ChatMemberStatus.JOINED);
-        List<Long> targetMemberIds = joinedMembers.stream()
-                .filter(m -> m.getPushEnabled() != null ? m.getPushEnabled() : true)
-                .map(ChatRoomMember::getMember)
-                .filter(m -> m.getChatPushEnabled() != null ? m.getChatPushEnabled() : true)
-                .filter(m -> !m.getId().equals(sender.getId())) // 발신자 제외
-                .filter(m -> !activeUserIds.contains(String.valueOf(m.getId()))) // 현재 접속자 제외
-                .map(Member::getId)
+
+        List<ChatRoomMember> eligibleMembers = joinedMembers.stream()
+                .filter(m -> m.getMember().getChatPushEnabled() != null ? m.getMember().getChatPushEnabled() : true)
+                .filter(m -> !m.getMember().getId().equals(sender.getId())) // 발신자 제외
+                .filter(m -> !activeUserIds.contains(String.valueOf(m.getMember().getId()))) // 현재 접속자 제외
                 .toList();
 
-        if (targetMemberIds.isEmpty()) {
+        if (eligibleMembers.isEmpty()) {
             return;
         }
 
-        // 3. 알림 제목 및 내용 구성
-        String title;
-        String body;
 
-        if (room.isOfficial()) {
-            title = "INTIP 운영자";
-            body = content;
-        } else if (room.getType() == ChatRoomType.PERSONAL) {
-            if (joinedMembers.size() == 2) {
-                // 1:1 채팅
-                title = senderNickname;
-                body = content;
-            } else {
-                // 그룹 채팅
-                title = (room.getTitle() == null || room.getTitle().isEmpty()) ? "그룹 채팅" : room.getTitle();
-                body = senderNickname + ": " + content;
+        // 3. 커스텀 닉네임(친구 별칭) 적용 및 무음 알림 여부에 따른 분할 그룹 구성
+        Map<String, List<Long>> pushGroup = new HashMap<>();
+
+        for (ChatRoomMember m : eligibleMembers) {
+            String resolvedName = senderNickname;
+            if (!room.isAnonymous() && !room.isOfficial()) {
+                String alias = friendRepository.findByRequesterAndReceiver(m.getMember(), sender)
+                        .filter(f -> f.getStatus() == FriendStatus.ACCEPTED)
+                        .map(kr.inuappcenterportal.inuportal.domain.member.model.Friend::getRequesterAlias)
+                        .orElseGet(() -> friendRepository.findByRequesterAndReceiver(sender, m.getMember())
+                                .filter(f -> f.getStatus() == FriendStatus.ACCEPTED)
+                                .map(kr.inuappcenterportal.inuportal.domain.member.model.Friend::getReceiverAlias)
+                                .orElse(null));
+                if (alias != null && !alias.trim().isEmpty()) {
+                    resolvedName = alias;
+                }
             }
-        } else {
-            // 오픈 채팅 (익명 포함)
-            title = room.getTitle();
-            body = senderNickname + ": " + content;
+
+            String title;
+            String body;
+
+            if (room.isOfficial()) {
+                title = "INTIP 운영자";
+                body = content;
+            } else if (room.getType() == ChatRoomType.PERSONAL) {
+                if (joinedMembers.size() == 2) {
+                    title = resolvedName;
+                    body = content;
+                } else {
+                    title = (room.getTitle() == null || room.getTitle().isEmpty()) ? "그룹 채팅" : room.getTitle();
+                    body = resolvedName + ": " + content;
+                }
+            } else {
+                title = room.getTitle();
+                body = resolvedName + ": " + content;
+            }
+
+            boolean isMuted = m.getPushEnabled() != null && !m.getPushEnabled();
+            String key = title + "|||" + body + "|||" + isMuted;
+            pushGroup.computeIfAbsent(key, k -> new ArrayList<>()).add(m.getMember().getId());
         }
 
-        // 4. 알림 전송 (비동기 처리됨)
-        // 채팅 알림도 이력에 남기기 위해 sendToMembers (또는 이력을 남기지 않으려면 sendUntrackedNotification)
-        // 사용 가능
-        // 사용자가 알림 이력 조회를 원하므로 sendKeywordNotice 스타일의 배치를 활용하거나 간단한 래퍼를 사용
-        fcmAsyncService.sendAsyncUntrackedNotification(targetMemberIds, title, body);
+        // 4. 그룹별 비동기 푸시 발송
+        pushGroup.forEach((key, memberIds) -> {
+            String[] parts = key.split("\\|\\|\\|");
+            if (parts.length >= 3) {
+                String title = parts[0];
+                String body = parts[1];
+                boolean isMuted = Boolean.parseBoolean(parts[2]);
+                fcmAsyncService.sendAsyncChatNotification(memberIds, title, body, room.getId(), isMuted);
+            }
+        });
     }
 
     private ChatMessageResponseDto convertToDto(ChatMessage message) {

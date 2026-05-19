@@ -58,7 +58,7 @@ public class FriendService {
                 .build();
         friendRepository.save(friend);
 
-        fcmAsyncService.sendAsyncTrackedNotification(List.of(receiver.getId()), "친구 요청", requester.getNickname() + "님이 친구 요청을 보냈습니다.", FcmMessageType.FRIEND);
+        fcmAsyncService.sendAsyncTrackedNotification(List.of(receiver.getId()), "친구 요청", requester.getNickname() + "님이 친구 요청을 보냈습니다.", FcmMessageType.FRIEND, friend.getId());
     }
 
     @Transactional(readOnly = true)
@@ -126,7 +126,7 @@ public class FriendService {
 
         friend.accept();
 
-        fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 수락", friend.getReceiver().getNickname() + "님이 친구 요청을 수락했습니다.", FcmMessageType.FRIEND);
+        fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 수락", friend.getReceiver().getNickname() + "님이 친구 요청을 수락했습니다.", FcmMessageType.FRIEND, friend.getId());
     }
 
     @Transactional
@@ -139,7 +139,7 @@ public class FriendService {
         }
 
         if (friend.getStatus() == FriendStatus.PENDING && friend.getReceiver().getId().equals(memberId)) {
-            fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 요청 결과", "친구 요청이 거절되었습니다.", FcmMessageType.FRIEND);
+            fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 요청 결과", "친구 요청이 거절되었습니다.", FcmMessageType.FRIEND, friend.getId());
         }
 
         friendRepository.delete(friend);

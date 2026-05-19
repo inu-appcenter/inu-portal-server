@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -45,6 +46,11 @@ public class ScheduleService {
     private static long id = 0L;
 
     @Scheduled(cron = "0 0 0 1 * *")
+    @SchedulerLock(
+            name = "schedule-cleanup",
+            lockAtMostFor = "PT30M",
+            lockAtLeastFor = "PT1M"
+    )
     @Transactional
     public void renewalSchedule() throws InterruptedException {
         crawlingSchedule();

@@ -7,6 +7,7 @@ import kr.inuappcenterportal.inuportal.domain.featureflag.service.FeatureFlagSer
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -52,6 +53,11 @@ public class SecondDormitoryInstagramCrawlService {
             cron = "${app.cafeteria.instagram.second-dormitory.lunch-retry-cron:0 */15 10-11 * * *}",
             zone = "${app.cafeteria.instagram.second-dormitory.zone:Asia/Seoul}"
     )
+    @SchedulerLock(
+            name = "cafeteria-2dorm-insta",
+            lockAtMostFor = "PT15M",
+            lockAtLeastFor = "PT1M"
+    )
     public void refreshLunchRetryWindow() {
         if (!isRetryExecutionTime(MealWindow.LUNCH)) {
             return;
@@ -62,6 +68,11 @@ public class SecondDormitoryInstagramCrawlService {
     @Scheduled(
             cron = "${app.cafeteria.instagram.second-dormitory.dinner-retry-cron:0 */15 17-18 * * *}",
             zone = "${app.cafeteria.instagram.second-dormitory.zone:Asia/Seoul}"
+    )
+    @SchedulerLock(
+            name = "cafeteria-2dorm-insta",
+            lockAtMostFor = "PT15M",
+            lockAtLeastFor = "PT1M"
     )
     public void refreshDinnerRetryWindow() {
         if (!isRetryExecutionTime(MealWindow.DINNER)) {

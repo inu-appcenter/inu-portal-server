@@ -7,6 +7,7 @@ import kr.inuappcenterportal.inuportal.domain.directory.repository.CollegeOffice
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,11 @@ public class CollegeOfficeContactService {
     private final DirectoryPersistenceService directoryPersistenceService;
 
     @Scheduled(cron = "0 20 4 * * SAT")
+    @SchedulerLock(
+            name = "directory-college-office",
+            lockAtMostFor = "PT30M",
+            lockAtLeastFor = "PT5M"
+    )
     public void scheduledSync() {
         try {
             CollegeOfficeContactSyncResponse result = sync();

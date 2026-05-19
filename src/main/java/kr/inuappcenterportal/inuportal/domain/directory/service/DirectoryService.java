@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.directory.repository.DirectorySour
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -48,6 +49,11 @@ public class DirectoryService {
     private final List<DirectorySourceEntryAdapter> sourceEntryAdapters;
 
     @Scheduled(cron = "0 0 4 * * SAT")
+    @SchedulerLock(
+            name = "directory",
+            lockAtMostFor = "PT30M",
+            lockAtLeastFor = "PT5M"
+    )
     public void scheduledSync() {
         try {
             DirectorySyncResponse result = syncAllCategories();
