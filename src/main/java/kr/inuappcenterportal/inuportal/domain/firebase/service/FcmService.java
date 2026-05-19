@@ -98,7 +98,7 @@ public class FcmService {
     @Async("messageExecutor")
     public void sendToAdmin(String title, String body) {
         List<String> target = fcmTokenRepository.findAllAdminTokens();
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size(), null);
 
         if (target.isEmpty()) {
             return;
@@ -124,7 +124,7 @@ public class FcmService {
     @Async("messageExecutor")
     public void sendToAll(String title, String body) {
         List<String> target = fcmTokenRepository.findAllStringTokens();
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, target.size(), null);
 
         if (target.isEmpty()) {
             return;
@@ -178,12 +178,12 @@ public class FcmService {
     }
 
     @Transactional
-    public Long prepareKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType) {
+    public Long prepareKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType, Long targetId) {
         if (tokenAndMemberId.isEmpty()) {
             return null;
         }
 
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
 
         List<Long> targetMemberIds = tokenAndMemberId.values().stream()
                 .filter(id -> id != null && !id.equals(UNLINKED_MEMBER_ID))
@@ -210,7 +210,8 @@ public class FcmService {
                 request.title(),
                 request.content(),
                 true,
-                notificationTargets.tokenAndMemberId().size()
+                notificationTargets.tokenAndMemberId().size(),
+                null
         );
 
         return new AdminNotificationDispatch(
@@ -368,7 +369,7 @@ public class FcmService {
                         LinkedHashMap::new
                 ));
 
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size());
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
         batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
 
         return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId);
@@ -511,11 +512,12 @@ public class FcmService {
     }
 
 
-    private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount) {
+    private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount, Long targetId) {
         FcmMessage fcmMessage = FcmMessage.builder()
                 .title(title)
                 .body(body)
                 .isAdminMessage(adminMessage)
+                .targetId(targetId)
                 .build();
         fcmMessage.markPending(targetCount);
         return fcmMessageRepository.saveAndFlush(fcmMessage);

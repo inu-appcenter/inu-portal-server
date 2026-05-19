@@ -47,9 +47,12 @@ public class FcmMessage extends BaseTimeEntity {
     @Column(name = "send_status", nullable = false, length = 32)
     private FcmSendStatus sendStatus = FcmSendStatus.PENDING;
 
+    @Column(name = "target_id")
+    private Long targetId;
+
     @Builder
     public FcmMessage(String title, String body, boolean isAdminMessage, int sendCount,
-                      int failureCount, int targetCount, FcmSendStatus sendStatus) {
+                      int failureCount, int targetCount, FcmSendStatus sendStatus, Long targetId) {
         this.title = title;
         this.body = body;
         this.adminMessage = isAdminMessage;
@@ -57,6 +60,7 @@ public class FcmMessage extends BaseTimeEntity {
         this.failureCount = Math.max(failureCount, 0);
         this.targetCount = Math.max(targetCount, 0);
         this.sendStatus = sendStatus == null ? FcmSendStatus.PENDING : sendStatus;
+        this.targetId = targetId;
     }
 
     public void markPending(int targetCount) {
