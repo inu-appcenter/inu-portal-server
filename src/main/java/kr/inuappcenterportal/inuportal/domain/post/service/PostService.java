@@ -21,6 +21,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -86,6 +87,11 @@ public class PostService {
     }
 
     @Scheduled(cron = "0 0 0 * * *")
+    @SchedulerLock(
+            name = "post-shuffle",
+            lockAtMostFor = "PT10M",
+            lockAtLeastFor = "PT1M"
+    )
     @Transactional
     public void shufflePosts() {
 

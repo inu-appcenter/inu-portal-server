@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.global.logging.dto.res.LoggingMemberRespo
 import kr.inuappcenterportal.inuportal.global.logging.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -70,6 +71,11 @@ public class LoggingService {
 
     // 매일 00시에 실행
     @Scheduled(cron = "0 0 0 * * *")
+    @SchedulerLock(
+            name = "logging-cleanup",
+            lockAtMostFor = "PT30M",
+            lockAtLeastFor = "PT5M"
+    )
     @Transactional
     public void summarizeDailyLogs() {
         LocalDate oneDayAgo = LocalDate.now().minusDays(1);

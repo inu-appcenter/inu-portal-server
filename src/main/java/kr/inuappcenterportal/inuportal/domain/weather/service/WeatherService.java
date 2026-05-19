@@ -12,6 +12,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -46,6 +47,11 @@ public class WeatherService {
     private final String y = "123";
 
     @Scheduled(cron = "0 35 * * * *")
+    @SchedulerLock(
+            name = "weather-hourly",
+            lockAtMostFor = "PT10M",
+            lockAtLeastFor = "PT1M"
+    )
     public void getWeatherAPI(){
         try {
             getWeatherSky();
@@ -67,6 +73,11 @@ public class WeatherService {
     }
 
     @Scheduled(cron = "0 5 0 * * *")
+    @SchedulerLock(
+            name = "weather-daily",
+            lockAtMostFor = "PT10M",
+            lockAtLeastFor = "PT1M"
+    )
     public void getDay() {
         getDayData();
     }

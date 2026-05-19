@@ -20,6 +20,7 @@ import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.jsoup.Connection;
@@ -49,18 +50,7 @@ import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HexFormat;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -131,6 +121,11 @@ public class NoticeService {
     }
 
     @Scheduled(cron = "0 0/15 * * * *")
+    @SchedulerLock(
+            name = "notice-school-crawl",
+            lockAtMostFor = "PT10M",
+            lockAtLeastFor = "PT1M"
+    )
     @CacheEvict(value = "noticeCache", cacheManager = "cacheManager")
     @Transactional
     public void getNewNotice() {
@@ -138,6 +133,11 @@ public class NoticeService {
     }
 
     @Scheduled(cron = "0 0/10 * * * *")
+    @SchedulerLock(
+            name = "notice-department-crawl",
+            lockAtMostFor = "PT5M",
+            lockAtLeastFor = "PT30S"
+    )
     @CacheEvict(value = "noticeCache", cacheManager = "cacheManager")
     @Transactional
     public void getNewDepartmentNotice() {
@@ -152,6 +152,11 @@ public class NoticeService {
     }
 
     @Scheduled(cron = "0 5/10 * * * *")
+    @SchedulerLock(
+            name = "notice-department-content-backfill",
+            lockAtMostFor = "PT5M",
+            lockAtLeastFor = "PT30S"
+    )
     @Transactional
     public void backfillDepartmentNoticeContents() {
         Department[] departments = Department.values();
@@ -165,6 +170,11 @@ public class NoticeService {
     }
 
     @Scheduled(cron = "0 7/10 * * * *")
+    @SchedulerLock(
+            name = "notice-department-content-enrich",
+            lockAtMostFor = "PT8M",
+            lockAtLeastFor = "PT30S"
+    )
     @Transactional
     public void enrichDepartmentNoticeContents() {
         Department[] departments = Department.values();

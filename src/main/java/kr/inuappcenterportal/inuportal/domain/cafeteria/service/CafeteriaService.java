@@ -5,6 +5,7 @@ import jakarta.transaction.Transactional;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -35,6 +36,11 @@ public class CafeteriaService {
     }
 
     @Scheduled(cron = "0 10 0 ? * MON-SAT")
+    @SchedulerLock(
+            name = "cafeteria-menu",
+            lockAtMostFor = "PT10M",
+            lockAtLeastFor = "PT1M"
+    )
     @Transactional
     public void jobCafeteria() throws InterruptedException {
         crawlCafeteria();
