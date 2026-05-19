@@ -204,6 +204,18 @@ public class ChatRoomController {
         return ResponseEntity.ok(ResponseDto.of(profile, "참여자 프로필 조회 성공"));
     }
 
+    @Operation(summary = "참여자를 통한 1대1 채팅방 개설/조회", description = "기존 채팅방 내 참여자를 지정하여 1대1 대화방을 개설합니다. 출발지가 익명방인 경우, 대화 상대방의 익명 닉네임이 그대로 보존/연동되며 완벽히 격리된 신규 방을 개설하거나 동일 단체방 출처의 기존 개설된 1대1 방을 반환합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/{roomId}/members/{chatRoomMemberId}/personal")
+    public ResponseEntity<ResponseDto<ChatRoomResponseDto>> createOrGetPersonalChatRoomFromParticipant(
+            @PathVariable Long roomId,
+            @PathVariable Long chatRoomMemberId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        ChatRoomResponseDto chatRoom = chatRoomService.createOrGetPersonalChatRoomFromParticipant(roomId, chatRoomMemberId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(chatRoom));
+    }
+
     @Operation(summary = "채팅방 정보 및 메시지 조회", description = "특정 채팅방의 상세 정보(참여 인원, 내 해시 등)와 최근 메시지 목록을 조회합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = ChatRoomResponseDto.class))),

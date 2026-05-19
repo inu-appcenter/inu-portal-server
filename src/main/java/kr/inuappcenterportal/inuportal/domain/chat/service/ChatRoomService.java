@@ -490,6 +490,105 @@ public class ChatRoomService {
     }
 
     @Transactional
+    public ChatRoomResponseDto createOrGetPersonalChatRoomFromParticipant(Long roomId, Long chatRoomMemberId, Long memberId) {
+        ChatRoom sourceRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember requesterInSource = chatRoomMemberRepository.findByChatRoomAndMember(sourceRoom, requester)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (requesterInSource.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        ChatRoomMember targetInSource = chatRoomMemberRepository.findById(chatRoomMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (!targetInSource.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+        if (targetInSource.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        Member target = targetInSource.getMember();
+        if (target.getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.NOT_SELF_CHAT);
+        }
+
+        if (blockRepository.existsByBlockerAndBlocked(requester, target) ||
+                blockRepository.existsByBlockerAndBlocked(target, requester)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
+        boolean isAnonymous = sourceRoom.isAnonymous();
+
+        // 1. 기존에 개설된 동일 조건의 1대1 방이 있는지 검색
+        ChatRoom existingRoom = null;
+        List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester, ChatMemberStatus.JOINED);
+        for (ChatRoomMember m : myJoinedRooms) {
+            ChatRoom room = m.getChatRoom();
+            if (room.getType() == ChatRoomType.PERSONAL && !room.isOfficial()) {
+                if (room.isAnonymous() == isAnonymous) {
+                    if (!isAnonymous || (room.getSourceRoom() != null && room.getSourceRoom().getId().equals(roomId))) {
+                        List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+                        Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId()).collect(Collectors.toSet());
+                        Set<Long> bothIds = Set.of(memberId, target.getId());
+                        if (roomMemberIds.equals(bothIds)) {
+                            existingRoom = room;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (existingRoom != null) {
+            boolean isOwner = existingRoom.getCreator().getId().equals(memberId);
+            ChatRoomMember myMemberInNew = chatRoomMemberRepository.findByChatRoomAndMember(existingRoom, requester).orElseThrow();
+            boolean pushEnabled = myMemberInNew.getPushEnabled() != null ? myMemberInNew.getPushEnabled() : true;
+            return ChatRoomResponseDto.of(existingRoom, 2, getSenderHash(memberId), isOwner, pushEnabled);
+        }
+
+        // 2. 신규 채팅방 생성
+        ChatRoom newRoom = ChatRoom.builder()
+                .title("")
+                .maxCapacity(100)
+                .isAnonymous(isAnonymous)
+                .type(ChatRoomType.PERSONAL)
+                .creator(requester)
+                .isOfficial(false)
+                .sourceRoom(isAnonymous ? sourceRoom : null)
+                .build();
+        chatRoomRepository.save(newRoom);
+
+        // 3. 참여 멤버들 등록
+        ChatRoomMember newRequesterMember = ChatRoomMember.builder()
+                .chatRoom(newRoom)
+                .member(requester)
+                .build();
+        chatRoomMemberRepository.save(newRequesterMember);
+
+        ChatRoomMember newTargetMember = ChatRoomMember.builder()
+                .chatRoom(newRoom)
+                .member(target)
+                .build();
+        chatRoomMemberRepository.save(newTargetMember);
+
+        // 4. 익명 방일 경우, 출발지 단체방/오픈방에서 사용하던 닉네임 연동/복사
+        if (isAnonymous) {
+            chatRedisService.copyAnonymousNickname(roomId, newRoom.getId(), requester.getId());
+            chatRedisService.copyAnonymousNickname(roomId, newRoom.getId(), target.getId());
+
+            chatRedisService.getOrAssignAnonymousNickname(newRoom.getId(), requester.getId());
+            chatRedisService.getOrAssignAnonymousNickname(newRoom.getId(), target.getId());
+        }
+
+        return ChatRoomResponseDto.of(newRoom, 2, getSenderHash(memberId), true, true);
+    }
+
+    @Transactional
     public ChatRoomResponseDto createChatRoom(ChatRoomCreateRequestDto requestDto, Long memberId) {
         Member creator = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
