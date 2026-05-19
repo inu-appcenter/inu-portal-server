@@ -34,10 +34,26 @@ public class MemberService {
     private final FriendRepository friendRepository;
     private final BlockRepository blockRepository;
 
+    private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
+            "알림", "공지", "알람", "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
+            "notice", "admin", "system", "staff", "intip", "인팁", "appcenter", "앱센터"
+    );
+
+    private void validateNicknameKeywords(String nickname) {
+        if (nickname == null) return;
+        String normalized = nickname.toLowerCase().replaceAll("\\s+", "");
+        for (String keyword : FORBIDDEN_NICKNAME_KEYWORDS) {
+            if (normalized.contains(keyword)) {
+                throw new MyException(MyErrorCode.INVALID_NICKNAME_KEYWORD);
+            }
+        }
+    }
+
     @Transactional
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto) {
         Member member = memberRepository.findById(id).orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
         if (memberUpdateNicknameDto.getNickname() != null) {
+            validateNicknameKeywords(memberUpdateNicknameDto.getNickname());
             if (memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())) {
                 throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
             }
@@ -188,64 +204,7 @@ public class MemberService {
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
     }
 
-    public MemberProfileResponseDto getMemberProfile(Long viewerId, Long targetId) {
-        Member viewer = findMemberById(viewerId);
-        Member target = findMemberById(targetId);
 
-        if (blockRepository.existsByBlockerAndBlocked(viewer, target) ||
-            blockRepository.existsByBlockerAndBlocked(target, viewer)) {
-            throw new MyException(MyErrorCode.USER_NOT_FOUND);
-        }
-
-        String maskedStudentId = target.getMaskedStudentId();
-
-        String friendStatus = "NONE";
-        Long friendId = null;
-
-        Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(viewer, target);
-        if (friendOpt.isPresent()) {
-            Friend f = friendOpt.get();
-            friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "PENDING";
-            friendId = f.getId();
-        } else {
-            Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, viewer);
-            if (reverseFriendOpt.isPresent()) {
-                Friend f = reverseFriendOpt.get();
-                friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "RECEIVED";
-                friendId = f.getId();
-            }
-        }
-
-        return MemberProfileResponseDto.builder()
-                .memberId(target.getId())
-                .nickname(target.getNickname())
-                .fireId(target.getFireId())
-                .department(target.getDepartment())
-                .maskedStudentId(maskedStudentId)
-                .friendStatus(friendStatus)
-                .friendAlias(friendId != null ? getFriendAlias(viewerId, target) : null)
-                .friendId(friendId)
-                .build();
-    }
-
-    private String getFriendAlias(Long viewerId, Member target) {
-        if (viewerId == null || target == null) return null;
-
-        Member viewer = findMemberById(viewerId);
-        java.util.Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(viewer, target);
-        if (friendOpt.isPresent()) {
-            Friend f = friendOpt.get();
-            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getRequesterAlias();
-        }
-
-        java.util.Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, viewer);
-        if (reverseFriendOpt.isPresent()) {
-            Friend f = reverseFriendOpt.get();
-            if (f.getStatus() == FriendStatus.ACCEPTED) return f.getReceiverAlias();
-        }
-
-        return null;
-    }
 
     @Transactional
     public boolean toggleChatPush(Long memberId) {

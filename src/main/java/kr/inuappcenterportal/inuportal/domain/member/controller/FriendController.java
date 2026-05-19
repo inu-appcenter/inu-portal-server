@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.service.FriendService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -94,5 +95,15 @@ public class FriendController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         friendService.updateFriendAlias(memberId, friendId, requestDto);
         return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "친구 프로필 조회", description = "친구 관계 ID를 기반으로 상대방의 상세 프로필을 조회합니다.")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/{friendId}/profile")
+    public ResponseEntity<ResponseDto<MemberProfileResponseDto>> getFriendProfile(
+            @PathVariable Long friendId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ResponseDto.of(friendService.getFriendProfile(memberId, friendId), "친구 프로필 조회 성공"));
     }
 }

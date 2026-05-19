@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 public class ChatRoomMemberResponseDto {
     private String nickname;
-    private Long memberId;
+    private Long chatRoomMemberId;
     private String studentId;
     private Long fireId;
     private boolean isMe;
@@ -14,9 +14,9 @@ public class ChatRoomMemberResponseDto {
     private String friendAlias;
 
     @Builder
-    public ChatRoomMemberResponseDto(String nickname, Long memberId, String studentId, Long fireId, boolean isMe, boolean isOwner, String friendAlias) {
+    public ChatRoomMemberResponseDto(String nickname, Long chatRoomMemberId, String studentId, Long fireId, boolean isMe, boolean isOwner, String friendAlias) {
         this.nickname = nickname;
-        this.memberId = memberId;
+        this.chatRoomMemberId = chatRoomMemberId;
         this.studentId = studentId;
         this.fireId = fireId;
         this.isMe = isMe;

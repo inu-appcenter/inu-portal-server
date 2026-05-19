@@ -100,7 +100,11 @@ public class StompHandler implements ChannelInterceptor {
 
     private Long extractRoomId(String destination) {
         try {
-            return Long.parseLong(destination.replace("/sub/room/", ""));
+            String clean = destination.replace("/sub/room/", "");
+            if (clean.contains("/")) {
+                clean = clean.split("/")[0];
+            }
+            return Long.parseLong(clean);
         } catch (NumberFormatException e) {
             throw new AccessDeniedException("올바르지 않은 구독 경로입니다.");
         }
