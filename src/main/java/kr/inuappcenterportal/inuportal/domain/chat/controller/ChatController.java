@@ -42,22 +42,4 @@ public class ChatController {
         Long memberId = Long.parseLong(authentication.getName());
         chatRoomService.sendMessage(messageDto, memberId);
     }
-    @MessageMapping("/enter")
-    public void enter(ChatMessageRequestDto messageDto, Authentication authentication, SimpMessageHeaderAccessor headerAccessor) {
-        Long memberId = Long.parseLong(authentication.getName());
-        
-        // 세션 속성에 현재 채팅방 ID 저장 (연결 끊김 시 자동 처리를 위함)
-        if (headerAccessor.getSessionAttributes() != null) {
-            headerAccessor.getSessionAttributes().put("roomId", messageDto.getRoomId());
-            headerAccessor.getSessionAttributes().put("memberId", memberId);
-        }
-        
-        chatRoomService.enterChatRoom(messageDto.getRoomId(), memberId);
-    }
-
-    @MessageMapping("/leave")
-    public void leave(ChatMessageRequestDto messageDto, Authentication authentication) {
-        Long memberId = Long.parseLong(authentication.getName());
-        chatRoomService.exitChatRoom(messageDto.getRoomId(), memberId);
-    }
 }

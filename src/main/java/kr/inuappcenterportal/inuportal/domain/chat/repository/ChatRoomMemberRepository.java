@@ -16,6 +16,7 @@ import java.util.Optional;
 public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {
     Optional<ChatRoomMember> findByChatRoomAndMember(ChatRoom chatRoom, Member member);
     boolean existsByChatRoomAndMember(ChatRoom chatRoom, Member member);
+    boolean existsByChatRoomIdAndMemberIdAndStatus(Long chatRoomId, Long memberId, ChatMemberStatus status);
     int countByChatRoom(ChatRoom chatRoom);
     List<ChatRoomMember> findAllByMemberAndStatus(Member member, ChatMemberStatus status);
     List<ChatRoomMember> findAllByChatRoomAndStatus(ChatRoom chatRoom, ChatMemberStatus status);
