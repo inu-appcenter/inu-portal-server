@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.chat.config;
 
+import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import kr.inuappcenterportal.inuportal.domain.chat.service.ChatRoomService;
 import java.util.Map;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
@@ -24,7 +26,11 @@ import org.springframework.stereotype.Component;
 public class StompHandler implements ChannelInterceptor {
 
     private final TokenProvider tokenProvider;
-    private final ChatRoomService chatRoomService;
+    
+    @Autowired
+    @Lazy
+    private ChatRoomService chatRoomService;
+    
     private final kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository chatRoomMemberRepository;
 
     @Override
