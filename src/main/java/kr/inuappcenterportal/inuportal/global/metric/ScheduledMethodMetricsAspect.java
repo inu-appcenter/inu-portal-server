@@ -46,6 +46,7 @@ public class ScheduledMethodMetricsAspect {
             Timer.builder("intip_scheduler_duration_seconds")
                     .tag("name", name)
                     .publishPercentiles(0.5, 0.95, 0.99)
+                    .publishPercentileHistogram()
                     .register(registry)
                     .record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }
