@@ -273,4 +273,16 @@ public class ChatRoomController {
         boolean isEnabled = chatRoomService.toggleRoomPush(roomId, memberId);
         return ResponseEntity.ok(ResponseDto.of(isEnabled, "채팅방 알림 설정이 " + (isEnabled ? "켜졌습니다" : "꺼졌습니다")));
     }
+
+    @Operation(summary = "실명 단체채팅방 친구 추가 초대", description = "기존 3인 이상 실명 단체채팅방에 내 친구를 추가로 초대합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/{roomId}/invite")
+    public ResponseEntity<ResponseDto<ChatRoomResponseDto>> inviteFriends(
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatRoomInviteRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        ChatRoomResponseDto chatRoom = chatRoomService.inviteFriends(roomId, requestDto, memberId);
+        return ResponseEntity.ok(ResponseDto.of(chatRoom));
+    }
 }

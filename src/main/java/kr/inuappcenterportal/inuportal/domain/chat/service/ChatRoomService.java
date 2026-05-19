@@ -1306,6 +1306,134 @@ public class ChatRoomService {
         return chatRoomMember.getPushEnabled();
     }
 
+    @Transactional
+    public ChatRoomResponseDto inviteFriends(Long roomId, ChatRoomInviteRequestDto requestDto, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        if (chatRoom.isAnonymous()) {
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+        }
+
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember requesterMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, requester)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (requesterMember.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        int currentParticipants = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        if (currentParticipants < 3) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        List<Long> targetFriendIds = requestDto.getTargetFriendIds();
+        if (targetFriendIds == null || targetFriendIds.isEmpty()) {
+            throw new MyException(MyErrorCode.EMPTY_REQUEST);
+        }
+
+        if (currentParticipants + targetFriendIds.size() > chatRoom.getMaxCapacity()) {
+            throw new MyException(MyErrorCode.CHATROOM_FULL);
+        }
+
+        List<Member> targetMembers = new ArrayList<>();
+        for (Long friendId : targetFriendIds) {
+            Friend friend = friendRepository.findById(friendId)
+                    .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+
+            if (friend.getStatus() != FriendStatus.ACCEPTED) {
+                throw new MyException(MyErrorCode.NOT_FRIEND);
+            }
+
+            if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
+                throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+            }
+
+            Member target = friend.getRequester().getId().equals(memberId) ? friend.getReceiver() : friend.getRequester();
+
+            if (blockRepository.existsByBlockerAndBlocked(requester, target) ||
+                    blockRepository.existsByBlockerAndBlocked(target, requester)) {
+                throw new MyException(MyErrorCode.USER_NOT_FOUND);
+            }
+
+            Optional<ChatRoomMember> existing = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, target);
+            if (existing.isPresent() && existing.get().getStatus() == ChatMemberStatus.JOINED) {
+                continue;
+            }
+
+            targetMembers.add(target);
+        }
+
+        if (targetMembers.isEmpty()) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        for (Member target : targetMembers) {
+            Optional<ChatRoomMember> optMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, target);
+            if (optMember.isPresent()) {
+                optMember.get().rejoin();
+            } else {
+                ChatRoomMember newMember = ChatRoomMember.builder()
+                        .chatRoom(chatRoom)
+                        .member(target)
+                        .build();
+                chatRoomMemberRepository.save(newMember);
+            }
+        }
+
+        // 입장 알림 시스템 메시지 생성 및 발송
+        String invitedNicknames = targetMembers.stream()
+                .map(Member::getNickname)
+                .collect(Collectors.joining(", "));
+        String systemContent = requester.getNickname() + "님이 " + invitedNicknames + "님을 초대했습니다.";
+
+        Long messageId = TSID.fast().toLong();
+        LocalDateTime now = LocalDateTime.now();
+
+        ChatMessage chatMessage = ChatMessage.builder()
+                .id(messageId)
+                .chatRoom(chatRoom)
+                .sender(requester)
+                .content(systemContent)
+                .senderNickname("알림")
+                .imageCount(0)
+                .createDate(now)
+                .modifiedDate(now)
+                .build();
+        chatMessageRepository.save(chatMessage);
+
+        ChatMessageResponseDto systemMessageDto = ChatMessageResponseDto.builder()
+                .messageId(messageId)
+                .roomId(chatRoom.getId())
+                .senderNickname("알림")
+                .senderHash(getSenderHash(memberId))
+                .senderChatRoomMemberId(requesterMember.getId())
+                .content(systemContent)
+                .imageCount(0)
+                .unreadCount(0)
+                .createDate(now)
+                .build();
+
+        broadcastAndCache(chatRoom.getId(), systemMessageDto);
+
+        // 푸시 알림 발송 (새로 초대된 멤버들에게 알림 발송)
+        List<Long> targetMemberIds = targetMembers.stream().map(Member::getId).toList();
+        fcmAsyncService.sendAsyncChatNotification(
+                targetMemberIds,
+                chatRoom.getTitle() != null && !chatRoom.getTitle().isEmpty() ? chatRoom.getTitle() : "그룹 채팅",
+                requester.getNickname() + "님이 회원님을 그룹 채팅에 초대했습니다.",
+                chatRoom.getId(),
+                false
+        );
+
+        int finalParticipants = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
+        boolean pushEnabled = requesterMember.getPushEnabled() != null ? requesterMember.getPushEnabled() : true;
+        return ChatRoomResponseDto.of(chatRoom, finalParticipants, getSenderHash(memberId), isOwner, pushEnabled);
+    }
+
     private String getFriendAlias(Long viewerId, Member target) {
         if (viewerId == null || target == null) return null;
 
