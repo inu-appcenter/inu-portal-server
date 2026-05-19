@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -84,12 +85,13 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     @SecurityRequirement(name = "Auth")
-    @PostMapping
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<ChatRoomResponseDto>> createChatRoom(
-            @Parameter(description = "채팅방 생성 정보", required = true) @Valid @RequestBody ChatRoomCreateRequestDto requestDto,
+            @RequestPart(value = "roomDto") @Valid ChatRoomCreateRequestDto requestDto,
+            @RequestPart(value = "thumbnail", required = false) org.springframework.web.multipart.MultipartFile thumbnail,
             @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        ChatRoomResponseDto chatRoom = chatRoomService.createChatRoom(requestDto, memberId);
+        ChatRoomResponseDto chatRoom = chatRoomService.createChatRoom(requestDto, thumbnail, memberId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(chatRoom));
     }
 
@@ -146,13 +148,14 @@ public class ChatRoomController {
 
     @Operation(summary = "채팅방 정보 수정", description = "채팅방의 이름, 설명, 썸네일, 최대 인원을 수정합니다. 방장만 가능합니다.")
     @SecurityRequirement(name = "Auth")
-    @PatchMapping("/{roomId}/info")
+    @PatchMapping(value = "/{roomId}/info", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Void>> updateChatRoomInfo(
             @PathVariable Long roomId,
-            @Valid @RequestBody ChatRoomUpdateRequestDto requestDto,
+            @RequestPart(value = "roomInfo") @Valid ChatRoomUpdateRequestDto requestDto,
+            @RequestPart(value = "thumbnail", required = false) org.springframework.web.multipart.MultipartFile thumbnail,
             @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        chatRoomService.updateRoomInfo(roomId, requestDto, memberId);
+        chatRoomService.updateRoomInfo(roomId, requestDto, thumbnail, memberId);
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
@@ -170,13 +173,13 @@ public class ChatRoomController {
 
     @Operation(summary = "멤버 강퇴", description = "채팅방의 특정 멤버를 강퇴합니다. 방장만 가능하며, 강퇴된 사용자는 재입장이 불가합니다.")
     @SecurityRequirement(name = "Auth")
-    @DeleteMapping("/{roomId}/members/{targetMemberId}")
+    @DeleteMapping("/{roomId}/members/{targetChatRoomMemberId}")
     public ResponseEntity<ResponseDto<Void>> kickMember(
             @PathVariable Long roomId,
-            @PathVariable Long targetMemberId,
+            @PathVariable Long targetChatRoomMemberId,
             @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        chatRoomService.kickMember(roomId, targetMemberId, memberId);
+        chatRoomService.kickMember(roomId, targetChatRoomMemberId, memberId);
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
@@ -189,6 +192,30 @@ public class ChatRoomController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         List<ChatRoomMemberResponseDto> members = chatRoomService.getParticipants(roomId, memberId);
         return ResponseEntity.ok(ResponseDto.of(members));
+    }
+
+    @Operation(summary = "채팅방 내 유저 프로필 조회", description = "채팅방 내 특정 참가자의 프로필을 조회합니다. 익명방인 경우 학번/횃불이 정보가 숨겨지며 임시 닉네임만 표시됩니다.")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/{roomId}/members/{chatRoomMemberId}/profile")
+    public ResponseEntity<ResponseDto<MemberProfileResponseDto>> getChatRoomMemberProfile(
+            @PathVariable Long roomId,
+            @PathVariable Long chatRoomMemberId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        MemberProfileResponseDto profile = chatRoomService.getChatRoomMemberProfile(roomId, chatRoomMemberId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(profile, "참여자 프로필 조회 성공"));
+    }
+
+    @Operation(summary = "참여자를 통한 1대1 채팅방 개설/조회", description = "기존 채팅방 내 참여자를 지정하여 1대1 대화방을 개설합니다. 출발지가 익명방인 경우, 대화 상대방의 익명 닉네임이 그대로 보존/연동되며 완벽히 격리된 신규 방을 개설하거나 동일 단체방 출처의 기존 개설된 1대1 방을 반환합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/{roomId}/members/{chatRoomMemberId}/personal")
+    public ResponseEntity<ResponseDto<ChatRoomResponseDto>> createOrGetPersonalChatRoomFromParticipant(
+            @PathVariable Long roomId,
+            @PathVariable Long chatRoomMemberId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        ChatRoomResponseDto chatRoom = chatRoomService.createOrGetPersonalChatRoomFromParticipant(roomId, chatRoomMemberId, memberId);
+        return ResponseEntity.ok(ResponseDto.of(chatRoom));
     }
 
     @Operation(summary = "채팅방 정보 및 메시지 조회", description = "특정 채팅방의 상세 정보(참여 인원, 내 해시 등)와 최근 메시지 목록을 조회합니다.")
@@ -247,5 +274,17 @@ public class ChatRoomController {
         Long memberId = Long.parseLong(userDetails.getUsername());
         boolean isEnabled = chatRoomService.toggleRoomPush(roomId, memberId);
         return ResponseEntity.ok(ResponseDto.of(isEnabled, "채팅방 알림 설정이 " + (isEnabled ? "켜졌습니다" : "꺼졌습니다")));
+    }
+
+    @Operation(summary = "실명 단체채팅방 친구 추가 초대", description = "기존 3인 이상 실명 단체채팅방에 내 친구를 추가로 초대합니다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/{roomId}/invite")
+    public ResponseEntity<ResponseDto<ChatRoomResponseDto>> inviteFriends(
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatRoomInviteRequestDto requestDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        ChatRoomResponseDto chatRoom = chatRoomService.inviteFriends(roomId, requestDto, memberId);
+        return ResponseEntity.ok(ResponseDto.of(chatRoom));
     }
 }

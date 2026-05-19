@@ -12,8 +12,10 @@ import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
@@ -62,6 +64,9 @@ public class ChatRoomService {
     @Value("${chatImagePath}")
     private String chatImagePath;
 
+    @Value("${imagePath}")
+    private String imagePath;
+
     public String getSenderHash(Long memberId) {
         return DigestUtils.md5DigestAsHex((memberId + salt).getBytes());
     }
@@ -83,6 +88,9 @@ public class ChatRoomService {
             nickname = sender.getNickname();
         }
 
+        ChatRoomMember senderChatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
         LocalDateTime now = LocalDateTime.now();
         String senderHash = getSenderHash(memberId);
         Long messageId = TSID.fast().toLong();
@@ -96,7 +104,7 @@ public class ChatRoomService {
                 .roomId(messageDto.getRoomId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
-                .senderId(memberId)
+                .senderChatRoomMemberId(senderChatRoomMember.getId())
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
                 .unreadCount(initialUnreadCount)
@@ -165,13 +173,16 @@ public class ChatRoomService {
         int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
         int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
+        ChatRoomMember senderChatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
         String senderHash = getSenderHash(memberId);
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
                 .roomId(chatRoom.getId())
                 .senderNickname(nickname)
                 .senderHash(senderHash)
-                .senderId(memberId)
+                .senderChatRoomMemberId(senderChatRoomMember.getId())
                 .content(messageDto.getContent())
                 .imageCount(images.size())
                 .unreadCount(initialUnreadCount)
@@ -333,10 +344,23 @@ public class ChatRoomService {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        List<Long> targetIds = requestDto.getTargetMemberIds();
-        if (targetIds == null || targetIds.isEmpty()) {
+        List<Long> targetFriendIds = requestDto.getTargetFriendIds();
+        if (targetFriendIds == null || targetFriendIds.isEmpty()) {
             throw new MyException(MyErrorCode.EMPTY_REQUEST);
         }
+
+        List<Long> targetIds = targetFriendIds.stream()
+                .map(friendId -> {
+                    Friend friend = friendRepository.findById(friendId)
+                            .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+                    if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
+                        throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+                    }
+                    if (friend.getStatus() != FriendStatus.ACCEPTED) {
+                        throw new MyException(MyErrorCode.NOT_FRIEND);
+                    }
+                    return friend.getRequester().getId().equals(memberId) ? friend.getReceiver().getId() : friend.getRequester().getId();
+                }).collect(Collectors.toList());
 
         if (targetIds.contains(memberId)) {
             throw new MyException(MyErrorCode.NOT_SELF_CHAT); // 자기 자신과는 채팅방을 만들 수 없음
@@ -469,7 +493,106 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatRoomResponseDto createChatRoom(ChatRoomCreateRequestDto requestDto, Long memberId) {
+    public ChatRoomResponseDto createOrGetPersonalChatRoomFromParticipant(Long roomId, Long chatRoomMemberId, Long memberId) {
+        ChatRoom sourceRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember requesterInSource = chatRoomMemberRepository.findByChatRoomAndMember(sourceRoom, requester)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (requesterInSource.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        ChatRoomMember targetInSource = chatRoomMemberRepository.findById(chatRoomMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (!targetInSource.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+        if (targetInSource.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        Member target = targetInSource.getMember();
+        if (target.getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.NOT_SELF_CHAT);
+        }
+
+        if (blockRepository.existsByBlockerAndBlocked(requester, target) ||
+                blockRepository.existsByBlockerAndBlocked(target, requester)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
+        boolean isAnonymous = sourceRoom.isAnonymous();
+
+        // 1. 기존에 개설된 동일 조건의 1대1 방이 있는지 검색
+        ChatRoom existingRoom = null;
+        List<ChatRoomMember> myJoinedRooms = chatRoomMemberRepository.findAllByMemberAndStatus(requester, ChatMemberStatus.JOINED);
+        for (ChatRoomMember m : myJoinedRooms) {
+            ChatRoom room = m.getChatRoom();
+            if (room.getType() == ChatRoomType.PERSONAL && !room.isOfficial()) {
+                if (room.isAnonymous() == isAnonymous) {
+                    if (!isAnonymous || (room.getSourceRoom() != null && room.getSourceRoom().getId().equals(roomId))) {
+                        List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED);
+                        Set<Long> roomMemberIds = roomMembers.stream().map(cm -> cm.getMember().getId()).collect(Collectors.toSet());
+                        Set<Long> bothIds = Set.of(memberId, target.getId());
+                        if (roomMemberIds.equals(bothIds)) {
+                            existingRoom = room;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (existingRoom != null) {
+            boolean isOwner = existingRoom.getCreator().getId().equals(memberId);
+            ChatRoomMember myMemberInNew = chatRoomMemberRepository.findByChatRoomAndMember(existingRoom, requester).orElseThrow();
+            boolean pushEnabled = myMemberInNew.getPushEnabled() != null ? myMemberInNew.getPushEnabled() : true;
+            return ChatRoomResponseDto.of(existingRoom, 2, getSenderHash(memberId), isOwner, pushEnabled);
+        }
+
+        // 2. 신규 채팅방 생성
+        ChatRoom newRoom = ChatRoom.builder()
+                .title("")
+                .maxCapacity(100)
+                .isAnonymous(isAnonymous)
+                .type(ChatRoomType.PERSONAL)
+                .creator(requester)
+                .isOfficial(false)
+                .sourceRoom(isAnonymous ? sourceRoom : null)
+                .build();
+        chatRoomRepository.save(newRoom);
+
+        // 3. 참여 멤버들 등록
+        ChatRoomMember newRequesterMember = ChatRoomMember.builder()
+                .chatRoom(newRoom)
+                .member(requester)
+                .build();
+        chatRoomMemberRepository.save(newRequesterMember);
+
+        ChatRoomMember newTargetMember = ChatRoomMember.builder()
+                .chatRoom(newRoom)
+                .member(target)
+                .build();
+        chatRoomMemberRepository.save(newTargetMember);
+
+        // 4. 익명 방일 경우, 출발지 단체방/오픈방에서 사용하던 닉네임 연동/복사
+        if (isAnonymous) {
+            chatRedisService.copyAnonymousNickname(roomId, newRoom.getId(), requester.getId());
+            chatRedisService.copyAnonymousNickname(roomId, newRoom.getId(), target.getId());
+
+            chatRedisService.getOrAssignAnonymousNickname(newRoom.getId(), requester.getId());
+            chatRedisService.getOrAssignAnonymousNickname(newRoom.getId(), target.getId());
+        }
+
+        return ChatRoomResponseDto.of(newRoom, 2, getSenderHash(memberId), true, true);
+    }
+
+    @Transactional
+    public ChatRoomResponseDto createChatRoom(ChatRoomCreateRequestDto requestDto, MultipartFile thumbnail, Long memberId) {
         Member creator = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
@@ -486,6 +609,16 @@ public class ChatRoomService {
                 .thumbnailUrl(requestDto.getThumbnailUrl())
                 .build();
         chatRoomRepository.save(chatRoom);
+
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            try {
+                String thumbnailUrl = imageService.saveChatRoomThumbnail(chatRoom.getId(), thumbnail, imagePath);
+                chatRoom.updateInfo(chatRoom.getTitle(), chatRoom.getDescription(), thumbnailUrl, chatRoom.getMaxCapacity());
+            } catch (IOException e) {
+                log.error("채팅방 생성 썸네일 저장 중 오류 발생: ", e);
+                throw new MyException(MyErrorCode.INVALID_INPUT);
+            }
+        }
 
         ChatRoomMember chatRoomMember = ChatRoomMember.builder()
                 .chatRoom(chatRoom)
@@ -601,7 +734,7 @@ public class ChatRoomService {
 
             return ChatRoomMemberResponseDto.builder()
                     .nickname(nickname)
-                    .memberId(member.getId())
+                    .chatRoomMemberId(m.getId())
                     .studentId(chatRoom.isAnonymous() ? null : member.getMaskedStudentId())
                     .fireId(chatRoom.isAnonymous() ? null : member.getFireId())
                     .isMe(member.getId().equals(memberId))
@@ -670,6 +803,10 @@ public class ChatRoomService {
         int memberCount = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
         boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
 
+        List<ChatRoomMember> roomMembersForMapping = chatRoomMemberRepository.findAllByChatRoom(chatRoom);
+        Map<Long, Long> chatRoomMemberIdToMemberIdMap = roomMembersForMapping.stream()
+                .collect(Collectors.toMap(ChatRoomMember::getId, rm -> rm.getMember().getId(), (e1, e2) -> e1));
+
         String title = chatRoom.getTitle();
         String friendAlias = null;
         Long otherMemberId = null;
@@ -709,11 +846,14 @@ public class ChatRoomService {
                     // 별명 매핑 로직
                     String senderAlias = null;
                     if (!chatRoom.isAnonymous()) {
-                        // 1. senderId가 있는 경우 (신규 메시지 또는 DB 메시지)
-                        if (msg.getSenderId() != null) {
-                            senderAlias = friendAliasMap.get(msg.getSenderId());
+                        // 1. senderChatRoomMemberId가 있는 경우 (신규 메시지 또는 DB 메시지)
+                        if (msg.getSenderChatRoomMemberId() != null) {
+                            Long actualSenderMemberId = chatRoomMemberIdToMemberIdMap.get(msg.getSenderChatRoomMemberId());
+                            if (actualSenderMemberId != null) {
+                                senderAlias = friendAliasMap.get(actualSenderMemberId);
+                            }
                         }
-                        // 2. 1:1 채팅이고 senderId가 없으나(캐시된 구형 메시지) 본인이 아닌 경우
+                        // 2. 1:1 채팅이고 senderChatRoomMemberId가 없으나(캐시된 구형 메시지) 본인이 아닌 경우
                         if (senderAlias == null && finalOtherMemberId != null && !myHash.equals(msg.getSenderHash())) {
                             senderAlias = finalFriendAlias;
                         }
@@ -724,7 +864,7 @@ public class ChatRoomService {
                             .roomId(msg.getRoomId())
                             .senderNickname(msg.getSenderNickname())
                             .senderHash(msg.getSenderHash())
-                            .senderId(msg.getSenderId())
+                            .senderChatRoomMemberId(msg.getSenderChatRoomMemberId())
                             .content(msg.getContent())
                             .imageCount(msg.getImageCount())
                             .unreadCount(unread)
@@ -792,18 +932,28 @@ public class ChatRoomService {
             reverseFriends.forEach(f -> friendAliasMap.put(f.getRequester().getId(), f.getReceiverAlias()));
         }
 
+        List<ChatRoomMember> roomMembersForMapping = chatRoomMemberRepository.findAllByChatRoom(chatRoom);
+        Map<Long, Long> chatRoomMemberIdToMemberIdMap = roomMembersForMapping.stream()
+                .collect(Collectors.toMap(ChatRoomMember::getId, rm -> rm.getMember().getId(), (e1, e2) -> e1));
+
         return olderMessages.stream()
                 .map(this::convertToDto)
                 .filter(dto -> dto.getSenderHash() == null || !blockedHashes.contains(dto.getSenderHash()))
                 .map(dto -> {
                     int unread = (int) readIds.stream().filter(lastRead -> lastRead < dto.getMessageId()).count();
-                    String senderAlias = (dto.getSenderId() != null) ? friendAliasMap.get(dto.getSenderId()) : null;
+                    String senderAlias = null;
+                    if (dto.getSenderChatRoomMemberId() != null) {
+                        Long actualSenderMemberId = chatRoomMemberIdToMemberIdMap.get(dto.getSenderChatRoomMemberId());
+                        if (actualSenderMemberId != null) {
+                            senderAlias = friendAliasMap.get(actualSenderMemberId);
+                        }
+                    }
                     return ChatMessageResponseDto.builder()
                             .messageId(dto.getMessageId())
                             .roomId(dto.getRoomId())
                             .senderNickname(dto.getSenderNickname())
                             .senderHash(dto.getSenderHash())
-                            .senderId(dto.getSenderId())
+                            .senderChatRoomMemberId(dto.getSenderChatRoomMemberId())
                             .content(dto.getContent())
                             .imageCount(dto.getImageCount())
                             .unreadCount(unread)
@@ -919,7 +1069,7 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public void updateRoomInfo(Long roomId, ChatRoomUpdateRequestDto requestDto, Long memberId) {
+    public void updateRoomInfo(Long roomId, ChatRoomUpdateRequestDto requestDto, MultipartFile thumbnail, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
         Member member = memberRepository.findById(memberId)
@@ -934,7 +1084,17 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.INVALID_INPUT); // 현재 인원보다 적게 설정 불가
         }
 
-        chatRoom.updateInfo(requestDto.getTitle(), requestDto.getDescription(), requestDto.getThumbnailUrl(),
+        String thumbnailUrl = requestDto.getThumbnailUrl();
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            try {
+                thumbnailUrl = imageService.saveChatRoomThumbnail(roomId, thumbnail, imagePath);
+            } catch (IOException e) {
+                log.error("채팅방 썸네일 저장 중 오류 발생: ", e);
+                throw new MyException(MyErrorCode.INVALID_INPUT);
+            }
+        }
+
+        chatRoom.updateInfo(requestDto.getTitle(), requestDto.getDescription(), thumbnailUrl,
                 requestDto.getMaxCapacity());
     }
 
@@ -946,40 +1106,116 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
         }
 
-        Member newOwner = memberRepository.findById(requestDto.getNewOwnerId())
-                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-
-        ChatRoomMember newOwnerMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, newOwner)
+        ChatRoomMember newOwnerMember = chatRoomMemberRepository.findById(requestDto.getNewOwnerChatRoomMemberId())
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        if (!newOwnerMember.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
 
         if (newOwnerMember.getStatus() != ChatMemberStatus.JOINED) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
 
-        chatRoom.updateCreator(newOwner);
+        chatRoom.updateCreator(newOwnerMember.getMember());
     }
 
     @Transactional
-    public void kickMember(Long roomId, Long targetMemberId, Long memberId) {
+    public void kickMember(Long roomId, Long targetChatRoomMemberId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
         if (!chatRoom.getCreator().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
         }
 
-        if (targetMemberId.equals(memberId)) {
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findById(targetChatRoomMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        if (!chatRoomMember.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        if (chatRoomMember.getMember().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.INVALID_INPUT); // 자신을 강퇴할 수 없음
         }
 
-        Member targetMember = memberRepository.findById(targetMemberId)
-                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, targetMember)
-                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
-
         chatRoomMember.kick();
-        chatRedisService.removeUserFromRoom(roomId, targetMemberId);
+        chatRedisService.removeUserFromRoom(roomId, chatRoomMember.getMember().getId());
         messagingTemplate.convertAndSend("/sub/room/" + roomId, "updated");
+    }
+
+    @Transactional(readOnly = true)
+    public MemberProfileResponseDto getChatRoomMemberProfile(Long roomId, Long chatRoomMemberId, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+        ChatRoomMember requesterMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, requester)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (requesterMember.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        ChatRoomMember targetMember = chatRoomMemberRepository.findById(chatRoomMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (!targetMember.getChatRoom().getId().equals(roomId)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        Member target = targetMember.getMember();
+
+        if (blockRepository.existsByBlockerAndBlocked(target, requester) ||
+            blockRepository.existsByBlockerAndBlocked(requester, target)) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
+        String nickname;
+        if (chatRoom.isOfficial() && target.getRoles().contains("ROLE_ADMIN")) {
+            nickname = chatRedisService.getOrAssignAdminNickname(roomId, target.getId());
+        } else if (chatRoom.isAnonymous()) {
+            nickname = chatRedisService.getOrAssignAnonymousNickname(roomId, target.getId());
+        } else {
+            nickname = target.getNickname();
+        }
+
+        String studentId = null;
+        Long fireId = null;
+        String friendStatus = "NONE";
+        Long friendId = null;
+        String friendAlias = null;
+
+        if (!chatRoom.isAnonymous()) {
+            studentId = target.getMaskedStudentId();
+            fireId = target.getFireId();
+
+            Optional<Friend> friendOpt = friendRepository.findByRequesterAndReceiver(requester, target);
+            if (friendOpt.isPresent()) {
+                Friend f = friendOpt.get();
+                friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "PENDING";
+                friendId = f.getId();
+                friendAlias = f.getRequesterAlias();
+            } else {
+                Optional<Friend> reverseFriendOpt = friendRepository.findByRequesterAndReceiver(target, requester);
+                if (reverseFriendOpt.isPresent()) {
+                    Friend f = reverseFriendOpt.get();
+                    friendStatus = f.getStatus() == FriendStatus.ACCEPTED ? "ACCEPTED" : "RECEIVED";
+                    friendId = f.getId();
+                    friendAlias = f.getReceiverAlias();
+                }
+            }
+        }
+
+        return MemberProfileResponseDto.builder()
+                .memberId(null)
+                .nickname(nickname)
+                .fireId(fireId)
+                .department(chatRoom.isAnonymous() ? null : target.getDepartment())
+                .maskedStudentId(studentId)
+                .friendStatus(friendStatus)
+                .friendAlias(friendAlias)
+                .friendId(friendId)
+                .build();
     }
 
     private void sendChatNotification(ChatRoom room, Member sender, String senderNickname, String content) {
@@ -1062,12 +1298,16 @@ public class ChatRoomService {
                     message.getSender().getId());
         }
 
+        Long senderChatRoomMemberId = chatRoomMemberRepository.findByChatRoomAndMember(message.getChatRoom(), message.getSender())
+                .map(ChatRoomMember::getId)
+                .orElse(null);
+
         return ChatMessageResponseDto.builder()
                 .messageId(message.getId())
                 .roomId(message.getChatRoom().getId())
                 .senderNickname(nickname)
                 .senderHash(getSenderHash(message.getSender().getId()))
-                .senderId(message.getSender().getId())
+                .senderChatRoomMemberId(senderChatRoomMemberId)
                 .content(message.getContent())
                 .imageCount(message.getImageCount())
                 .unreadCount(0)
@@ -1087,6 +1327,134 @@ public class ChatRoomService {
 
         chatRoomMember.togglePush();
         return chatRoomMember.getPushEnabled();
+    }
+
+    @Transactional
+    public ChatRoomResponseDto inviteFriends(Long roomId, ChatRoomInviteRequestDto requestDto, Long memberId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        if (chatRoom.isAnonymous()) {
+            throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
+        }
+
+        Member requester = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        ChatRoomMember requesterMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, requester)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+        if (requesterMember.getStatus() != ChatMemberStatus.JOINED) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
+        }
+
+        int currentParticipants = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        if (currentParticipants < 3) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        List<Long> targetFriendIds = requestDto.getTargetFriendIds();
+        if (targetFriendIds == null || targetFriendIds.isEmpty()) {
+            throw new MyException(MyErrorCode.EMPTY_REQUEST);
+        }
+
+        if (currentParticipants + targetFriendIds.size() > chatRoom.getMaxCapacity()) {
+            throw new MyException(MyErrorCode.CHATROOM_FULL);
+        }
+
+        List<Member> targetMembers = new ArrayList<>();
+        for (Long friendId : targetFriendIds) {
+            Friend friend = friendRepository.findById(friendId)
+                    .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+
+            if (friend.getStatus() != FriendStatus.ACCEPTED) {
+                throw new MyException(MyErrorCode.NOT_FRIEND);
+            }
+
+            if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
+                throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+            }
+
+            Member target = friend.getRequester().getId().equals(memberId) ? friend.getReceiver() : friend.getRequester();
+
+            if (blockRepository.existsByBlockerAndBlocked(requester, target) ||
+                    blockRepository.existsByBlockerAndBlocked(target, requester)) {
+                throw new MyException(MyErrorCode.USER_NOT_FOUND);
+            }
+
+            Optional<ChatRoomMember> existing = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, target);
+            if (existing.isPresent() && existing.get().getStatus() == ChatMemberStatus.JOINED) {
+                continue;
+            }
+
+            targetMembers.add(target);
+        }
+
+        if (targetMembers.isEmpty()) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        for (Member target : targetMembers) {
+            Optional<ChatRoomMember> optMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, target);
+            if (optMember.isPresent()) {
+                optMember.get().rejoin();
+            } else {
+                ChatRoomMember newMember = ChatRoomMember.builder()
+                        .chatRoom(chatRoom)
+                        .member(target)
+                        .build();
+                chatRoomMemberRepository.save(newMember);
+            }
+        }
+
+        // 입장 알림 시스템 메시지 생성 및 발송
+        String invitedNicknames = targetMembers.stream()
+                .map(Member::getNickname)
+                .collect(Collectors.joining(", "));
+        String systemContent = requester.getNickname() + "님이 " + invitedNicknames + "님을 초대했습니다.";
+
+        Long messageId = TSID.fast().toLong();
+        LocalDateTime now = LocalDateTime.now();
+
+        ChatMessage chatMessage = ChatMessage.builder()
+                .id(messageId)
+                .chatRoom(chatRoom)
+                .sender(requester)
+                .content(systemContent)
+                .senderNickname("알림")
+                .imageCount(0)
+                .createDate(now)
+                .modifiedDate(now)
+                .build();
+        chatMessageRepository.save(chatMessage);
+
+        ChatMessageResponseDto systemMessageDto = ChatMessageResponseDto.builder()
+                .messageId(messageId)
+                .roomId(chatRoom.getId())
+                .senderNickname("알림")
+                .senderHash(getSenderHash(memberId))
+                .senderChatRoomMemberId(requesterMember.getId())
+                .content(systemContent)
+                .imageCount(0)
+                .unreadCount(0)
+                .createDate(now)
+                .build();
+
+        broadcastAndCache(chatRoom.getId(), systemMessageDto);
+
+        // 푸시 알림 발송 (새로 초대된 멤버들에게 알림 발송)
+        List<Long> targetMemberIds = targetMembers.stream().map(Member::getId).toList();
+        fcmAsyncService.sendAsyncChatNotification(
+                targetMemberIds,
+                chatRoom.getTitle() != null && !chatRoom.getTitle().isEmpty() ? chatRoom.getTitle() : "그룹 채팅",
+                requester.getNickname() + "님이 회원님을 그룹 채팅에 초대했습니다.",
+                chatRoom.getId(),
+                false
+        );
+
+        int finalParticipants = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        boolean isOwner = chatRoom.getCreator().getId().equals(memberId);
+        boolean pushEnabled = requesterMember.getPushEnabled() != null ? requesterMember.getPushEnabled() : true;
+        return ChatRoomResponseDto.of(chatRoom, finalParticipants, getSenderHash(memberId), isOwner, pushEnabled);
     }
 
     private String getFriendAlias(Long viewerId, Member target) {

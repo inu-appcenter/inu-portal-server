@@ -279,6 +279,44 @@ public class MemberServiceTest {
     }
 
     @Test
+    @DisplayName("회원 정보 수정 실패 테스트 - 금지 키워드 닉네임")
+    public void updateMemberFailForbiddenNicknameKeywordTest() throws NoSuchFieldException, IllegalAccessException {
+        //given
+        long id = 1L;
+        String nickname = "인팁도우미";
+        Long fire = 3L;
+        MemberUpdateNicknameDto dto = MemberUpdateNicknameDto.builder().nickname(nickname).fireId(fire).build();
+        Member member = createMember("20241234");
+        when(memberRepository.findById(id)).thenReturn(Optional.of(member));
+
+        //when
+        MyException exception = assertThrows(MyException.class, ()->memberService.updateMemberNicknameFireId(id,dto));
+
+        //then
+        assertEquals(exception.getErrorCode().getMessage(),"사용할 수 없는 단어(알림, 운영진 등)가 포함된 닉네임입니다.");
+        verify(memberRepository, times(1)).findById(id);
+    }
+
+    @Test
+    @DisplayName("회원 정보 수정 실패 테스트 - 금지 키워드 대소문자/공백 우회")
+    public void updateMemberFailForbiddenNicknameKeywordWithWhitespaceAndCaseTest() throws NoSuchFieldException, IllegalAccessException {
+        //given
+        long id = 1L;
+        String nickname = "운  영  자";
+        Long fire = 3L;
+        MemberUpdateNicknameDto dto = MemberUpdateNicknameDto.builder().nickname(nickname).fireId(fire).build();
+        Member member = createMember("20241234");
+        when(memberRepository.findById(id)).thenReturn(Optional.of(member));
+
+        //when
+        MyException exception = assertThrows(MyException.class, ()->memberService.updateMemberNicknameFireId(id,dto));
+
+        //then
+        assertEquals(exception.getErrorCode().getMessage(),"사용할 수 없는 단어(알림, 운영진 등)가 포함된 닉네임입니다.");
+        verify(memberRepository, times(1)).findById(id);
+    }
+
+    @Test
     @DisplayName("회원 정보 수정 실패 테스트 - 공백 요청")
     public void updateMemberFailNullTest() throws NoSuchFieldException, IllegalAccessException {
         //given

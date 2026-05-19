@@ -62,6 +62,23 @@ public class ChatRedisService {
     }
 
     /**
+     * 익명 닉네임 복사/연동
+     */
+    public void copyAnonymousNickname(Long sourceRoomId, Long targetRoomId, Long memberId) {
+        String sourceMapKey = String.format(ROOM_ANON_MAP_KEY_PREFIX, sourceRoomId);
+        String targetMapKey = String.format(ROOM_ANON_MAP_KEY_PREFIX, targetRoomId);
+        String memberIdStr = String.valueOf(memberId);
+
+        Object assignedNum = redisTemplate.opsForHash().get(sourceMapKey, memberIdStr);
+        if (assignedNum != null) {
+            String randomNumStr = String.valueOf(assignedNum);
+            String targetNumbersKey = String.format(ROOM_ANON_NUMBERS_KEY_PREFIX, targetRoomId);
+            redisTemplate.opsForSet().add(targetNumbersKey, randomNumStr);
+            redisTemplate.opsForHash().put(targetMapKey, memberIdStr, randomNumStr);
+        }
+    }
+
+    /**
      * 운영자 닉네임 조회 및 할당 (순차 번호 방식)
      */
     public String getOrAssignAdminNickname(Long roomId, Long memberId) {

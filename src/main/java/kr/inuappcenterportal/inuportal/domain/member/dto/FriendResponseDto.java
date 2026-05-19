@@ -6,16 +6,14 @@ import lombok.Getter;
 @Getter
 public class FriendResponseDto {
     private Long friendId; // friend 엔티티의 ID
-    private Long memberId; // 상대방 member ID
     private String nickname;
     private String studentId;
     private Long fireId;
     private String friendAlias;
 
     @Builder
-    public FriendResponseDto(Long friendId, Long memberId, String nickname, String studentId, Long fireId, String friendAlias) {
+    public FriendResponseDto(Long friendId, String nickname, String studentId, Long fireId, String friendAlias) {
         this.friendId = friendId;
-        this.memberId = memberId;
         this.nickname = nickname;
         this.studentId = studentId;
         this.fireId = fireId;

@@ -143,8 +143,18 @@ public class ImageService {
         }
     }
 
-
-
-
-
+    public String saveChatRoomThumbnail(Long roomId, MultipartFile thumbnail, String basePath) throws IOException {
+        Path path = Paths.get(basePath);
+        if (!Files.exists(path)) {
+            Files.createDirectories(path);
+        }
+        BufferedImage thumbImage = Thumbnails.of(thumbnail.getInputStream())
+                .size(400, 400)
+                .keepAspectRatio(true)
+                .asBufferedImage();
+        String fileName = "chat-room-thumb-" + roomId + ".webp";
+        File outputFile = new File(basePath, fileName);
+        ImageIO.write(thumbImage, "webp", outputFile);
+        return "/images/" + fileName;
+    }
 }
