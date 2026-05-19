@@ -34,10 +34,26 @@ public class MemberService {
     private final FriendRepository friendRepository;
     private final BlockRepository blockRepository;
 
+    private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
+            "알림", "공지", "알람", "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
+            "notice", "admin", "system", "staff", "intip", "인팁", "appcenter", "앱센터"
+    );
+
+    private void validateNicknameKeywords(String nickname) {
+        if (nickname == null) return;
+        String normalized = nickname.toLowerCase().replaceAll("\\s+", "");
+        for (String keyword : FORBIDDEN_NICKNAME_KEYWORDS) {
+            if (normalized.contains(keyword)) {
+                throw new MyException(MyErrorCode.INVALID_NICKNAME_KEYWORD);
+            }
+        }
+    }
+
     @Transactional
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto) {
         Member member = memberRepository.findById(id).orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
         if (memberUpdateNicknameDto.getNickname() != null) {
+            validateNicknameKeywords(memberUpdateNicknameDto.getNickname());
             if (memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())) {
                 throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
             }
