@@ -64,6 +64,9 @@ public class ChatRoomService {
     @Value("${chatImagePath}")
     private String chatImagePath;
 
+    @Value("${imagePath}")
+    private String imagePath;
+
     public String getSenderHash(Long memberId) {
         return DigestUtils.md5DigestAsHex((memberId + salt).getBytes());
     }
@@ -589,7 +592,7 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatRoomResponseDto createChatRoom(ChatRoomCreateRequestDto requestDto, Long memberId) {
+    public ChatRoomResponseDto createChatRoom(ChatRoomCreateRequestDto requestDto, MultipartFile thumbnail, Long memberId) {
         Member creator = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
@@ -606,6 +609,16 @@ public class ChatRoomService {
                 .thumbnailUrl(requestDto.getThumbnailUrl())
                 .build();
         chatRoomRepository.save(chatRoom);
+
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            try {
+                String thumbnailUrl = imageService.saveChatRoomThumbnail(chatRoom.getId(), thumbnail, imagePath);
+                chatRoom.updateInfo(chatRoom.getTitle(), chatRoom.getDescription(), thumbnailUrl, chatRoom.getMaxCapacity());
+            } catch (IOException e) {
+                log.error("채팅방 생성 썸네일 저장 중 오류 발생: ", e);
+                throw new MyException(MyErrorCode.INVALID_INPUT);
+            }
+        }
 
         ChatRoomMember chatRoomMember = ChatRoomMember.builder()
                 .chatRoom(chatRoom)
@@ -1056,7 +1069,7 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public void updateRoomInfo(Long roomId, ChatRoomUpdateRequestDto requestDto, Long memberId) {
+    public void updateRoomInfo(Long roomId, ChatRoomUpdateRequestDto requestDto, MultipartFile thumbnail, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
         Member member = memberRepository.findById(memberId)
@@ -1071,7 +1084,17 @@ public class ChatRoomService {
             throw new MyException(MyErrorCode.INVALID_INPUT); // 현재 인원보다 적게 설정 불가
         }
 
-        chatRoom.updateInfo(requestDto.getTitle(), requestDto.getDescription(), requestDto.getThumbnailUrl(),
+        String thumbnailUrl = requestDto.getThumbnailUrl();
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            try {
+                thumbnailUrl = imageService.saveChatRoomThumbnail(roomId, thumbnail, imagePath);
+            } catch (IOException e) {
+                log.error("채팅방 썸네일 저장 중 오류 발생: ", e);
+                throw new MyException(MyErrorCode.INVALID_INPUT);
+            }
+        }
+
+        chatRoom.updateInfo(requestDto.getTitle(), requestDto.getDescription(), thumbnailUrl,
                 requestDto.getMaxCapacity());
     }
 

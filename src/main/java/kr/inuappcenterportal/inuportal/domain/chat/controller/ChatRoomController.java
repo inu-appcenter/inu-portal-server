@@ -85,12 +85,13 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     @SecurityRequirement(name = "Auth")
-    @PostMapping
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<ChatRoomResponseDto>> createChatRoom(
-            @Parameter(description = "채팅방 생성 정보", required = true) @Valid @RequestBody ChatRoomCreateRequestDto requestDto,
+            @RequestPart(value = "roomDto") @Valid ChatRoomCreateRequestDto requestDto,
+            @RequestPart(value = "thumbnail", required = false) org.springframework.web.multipart.MultipartFile thumbnail,
             @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        ChatRoomResponseDto chatRoom = chatRoomService.createChatRoom(requestDto, memberId);
+        ChatRoomResponseDto chatRoom = chatRoomService.createChatRoom(requestDto, thumbnail, memberId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.of(chatRoom));
     }
 
@@ -147,13 +148,14 @@ public class ChatRoomController {
 
     @Operation(summary = "채팅방 정보 수정", description = "채팅방의 이름, 설명, 썸네일, 최대 인원을 수정합니다. 방장만 가능합니다.")
     @SecurityRequirement(name = "Auth")
-    @PatchMapping("/{roomId}/info")
+    @PatchMapping(value = "/{roomId}/info", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<Void>> updateChatRoomInfo(
             @PathVariable Long roomId,
-            @Valid @RequestBody ChatRoomUpdateRequestDto requestDto,
+            @RequestPart(value = "roomInfo") @Valid ChatRoomUpdateRequestDto requestDto,
+            @RequestPart(value = "thumbnail", required = false) org.springframework.web.multipart.MultipartFile thumbnail,
             @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
-        chatRoomService.updateRoomInfo(roomId, requestDto, memberId);
+        chatRoomService.updateRoomInfo(roomId, requestDto, thumbnail, memberId);
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
