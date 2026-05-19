@@ -6,6 +6,10 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
@@ -424,6 +428,73 @@ public class FcmService {
                         .build())
                 .build();
     }
+
+    /**
+     * 채팅 알림을 위한 특화된 푸시 발송 메서드 (OS별 그룹화 및 무음 처리 지원)
+     */
+    @Transactional(readOnly = true)
+    public void sendChatNotification(List<Long> memberIds, String title, String body, Long chatRoomId, boolean isMuted) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return;
+        }
+        List<FcmToken> tokens = fcmTokenRepository.findFcmTokensByMemberIds(memberIds);
+        if (tokens.isEmpty()) {
+            return;
+        }
+
+        List<String> tokenStrings = tokens.stream().map(FcmToken::getToken).toList();
+        int batchSize = 500;
+        for (int i = 0; i < tokenStrings.size(); i += batchSize) {
+            List<String> batchTokens = tokenStrings.subList(i, Math.min(i + batchSize, tokenStrings.size()));
+            MulticastMessage message = createChatMessage(batchTokens, title, body, chatRoomId, isMuted);
+            try {
+                BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
+                log.info("Chat push sent: room={}, isMuted={}, targets={}, success={}, failure={}",
+                        chatRoomId, isMuted, batchTokens.size(), response.getSuccessCount(), response.getFailureCount());
+            } catch (Exception e) {
+                log.error("Chat push failed: room={}, isMuted={}, targets={}, error={}",
+                        chatRoomId, isMuted, batchTokens.size(), e.getMessage(), e);
+            }
+        }
+    }
+
+    private MulticastMessage createChatMessage(List<String> tokens, String title, String body, Long chatRoomId, boolean isMuted) {
+        String roomIdStr = String.valueOf(chatRoomId);
+        
+        AndroidNotification.Builder androidNotiBuilder = AndroidNotification.builder()
+                .setTag("room_" + roomIdStr);
+                
+        Aps.Builder apsBuilder = Aps.builder()
+                .setThreadId("room_" + roomIdStr);
+                
+        if (isMuted) {
+            // Android: 무음용 채널 (앱에서 조용히 노출하도록 알림 중요도 낮춤)
+            androidNotiBuilder.setChannelId("chat_channel_muted");
+        } else {
+            // Android: 소리/진동용 기본 채널
+            androidNotiBuilder.setChannelId("chat_channel_default");
+            // iOS: 소리가 나도록 default 설정
+            apsBuilder.setSound("default");
+        }
+
+        return MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .setNotification(Notification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                // 웹뷰에서 라우팅할 때 참조할 공통 데이터 페이로드
+                .putData("type", "CHAT")
+                .putData("chatRoomId", roomIdStr)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setNotification(androidNotiBuilder.build())
+                        .build())
+                .setApnsConfig(ApnsConfig.builder()
+                        .setAps(apsBuilder.build())
+                        .build())
+                .build();
+    }
+
 
     private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount) {
         FcmMessage fcmMessage = FcmMessage.builder()

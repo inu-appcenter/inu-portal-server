@@ -38,4 +38,9 @@ public class FcmAsyncService {
     public void sendAsyncUntrackedNotification(List<Long> memberIds, String title, String body) {
         fcmService.sendUntrackedNotification(memberIds, title, body);
     }
+
+    @Async("messageExecutor")
+    public void sendAsyncChatNotification(List<Long> memberIds, String title, String body, Long chatRoomId, boolean isMuted) {
+        fcmService.sendChatNotification(memberIds, title, body, chatRoomId, isMuted);
+    }
 }

@@ -986,23 +986,32 @@ public class ChatRoomService {
         // 1. 현재 방에 접속 중인 사용자 ID 목록 가져오기
         Set<String> activeUserIds = chatRedisService.getRoomUserIds(room.getId());
 
-        // 2. 알림을 받을 멤버 필터링 (참여 중인 멤버 - 나 - 현재 접속자)
+        // 2. 알림 대상 멤버 전체 필터링 (참여 중인 멤버 중 발신자 제외, 현재 접속자 제외, 멤버 전역 알림 허용 여부 확인)
         List<ChatRoomMember> joinedMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
                 ChatMemberStatus.JOINED);
-        List<Long> targetMemberIds = joinedMembers.stream()
-                .filter(m -> m.getPushEnabled() != null ? m.getPushEnabled() : true)
-                .map(ChatRoomMember::getMember)
-                .filter(m -> m.getChatPushEnabled() != null ? m.getChatPushEnabled() : true)
-                .filter(m -> !m.getId().equals(sender.getId())) // 발신자 제외
-                .filter(m -> !activeUserIds.contains(String.valueOf(m.getId()))) // 현재 접속자 제외
-                .map(Member::getId)
+
+        List<ChatRoomMember> eligibleMembers = joinedMembers.stream()
+                .filter(m -> m.getMember().getChatPushEnabled() != null ? m.getMember().getChatPushEnabled() : true)
+                .filter(m -> !m.getMember().getId().equals(sender.getId())) // 발신자 제외
+                .filter(m -> !activeUserIds.contains(String.valueOf(m.getMember().getId()))) // 현재 접속자 제외
                 .toList();
 
-        if (targetMemberIds.isEmpty()) {
+        if (eligibleMembers.isEmpty()) {
             return;
         }
 
-        // 3. 알림 제목 및 내용 구성
+        // 3. 일반 알림(소리/진동) 대상과 무음 알림(알림창에만 표시) 대상으로 분할
+        List<Long> normalMemberIds = eligibleMembers.stream()
+                .filter(m -> m.getPushEnabled() != null ? m.getPushEnabled() : true)
+                .map(m -> m.getMember().getId())
+                .toList();
+
+        List<Long> mutedMemberIds = eligibleMembers.stream()
+                .filter(m -> m.getPushEnabled() != null && !m.getPushEnabled())
+                .map(m -> m.getMember().getId())
+                .toList();
+
+        // 4. 알림 제목 및 내용 구성
         String title;
         String body;
 
@@ -1025,11 +1034,15 @@ public class ChatRoomService {
             body = senderNickname + ": " + content;
         }
 
-        // 4. 알림 전송 (비동기 처리됨)
-        // 채팅 알림도 이력에 남기기 위해 sendToMembers (또는 이력을 남기지 않으려면 sendUntrackedNotification)
-        // 사용 가능
-        // 사용자가 알림 이력 조회를 원하므로 sendKeywordNotice 스타일의 배치를 활용하거나 간단한 래퍼를 사용
-        fcmAsyncService.sendAsyncUntrackedNotification(targetMemberIds, title, body);
+        // 5. 알림 전송 (비동기 처리됨)
+        // 일반 사용자들에게 발송 (소리/진동 있음)
+        if (!normalMemberIds.isEmpty()) {
+            fcmAsyncService.sendAsyncChatNotification(normalMemberIds, title, body, room.getId(), false);
+        }
+        // 무음 설정 사용자들에게 발송 (소리/진동 없음, 알림창에만 노출)
+        if (!mutedMemberIds.isEmpty()) {
+            fcmAsyncService.sendAsyncChatNotification(mutedMemberIds, title, body, room.getId(), true);
+        }
     }
 
     private ChatMessageResponseDto convertToDto(ChatMessage message) {
