@@ -29,6 +29,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -65,6 +66,7 @@ public class FcmService {
     private final MemberRepository memberRepository;
     private final JdbcTemplate jdbcTemplate;
     private final FcmTransactionService fcmTransactionService;
+    private final FcmMetrics fcmMetrics;
 
     @Transactional
     public void saveToken(TokenRequestDto tokenRequestDto, Long memberId) {
@@ -105,18 +107,27 @@ public class FcmService {
         }
 
         MulticastMessage message = createMulticastMessage(target, title, body, null, null);
+        long startNanos = System.nanoTime();
+        int batchSuccess = 0;
+        int batchFailure = 0;
         try {
             BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
-            fcmMessage.updateDeliveryResult(response.getSuccessCount(), response.getFailureCount());
+            batchSuccess = response.getSuccessCount();
+            batchFailure = response.getFailureCount();
+            fcmMessage.updateDeliveryResult(batchSuccess, batchFailure);
             log.info("Admin notification sent: target={}, success={}, failure={}",
-                    target.size(), response.getSuccessCount(), response.getFailureCount());
+                    target.size(), batchSuccess, batchFailure);
         } catch (FirebaseMessagingException e) {
+            batchFailure = target.size();
             fcmMessage.markFailed(target.size());
             log.warn("Admin notification send failed: {}", e.getMessage());
         } catch (Exception e) {
+            batchFailure = target.size();
             fcmMessage.markFailed(target.size());
             log.error("Admin notification send failed unexpectedly: target={}, message={}",
                     target.size(), e.getMessage(), e);
+        } finally {
+            fcmMetrics.recordBatch("ADMIN", target.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
         }
     }
 
@@ -293,6 +304,7 @@ public class FcmService {
 
             int batchSuccess = 0;
             int batchFailure = 0;
+            long startNanos = System.nanoTime();
 
             try {
                 BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
@@ -311,6 +323,9 @@ public class FcmService {
             } catch (Exception e) {
                 batchFailure = batchTokens.size();
                 log.error("FCM batch send failed: fcmMessageId={}, batchSize={}, message={}", fcmMessageId, batchTokens.size(), e.getMessage());
+            } finally {
+                String metricType = type != null ? type.name() : "UNKNOWN";
+                fcmMetrics.recordBatch(metricType, batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
             }
 
             successCount += batchSuccess;
@@ -463,13 +478,21 @@ public class FcmService {
         for (int i = 0; i < tokenStrings.size(); i += batchSize) {
             List<String> batchTokens = tokenStrings.subList(i, Math.min(i + batchSize, tokenStrings.size()));
             MulticastMessage message = createChatMessage(batchTokens, title, body, chatRoomId, isMuted);
+            long startNanos = System.nanoTime();
+            int batchSuccess = 0;
+            int batchFailure = 0;
             try {
                 BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
+                batchSuccess = response.getSuccessCount();
+                batchFailure = response.getFailureCount();
                 log.info("Chat push sent: room={}, isMuted={}, targets={}, success={}, failure={}",
-                        chatRoomId, isMuted, batchTokens.size(), response.getSuccessCount(), response.getFailureCount());
+                        chatRoomId, isMuted, batchTokens.size(), batchSuccess, batchFailure);
             } catch (Exception e) {
+                batchFailure = batchTokens.size();
                 log.error("Chat push failed: room={}, isMuted={}, targets={}, error={}",
                         chatRoomId, isMuted, batchTokens.size(), e.getMessage(), e);
+            } finally {
+                fcmMetrics.recordBatch("CHAT", batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
             }
         }
     }
