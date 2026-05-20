@@ -6,6 +6,7 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
+import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -21,10 +22,14 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class FcmAsyncExecutor {
     private final FirebaseMessaging firebaseMessaging;
+    private final FcmMetrics fcmMetrics;
     private final List<String> failedTokensList = Collections.synchronizedList(new ArrayList<>());
 
     @Async("sendExecutor")
     public CompletableFuture<Void> sendMessage(List<String> tokens, String body, String title) {
+        long startNanos = System.nanoTime();
+        int batchSuccess = 0;
+        int batchFailure = 0;
         try {
             MulticastMessage message = MulticastMessage.builder()
                     .addAllTokens(tokens)
@@ -35,6 +40,8 @@ public class FcmAsyncExecutor {
                     .build();
 
             BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
+            batchSuccess = response.getSuccessCount();
+            batchFailure = response.getFailureCount();
             List<SendResponse> responses = response.getResponses();
             for (int i = 0; i < responses.size(); i++) {
                 if (!responses.get(i).isSuccessful()) {
@@ -42,12 +49,16 @@ public class FcmAsyncExecutor {
                 }
             }
         } catch (FirebaseMessagingException e) {
+            batchFailure = tokens.size();
             failedTokensList.addAll(tokens);
             log.warn("FCM batch send failed: {}", e.getMessage());
         } catch (Exception e) {
+            batchFailure = tokens.size();
             failedTokensList.addAll(tokens);
             log.error("FCM batch send failed unexpectedly: batchSize={}, message={}",
                     tokens.size(), e.getMessage(), e);
+        } finally {
+            fcmMetrics.recordBatch("BROADCAST", tokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
         }
 
         return CompletableFuture.completedFuture(null);
