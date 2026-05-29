@@ -863,6 +863,44 @@ public class NoticeService {
             return null;
         }
 
+        // 1. HTML5 data-* 속성 파싱 (가장 현대적이고 표준화된 방식 지원)
+        String artclSeq = linkElement.attr("data-bbs-artcl-seq").trim();
+        String fnctNo = linkElement.attr("data-fnct-no").trim();
+        String siteId = linkElement.attr("data-site-id").trim();
+
+        if (!artclSeq.isBlank() && !fnctNo.isBlank()) {
+            if (siteId.isBlank()) {
+                siteId = "isis";
+            }
+            try {
+                java.net.URI uri = java.net.URI.create(listUrl);
+                String baseDomain = uri.getScheme() + "://" + uri.getHost();
+                return baseDomain + "/bbs/" + siteId + "/" + fnctNo + "/" + artclSeq + "/artclView";
+            } catch (Exception e) {
+                return "https://www.inu.ac.kr/bbs/" + siteId + "/" + fnctNo + "/" + artclSeq + "/artclView";
+            }
+        }
+
+        // 2. onclick 자바스크립트 함수 인자 파싱 (폴백 처리)
+        String onclick = linkElement.attr("onclick").trim();
+        if (!onclick.isBlank()) {
+            // fn_artclView('376', '424693') 또는 fn_egov_inqire_notice('123', '456') 형태 매칭
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("['\"](\\d+)['\"]\\s*,\\s*['\"](\\d+)['\"]");
+            java.util.regex.Matcher matcher = pattern.matcher(onclick);
+            if (matcher.find()) {
+                String extractedBbsSeq = matcher.group(1);
+                String extractedArtclSeq = matcher.group(2);
+                try {
+                    java.net.URI uri = java.net.URI.create(listUrl);
+                    String baseDomain = uri.getScheme() + "://" + uri.getHost();
+                    return baseDomain + "/bbs/isis/" + extractedBbsSeq + "/" + extractedArtclSeq + "/artclView";
+                } catch (Exception e) {
+                    return "https://www.inu.ac.kr/bbs/isis/" + extractedBbsSeq + "/" + extractedArtclSeq + "/artclView";
+                }
+            }
+        }
+
+        // 3. 기존의 정적 href 파싱 폴백
         if (useAbsoluteHref) {
             String absoluteHref = linkElement.attr("abs:href");
             if (!absoluteHref.isBlank()) {
