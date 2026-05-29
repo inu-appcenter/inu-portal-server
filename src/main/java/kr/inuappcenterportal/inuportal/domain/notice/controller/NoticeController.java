@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
@@ -102,7 +103,7 @@ public class NoticeController {
             @ApiResponse(
                     responseCode = "200",
                     description = "학과별 공지사항 가져오기 성공",
-                    content = @Content(schema = @Schema(implementation = DepartmentNoticeListResponse.class))
+                    content = @Content(schema = @Schema(implementation = DepartmentNoticePageResponse.class))
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -111,7 +112,7 @@ public class NoticeController {
             )
     })
     @GetMapping("/department")
-    public ResponseEntity<ResponseDto<ListResponseDto<DepartmentNoticeListResponse>>> getDepartmentNotices(
+    public ResponseEntity<ResponseDto<DepartmentNoticePageResponse>> getDepartmentNotices(
             @RequestParam Department department,
             @RequestParam(required = false, defaultValue = "date") String sort,
             @RequestParam(required = false, defaultValue = "1") @Min(1) int page
