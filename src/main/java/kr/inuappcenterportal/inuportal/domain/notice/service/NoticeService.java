@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
@@ -392,7 +393,93 @@ public class NoticeService {
     public void crawlingDepartmentNotices(Department[] departments, int start, int end) {
         for (int i = start; i < end; i++) {
             Department department = departments[i];
-            getNoticeByDepartment(department, getDepartmentCrawlConfig(department));
+            if (!department.isServiceAvailable()) {
+                continue;
+            }
+            if (department.isRssSupported()) {
+                syncDepartmentNoticeByRss(department);
+            } else {
+                getNoticeByDepartment(department, getDepartmentCrawlConfig(department));
+            }
+        }
+    }
+
+    private void syncDepartmentNoticeByRss(Department department) {
+        try {
+            log.info("[학과공지 RSS] 동기화 시작: department={}, rssUrl={}", department.name(), department.getRssUrl());
+
+            Document document = Jsoup.connect(department.getRssUrl())
+                    .userAgent(CRAWLER_USER_AGENT)
+                    .timeout(REQUEST_TIMEOUT_MILLIS)
+                    .parser(org.jsoup.parser.Parser.xmlParser())
+                    .get();
+
+            Elements items = document.select("item");
+            int newCount = 0;
+            int updateCount = 0;
+
+            for (Element item : items) {
+                String title = item.select("title").text().trim();
+                String rawLink = item.select("link").text().trim();
+                if (rawLink.isBlank()) {
+                    continue;
+                }
+                String link = resolveRelativeUrl(department.getUrls(), null, rawLink);
+
+                String pubDateStr = item.select("pubDate").text().trim();
+                String parsedRssDate = parseRssDate(pubDateStr);
+                LocalDate date = parseDepartmentNoticeDate(parsedRssDate);
+                
+                long views = 0L;
+                String viewsStr = item.select("hit").text().trim();
+                if (!viewsStr.isBlank()) {
+                    try {
+                        views = Long.parseLong(viewsStr);
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                }
+
+                Optional<DepartmentNotice> existingNotice = departmentNoticeRepository.findFirstByDepartmentAndUrl(department, link);
+                if (existingNotice.isEmpty()) {
+                    existingNotice = departmentNoticeRepository.findFirstByDepartmentAndTitleAndCreateDate(department, title, date);
+                }
+
+                DepartmentNotice departmentNotice;
+                boolean isNewNotice = false;
+
+                if (existingNotice.isPresent()) {
+                    departmentNotice = existingNotice.get();
+                    departmentNotice.updateListing(title, date, views, link);
+                    updateCount++;
+                } else {
+                    departmentNotice = departmentNoticeRepository.save(
+                            DepartmentNotice.create(department, title, date, views, link)
+                    );
+                    isNewNotice = true;
+                    newCount++;
+                }
+
+                syncDepartmentNoticeContent(departmentNotice, getDepartmentCrawlConfig(department));
+
+                if (isNewNotice) {
+                    if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                            @Override
+                            public void afterCommit() {
+                                scheduleExtractService.extractScheduleAsync(departmentNotice, true);
+                            }
+                        });
+                    } else {
+                        scheduleExtractService.extractScheduleAsync(departmentNotice, true);
+                    }
+                }
+            }
+
+            log.info("[학과공지 RSS] 동기화 완료: department={}, 신규={}, 업데이트={}", department.name(), newCount, updateCount);
+
+        } catch (Exception e) {
+            log.error("[학과공지 RSS] 크롤링 중 에러 발생: department={}, message={}", department.name(), e.getMessage());
         }
     }
 
@@ -525,6 +612,10 @@ public class NoticeService {
                     String dateStr = ele.select(config.getDateSelector()).text();
                     LocalDate date = parseDepartmentNoticeDate(dateStr);
                     String href = resolveDepartmentNoticeUrl(ele.selectFirst(config.getLinkSelector()), url, config.isUseAbsoluteHref());
+                    if (href == null) {
+                        log.warn("학과 공지 상세 링크(href) 수집 실패: title={}", title);
+                        continue;
+                    }
                     long views = parseLongValue(ele.select(config.getViewsSelector()).text());
 
                     Optional<DepartmentNotice> existingDepartmentNotice = departmentNoticeRepository.findFirstByDepartmentAndUrl(department, href);
@@ -576,6 +667,11 @@ public class NoticeService {
     }
 
     private void syncDepartmentNoticeContent(DepartmentNotice departmentNotice, DepartmentCrawlConfig config) {
+        if (!departmentNotice.getDepartment().isContentAvailable()) {
+            departmentNotice.markNoTextContent();
+            return;
+        }
+
         if (departmentNotice.isContentCrawlBlocked() && departmentNotice.hasContentCrawlMetadata()) {
             return;
         }
@@ -764,7 +860,7 @@ public class NoticeService {
 
     private String resolveDepartmentNoticeUrl(Element linkElement, String listUrl, boolean useAbsoluteHref) {
         if (linkElement == null) {
-            return listUrl;
+            return null;
         }
 
         if (useAbsoluteHref) {
@@ -774,9 +870,9 @@ public class NoticeService {
             }
         }
 
-        String rawHref = linkElement.attr("href");
-        if (rawHref == null || rawHref.isBlank()) {
-            return listUrl;
+        String rawHref = linkElement.attr("href").trim();
+        if (rawHref.isBlank() || "#".equals(rawHref) || "#none".equals(rawHref) || rawHref.startsWith("javascript:")) {
+            return null;
         }
         if (rawHref.startsWith("http://") || rawHref.startsWith("https://")) {
             return rawHref;
@@ -958,20 +1054,24 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto<DepartmentNoticeListResponse> getDepartmentNotices(Department department, String sort, int page) {
+    public DepartmentNoticePageResponse getDepartmentNotices(Department department, String sort, int page) {
         Pageable pageable = PageRequest.of(page > 0 ? --page : page, 8, sort(sort));
         Page<DepartmentNotice> departmentNotices = departmentNoticeRepository.findAllByDepartment(department, pageable);
         Map<Long, Boolean> hasSchedulesMap = loadHasSchedulesMap(departmentNotices.getContent());
 
-        return ListResponseDto.of(
+        List<DepartmentNoticeListResponse> contents = departmentNotices.getContent().stream()
+                .map(notice -> DepartmentNoticeListResponse.of(
+                        notice,
+                        hasSchedulesMap.getOrDefault(notice.getId(), false)
+                ))
+                .collect(Collectors.toList());
+
+        return DepartmentNoticePageResponse.of(
                 departmentNotices.getTotalPages(),
                 departmentNotices.getTotalElements(),
-                departmentNotices.getContent().stream()
-                        .map(notice -> DepartmentNoticeListResponse.of(
-                                notice,
-                                hasSchedulesMap.getOrDefault(notice.getId(), false)
-                        ))
-                        .collect(Collectors.toList())
+                contents,
+                department.isServiceAvailable(),
+                department.isContentAvailable()
         );
     }
 
