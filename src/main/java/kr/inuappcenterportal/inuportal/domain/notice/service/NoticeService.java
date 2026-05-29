@@ -426,6 +426,28 @@ public class NoticeService {
                 }
                 String link = resolveRelativeUrl(department.getUrls(), null, rawLink);
 
+                // 중앙 RSS의 가상 경로(/bbs/isis/)를 학과의 진짜 식별자 경로(/bbs/실제학과명/)로 동적 치환하여 404 차단
+                String siteId = "isis";
+                try {
+                    java.net.URI uri = java.net.URI.create(department.getUrls());
+                    String path = uri.getPath();
+                    if (path != null && path.startsWith("/")) {
+                        String[] segments = path.split("/");
+                        for (String segment : segments) {
+                            if (!segment.isBlank()) {
+                                siteId = segment;
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // fallback to "isis"
+                }
+
+                if (link.contains("/bbs/isis/")) {
+                    link = link.replace("/bbs/isis/", "/bbs/" + siteId + "/");
+                }
+
                 String pubDateStr = item.select("pubDate").text().trim();
                 String parsedRssDate = parseRssDate(pubDateStr);
                 LocalDate date = parseDepartmentNoticeDate(parsedRssDate);
