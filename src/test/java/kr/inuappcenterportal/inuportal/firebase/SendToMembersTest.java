@@ -21,6 +21,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionSer
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -73,6 +74,9 @@ class SendToMembersTest {
 
     @MockBean
     private FcmAsyncExecutor fcmAsyncExecutor;
+
+    @MockBean
+    private FcmMetrics fcmMetrics;
 
     @Test
     void prepareAdminNotification_usesAllTokensAndAllMembersForDefaultSend() {
