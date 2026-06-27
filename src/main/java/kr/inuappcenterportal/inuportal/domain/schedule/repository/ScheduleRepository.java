@@ -60,4 +60,23 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             LocalDate startDate,
             LocalDate endDate
     );
+
+    @Query("""
+            SELECT s
+            FROM Schedule s
+            WHERE s.department IS NULL
+              AND (s.aiGenerated = false OR s.aiGenerated IS NULL)
+              AND s.startDate BETWEEN :startDate AND :endDate
+              AND (
+                    s.content LIKE CONCAT('%', :regularKeyword, '%')
+                    OR s.content LIKE CONCAT('%', :seasonKeyword, '%')
+              )
+            ORDER BY s.startDate ASC
+            """)
+    List<Schedule> findAcademicSemesterSchedules(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("regularKeyword") String regularKeyword,
+            @Param("seasonKeyword") String seasonKeyword
+    );
 }

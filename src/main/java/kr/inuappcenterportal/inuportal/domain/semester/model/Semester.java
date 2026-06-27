@@ -12,7 +12,13 @@ import java.time.LocalDate;
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "semesters")
+@Table(
+        name = "semesters",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_semester_year_term",
+                columnNames = {"academic_year", "term"}
+        )
+)
 public class Semester extends BaseTimeEntity {
 
     @Id
@@ -35,4 +41,14 @@ public class Semester extends BaseTimeEntity {
 
     @Column(name = "is_opening")
     private boolean isOpening;
+
+    public static Semester create(Integer year, SemesterTerm term, LocalDate startDate, LocalDate endDate) {
+        Semester semester = new Semester();
+        semester.year = year;
+        semester.term = term;
+        semester.startDate = startDate;
+        semester.endDate = endDate;
+        semester.isOpening = false;
+        return semester;
+    }
 }
