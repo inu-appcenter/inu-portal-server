@@ -17,7 +17,6 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class SemesterService {
 
     private final SemesterRepository semesterRepository;
@@ -38,6 +37,7 @@ public class SemesterService {
     /**
      * 올해, 내년 일정 가져오는 메서드
      */
+    @Transactional
     public void syncSemestersByYear() {
         int year = LocalDate.now().getYear();
 

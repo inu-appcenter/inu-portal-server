@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.global.enums;
+package kr.inuappcenterportal.inuportal.domain.course.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
