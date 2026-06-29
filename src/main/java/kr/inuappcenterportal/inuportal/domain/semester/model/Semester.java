@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.semester.model;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
@@ -33,22 +34,27 @@ public class Semester extends BaseTimeEntity {
     @Column(nullable = false)
     private SemesterTerm term;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "semester_status", nullable = false)
+    private SemesterStatus status;
+
     @Column(name = "start_date")
     private LocalDate startDate;
 
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "is_opening")
-    private boolean isOpening;
-
-    public static Semester create(Integer year, SemesterTerm term, LocalDate startDate, LocalDate endDate) {
+    public static Semester create(Integer year, SemesterTerm term, SemesterStatus status, LocalDate startDate, LocalDate endDate) {
         Semester semester = new Semester();
         semester.year = year;
         semester.term = term;
         semester.startDate = startDate;
         semester.endDate = endDate;
-        semester.isOpening = false;
+        semester.status = status;
         return semester;
+    }
+
+    public void updateStatus(SemesterStatus status) {
+        this.status = status;
     }
 }

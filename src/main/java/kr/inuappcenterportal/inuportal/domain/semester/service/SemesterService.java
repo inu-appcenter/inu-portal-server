@@ -2,14 +2,14 @@ package kr.inuappcenterportal.inuportal.domain.semester.service;
 
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.dto.SemesterResponseDto;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,12 +26,13 @@ public class SemesterService {
      * 만들어진 학기 조회 메서드
      */
     @Transactional(readOnly = true)
-    public Semester getSemester(Integer year, SemesterTerm term) {
-        return semesterRepository.findByYearAndTerm(year, term)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "존재하지 않는 학기입니다."
-                ));
+    public List<SemesterResponseDto> getValidSemesters(SemesterStatus status) {
+        return semesterRepository.findAllByStatusInOrderByYearDescTermAsc(
+                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)
+                )
+                .stream()
+                .map(SemesterResponseDto::of)
+                .toList();
     }
 
     /**
@@ -67,10 +68,10 @@ public class SemesterService {
 
 
         // 학기 생성
-        createSemester(year, SemesterTerm.FIRST, firstSemesterStart, summerSemesterStart, winterSemesterStart);
-        createSemester(year, SemesterTerm.SECOND, secondSemesterStart, summerSemesterStart, winterSemesterStart);
-        createSemester(year, SemesterTerm.SUMMER, summerSemesterStart, summerSemesterStart, winterSemesterStart);
-        createSemester(year, SemesterTerm.WINTER, winterSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.FIRST, SemesterStatus.UPCOMING, firstSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.SECOND, SemesterStatus.UPCOMING, secondSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.SUMMER, SemesterStatus.UPCOMING, summerSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.WINTER, SemesterStatus.UPCOMING, winterSemesterStart, summerSemesterStart, winterSemesterStart);
     }
 
 
@@ -88,11 +89,11 @@ public class SemesterService {
     private void createSemester(
             Integer year,
             SemesterTerm term,
+            SemesterStatus status,
             Optional<Schedule> startSchedule,
             Optional<Schedule> summerSemesterStart,
             Optional<Schedule> winterSemesterStart
     ) {
-        //
         if (startSchedule.isEmpty()) {
             return;
         }
@@ -103,7 +104,6 @@ public class SemesterService {
             return;
         }
 
-        //
         LocalDate startDate = startSchedule.get().getStartDate();
         LocalDate endDate = calculateEndDate(
                 term,
@@ -115,6 +115,7 @@ public class SemesterService {
         Semester semester = Semester.create(
                 year,
                 term,
+                status,
                 startDate,
                 endDate
         );
@@ -151,5 +152,35 @@ public class SemesterService {
         }
 
         return null;
+    }
+
+    /**
+     * 학기 살태 변경 메서드
+     */
+    public void updateSemesterStatus() {
+        LocalDate today = LocalDate.now();
+
+        List<Semester> semesters = semesterRepository.findAll();
+
+        for (Semester semester : semesters) {
+            semester.updateStatus(calculateStatus(semester, today));
+        }
+    }
+
+    /**
+     * 학기 상태 계산 메서드
+     */
+    private SemesterStatus calculateStatus(Semester semester, LocalDate today) {
+        LocalDate openDate = semester.getStartDate().minusWeeks(4);
+
+        if (today.isBefore(openDate)) {
+            return SemesterStatus.UPCOMING;
+        }
+
+        if (semester.getEndDate() != null && today.isAfter(semester.getEndDate())) {
+            return SemesterStatus.CLOSED;
+        }
+
+        return SemesterStatus.OPEN;
     }
 }

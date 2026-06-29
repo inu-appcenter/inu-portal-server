@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.semester;
 
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -39,7 +40,7 @@ public class SemesterServiceTest {
     @DisplayName("학사일정에서 학기 시작 후보를 찾아 학기를 생성한다.")
     void 학사일정_크롤링_학기_저장_테스트() {
 
-        /// Given
+        /// Given ///
         int currentYear = LocalDate.now().getYear();
 
         // 학사일정 크롤링한 데이터로 가정
@@ -61,12 +62,12 @@ public class SemesterServiceTest {
         when(semesterRepository.findByYearAndTerm(any(Integer.class), any(SemesterTerm.class)))
                 .thenReturn(Optional.empty());
 
-        /// When
+        /// When ///
 
         // 실제 학기 서비스 로직 테스트 실행
         semesterService.syncSemestersByYear();
 
-        /// Then
+        /// Then ///
 
         // semesterRepository.save(...)에 들어간 Semester 객체들을 잡아둘 도구
         ArgumentCaptor<Semester> semesterCaptor = ArgumentCaptor.forClass(Semester.class);
@@ -115,7 +116,7 @@ public class SemesterServiceTest {
     @DisplayName("중복일정 검사 로직 테스트")
     void 중복_학기_검사_로직_테스트() {
 
-        /// Given
+        /// Given ///
         int currentYear = LocalDate.now().getYear();
 
         // 학사일정 크롤링한 데이터로 가정
@@ -126,6 +127,7 @@ public class SemesterServiceTest {
         Semester existingSemester = Semester.create(
                 currentYear,
                 SemesterTerm.FIRST,
+                SemesterStatus.UPCOMING,
                 LocalDate.of(currentYear, 3, 2),
                 null
         );
@@ -140,10 +142,10 @@ public class SemesterServiceTest {
         when(semesterRepository.findByYearAndTerm(currentYear, SemesterTerm.FIRST))
                 .thenReturn(Optional.of(existingSemester));
 
-        /// When
+        /// When ///
         semesterService.syncSemestersByYear();
 
-        /// Then
+        /// Then ///
         verify(semesterRepository, never()).save(any(Semester.class));
     }
 }
