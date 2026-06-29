@@ -1,13 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.semester.controller;
 
 import kr.inuappcenterportal.inuportal.domain.semester.dto.SemesterResponseDto;
-import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -24,10 +22,9 @@ public class SemesterController {
      */
     @GetMapping
     public ResponseEntity<List<SemesterResponseDto>> getValidSemesters(
-            @RequestParam(required = false) SemesterStatus status
     ) {
 
-        List<SemesterResponseDto> semesters = semesterService.getValidSemesters(status);
+        List<SemesterResponseDto> semesters = semesterService.getValidSemesters();
         return ResponseEntity.ok(semesters);
     }
 }

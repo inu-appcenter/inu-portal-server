@@ -38,10 +38,10 @@ public class Semester extends BaseTimeEntity {
     @Column(name = "semester_status", nullable = false)
     private SemesterStatus status;
 
-    @Column(name = "start_date")
+    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "end_date")
+    @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
     public static Semester create(Integer year, SemesterTerm term, SemesterStatus status, LocalDate startDate, LocalDate endDate) {

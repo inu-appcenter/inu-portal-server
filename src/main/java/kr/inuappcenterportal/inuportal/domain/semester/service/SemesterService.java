@@ -26,7 +26,7 @@ public class SemesterService {
      * 만들어진 학기 조회 메서드
      */
     @Transactional(readOnly = true)
-    public List<SemesterResponseDto> getValidSemesters(SemesterStatus status) {
+    public List<SemesterResponseDto> getValidSemesters() {
         return semesterRepository.findAllByStatusInOrderByYearDescTermAsc(
                         List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)
                 )
@@ -66,15 +66,14 @@ public class SemesterService {
         Optional<Schedule> summerSemesterStart = findScheduleContaining(semesterStartCandidates, "하계");
         Optional<Schedule> winterSemesterStart = findScheduleContaining(semesterStartCandidates, "동계");
 
-
         // 학기 생성
-        createSemester(year, SemesterTerm.FIRST, SemesterStatus.UPCOMING, firstSemesterStart, summerSemesterStart, winterSemesterStart);
-        createSemester(year, SemesterTerm.SECOND, SemesterStatus.UPCOMING, secondSemesterStart, summerSemesterStart, winterSemesterStart);
-        createSemester(year, SemesterTerm.SUMMER, SemesterStatus.UPCOMING, summerSemesterStart, summerSemesterStart, winterSemesterStart);
-        createSemester(year, SemesterTerm.WINTER, SemesterStatus.UPCOMING, winterSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.FIRST, firstSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.SECOND, secondSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.SUMMER, summerSemesterStart, summerSemesterStart, winterSemesterStart);
+        createSemester(year, SemesterTerm.WINTER, winterSemesterStart, summerSemesterStart, winterSemesterStart);
     }
 
-
+    // 파싱한 데이터에서 키워드로 찾기
     private Optional<Schedule> findScheduleContaining(List<Schedule> schedules, String keyword) {
         return schedules.stream()
                 .filter(schedule -> schedule.getContent() != null)
@@ -89,7 +88,6 @@ public class SemesterService {
     private void createSemester(
             Integer year,
             SemesterTerm term,
-            SemesterStatus status,
             Optional<Schedule> startSchedule,
             Optional<Schedule> summerSemesterStart,
             Optional<Schedule> winterSemesterStart
@@ -104,13 +102,17 @@ public class SemesterService {
             return;
         }
 
-        LocalDate startDate = startSchedule.get().getStartDate();
-        LocalDate endDate = calculateEndDate(
+        LocalDate startDate = startSchedule.get().getStartDate(); // 학기 시작일
+
+        LocalDate endDate = calculateEndDate( // 학기 종료일
                 term,
                 startDate,
                 summerSemesterStart,
                 winterSemesterStart
         );
+
+        SemesterStatus status = calculateStatus(startDate, endDate, LocalDate.now()); // 학기 상태 계산
+
 
         Semester semester = Semester.create(
                 year,
@@ -139,7 +141,7 @@ public class SemesterService {
                     .orElse(null);
         }
 
-        // 2하긱 종료일은 겨울 게절학기 시작 하루 전
+        // 2학기 종료일은 겨울 계절학기 시작 하루 전
         if (term == SemesterTerm.SECOND) {
             return winterSemesterStart
                     .map(schedule -> schedule.getStartDate().minusDays(1))
@@ -155,29 +157,30 @@ public class SemesterService {
     }
 
     /**
-     * 학기 살태 변경 메서드
+     * 학기 상태 변경 메서드
      */
+    @Transactional
     public void updateSemesterStatus() {
         LocalDate today = LocalDate.now();
 
         List<Semester> semesters = semesterRepository.findAll();
 
         for (Semester semester : semesters) {
-            semester.updateStatus(calculateStatus(semester, today));
+            calculateStatus(semester.getStartDate(), semester.getEndDate(), today);
         }
     }
 
     /**
      * 학기 상태 계산 메서드
      */
-    private SemesterStatus calculateStatus(Semester semester, LocalDate today) {
-        LocalDate openDate = semester.getStartDate().minusWeeks(4);
+    private SemesterStatus calculateStatus(LocalDate startDate, LocalDate endDate, LocalDate today) {
+        LocalDate openDate = startDate.minusWeeks(4);
 
         if (today.isBefore(openDate)) {
             return SemesterStatus.UPCOMING;
         }
 
-        if (semester.getEndDate() != null && today.isAfter(semester.getEndDate())) {
+        if (endDate != null && today.isAfter(endDate)) {
             return SemesterStatus.CLOSED;
         }
 
