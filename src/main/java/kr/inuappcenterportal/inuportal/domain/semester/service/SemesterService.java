@@ -35,7 +35,7 @@ public class SemesterService {
     }
 
     /**
-     * 올해, 내년 일정 가져오는 메서드
+     * 년도 동기화 메서드
      */
     @Transactional
     public void syncSemestersByYear() {
@@ -62,8 +62,8 @@ public class SemesterService {
         // 학사일정 크롤링한 데이터에서 파싱
         Optional<Schedule> firstSemesterStart = findScheduleContaining(semesterStartCandidates, "1학기");
         Optional<Schedule> secondSemesterStart = findScheduleContaining(semesterStartCandidates, "2학기");
-        Optional<Schedule> summerSemesterStart = findScheduleContaining(semesterStartCandidates, "여름");
-        Optional<Schedule> winterSemesterStart = findScheduleContaining(semesterStartCandidates, "겨울");
+        Optional<Schedule> summerSemesterStart = findScheduleContaining(semesterStartCandidates, "하계");
+        Optional<Schedule> winterSemesterStart = findScheduleContaining(semesterStartCandidates, "동계");
 
 
         // 학기 생성

@@ -3,7 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.course.model;
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
