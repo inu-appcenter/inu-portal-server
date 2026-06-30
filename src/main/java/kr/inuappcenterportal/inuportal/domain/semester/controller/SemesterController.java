@@ -21,9 +21,7 @@ public class SemesterController {
      * 유효한 학기 조회 메서드(Open, Closed)
      */
     @GetMapping
-    public ResponseEntity<List<SemesterResponseDto>> getValidSemesters(
-    ) {
-
+    public ResponseEntity<List<SemesterResponseDto>> getValidSemesters() {
         List<SemesterResponseDto> semesters = semesterService.getValidSemesters();
         return ResponseEntity.ok(semesters);
     }

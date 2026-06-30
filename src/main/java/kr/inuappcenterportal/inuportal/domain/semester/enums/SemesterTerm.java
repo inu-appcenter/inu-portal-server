@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum SemesterTerm {
     FIRST("1학기"),
-    SECOND("2학기"),
     SUMMER("여름학기"),
+    SECOND("2학기"),
     WINTER("겨울학기");
 
     private final String displayName;
