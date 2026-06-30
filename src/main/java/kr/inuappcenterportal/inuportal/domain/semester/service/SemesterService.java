@@ -111,6 +111,10 @@ public class SemesterService {
                 winterSemesterStart
         );
 
+        if (endDate == null) {
+            return;
+        }
+
         SemesterStatus status = calculateStatus(startDate, endDate, LocalDate.now()); // 학기 상태 계산
 
 
@@ -166,7 +170,13 @@ public class SemesterService {
         List<Semester> semesters = semesterRepository.findAll();
 
         for (Semester semester : semesters) {
-            calculateStatus(semester.getStartDate(), semester.getEndDate(), today);
+            SemesterStatus status = calculateStatus(
+                    semester.getStartDate(),
+                    semester.getEndDate(),
+                    today
+            );
+
+            semester.updateStatus(status);
         }
     }
 
