@@ -21,5 +21,5 @@ public enum College {
     COLLEGE_OF_INTERDISCIPLINARY_STUDIES("융합자유전공대학"),
     COLLEGE_OF_NULL("단과대 없음");
 
-    private final String collage;
+    private final String collegeName;
 }

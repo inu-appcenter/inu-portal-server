@@ -52,7 +52,7 @@ public class SemesterServiceTest {
                 TEST_ZONE
         );
 
-        // 위에서 만든 고정 시간과 DB 주입해 semesterService 생
+        // 위에서 만든 고정 시간과 DB 주입해 semesterService 생성
         semesterService = new SemesterService(
                 semesterRepository,
                 scheduleRepository,
