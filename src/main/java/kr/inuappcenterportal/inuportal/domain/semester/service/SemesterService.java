@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,7 @@ public class SemesterService {
 
     private final SemesterRepository semesterRepository;
     private final ScheduleRepository scheduleRepository;
+    private final Clock clock;
 
     /**
      * 만들어진 학기 조회 메서드
@@ -40,7 +42,7 @@ public class SemesterService {
      */
     @Transactional
     public void syncSemestersByYear() {
-        int year = LocalDate.now().getYear();
+        int year = LocalDate.now(clock).getYear();
 
         syncSemesters(year);
     }
@@ -115,7 +117,7 @@ public class SemesterService {
             return;
         }
 
-        SemesterStatus status = calculateStatus(startDate, endDate, LocalDate.now()); // 학기 상태 계산
+        SemesterStatus status = calculateStatus(startDate, endDate, LocalDate.now(clock)); // 학기 상태 계산
 
 
         Semester semester = Semester.create(
@@ -165,7 +167,7 @@ public class SemesterService {
      */
     @Transactional
     public void updateSemesterStatus() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
 
         List<Semester> semesters = semesterRepository.findAll();
 
@@ -184,16 +186,21 @@ public class SemesterService {
      * 학기 상태 계산 메서드
      */
     private SemesterStatus calculateStatus(LocalDate startDate, LocalDate endDate, LocalDate today) {
+
+        // 학기 시작일의 4주 전부터 학기가 열림
         LocalDate openDate = startDate.minusWeeks(4);
 
+        // 학기 시작일의 4주 전보다 이전이면 UPCOMING
         if (today.isBefore(openDate)) {
             return SemesterStatus.UPCOMING;
         }
 
+        // 종료일 이후면 CLOSED
         if (endDate != null && today.isAfter(endDate)) {
             return SemesterStatus.CLOSED;
         }
 
+        // 그 이외에는 OPEN
         return SemesterStatus.OPEN;
     }
 }
