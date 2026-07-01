@@ -35,6 +35,7 @@ public class SemesterServiceTest {
 
     private SemesterService semesterService;
 
+    // 테스트에서 사용할 가짜 DB
     @Mock
     private SemesterRepository semesterRepository;
 
@@ -42,12 +43,16 @@ public class SemesterServiceTest {
     private ScheduleRepository scheduleRepository;
 
     @BeforeEach
+        // 각 테스트 실행 전에 매번 실행되는 코드
     void setUp() {
+
+        // 테스트용 고정 시간을 만든다
         Clock fixedClock = Clock.fixed(
                 TEST_TODAY.atStartOfDay(TEST_ZONE).toInstant(),
                 TEST_ZONE
         );
 
+        // 위에서 만든 고정 시간과 DB 주입해 semesterService 생
         semesterService = new SemesterService(
                 semesterRepository,
                 scheduleRepository,
@@ -72,7 +77,6 @@ public class SemesterServiceTest {
     void 학기_저장_테스트() {
 
         // Given
-
         // 학사일정 크롤링한 데이터로 가정
         List<Schedule> schedules = List.of(
                 SemesterCreate(3, 2, "1학기 개강"),
@@ -149,7 +153,7 @@ public class SemesterServiceTest {
                 LocalDate.of(TEST_YEAR, 6, 21)
         );
 
-        // 학사일정을 조회하면 위에서 만든 schedules을 반환 -> DB에 저장되어 있다고 판단
+        // 학사일정을 조회하면 위에서 만든 schedules을 반환
         when(scheduleRepository.findAcademicSemesterSchedules(
                 any(LocalDate.class),
                 any(LocalDate.class),
@@ -157,7 +161,7 @@ public class SemesterServiceTest {
                 eq("계절학기")
         )).thenReturn(schedules);
 
-        // FISRST를 조회하는 요청이오면 위에서 existingSemester를 반환 -> DB에 이미 저장되어 있다고 판단함
+        // FIRST를 조회하는 요청이오면 위에서 existingSemester를 반환
         when(semesterRepository.findByYearAndTerm(TEST_YEAR, SemesterTerm.FIRST))
                 .thenReturn(Optional.of(existingSemester));
 
@@ -165,7 +169,6 @@ public class SemesterServiceTest {
         semesterService.syncSemestersByYear();
 
         // Then
-
         // Semester 타입 객체를 잡아둘 캡처 도구를 만든다.
         ArgumentCaptor<Semester> semesterCaptor = ArgumentCaptor.forClass(Semester.class);
 
@@ -213,11 +216,13 @@ public class SemesterServiceTest {
     @DisplayName("TEST_TODAY 기준으로 학기 상태를 업데이트한다.")
     void 학기_업데이트_로직_테스트() {
         // TEST_TODAY = 2026/07/01
-        // OPEN은 학기 시작일의 4주 이내, UPCOMING은 4주 이전, CLOSED는 학기 종료일 이후이면
+        // UPCOMING: 시작일이 기준 날짜보다 5주 뒤라 아직 열리지 않음
+        // OPEN: 시작일이 기준 날짜보다 1주 전이고 종료일이 남아 있음
+        // CLOSED: 종료일이 기준 날짜보다 하루 전이라 이미 종료됨
+
 
         // Given
-        // 학기 시작일이 2026/07/01보다 5주 빠르고, 종료일이 20주 느림
-        // 따라서 학기 상태는 UPCOMING이 되어야 함
+        // 시작일이 기준 날짜보다 5주 뒤이므로 UPCOMING
         Semester upcomingSemester = Semester.create(
                 TEST_YEAR,
                 SemesterTerm.FIRST,
@@ -226,8 +231,7 @@ public class SemesterServiceTest {
                 TEST_TODAY.plusWeeks(20)
         );
 
-        // 학기 시작일이 2026/07/01보다 1주 빠르고, 종료일이 10주 느림
-        // 따라서 학기 상태는 OPEN
+        // 시작일이 기준 날짜보다 1주 전이고 종료일이 남아 있으므로 OPEN
         Semester openSemester = Semester.create(
                 TEST_YEAR,
                 SemesterTerm.SECOND,
@@ -236,8 +240,7 @@ public class SemesterServiceTest {
                 TEST_TODAY.plusWeeks(10)
         );
 
-        // 학기 시작일이 2026/07/01보다 10주 빠르고, 종료일이 하루 느림
-        // 따라서 학기 상태는 CLOSED
+        // 종료일이 기준 날짜보다 하루 전이므로 CLOSED
         Semester closedSemester = Semester.create(
                 TEST_YEAR,
                 SemesterTerm.SUMMER,
@@ -246,7 +249,7 @@ public class SemesterServiceTest {
                 TEST_TODAY.minusDays(1)
         );
 
-
+        // DB 조회하면 위에서 저장한 upcomingSemester, openSemester, closedSemester을 리스트로 반환
         when(semesterRepository.findAll())
                 .thenReturn(List.of(upcomingSemester, openSemester, closedSemester));
 
