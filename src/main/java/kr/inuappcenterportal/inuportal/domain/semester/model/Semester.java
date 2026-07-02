@@ -44,14 +44,30 @@ public class Semester extends BaseTimeEntity {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    public static Semester create(Integer year, SemesterTerm term, SemesterStatus status, LocalDate startDate, LocalDate endDate) {
-        Semester semester = new Semester();
-        semester.year = year;
-        semester.term = term;
-        semester.startDate = startDate;
-        semester.endDate = endDate;
-        semester.status = status;
-        return semester;
+    // private 생성자
+    private Semester(
+            Integer year,
+            SemesterTerm term,
+            SemesterStatus status,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        this.year = year;
+        this.term = term;
+        this.status = status;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    // private 생성자로 외부 우회로 차단
+    public static Semester create(
+            Integer year,
+            SemesterTerm term,
+            SemesterStatus status,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        return new Semester(year, term, status, startDate, endDate);
     }
 
     public void updateStatus(SemesterStatus status) {
