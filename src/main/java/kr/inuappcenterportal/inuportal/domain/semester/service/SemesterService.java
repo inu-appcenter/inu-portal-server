@@ -33,7 +33,7 @@ public class SemesterService {
                         List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)
                 )
                 .stream()
-                .map(SemesterResponseDto::of)
+                .map(SemesterResponseDto::from)
                 .toList();
     }
 
