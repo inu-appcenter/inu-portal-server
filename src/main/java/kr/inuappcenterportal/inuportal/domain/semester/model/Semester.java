@@ -41,7 +41,7 @@ public class Semester extends BaseTimeEntity {
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "end_date")
+    @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
     // private 생성자
@@ -59,7 +59,7 @@ public class Semester extends BaseTimeEntity {
         this.endDate = endDate;
     }
 
-    // private 생성자로 외부 우회로 차단
+    // 정적 팩토리 메서드: private 생성자로 외부 우회로 차단
     public static Semester create(
             Integer year,
             SemesterTerm term,

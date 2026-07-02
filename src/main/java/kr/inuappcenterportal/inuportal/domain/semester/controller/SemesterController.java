@@ -13,7 +13,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/semesters")
-public class SemesterController {
+public class SemesterController implements SemesterApiSpecification {
 
     private final SemesterService semesterService;
 
