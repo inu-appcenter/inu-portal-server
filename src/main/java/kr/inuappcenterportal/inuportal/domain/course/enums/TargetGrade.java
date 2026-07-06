@@ -14,4 +14,17 @@ public enum TargetGrade {
     UNKNOWN("미정");
 
     private final String displayName;
+
+    /**
+     * 외부에서 들어온 문자열 값을 enum으로 바꾸는 정적 팩토리 메서드
+     */
+    public static TargetGrade from(String value) {
+        for (TargetGrade targetGrade : values()) {
+            if (targetGrade.displayName.equals(value)) {
+                return targetGrade;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }

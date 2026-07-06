@@ -28,4 +28,19 @@ public enum CompletionDivision {
 
     private final String description;
     private final String shortName;
+
+
+    /**
+     * 외부에서 들어온 문자열 값을 enum으로 바꾸는 정적 팩토리 메서드
+     */
+    public static CompletionDivision from(String value) {
+        for (CompletionDivision completionDivision : values()) {
+            if (completionDivision.description.equals(value)
+                    || completionDivision.shortName.equals(value)) {
+                return completionDivision;
+            }
+        }
+
+        throw new IllegalArgumentException("지원하지 않는 이수구분입니다. value=" + value);
+    }
 }

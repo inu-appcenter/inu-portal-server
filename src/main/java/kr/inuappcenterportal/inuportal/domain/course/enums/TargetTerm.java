@@ -12,4 +12,18 @@ public enum TargetTerm {
     UNKNOWN("미정");
 
     private final String displayName;
+
+
+    /**
+     * 외부에서 들어온 문자열 값을 enum으로 바꾸는 정적 팩토리 메서드
+     */
+    public static TargetTerm from(String value) {
+        for (TargetTerm targetTerm : values()) {
+            if (targetTerm.displayName.equals(value)) {
+                return targetTerm;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }
