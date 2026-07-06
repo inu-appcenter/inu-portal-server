@@ -79,8 +79,8 @@ public class CourseCrawlerTest {
                     assertThat(item.credit()).isNotBlank();
                 });
 
-        curriculumItems.stream()
-                .limit(20)
-                .forEach(System.out::println);
+//        curriculumItems.stream()
+//                .limit(20)
+//                .forEach(System.out::println);
     }
 }
