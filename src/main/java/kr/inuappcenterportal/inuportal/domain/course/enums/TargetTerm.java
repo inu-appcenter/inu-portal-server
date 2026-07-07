@@ -5,23 +5,22 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum TargetGrade {
-    ALL("전학년"),
-    FIRST("1학년"),
-    SECOND("2학년"),
-    THIRD("3학년"),
-    FOURTH("4학년"),
+public enum TargetTerm {
+    FIRST("1학기"),
+    SECOND("2학기"),
+    BOTH("공통"),
     UNKNOWN("미정");
 
     private final String displayName;
 
+
     /**
      * 외부에서 들어온 문자열 값을 enum으로 바꾸는 정적 팩토리 메서드
      */
-    public static TargetGrade from(String value) {
-        for (TargetGrade targetGrade : values()) {
-            if (targetGrade.displayName.equals(value)) {
-                return targetGrade;
+    public static TargetTerm from(String value) {
+        for (TargetTerm targetTerm : values()) {
+            if (targetTerm.displayName.equals(value)) {
+                return targetTerm;
             }
         }
 

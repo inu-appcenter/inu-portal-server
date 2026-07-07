@@ -23,13 +23,13 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public SecurityConfig(TokenProvider tokenProvider, ObjectMapper objectMapper){
+    public SecurityConfig(TokenProvider tokenProvider, ObjectMapper objectMapper) {
         this.tokenProvider = tokenProvider;
         this.objectMapper = objectMapper;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
 
         httpSecurity
                 .cors(Customizer.withDefaults())
@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**").permitAll()
 
                         // ADMIN 권한 전용 설정
-                        .requestMatchers(HttpMethod.POST, "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync", "/api/semesters/sync", "/api/courses/sync").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/logs/**").hasRole("ADMIN")
                         .requestMatchers("/api/members/all", "/api/reports", "/api/images", "/api/images/**", "/api/categories", "/api/councilNotices", "/api/councilNotices/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs/**", "/api/tokens/admin/**", "/api/admin/feature-flags/**").hasRole("ADMIN")
 
