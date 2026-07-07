@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum CompletionDivision {
 
-    BASIC_SCIENCE("기초과학", "기교"),
+    BASIC_SCIENCE("기초과학", "기과"),
 
     ESSENTIAL_GENERAL("교양필수", "교필"),
     BASIC_GENERAL("기초교양", "기교"),
@@ -21,8 +21,8 @@ public enum CompletionDivision {
     DEEPEN_MAJOR("전공심화", "전심"),
     SELECT_MAJOR("전공선택", "전선"),
 
-    EDUCATION("교직", ""),
-    MILITARY("군사학", ""),
+    EDUCATION("교직", "교직"),
+    MILITARY("군사학", "군사학"),
     SELECT_COMMON("일반선택", "일선");
 
 

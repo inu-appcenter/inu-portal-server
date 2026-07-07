@@ -38,7 +38,7 @@ public interface CourseApiSpecification {
                                                   "title": "운영체제",
                                                   "departmentCode": "COMPUTER_ENGINEERING",
                                                   "departmentName": "컴퓨터공학부",
-                                                  "collegeCode": "COLLEGE_OF_INFORMATION_TECHNOLOGY"
+                                                  "collegeCode": "COLLEGE_OF_INFORMATION_TECHNOLOGY",
                                                   "collegeName": "정보기술대학",
                                                   "targetGradeCode": "THIRD",
                                                   "targetGradeName": "3학년",
