@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -8,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseResponseDto;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,8 +18,8 @@ import java.util.List;
 @Tag(name = "Course", description = "Courses 관련 API")
 public interface CourseApiSpecification {
     @Operation(
-            summary = "Course 조회",
-            description = "Course 조회합니다."
+            summary = "강의 조회",
+            description = "강의 조회합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -76,5 +76,18 @@ public interface CourseApiSpecification {
             )
     }
     )
-    ResponseEntity<ResponseDto<List<CourseResponseDto>>> getCourses(@RequestParam(required = false) Department department);
+    ResponseEntity<ResponseDto<List<CourseResponseDto>>> getCourses(
+            @Parameter(
+                    description = "학과명. 영문 enum명 또는 한글 학과명 모두 가능(편의상 스웨거에서는 한국어로 통일)",
+                    schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "컴퓨터공학부",
+                                    "정보통신공학과",
+                                    "임베디드시스템공학과"
+                            },
+                            example = "컴퓨터공학부"
+                    )
+            )
+            @RequestParam(required = false) String department);
 }
