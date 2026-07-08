@@ -17,7 +17,17 @@ public class CourseOverviewParser {
         List<CourseOverviewItemDto> courseOverviewItems = new ArrayList<>();
 
         for (Element item : items) {
-            String title = item.select(".tit").text();
+            String title = item.select(".tit1").text();
+            Element titleElement = item.selectFirst(".tit");
+
+            if (title.isBlank() && titleElement != null) {
+                title = titleElement.ownText();
+            }
+
+            if (title.isBlank() && titleElement != null) {
+                title = titleElement.text();
+            }
+
             String content = item.select(".cont").text();
 
             if (title.isBlank() || content.isBlank()) {
