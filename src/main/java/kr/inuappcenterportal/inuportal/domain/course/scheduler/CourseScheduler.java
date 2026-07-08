@@ -20,11 +20,6 @@ public class CourseScheduler {
      * 서버 시작 시 강의 기본 정보를 1회 동기화
      */
     @EventListener(ApplicationReadyEvent.class)
-    @SchedulerLock(
-            name = "course-base-startup-sync",
-            lockAtMostFor = "PT30M",
-            lockAtLeastFor = "PT1M"
-    )
     public void syncBaseCoursesOnStartup() {
         try {
             log.info("강의 기본 정보 동기화 시작");
