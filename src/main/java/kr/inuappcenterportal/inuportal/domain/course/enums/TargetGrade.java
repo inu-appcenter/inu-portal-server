@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum TargetGrade {
-    ALL("전학년"),
+    COMMON("공통"),
     FIRST("1학년"),
     SECOND("2학년"),
     THIRD("3학년"),

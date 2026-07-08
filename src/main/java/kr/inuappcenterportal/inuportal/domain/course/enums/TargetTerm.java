@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum TargetTerm {
     FIRST("1학기"),
     SECOND("2학기"),
-    BOTH("공통"),
+    COMMON("공통"),
     UNKNOWN("미정");
 
     private final String displayName;

@@ -25,10 +25,12 @@ public class CourseController implements CourseApiSpecification {
      */
     @GetMapping
     public ResponseEntity<ResponseDto<List<CourseResponseDto>>> getCourses(
-            @RequestParam(required = false) Department department
+            @RequestParam(required = false) String department
     ) {
+        Department parsedDepartment = Department.from(department);
+
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ResponseDto.of(courseService.getCourses(department), "강의 목록 조회 성공"));
+                .body(ResponseDto.of(courseService.getCourses(parsedDepartment), "강의 목록 조회 성공"));
     }
 
     /**
