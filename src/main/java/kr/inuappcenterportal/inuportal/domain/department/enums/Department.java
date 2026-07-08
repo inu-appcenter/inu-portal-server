@@ -120,9 +120,6 @@ public enum Department {
     TAX_ACCOUNTING("세무회계학과", College.COLLEGE_OF_BUSINESS_ADMINISTRATION,
             "https://tax.inu.ac.kr/tax/3658/subview.do",
             "https://tax.inu.ac.kr/tax/3657/subview.do"),
-    TECHNO_MANAGEMENT("테크노경영학과", College.COLLEGE_OF_BUSINESS_ADMINISTRATION,
-            null,
-            null),
 
     // 예술체육대학
     FINE_ARTS("조형예술학부", College.COLLEGE_OF_ARTS_AND_PHYSICAL_EDUCATION,
@@ -209,33 +206,49 @@ public enum Department {
 
     // 융합자유전공대학
     LIBERAL_ARTS("자유전공학부", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES,
-            null,
-            null),
-    INTERNATIONAL_LIBERAL_ARTS("국제자유전공학부", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES,
-            null,
-            null),
-    CONVERGENCE("융합학부", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES,
-            null,
-            null),
+            null, null),
+    // 자유전공학부에 국제자유전공학부, 융합학부가 포함되어있음. 교육과정이 따로 존재하지 않음
+    //INTERNATIONAL_LIBERAL_ARTS("국제자유전공학부", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    //CONVERGENCE("융합학부", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
 
     // 동북아국제통상물류학부
     NORTHEAST_ASIAN_TRADE("동북아국제통상전공", College.COLLEGE_OF_GLOBAL_ECONOMICS_AND_TRADE,
-            "https://www.inu.ac.kr/nas/3792/subview.do",
-            "https://www.inu.ac.kr/nas/3801/subview.do"),
+            "https://www.inu.ac.kr/nas/3792/subview.do", null),
     SMART_LOGISTICS_ENGINEERING("스마트물류공학전공", College.COLLEGE_OF_GLOBAL_ECONOMICS_AND_TRADE,
-            "https://slog.inu.ac.kr/slog/3836/subview.do",
-            "https://slog.inu.ac.kr/slog/3837/subview.do"),
+            "https://slog.inu.ac.kr/slog/3837/subview.do",
+            "https://slog.inu.ac.kr/slog/3836/subview.do"),
     IBE("IBE전공", College.COLLEGE_OF_GLOBAL_ECONOMICS_AND_TRADE,
-            null,
-            null),
+            null, null),
 
     // 법학부
     LAW("법학부", College.COLLEGE_OF_NULL,
             "https://law.inu.ac.kr/law/5177/subview.do",
             "https://law.inu.ac.kr/law/5176/subview.do");
 
-    private final String documentName;      // 학과명
+    // 계약학과
+    // 도시과학대학-도시건걸공학과
+    // 경영대학 테크노경영학과
+    // 글로벌정경대학 글로벌무역물류학과
+
+    private final String departmentName;      // 학과명
     private final College collegeName;      // 단과대명
     private final String courseOverviewUrl; // 교과목개요 Url
     private final String curriculumUrl;     // 교육과정 Url
+
+    public static Department from(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        String trimmedValue = value.trim();
+
+        for (Department department : values()) {
+            if (department.name().equalsIgnoreCase(trimmedValue)
+                    || department.departmentName.equals(trimmedValue)) {
+                return department;
+            }
+        }
+
+        throw new IllegalArgumentException("존재하지 않는 학과입니다: " + value);
+    }
 }
