@@ -17,13 +17,13 @@ import java.util.List;
 public interface SemesterApiSpecification {
 
     @Operation(
-            summary = "Semester 조회",
-            description = "Semester를 조회합니다."
+            summary = "학기 조회",
+            description = "유효한 학기 조회합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "유효한 Semester 조회 성공",
+                    description = "유효한 학기 조회 성공",
                     content = @Content(
                             mediaType = "application/json",
                             array = @ArraySchema(schema = @Schema(implementation = SemesterResponseDto.class)),

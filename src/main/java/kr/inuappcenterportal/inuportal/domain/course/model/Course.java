@@ -30,30 +30,30 @@ public class Course extends BaseTimeEntity {
     @Column(name = "course_id", nullable = false)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String title;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private Department department;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private College college;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "target_grade", length = 30)
     private TargetGrade targetGrade;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_term")
+    @Column(name = "target_term", length = 30)
     private TargetTerm targetTerm;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "completion_division", nullable = false)
+    @Column(name = "completion_division", length = 30)
     private CompletionDivision completionDivision;
 
-    @Column(nullable = false)
+    @Column(length = 5)
     private String credit;
 
     @Column(columnDefinition = "TEXT")
@@ -97,19 +97,41 @@ public class Course extends BaseTimeEntity {
         return new Course(title, department, college, targetGrade, targetTerm, completionDivision, credit, content);
     }
 
-    public void update(
+    // 교육과정에서 가져올 필수 데이터들에 대한 정적 팩토리 메서드
+    public static Course create(
+            String title,
+            Department department,
+            College college
+    ) {
+        return new Course(title, department, college, null, null, null, null, null);
+    }
+
+
+    public void updateBaseInfo(
             TargetGrade targetGrade,
             TargetTerm targetTerm,
             CompletionDivision completionDivision,
-            String credit,
-            String content
+            String credit
     ) {
-        this.targetGrade = targetGrade;
-        this.targetTerm = targetTerm;
-        this.completionDivision = completionDivision;
-        this.credit = credit;
-        this.content = content;
+        if (targetGrade != null) {
+            this.targetGrade = targetGrade;
+        }
+        if (targetTerm != null) {
+            this.targetTerm = targetTerm;
+        }
+        if (completionDivision != null) {
+            this.completionDivision = completionDivision;
+        }
+        if (credit != null && !credit.isBlank()) {
+            this.credit = credit;
+        }
         this.active = true;
+    }
+
+    public void updateContent(String content) {
+        if (content != null && !content.isBlank()) {
+            this.content = content;
+        }
     }
 
     public void deactivate() {
