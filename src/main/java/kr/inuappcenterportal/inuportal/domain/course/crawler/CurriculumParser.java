@@ -98,7 +98,7 @@ public class CurriculumParser {
             return captionIndexes;
         }
 
-        return resolveFallbackColumnIndexes(matrix);
+        return resolveFallbackColumnIndexes(table, matrix);
     }
 
     private ColumnIndexes resolveColumnIndexesFromCaption(Element table) {
@@ -149,7 +149,16 @@ public class CurriculumParser {
         return fields;
     }
 
-    private ColumnIndexes resolveFallbackColumnIndexes(List<List<String>> matrix) {
+    private ColumnIndexes resolveFallbackColumnIndexes(Element table, List<List<String>> matrix) {
+        String tableText = compact(table.text());
+
+        if (!tableText.contains("교과목")
+                && !tableText.contains("과목명")
+                && !tableText.contains("이수구분")
+                && !tableText.contains("학점")) {
+            return new ColumnIndexes(-1, -1, -1, -1, -1, 0);
+        }
+
         boolean hasFiveColumnRow = matrix.stream()
                 .anyMatch(row -> row.size() >= 5);
 

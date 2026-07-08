@@ -62,7 +62,7 @@ public record CourseResponseDto(
                 course.getTargetGrade() == null ? "대상 학년 정보 없음" : course.getTargetGrade().getDisplayName(),
 
                 course.getTargetTerm(),
-                course.getTargetTerm() == null ? "대상 하긱 정보 없음" : course.getTargetTerm().getDisplayName(),
+                course.getTargetTerm() == null ? "대상 학기 정보 없음" : course.getTargetTerm().getDisplayName(),
 
                 course.getCompletionDivision(),
                 course.getCompletionDivision() == null ? "이수 구분 정보 없음" : course.getCompletionDivision().getDescription(),
