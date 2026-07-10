@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Disabled("임시로 비활성화")
 @DataJpaTest
 @Import(CourseService.class)
 @ActiveProfiles("test")

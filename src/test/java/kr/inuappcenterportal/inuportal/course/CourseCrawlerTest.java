@@ -80,6 +80,15 @@ public class CourseCrawlerTest {
                   <body>
                     <div class="func-table">
                       <table>
+                        <thead>
+                          <tr>
+                            <th>학년</th>
+                            <th>학기</th>
+                            <th>이수구분</th>
+                            <th>교과목명</th>
+                            <th>학점</th>
+                          </tr>
+                        </thead>
                         <tbody>
                           <tr>
                             <td>2학년</td>
