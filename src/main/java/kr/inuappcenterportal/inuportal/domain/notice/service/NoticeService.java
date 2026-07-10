@@ -6,8 +6,13 @@ import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.AttachmentMeta;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.NoticeContentStatus;
+
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentCrawlerState;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
@@ -1249,6 +1254,182 @@ public class NoticeService {
         return normalized.substring(0, ERROR_MESSAGE_LIMIT);
     }
 
+    @Scheduled(cron = "0 2/15 * * * *")
+    @SchedulerLock(
+            name = "notice-school-content-backfill",
+            lockAtMostFor = "PT10M",
+            lockAtLeastFor = "PT1M"
+    )
+    @Transactional
+    public void backfillNoticeContents() {
+        List<Notice> notices = noticeRepository.findBackfillTargets(
+                List.of(
+                        NoticeContentStatus.PENDING,
+                        NoticeContentStatus.FAILED,
+                        NoticeContentStatus.SUCCESS,
+                        NoticeContentStatus.ENRICH_PENDING,
+                        NoticeContentStatus.NO_TEXT_CONTENT,
+                        NoticeContentStatus.OCR_PENDING
+                ),
+                PageRequest.of(0, 15)
+        );
+
+        int processedCount = 0;
+        for (Notice notice : notices) {
+            syncNoticeContent(notice);
+            processedCount++;
+        }
+
+        log.info("학교 공지 본문 백필을 완료했습니다. count={}", processedCount);
+    }
+
+    @Transactional
+    public void syncNoticeContent(Notice notice) {
+        if (notice.isContentCrawlBlocked() && notice.hasContentCrawlMetadata()) {
+            return;
+        }
+
+        try {
+            Document detailDocument = connect(notice.getUrl()).get();
+            if (containsAccessDenied(detailDocument)) {
+                notice.markContentAccessDenied();
+                log.info("접근 권한 제한으로 학교 공지 본문 크롤링을 건너뜁니다. url={}", notice.getUrl());
+                return;
+            }
+
+            List<String> contentSelectors = List.of(
+                    ".view-con",
+                    ".board-view .view-con",
+                    ".board-view",
+                    ".artclView .view_contents",
+                    ".view_contents",
+                    ".artclContents",
+                    ".fr-view",
+                    "#jwxe_main_content"
+            );
+            List<String> attachmentSelectors = List.of(
+                    ".view-file a[href]",
+                    ".view-file li a[href]",
+                    ".artclFile a[href]",
+                    ".file a[href]"
+            );
+
+            Element contentRoot = null;
+            for (String selector : contentSelectors) {
+                Element selected = detailDocument.selectFirst(selector);
+                if (selected != null) {
+                    contentRoot = selected;
+                    break;
+                }
+            }
+
+            if (contentRoot == null) {
+                notice.markContentFailed(limitMessage("학교 공지 본문 selector를 찾지 못했습니다."));
+                log.warn("학교 공지 본문 selector를 찾지 못했습니다. url={}", notice.getUrl());
+                return;
+            }
+
+            Element sanitizedContent = contentRoot.clone();
+            sanitizedContent.select("script, style, noscript, iframe").remove();
+
+            String contentHtml = sanitizedContent.html().trim();
+            String contentText = sanitizedContent.text().trim();
+            List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, notice.getUrl());
+
+            Set<String> seenUrls = new LinkedHashSet<>();
+            List<AttachmentMeta> attachmentMetas = new ArrayList<>();
+            for (String selector : attachmentSelectors) {
+                for (Element link : detailDocument.select(selector)) {
+                    String resolvedUrl = resolveRelativeUrl(notice.getUrl(), link.attr("abs:href"), link.attr("href"));
+                    if (resolvedUrl.isBlank() || !seenUrls.add(resolvedUrl)) {
+                        continue;
+                    }
+
+                    String name = normalizeText(link.text());
+                    if (name.isBlank()) {
+                        name = extractFileName(resolvedUrl);
+                    }
+
+                    attachmentMetas.add(new AttachmentMeta(
+                            name,
+                            resolvedUrl,
+                            detectFileType(name, resolvedUrl)
+                    ));
+                }
+            }
+
+            notice.updateContent(
+                    contentHtml,
+                    contentText,
+                    sha256(contentText),
+                    LocalDateTime.now(),
+                    writeJson(inlineImageUrls),
+                    writeJson(attachmentMetas)
+            );
+            updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
+        } catch (Exception e) {
+            notice.markContentFailed(limitMessage(e.getMessage()));
+            log.warn("학교 공지 본문 크롤링에 실패했습니다. url={}, reason={}", notice.getUrl(), e.getMessage());
+        }
+    }
+
+    private void updateNoticeContentStatusAfterCrawl(
+            Notice notice,
+            String contentText,
+            List<String> inlineImageUrls,
+            List<AttachmentMeta> attachmentMetas
+    ) {
+        notice.updateEnrichmentTexts(notice.getOcrText(), notice.getAttachmentText());
+
+        boolean hasBaseText = !normalizeText(contentText).isBlank();
+        boolean hasParsableAttachments = attachmentMetas.stream().anyMatch(this::isParsableAttachment);
+        boolean hasImageAssets = !inlineImageUrls.isEmpty() || attachmentMetas.stream().anyMatch(this::isImageAttachment);
+
+        if (hasParsableAttachments) {
+            notice.markContentEnrichPending();
+            return;
+        }
+
+        if (hasBaseText) {
+            notice.markContentSuccess();
+            return;
+        }
+
+        if (hasImageAssets) {
+            notice.markContentOcrPending();
+            return;
+        }
+
+        notice.markNoTextContent();
+    }
+
+    @Transactional(readOnly = true)
+    public NoticeDetailResponseDto getNoticeDetail(Long id) {
+        Notice notice = noticeRepository.findById(id)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOTICE_NOT_FOUND));
+        List<AttachmentMeta> attachments = readAttachmentMetas(notice.getAttachmentMetaJson());
+        return NoticeDetailResponseDto.of(notice, attachments);
+    }
+
+    @Transactional(readOnly = true)
+    public ListResponseDto<NoticeWithContentResponseDto> getNoticeWithContentList(String category, String sort, int page) {
+        Pageable pageable = PageRequest.of(page > 0 ? --page : page, 8, sort(sort));
+        Page<Notice> notices = noticeRepository.findAllWithContentByCategory(category, pageable);
+
+        List<NoticeWithContentResponseDto> contentDtos = notices.getContent().stream()
+                .map(notice -> NoticeWithContentResponseDto.of(
+                        notice,
+                        readAttachmentMetas(notice.getAttachmentMetaJson())
+                ))
+                .collect(Collectors.toList());
+
+        return ListResponseDto.of(
+                notices.getTotalPages(),
+                notices.getTotalElements(),
+                contentDtos
+        );
+    }
+
     private String sha256(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -1257,8 +1438,5 @@ public class NoticeService {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to calculate content hash", e);
         }
-    }
-
-    private record AttachmentMeta(String name, String url, String fileType) {
     }
 }
