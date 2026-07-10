@@ -103,6 +103,8 @@ public class NoticeService {
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.core.env.Environment env;
 
     public NoticeService(
             @Qualifier("cacheManager") CacheManager cacheManager,
@@ -206,6 +208,9 @@ public class NoticeService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
+        if (env != null && java.util.Arrays.asList(env.getActiveProfiles()).contains("test")) {
+            return;
+        }
         int[] categories = {246, 247, 2611, 249, 250, 252, 253};
         String[] categoryNames = {
                 SCHOOL_NOTICE_ACADEMIC, SCHOOL_NOTICE_CREDIT_EXCHANGE, SCHOOL_NOTICE_GENERAL_EVENT_RECRUITING,
