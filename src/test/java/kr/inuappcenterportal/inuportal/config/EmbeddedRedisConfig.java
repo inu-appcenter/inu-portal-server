@@ -18,6 +18,7 @@ public class EmbeddedRedisConfig {
     @PostConstruct
     public void startRedis() throws IOException {
         int port = findAvailablePort();
+        System.setProperty("spring.data.redis.port", String.valueOf(port));
         redisServer = new RedisServer(port);
         redisServer.start();
     }
