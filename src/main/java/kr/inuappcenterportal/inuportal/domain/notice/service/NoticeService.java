@@ -1296,81 +1296,84 @@ public class NoticeService {
                 log.info("접근 권한 제한으로 학교 공지 본문 크롤링을 건너뜁니다. url={}", notice.getUrl());
                 return;
             }
-
-            List<String> contentSelectors = List.of(
-                    ".view-con",
-                    ".board-view .view-con",
-                    ".board-view",
-                    ".artclView .view_contents",
-                    ".view_contents",
-                    ".artclContents",
-                    ".fr-view",
-                    "#jwxe_main_content"
-            );
-            List<String> attachmentSelectors = List.of(
-                    ".view-file a[href]",
-                    ".view-file li a[href]",
-                    ".artclFile a[href]",
-                    ".file a[href]"
-            );
-
-            Element contentRoot = null;
-            for (String selector : contentSelectors) {
-                Element selected = detailDocument.selectFirst(selector);
-                if (selected != null) {
-                    contentRoot = selected;
-                    break;
-                }
-            }
-
-            if (contentRoot == null) {
-                notice.markContentFailed(limitMessage("학교 공지 본문 selector를 찾지 못했습니다."));
-                log.warn("학교 공지 본문 selector를 찾지 못했습니다. url={}", notice.getUrl());
-                return;
-            }
-
-            Element sanitizedContent = contentRoot.clone();
-            sanitizedContent.select("script, style, noscript, iframe").remove();
-
-            String contentHtml = sanitizedContent.html().trim();
-            String contentText = sanitizedContent.text().trim();
-            List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, notice.getUrl());
-
-            Set<String> seenUrls = new LinkedHashSet<>();
-            List<AttachmentMeta> attachmentMetas = new ArrayList<>();
-            for (String selector : attachmentSelectors) {
-                for (Element link : detailDocument.select(selector)) {
-                    String resolvedUrl = resolveRelativeUrl(notice.getUrl(), link.attr("abs:href"), link.attr("href"));
-                    if (resolvedUrl.isBlank() || !seenUrls.add(resolvedUrl)) {
-                        continue;
-                    }
-
-                    String name = normalizeText(link.text());
-                    if (name.isBlank()) {
-                        name = extractFileName(resolvedUrl);
-                    }
-
-                    attachmentMetas.add(new AttachmentMeta(
-                            name,
-                            resolvedUrl,
-                            detectFileType(name, resolvedUrl)
-                    ));
-                }
-            }
-
-            notice.updateContent(
-                    contentHtml,
-                    contentText,
-                    sha256(contentText),
-                    LocalDateTime.now(),
-                    writeJson(inlineImageUrls),
-                    writeJson(attachmentMetas)
-            );
-            updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
+            parseAndSaveNoticeContent(notice, detailDocument);
         } catch (Exception e) {
             notice.markContentFailed(limitMessage(e.getMessage()));
             log.warn("학교 공지 본문 크롤링에 실패했습니다. url={}, reason={}", notice.getUrl(), e.getMessage());
         }
+    }
+
+    protected void parseAndSaveNoticeContent(Notice notice, Document detailDocument) {
+        List<String> contentSelectors = List.of(
+                ".view-con",
+                ".board-view .view-con",
+                ".board-view",
+                ".artclView .view_contents",
+                ".view_contents",
+                ".artclContents",
+                ".fr-view",
+                "#jwxe_main_content"
+        );
+        List<String> attachmentSelectors = List.of(
+                ".view-file a[href]",
+                ".view-file li a[href]",
+                ".artclFile a[href]",
+                ".file a[href]"
+        );
+
+        Element contentRoot = null;
+        for (String selector : contentSelectors) {
+            Element selected = detailDocument.selectFirst(selector);
+            if (selected != null) {
+                contentRoot = selected;
+                break;
+            }
+        }
+
+        if (contentRoot == null) {
+            notice.markContentFailed(limitMessage("학교 공지 본문 selector를 찾지 못했습니다."));
+            log.warn("학교 공지 본문 selector를 찾지 못했습니다. url={}", notice.getUrl());
+            return;
+        }
+
+        Element sanitizedContent = contentRoot.clone();
+        sanitizedContent.select("script, style, noscript, iframe").remove();
+
+        String contentHtml = sanitizedContent.html().trim();
+        String contentText = sanitizedContent.text().trim();
+        List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, notice.getUrl());
+
+        Set<String> seenUrls = new LinkedHashSet<>();
+        List<AttachmentMeta> attachmentMetas = new ArrayList<>();
+        for (String selector : attachmentSelectors) {
+            for (Element link : detailDocument.select(selector)) {
+                String resolvedUrl = resolveRelativeUrl(notice.getUrl(), link.attr("abs:href"), link.attr("href"));
+                if (resolvedUrl.isBlank() || !seenUrls.add(resolvedUrl)) {
+                    continue;
+                }
+
+                String name = normalizeText(link.text());
+                if (name.isBlank()) {
+                    name = extractFileName(resolvedUrl);
+                }
+
+                attachmentMetas.add(new AttachmentMeta(
+                        name,
+                        resolvedUrl,
+                        detectFileType(name, resolvedUrl)
+                ));
+            }
+        }
+
+        notice.updateContent(
+                contentHtml,
+                contentText,
+                sha256(contentText),
+                LocalDateTime.now(),
+                writeJson(inlineImageUrls),
+                writeJson(attachmentMetas)
+        );
+        updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
     }
 
     private void updateNoticeContentStatusAfterCrawl(

@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.cache.CacheManager;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -59,7 +62,6 @@ class NoticeServiceTest {
     @Test
     void testSyncNoticeContent_Success() {
         // Given
-        // Using the actual live URL of a school notice we confirmed exists in our research
         String targetUrl = "https://www.inu.ac.kr/bbs/inu/246/426845/artclView";
         Notice notice = Notice.builder()
                 .category("학사")
@@ -71,8 +73,26 @@ class NoticeServiceTest {
                 .description("외국인 복수, 교환학생 학점인정...")
                 .build();
 
+        String mockHtml = "<!DOCTYPE html>"
+                + "<html>"
+                + "<body>"
+                + "  <div class=\"view-con\">"
+                + "    <p>안녕하세요. 국어국문학과입니다.</p>"
+                + "  </div>"
+                + "  <div class=\"view-file\">"
+                + "    <ul>"
+                + "      <li>"
+                + "        <a href=\"/bbs/inu/246/388671/download.do\">국어국문학과 교과설명서.pdf</a>"
+                + "      </li>"
+                + "    </ul>"
+                + "  </div>"
+                + "</body>"
+                + "</html>";
+
+        Document mockDoc = Jsoup.parse(mockHtml, targetUrl);
+
         // When
-        noticeService.syncNoticeContent(notice);
+        noticeService.parseAndSaveNoticeContent(notice, mockDoc);
 
         // Then
         assertNotNull(notice.getContentStatus());
@@ -81,10 +101,10 @@ class NoticeServiceTest {
         
         // Check if content HTML and text were extracted
         assertNotNull(notice.getContentHtml());
-        assertFalse(notice.getContentHtml().isBlank());
+        assertTrue(notice.getContentHtml().contains("안녕하세요. 국어국문학과입니다."));
         
         assertNotNull(notice.getContentText());
-        assertFalse(notice.getContentText().isBlank());
+        assertEquals("안녕하세요. 국어국문학과입니다.", notice.getContentText());
 
         // Check if attachments are detected and saved in JSON format
         assertNotNull(notice.getAttachmentMetaJson());
