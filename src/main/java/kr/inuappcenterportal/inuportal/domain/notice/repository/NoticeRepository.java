@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.notice.repository;
 
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.NoticeContentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +22,26 @@ public interface NoticeRepository extends JpaRepository<Notice,Long> {
     Page<Notice> searchNotices(@Param("query") String query, @Param("category") String category, Pageable pageable);
     @Query("SELECT n FROM Notice n  ORDER BY n.id DESC LIMIT 12")
     List<Notice> findTop12();
+
+    @Query("""
+            select n from Notice n
+            left join fetch n.content
+            where (
+                    n.content is null
+                    or n.content.contentText is null
+                    or n.content.inlineImageUrlsJson is null
+                    or n.content.attachmentMetaJson is null
+              )
+              and (n.contentStatus is null or n.contentStatus in :statuses)
+            order by n.id desc
+            """)
+    List<Notice> findBackfillTargets(
+            @Param("statuses") List<NoticeContentStatus> statuses,
+            Pageable pageable
+    );
+
+    @Query(value = "select n from Notice n left join fetch n.content where (:category is null or n.category = :category)",
+           countQuery = "select count(n) from Notice n where (:category is null or n.category = :category)")
+    Page<Notice> findAllWithContentByCategory(@Param("category") String category, Pageable pageable);
 }
+

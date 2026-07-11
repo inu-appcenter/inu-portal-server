@@ -1,0 +1,140 @@
+package kr.inuappcenterportal.inuportal.domain.course.model;
+
+import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
+import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
+import kr.inuappcenterportal.inuportal.domain.course.enums.TargetTerm;
+import kr.inuappcenterportal.inuportal.domain.department.enums.College;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(
+        name = "courses",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_course_title_department",
+                        columnNames = {"title", "department"}
+                )
+        }
+)
+public class Course extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "course_id", nullable = false)
+    private Long id;
+
+    @Column(nullable = false, length = 255)
+    private String title;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 255)
+    private Department department;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 255)
+    private College college;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_grade", length = 30)
+    private TargetGrade targetGrade;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_term", length = 30)
+    private TargetTerm targetTerm;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "completion_division", length = 30)
+    private CompletionDivision completionDivision;
+
+    @Column(length = 5)
+    private String credit;
+
+    @Column(columnDefinition = "TEXT")
+    private String content;
+
+    @Column(nullable = false)
+    private boolean active;
+
+
+    private Course(
+            String title,
+            Department department,
+            College college,
+            TargetGrade targetGrade,
+            TargetTerm targetTerm,
+            CompletionDivision completionDivision,
+            String credit,
+            String content
+    ) {
+        this.title = title;
+        this.department = department;
+        this.college = college;
+        this.targetGrade = targetGrade;
+        this.targetTerm = targetTerm;
+        this.completionDivision = completionDivision;
+        this.credit = credit;
+        this.content = content;
+        this.active = true;
+    }
+
+    public static Course create(
+            String title,
+            Department department,
+            College college,
+            TargetGrade targetGrade,
+            TargetTerm targetTerm,
+            CompletionDivision completionDivision,
+            String credit,
+            String content
+    ) {
+        return new Course(title, department, college, targetGrade, targetTerm, completionDivision, credit, content);
+    }
+
+    // 교육과정에서 가져올 필수 데이터들에 대한 정적 팩토리 메서드
+    public static Course create(
+            String title,
+            Department department,
+            College college
+    ) {
+        return new Course(title, department, college, null, null, null, null, null);
+    }
+
+
+    public void updateBaseInfo(
+            TargetGrade targetGrade,
+            TargetTerm targetTerm,
+            CompletionDivision completionDivision,
+            String credit
+    ) {
+        if (targetGrade != null) {
+            this.targetGrade = targetGrade;
+        }
+        if (targetTerm != null) {
+            this.targetTerm = targetTerm;
+        }
+        if (completionDivision != null) {
+            this.completionDivision = completionDivision;
+        }
+        if (credit != null && !credit.isBlank()) {
+            this.credit = credit;
+        }
+        this.active = true;
+    }
+
+    public void updateContent(String content) {
+        if (content != null && !content.isBlank()) {
+            this.content = content;
+        }
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+}

@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     if: github.event_name == 'workflow_dispatch' ||
@@ -13,6 +17,12 @@ jobs:
       !contains(github.event.head_commit.message, '임시 작성'))
 
     runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
 
     steps:
       - uses: actions/checkout@v3
@@ -94,6 +104,7 @@ jobs:
             docker network create intip-dev || true
             
             docker run -d \
+              --init \
               --network intip-dev \
               --shm-size=2gb \
               -p 8104:8080 \
