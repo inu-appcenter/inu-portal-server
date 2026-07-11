@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.semester.dto.SemesterResponseDto;
+import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
@@ -18,17 +19,17 @@ public interface SemesterApiSpecification {
 
     @Operation(
             summary = "학기 조회",
-            description = "유효한 학기 조회합니다."
+            description = "학기를 조회합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "유효한 학기 조회 성공",
+                    description = "학기 조회 성공",
                     content = @Content(
                             mediaType = "application/json",
                             array = @ArraySchema(schema = @Schema(implementation = SemesterResponseDto.class)),
                             examples = @ExampleObject(
-                                    name = "유효한 Semester 조회 응답 예시",
+                                    name = "Semester 조회 응답 예시",
                                     value = """
                                             [
                                               {
@@ -47,11 +48,12 @@ public interface SemesterApiSpecification {
                                                 "startDate": "2026-06-22",
                                                 "endDate": "2026-07-12"
                                               }
-                                            ]
+                                            ],
+                                            "msg": "학기 조회 성공"
                                             """
                             )
                     )
             )}
     )
-    ResponseEntity<List<SemesterResponseDto>> getValidSemesters();
+    ResponseEntity<ResponseDto<List<SemesterResponseDto>>> getSemesters();
 }
