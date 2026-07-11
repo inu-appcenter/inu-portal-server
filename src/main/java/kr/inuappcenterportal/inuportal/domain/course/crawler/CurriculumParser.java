@@ -84,10 +84,10 @@ public class CurriculumParser {
             List<String> headers = matrix.get(headerRowIndex);
 
             return new ColumnIndexes(
-                    findHeaderIndex(headers, "학년", "이수학년", "수강대상학년"),
+                    findGradeHeaderIndex(headers),
                     findHeaderIndex(headers, "학기", "편성학기", "개설학기", "수강대상학기"),
                     findHeaderIndex(headers, "이수구분", "구분", "이수영역", "영역"),
-                    findHeaderIndex(headers, "교과목명", "과목명", "교과목"),
+                    findTitleHeaderIndex(headers),
                     findHeaderIndex(headers, "학점", "학점수"),
                     headerRowIndex + 1
             );
@@ -125,10 +125,10 @@ public class CurriculumParser {
 
         fields = dropCaptionPrefix(fields);
 
-        int gradeIndex = findHeaderIndex(fields, "학년", "이수학년", "수강대상학년");
+        int gradeIndex = findGradeHeaderIndex(fields);
         int termIndex = findHeaderIndex(fields, "학기", "편성학기", "개설학기", "수강대상학기");
         int divisionIndex = findHeaderIndex(fields, "이수구분", "구분", "이수영역", "영역");
-        int titleIndex = findHeaderIndex(fields, "교과목명", "과목명", "교과목");
+        int titleIndex = findTitleHeaderIndex(fields);
         int creditIndex = findHeaderIndex(fields, "학점", "학점수");
 
         return new ColumnIndexes(gradeIndex, termIndex, divisionIndex, titleIndex, creditIndex, 0);
@@ -263,7 +263,7 @@ public class CurriculumParser {
         for (int i = 0; i < matrix.size(); i++) {
             List<String> row = matrix.get(i);
 
-            boolean hasTitle = findHeaderIndex(row, "교과목명", "과목명", "교과목") >= 0;
+            boolean hasTitle = findTitleHeaderIndex(row) >= 0;
             boolean hasTerm = findHeaderIndex(row, "학기", "편성학기", "개설학기", "수강대상학기") >= 0;
             boolean hasCredit = findHeaderIndex(row, "학점", "학점수") >= 0;
             boolean hasDivision = findHeaderIndex(row, "이수구분", "구분", "이수영역", "영역") >= 0;
@@ -290,20 +290,123 @@ public class CurriculumParser {
         return -1;
     }
 
+    private int findGradeHeaderIndex(List<String> headers) {
+        for (int i = 0; i < headers.size(); i++) {
+            String header = compact(headers.get(i));
+
+            if (header.equals("학년")
+                    || header.equals("이수학년")
+                    || header.equals("수강대상학년")) {
+                return i;
+            }
+        }
+
+        for (int i = 0; i < headers.size(); i++) {
+            String header = compact(headers.get(i));
+
+            if (header.contains("입학")
+                    || header.contains("년도")
+                    || header.contains("연도")) {
+                continue;
+            }
+
+            if (header.contains("학년")) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private int findTitleHeaderIndex(List<String> headers) {
+        for (int i = 0; i < headers.size(); i++) {
+            String header = compact(headers.get(i));
+
+            if (header.contains("코드")) {
+                continue;
+            }
+
+            if (header.contains("교과목명")
+                    || header.contains("과목명")
+                    || header.equals("교과목")) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private String findGradeFromSection(Element table) {
         Element current = table;
 
         while (current != null) {
+            String grade = findGradeFromElementId(current);
+            if (!grade.isBlank()) {
+                return grade;
+            }
+
+            grade = findGradeFromHeading(current);
+            if (!grade.isBlank()) {
+                return grade;
+            }
+
             String id = current.id();
 
             if (!id.isBlank()) {
-                String grade = findGradeAnchorText(current.ownerDocument(), id);
+                grade = findGradeAnchorText(current.ownerDocument(), id);
                 if (!grade.isBlank()) {
                     return grade;
                 }
             }
 
             current = current.parent();
+        }
+
+        return "";
+    }
+
+    private String findGradeFromHeading(Element element) {
+        Element heading = element.selectFirst("> h2");
+
+        if (heading != null) {
+            String grade = parseGradeHeadingText(heading.text());
+            if (!grade.isBlank()) {
+                return grade;
+            }
+        }
+
+        Element sibling = element.previousElementSibling();
+        while (sibling != null) {
+            heading = sibling.selectFirst("h2");
+
+            if (heading != null) {
+                String grade = parseGradeHeadingText(heading.text());
+                if (!grade.isBlank()) {
+                    return grade;
+                }
+            }
+
+            sibling = sibling.previousElementSibling();
+        }
+
+        return "";
+    }
+
+    private String parseGradeHeadingText(String value) {
+        String grade = normalizeGrade(value);
+
+        if (grade.matches("\\d학년") || grade.equals("공통")) {
+            return grade;
+        }
+
+        return "";
+    }
+
+    private String findGradeFromElementId(Element element) {
+        String id = element.id();
+
+        if (id.matches("curr-0[1-4]")) {
+            return id.substring(id.length() - 1) + "학년";
         }
 
         return "";
@@ -436,6 +539,7 @@ public class CurriculumParser {
         return compactTitle.equals("교과목명")
                 || compactTitle.equals("과목명")
                 || compactTitle.equals("교과목")
+                || compactTitle.contains("강의설명")
                 || compactTitle.contains("소계")
                 || compactTitle.contains("합계");
     }

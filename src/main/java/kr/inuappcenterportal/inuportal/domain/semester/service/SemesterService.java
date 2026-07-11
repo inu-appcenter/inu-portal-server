@@ -30,9 +30,9 @@ public class SemesterService {
      * 만들어진 학기 조회 메서드
      */
     @Transactional(readOnly = true)
-    public List<SemesterResponseDto> getValidSemesters() {
+    public List<SemesterResponseDto> getSemesters() {
         return semesterRepository.findAllByStatusInOrderByYearDescTermAsc(
-                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)
+                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED, SemesterStatus.UPCOMING)
                 )
                 .stream()
                 .map(SemesterResponseDto::from)

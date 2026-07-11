@@ -117,12 +117,7 @@ public class CourseService {
             return null;
         }
 
-        try {
-            return CompletionDivision.from(value);
-        } catch (IllegalArgumentException e) {
-            log.warn("지원하지 않는 이수구분입니다. value={}", value);
-            return null;
-        }
+        return CompletionDivision.from(value);
     }
 
 

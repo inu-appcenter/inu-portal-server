@@ -138,7 +138,7 @@ public enum Department {
             "https://uipa10.inu.ac.kr/uipa10/3951/subview.do",
             "https://uipa10.inu.ac.kr/uipa10/3950/subview.do"),
     SPORTS_SCIENCE("스포츠과학부", College.COLLEGE_OF_ARTS_AND_PHYSICAL_EDUCATION,
-            null,
+            "https://sports.inu.ac.kr/sub3_2.php",
             "https://sports.inu.ac.kr/sub3_2.php"),
     HEALTH_EXERCISE("운동건강학부", College.COLLEGE_OF_ARTS_AND_PHYSICAL_EDUCATION,
             "https://uiex.inu.ac.kr/uiex/4060/subview.do",
