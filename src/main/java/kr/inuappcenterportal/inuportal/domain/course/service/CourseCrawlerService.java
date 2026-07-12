@@ -1,8 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.course.service;
 
-import kr.inuappcenterportal.inuportal.domain.course.crawler.CourseOverviewParser;
-import kr.inuappcenterportal.inuportal.domain.course.crawler.CoursePageFetcher;
-import kr.inuappcenterportal.inuportal.domain.course.crawler.CurriculumParser;
+import kr.inuappcenterportal.inuportal.domain.course.crawler.base.CourseOverviewParser;
+import kr.inuappcenterportal.inuportal.domain.course.crawler.base.CoursePageFetcher;
+import kr.inuappcenterportal.inuportal.domain.course.crawler.base.CurriculumParser;
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCrawledItemDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseOverviewItemDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.CurriculumItemDto;

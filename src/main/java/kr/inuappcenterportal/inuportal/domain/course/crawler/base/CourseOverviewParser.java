@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.crawler;
+package kr.inuappcenterportal.inuportal.domain.course.crawler.base;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseOverviewItemDto;
 import org.jsoup.nodes.Document;
