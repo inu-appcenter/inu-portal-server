@@ -6,7 +6,6 @@ import kr.inuappcenterportal.inuportal.domain.course.service.CourseService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,10 +24,13 @@ public class CourseController implements CourseApiSpecification {
      */
     @GetMapping
     public ResponseEntity<ResponseDto<List<CourseResponseDto>>> getCourses(
-            @RequestParam(required = false) Department department
+            @RequestParam(required = false) String department
     ) {
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ResponseDto.of(courseService.getCourses(department), "강의 목록 조회 성공"));
+        Department parsedDepartment = Department.from(department);
+
+        return ResponseEntity.ok(
+                ResponseDto.of(courseService.getCourses(parsedDepartment), "강의 목록 조회 성공")
+        );
     }
 
     /**

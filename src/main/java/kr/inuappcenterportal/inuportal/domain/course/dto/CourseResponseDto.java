@@ -54,17 +54,21 @@ public record CourseResponseDto(
                 course.getId(),
                 course.getTitle(),
                 course.getDepartment(),
-                course.getDepartment().getDocumentName(),
+                course.getDepartment().getDepartmentName(),
                 course.getCollege(),
                 course.getCollege().getCollegeName(),
+
                 course.getTargetGrade(),
-                course.getTargetGrade().getDisplayName(),
+                course.getTargetGrade() == null ? "대상 학년 정보 없음" : course.getTargetGrade().getDisplayName(),
+
                 course.getTargetTerm(),
-                course.getTargetTerm().getDisplayName(),
+                course.getTargetTerm() == null ? "대상 학기 정보 없음" : course.getTargetTerm().getDisplayName(),
+
                 course.getCompletionDivision(),
-                course.getCompletionDivision().getDescription(),
+                course.getCompletionDivision() == null ? "이수 구분 정보 없음" : course.getCompletionDivision().getDescription(),
+
                 course.getCredit(),
-                course.getContent(),
+                course.getContent() == null ? "교과목개요가 존재하지 않습니다" : course.getContent(),
                 course.isActive()
         );
     }

@@ -76,6 +76,8 @@ public enum MyErrorCode {
     FEATURE_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "현재 비활성화된 기능입니다."),
     FEATURE_FLAG_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 feature flag입니다."),
     DUPLICATE_FEATURE_FLAG_KEY(HttpStatus.BAD_REQUEST, "이미 존재하는 feature flag key입니다."),
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 공지사항입니다."),
+
 
     // Chat 관련 에러 코드 추가
     NOT_FOUND_CHATROOM(HttpStatus.NOT_FOUND, "존재하지 않는 채팅방입니다."),

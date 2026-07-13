@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SemesterService {
 
     private final SemesterRepository semesterRepository;
@@ -28,9 +30,9 @@ public class SemesterService {
      * 만들어진 학기 조회 메서드
      */
     @Transactional(readOnly = true)
-    public List<SemesterResponseDto> getValidSemesters() {
+    public List<SemesterResponseDto> getSemesters() {
         return semesterRepository.findAllByStatusInOrderByYearDescTermAsc(
-                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)
+                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED, SemesterStatus.UPCOMING)
                 )
                 .stream()
                 .map(SemesterResponseDto::from)
@@ -45,6 +47,7 @@ public class SemesterService {
         int year = LocalDate.now(clock).getYear();
 
         syncSemesters(year);
+        log.info("학기 동기화 성공");
     }
 
     /**

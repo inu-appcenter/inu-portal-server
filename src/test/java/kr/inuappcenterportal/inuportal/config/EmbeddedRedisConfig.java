@@ -17,9 +17,22 @@ public class EmbeddedRedisConfig {
 
     @PostConstruct
     public void startRedis() throws IOException {
+        if (isRedisRunning(6379)) {
+            System.setProperty("spring.data.redis.port", "6379");
+            return;
+        }
         int port = findAvailablePort();
+        System.setProperty("spring.data.redis.port", String.valueOf(port));
         redisServer = new RedisServer(port);
         redisServer.start();
+    }
+
+    private boolean isRedisRunning(int port) {
+        try (java.net.Socket socket = new java.net.Socket("localhost", port)) {
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @PreDestroy

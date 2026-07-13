@@ -20,12 +20,14 @@ public class SemesterController implements SemesterApiSpecification {
     private final SemesterService semesterService;
 
     /**
-     * 유효한 학기 조회 메서드(Open, Closed)
+     * 학기 조회 메서드
      */
     @GetMapping
-    public ResponseEntity<List<SemesterResponseDto>> getValidSemesters() {
-        List<SemesterResponseDto> semesters = semesterService.getValidSemesters();
-        return ResponseEntity.ok(semesters);
+    public ResponseEntity<ResponseDto<List<SemesterResponseDto>>> getSemesters() {
+        List<SemesterResponseDto> semesters = semesterService.getSemesters();
+        return ResponseEntity.ok(
+                ResponseDto.of(semesters, "학기 조회 성공")
+        );
     }
 
     /**

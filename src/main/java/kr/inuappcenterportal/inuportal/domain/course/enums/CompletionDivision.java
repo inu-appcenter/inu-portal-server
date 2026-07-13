@@ -23,7 +23,9 @@ public enum CompletionDivision {
 
     EDUCATION("교직", "교직"),
     MILITARY("군사학", "군사학"),
-    SELECT_COMMON("일반선택", "일선");
+    SELECT_COMMON("일반선택", "일선"),
+
+    UNKNOWN("알 수 없는 값", "알 수 없음");
 
 
     private final String description;
@@ -41,6 +43,6 @@ public enum CompletionDivision {
             }
         }
 
-        throw new IllegalArgumentException("지원하지 않는 이수구분입니다. value=" + value);
+        return UNKNOWN;
     }
 }

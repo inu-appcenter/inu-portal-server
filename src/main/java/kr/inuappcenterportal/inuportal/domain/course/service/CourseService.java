@@ -59,21 +59,25 @@ public class CourseService {
     ) {
         for (CourseCrawledItemDto crawledCourse : crawledCourses) {
 
-            TargetGrade targetGrade = TargetGrade.from(crawledCourse.targetGrade());
-            TargetTerm targetTerm = TargetTerm.from(crawledCourse.targetTerm());
-            CompletionDivision completionDivision = CompletionDivision.from(crawledCourse.completionDivision());
+            TargetGrade targetGrade = parseTargetGrade(crawledCourse.targetGrade());
+            TargetTerm targetTerm = parseTargetTerm(crawledCourse.targetTerm());
+            CompletionDivision completionDivision = parseCompletionDivision(crawledCourse.completionDivision());
 
             Optional<Course> existingCourse =
                     courseRepository.findByTitleAndDepartment(crawledCourse.title(), department);
 
             if (existingCourse.isPresent()) {
-                existingCourse.get().update(
+                existingCourse.get().updateBaseInfo(
                         targetGrade,
                         targetTerm,
                         completionDivision,
-                        crawledCourse.credit(),
-                        crawledCourse.content()
+                        crawledCourse.credit()
                 );
+
+                if (crawledCourse.content() != null) {
+                    existingCourse.get().updateContent(crawledCourse.content());
+                }
+
                 continue;
             }
 
@@ -90,6 +94,30 @@ public class CourseService {
 
             courseRepository.save(course);
         }
+    }
+
+    private TargetGrade parseTargetGrade(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return TargetGrade.from(value);
+    }
+
+    private TargetTerm parseTargetTerm(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return TargetTerm.from(value);
+    }
+
+    private CompletionDivision parseCompletionDivision(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return CompletionDivision.from(value);
     }
 
 

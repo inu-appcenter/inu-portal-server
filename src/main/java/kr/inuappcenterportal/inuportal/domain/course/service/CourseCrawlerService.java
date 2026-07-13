@@ -29,21 +29,42 @@ public class CourseCrawlerService {
     /**
      * 강의 생성(동기화) 메서드
      * (한 학과의 교과목개요와 교육과정을 크롤링해서, 강의명을 기준으로 합친 뒤 DB에 없는 강의만 저장하는 메서드)
-     * 스케쥴러 대상 메서드
+     * 스케쥴러 대상 메서드이자 강의 동기화 메인 메서드
      */
     public void syncBaseCourses() {
 
         // 학과별로 동기화 로직 호출
         for (Department department : Department.values()) {
             try {
-                if (department.getCourseOverviewUrl() == null || department.getCurriculumUrl() == null) {
+                // 교육과정 url이 없으면 해당 학과는 파싱 안함
+                if (department.getCurriculumUrl() == null) {
                     continue;
                 }
 
                 // 크롤링,파싱 후 merge(크롤링 실패해도 내부에서 재시작)
-                List<CourseOverviewItemDto> overviewItems = crawlCourseOverview(department);
                 List<CurriculumItemDto> curriculumItems = crawlCurriculum(department);
+                if (curriculumItems.isEmpty()) {
+                    log.warn("교육과정 파싱 결과가 비어 있어 동기화를 건너뜁니다. department={}", department);
+                    continue;
+                }
+
+                List<CourseOverviewItemDto> overviewItems = List.of();
+                // 교과목개요 url이 있으면 크롤링, 없으면 교육과정으로만 동기화
+                if (department.getCourseOverviewUrl() != null) {
+                    try {
+                        overviewItems = crawlCourseOverview(department);
+                    } catch (Exception e) {
+                        log.warn("교과목개요 크롤링 실패. department={}", department, e);
+                    }
+                }
+
+                log.info("강의 기본 정보 파싱 완료. department={}, curriculumCount={}, overviewCount={}",
+                        department.getDepartmentName(), curriculumItems.size(), overviewItems.size());
+
+                // 파싱된 교육과정과 교과목개요를 합친다
                 List<CourseCrawledItemDto> crawledCourses = mergeCrawledCourses(overviewItems, curriculumItems);
+                log.info("강의 합치기 완료: department={}, mergedItem={}", department.getDepartmentName(), crawledCourses.size());
+
 
                 // DB 동기화 로직 호출
                 courseService.applyCrawledCourses(department, crawledCourses);
@@ -86,26 +107,27 @@ public class CourseCrawlerService {
             List<CourseOverviewItemDto> overviewItems,
             List<CurriculumItemDto> curriculumItems
     ) {
+        // 운영체제 -> CourseOverviewDto("운영체제", "본 강의는...")와 같이 강의명으로 매핑되는 Map으로 변환
         Map<String, CourseOverviewItemDto> overviewMap = toOverviewMap(overviewItems);
 
         return curriculumItems.stream()
                 .map(curriculumItem -> {
-                    CourseOverviewItemDto overviewItem = overviewMap.get(curriculumItem.title());
+                    // map의 key인 강의명으로 교과목개요를 찾는다.
+                    CourseOverviewItemDto overviewItem = overviewMap.get(titleKey(curriculumItem.title()));
 
-                    if (overviewItem == null) {
-                        return null;
-                    }
+                    // 이렇게 찾은 overviewItem이 비어있으면 null, 교과목개요가 있으면 머지할때 추가
+                    String content = overviewItem == null ? null : overviewItem.content();
 
+                    // 기본 정보는 무조건 교육과정에서 가져오고, content만 교과목개요에서 매칭되면 붙임
                     return new CourseCrawledItemDto(
                             curriculumItem.title(),
-                            overviewItem.content(),
+                            content,
                             curriculumItem.targetGrade(),
                             curriculumItem.targetTerm(),
                             curriculumItem.completionDivision(),
                             curriculumItem.credit()
                     );
                 })
-                .filter(course -> course != null)
                 .toList();
     }
 
@@ -117,9 +139,26 @@ public class CourseCrawlerService {
     private Map<String, CourseOverviewItemDto> toOverviewMap(List<CourseOverviewItemDto> overviewItems) {
         return overviewItems.stream()
                 .collect(Collectors.toMap(
-                        CourseOverviewItemDto::title,                                          // key
-                        overviewItem -> overviewItem,                   // value
-                        (first, second) -> first // 중복 키 처리
+                        overviewItem -> titleKey(overviewItem.title()),
+                        overviewItem -> overviewItem,
+                        (first, second) -> first
                 ));
+    }
+
+    /**
+     * Map에서 매핑할 강의명 key 정규화 메서드
+     * ex) 운영체제, 운영 체제 (OperatingSystem) 이렇게 파싱된 강의명이 다를 수 있음
+     * 이걸 정규화하기 위해 key가 되는 강의명만 남기고 나머지 불필요한 값들을 제거하는 메서드임
+     */
+    private String titleKey(String title) {
+        if (title == null) {
+            return "";
+        }
+
+        return title
+                .replaceAll("\\([^)]*\\)", "")   // 괄호 안 영문명 제거
+                .replaceAll("^[1-4]학년", "")     // 앞에 붙은 학년 제거
+                .replaceAll("\\s+", "")          // 모든 공백 제거
+                .trim();
     }
 }

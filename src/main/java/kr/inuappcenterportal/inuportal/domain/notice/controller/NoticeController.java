@@ -12,6 +12,8 @@ import jakarta.validation.constraints.Size;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleListResponseDoc;
@@ -96,6 +98,43 @@ public class NoticeController {
     @GetMapping("/top")
     public ResponseEntity<ResponseDto<List<NoticeListResponseDto>>> getPostForTop() {
         return ResponseEntity.ok(ResponseDto.of(noticeService.getTop(), "최신 공지 가져오기 성공"));
+    }
+
+    @Operation(summary = "학교 공지사항 상세 조회", description = "공지사항 데이터베이스 id로 상세 내용과 첨부파일을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "학교 공지사항 상세 조회 성공",
+                    content = @Content(schema = @Schema(implementation = NoticeDetailResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않는 공지사항입니다.",
+                    content = @Content(schema = @Schema(implementation = ResponseDto.class))
+            )
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<ResponseDto<NoticeDetailResponseDto>> getNoticeDetail(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(noticeService.getNoticeDetail(id), "학교 공지사항 상세 조회 성공"));
+    }
+
+    @Operation(summary = "본문 포함 학교 공지사항 목록 가져오기", description = "본문 내용과 첨부파일 목록이 포함된 공지사항 목록을 페이징하여 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "본문 포함 학교 공지사항 목록 가져오기 성공",
+                    content = @Content(schema = @Schema(implementation = NoticeWithContentResponseDto.class))
+            )
+    })
+    @GetMapping("/with-content")
+    public ResponseEntity<ResponseDto<ListResponseDto<NoticeWithContentResponseDto>>> getNoticeWithContentList(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false, defaultValue = "date") String sort,
+            @RequestParam(required = false, defaultValue = "1") @Min(1) int page
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(noticeService.getNoticeWithContentList(category, sort, page), "본문 포함 학교 공지사항 목록 가져오기 성공"));
     }
 
     @Operation(summary = "학과별 공지사항 가져오기", description = "url 파라미터로 학과, 정렬기준, 페이지를 보냅니다.")
