@@ -30,4 +30,40 @@ public class TimeTableItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "custom_schedule_id")
     private CustomSchedule customSchedule;
+
+    private TimeTableItem(
+            Long id,
+            String memo,
+            TimeTable timeTable,
+            CourseOffering courseOffering,
+            CustomSchedule customSchedule
+    ) {
+        this.id = id;
+        this.memo = memo;
+        this.timeTable = timeTable;
+        this.courseOffering = courseOffering;
+        this.customSchedule = customSchedule;
+    }
+
+
+    /**
+     * 시간표 요소는 강의 또는 커스텀 일정 중 하나로만 생성되어야 한다
+     */
+    public static TimeTableItem createForCourse(
+            Long id,
+            String memo,
+            TimeTable timeTable,
+            CourseOffering courseOffering
+    ) {
+        return new TimeTableItem(id, memo, timeTable, courseOffering, null);
+    }
+
+    public static TimeTableItem createForCustomSchedule(
+            Long id,
+            String memo,
+            TimeTable timeTable,
+            CustomSchedule customSchedule
+    ) {
+        return new TimeTableItem(id, memo, timeTable, null, customSchedule);
+    }
 }
