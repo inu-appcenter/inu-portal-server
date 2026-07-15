@@ -227,6 +227,8 @@ public enum Department {
 
     // 교양
     GENERAL("교양", College.GENERAL, null, null);
+
+
     // 계약학과
     // 도시과학대학-도시건걸공학과
     // 경영대학 테크노경영학과

@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.CourseResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.response.CourseResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseCrawlerService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
