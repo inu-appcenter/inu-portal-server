@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CourseGuideFileFetcher {
     private final NoticeRepository noticeRepository;
-    private final CourseGuidePageParser courseOfferingParser;
+    private final CourseGuidePageParser courseGuidePageParser;
 
     /**
      * 가장 최근 "수강신청편람" 학사 공지를 찾아서 그 안에 있는 강의 다운로드 url을 가진 Dto를 만들어서 가져오는 메서드
@@ -29,7 +29,7 @@ public class CourseGuideFileFetcher {
         Document document = fetchCourseGuidePageDocument(notice.getUrl());
 
         // 강의 편람 다운로드 url을 포함한 dto를 수강신청편람의 url을 크롤링한 후 파싱해서 생성
-        return courseOfferingParser.parseGuideFiles(document);
+        return courseGuidePageParser.parseGuideFiles(document);
     }
 
     /**

@@ -223,14 +223,16 @@ public enum Department {
     // 법학부
     LAW("법학부", College.COLLEGE_OF_NULL,
             "https://law.inu.ac.kr/law/5177/subview.do",
-            "https://law.inu.ac.kr/law/5176/subview.do");
+            "https://law.inu.ac.kr/law/5176/subview.do"),
 
+    // 교양
+    GENERAL("교양", College.GENERAL, null, null);
     // 계약학과
     // 도시과학대학-도시건걸공학과
     // 경영대학 테크노경영학과
     // 글로벌정경대학 글로벌무역물류학과
 
-    private final String departmentName;      // 학과명
+    private final String departmentName;    // 학과명
     private final College collegeName;      // 단과대명
     private final String courseOverviewUrl; // 교과목개요 Url
     private final String curriculumUrl;     // 교육과정 Url
