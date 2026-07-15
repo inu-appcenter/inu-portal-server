@@ -22,6 +22,8 @@ public class CourseGuidePageParser {
 
         return links.stream()
                 .map(this::toGuideFile)
+                .filter(guideFile -> guideFile.type() != CourseOfferingGuideType.UNKNOWN)
+                .filter(guideFile -> guideFile.fileName().toLowerCase().endsWith(".pdf"))
                 .toList();
     }
 
