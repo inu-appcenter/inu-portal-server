@@ -11,6 +11,15 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(
+        name = "timetables",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_timetable_member_semester_name",
+                        columnNames = {"member_id", "semester_id", "timetable_name"}
+                )
+        }
+)
 public class TimeTable {
 
     @Id
@@ -32,34 +41,41 @@ public class TimeTable {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "semester_id", nullable = false)
     private Semester semester;
 
     private TimeTable(
-            Long id,
             String timeTableName,
             boolean isPrimary,
-            Visibility visibility,
             Member member,
             Semester semester
     ) {
-        this.id = id;
         this.timeTableName = timeTableName;
         this.isPrimary = isPrimary;
-        this.visibility = visibility;
+        this.visibility = Visibility.PUBLIC;
         this.member = member;
         this.semester = semester;
     }
 
-    private static TimeTable create(
-            Long id,
+    public static TimeTable create(
             String timeTableName,
             boolean isPrimary,
-            Visibility visibility,
             Member member,
             Semester semester
     ) {
-        return new TimeTable(id, timeTableName, isPrimary, visibility, member, semester);
+        return new TimeTable(timeTableName, isPrimary, member, semester);
+    }
+
+    public void unmarkPrimary() {
+        this.isPrimary = false;
+    }
+
+    public void markPrimary() {
+        this.isPrimary = true;
+    }
+
+    public void updateVisibility(Visibility visibility) {
+        this.visibility = visibility;
     }
 }
