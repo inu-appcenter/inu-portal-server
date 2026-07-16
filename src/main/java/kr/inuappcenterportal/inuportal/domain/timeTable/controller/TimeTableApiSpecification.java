@@ -54,6 +54,8 @@ public interface TimeTableApiSpecification {
                                                 {
                                                   "id": 1,
                                                   "semesterId": 1,
+                                                  "year": 2026,
+                                                  "term": "FIRST",
                                                   "timeTableName": "1학기 기본 시간표",
                                                   "isPrimary": true,
                                                   "visibility": "PUBLIC"
@@ -61,6 +63,8 @@ public interface TimeTableApiSpecification {
                                                 {
                                                   "id": 2,
                                                   "semesterId": 1,
+                                                  "year": 2026,
+                                                  "term": "FIRST",
                                                   "timeTableName": "공강 많은 시간표",
                                                   "isPrimary": false,
                                                   "visibility": "PRIVATE"
@@ -128,6 +132,8 @@ public interface TimeTableApiSpecification {
                                                 {
                                                   "id": 1,
                                                   "semesterId": 1,
+                                                  "year": 2026,
+                                                  "term": "FIRST",
                                                   "timeTableName": "1학기 기본 시간표",
                                                   "isPrimary": true,
                                                   "visibility": "PUBLIC"
@@ -188,6 +194,8 @@ public interface TimeTableApiSpecification {
                                               "data": {
                                                 "id": 1,
                                                 "semesterId": 1,
+                                                "year": 2026,
+                                                "term": "FIRST",
                                                 "timeTableName": "수정된 시간표",
                                                 "isPrimary": true,
                                                 "visibility": "PUBLIC"
@@ -248,6 +256,8 @@ public interface TimeTableApiSpecification {
                                               "data": {
                                                 "id": 2,
                                                 "semesterId": 1,
+                                                "year": 2026,
+                                                "term": "FIRST",
                                                 "timeTableName": "공강 많은 시간표",
                                                 "isPrimary": true,
                                                 "visibility": "PRIVATE"
@@ -307,6 +317,8 @@ public interface TimeTableApiSpecification {
                                               "data": {
                                                 "id": 1,
                                                 "semesterId": 1,
+                                                "year": 2026,
+                                                "term": "FIRST",
                                                 "timeTableName": "1학기 기본 시간표",
                                                 "isPrimary": true,
                                                 "visibility": "PRIVATE"
@@ -420,6 +432,8 @@ public interface TimeTableApiSpecification {
                                               "data": {
                                                 "id": 1,
                                                 "semesterId": 1,
+                                                "year": 2026,
+                                                "term": "FIRST",
                                                 "timeTableName": "1학기 기본 시간표",
                                                 "isPrimary": true,
                                                 "visibility": "PUBLIC"

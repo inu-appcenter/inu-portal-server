@@ -51,13 +51,14 @@ public class TimeTable {
             Member member,
             Semester semester
     ) {
-        this.timeTableName = timeTableName;
+        updateTimeTableName(timeTableName);
         this.isPrimary = isPrimary;
         this.visibility = Visibility.PUBLIC;
         this.member = member;
         this.semester = semester;
     }
 
+    // 정적 팩토리 메서드
     public static TimeTable create(
             String timeTableName,
             boolean isPrimary,
