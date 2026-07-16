@@ -1,15 +1,17 @@
-package kr.inuappcenterportal.inuportal.domain.timeTable.dto;
+package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response;
 
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 
 public record TimeTableResponseDto(
+        Long id,
         String timeTableName,
         boolean isPrimary,
         Visibility visibility
 ) {
     public static TimeTableResponseDto from(TimeTable timeTable) {
         return new TimeTableResponseDto(
+                timeTable.getId(),
                 timeTable.getTimeTableName(),
                 timeTable.isPrimary(),
                 timeTable.getVisibility()
