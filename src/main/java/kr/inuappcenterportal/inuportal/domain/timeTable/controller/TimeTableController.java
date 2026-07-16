@@ -3,12 +3,14 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.controller;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableNameUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableVisibilityUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -110,6 +112,9 @@ public class TimeTableController {
         );
     }
 
+    /**
+     * 시간표 삭제 메서드
+     */
     @DeleteMapping("/{timeTableId}")
     public ResponseEntity<ResponseDto<Long>> deleteTimeTable(
             @AuthenticationPrincipal Member member,
@@ -119,6 +124,23 @@ public class TimeTableController {
 
         return ResponseEntity.ok(
                 ResponseDto.of(timeTableId, "시간표 삭제 성공")
+        );
+    }
+
+
+    /**
+     * 시간표 생성 메서드
+     */
+    @PostMapping("/semesters/{semesterId}")
+    public ResponseEntity<ResponseDto<TimeTableResponseDto>> createTimeTable(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long semesterId,
+            @RequestBody @Valid TimeTableCreateRequestDto request
+    ) {
+        TimeTableResponseDto response = timeTableService.createTimeTable(member.getId(), semesterId, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ResponseDto.of(response, "시간표 생성 성공")
         );
     }
 
