@@ -20,7 +20,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/timetables")
-public class TimeTableController {
+public class TimeTableController implements TimeTableApiSpecification {
 
     private final TimeTableService timeTableService;
 
