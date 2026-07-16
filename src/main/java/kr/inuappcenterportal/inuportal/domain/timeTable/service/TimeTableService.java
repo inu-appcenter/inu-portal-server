@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.service;
 
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableCreateRequestDto;
@@ -29,7 +30,7 @@ public class TimeTableService {
     private final MemberRepository memberRepository;
     private final SemesterRepository semesterRepository;
 
-    
+
     /**
      * 시간표 생성 메서드
      */
@@ -101,9 +102,11 @@ public class TimeTableService {
      * 시간표 공개범위 수정 메서드
      */
     @Transactional
-    public TimeTableResponseDto setVisibility(Long timeTableId, TimeTableVisibilityUpdateRequestDto visibilityUpdateRequestDto) {
+    public TimeTableResponseDto setVisibility(Long memberId, Long timeTableId, TimeTableVisibilityUpdateRequestDto visibilityUpdateRequestDto) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+
+        validateOwner(timeTable, memberId);
 
         timeTable.updateVisibility(visibilityUpdateRequestDto.visibility());
         return TimeTableResponseDto.from(timeTable);
@@ -114,9 +117,11 @@ public class TimeTableService {
      * 대표 시간표 수정 메서드
      */
     @Transactional
-    public TimeTableResponseDto setIsPrimary(Long timeTableId) {
+    public TimeTableResponseDto setIsPrimary(Long memberId, Long timeTableId) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+
+        validateOwner(timeTable, memberId);
 
         if (timeTable.isPrimary()) {
             return TimeTableResponseDto.from(timeTable);
@@ -136,9 +141,11 @@ public class TimeTableService {
      * 시간표 이름 변경 메서드
      */
     @Transactional
-    public TimeTableResponseDto setTimeTableName(Long timeTableId, TimeTableNameUpdateRequestDto nameUpdateRequestDto) {
+    public TimeTableResponseDto setTimeTableName(Long memberId, Long timeTableId, TimeTableNameUpdateRequestDto nameUpdateRequestDto) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+
+        validateOwner(timeTable, memberId);
 
         checkDuplicateTimeTableNameForUpdate(
                 timeTable.getMember().getId(),
@@ -156,13 +163,25 @@ public class TimeTableService {
      * 시간표 삭제 메서드
      */
     @Transactional
-    public void deleteTimeTable(Long timeTableId) {
+    public void deleteTimeTable(Long memberId, Long timeTableId) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+
+        validateOwner(timeTable, memberId);
 
         timeTableItemRepository.deleteAllByTimeTableId(timeTableId);
         timeTableRepository.delete(timeTable);
     }
+
+    /**
+     * 사용자 검증 메서드
+     */
+    private void validateOwner(TimeTable timeTable, Long memberId) {
+        if (!timeTable.getMember().getId().equals(memberId)) {
+            throw new IllegalArgumentException("해당 시간표에 접근할 권한이 없습니다.");
+        }
+    }
+
 
     /**
      * 시간표 전체 조회
@@ -174,12 +193,31 @@ public class TimeTableService {
     }
 
     /**
-     * 시간표 학기별 조회
+     * 학기별 시간표 조회(id)
      */
     public List<TimeTableResponseDto> getTimeTablesOfSemester(Long memberId, Long semesterId) {
+        if (!semesterRepository.existsById(semesterId))
+            throw new IllegalArgumentException("해당 학기가 존재하지 않습니다.");
+
         return timeTableRepository.findAllByMemberIdAndSemesterId(memberId, semesterId).stream()
                 .map(TimeTableResponseDto::from)
                 .toList();
     }
 
+    /**
+     * 학기별 시간표 조회 (년도+학기)
+     */
+    public List<TimeTableResponseDto> getTimeTablesOfYearAndTerm(Long memberId, Integer year, SemesterTerm term) {
+        if (year == null || term == null) {
+            throw new IllegalArgumentException("년도와 학기는 함께 입력해야 합니다.");
+        }
+
+        Long semesterId = semesterRepository.findByYearAndTerm(year, term)
+                .orElseThrow(() -> new IllegalArgumentException("해당 학기가 존재하지 않습니다."))
+                .getId();
+
+        return timeTableRepository.findAllByMemberIdAndSemesterId(memberId, semesterId).stream()
+                .map(TimeTableResponseDto::from)
+                .toList();
+    }
 }
