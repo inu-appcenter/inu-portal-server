@@ -65,7 +65,7 @@ public class TimeTableController {
     /**
      * 시간표 이름 수정 컨트롤러
      */
-    @PatchMapping("{/{timeTableId}/timeTableName")
+    @PatchMapping("/{timeTableId}/timeTableName")
     public ResponseEntity<ResponseDto<TimeTableResponseDto>> setTimeTableName(
             @AuthenticationPrincipal Member member,
             @PathVariable Long timeTableId,
