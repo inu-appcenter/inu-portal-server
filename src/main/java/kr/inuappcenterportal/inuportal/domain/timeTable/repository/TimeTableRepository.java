@@ -11,6 +11,8 @@ public interface TimeTableRepository extends JpaRepository<TimeTable, Long> {
 
     List<TimeTable> findAllByMemberIdAndSemesterId(Long memberId, Long semesterId);
 
+    List<TimeTable> findAllByMemberId(Long memberId);
+
     boolean existsByMemberIdAndSemesterId(Long memberId, Long semesterId);
 
     Optional<TimeTable> findByMemberIdAndSemesterIdAndIsPrimaryTrue(Long memberId, Long semesterId);

@@ -9,11 +9,14 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableNam
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableVisibilityUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
+import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -22,9 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TimeTableService {
 
     private final TimeTableRepository timeTableRepository;
+    private final TimeTableItemRepository timeTableItemRepository;
     private final MemberRepository memberRepository;
     private final SemesterRepository semesterRepository;
 
+    
     /**
      * 시간표 생성 메서드
      */
@@ -147,12 +152,34 @@ public class TimeTableService {
         return TimeTableResponseDto.from(timeTable);
     }
 
-
+    /**
+     * 시간표 삭제 메서드
+     */
     @Transactional
     public void deleteTimeTable(Long timeTableId) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
 
-
+        timeTableItemRepository.deleteAllByTimeTableId(timeTableId);
+        timeTableRepository.delete(timeTable);
     }
+
+    /**
+     * 시간표 전체 조회
+     */
+    public List<TimeTableResponseDto> getTimeTables(Long memberId) {
+        return timeTableRepository.findAllByMemberId(memberId).stream()
+                .map(TimeTableResponseDto::from)
+                .toList();
+    }
+
+    /**
+     * 시간표 학기별 조회
+     */
+    public List<TimeTableResponseDto> getTimeTablesOfSemester(Long memberId, Long semesterId) {
+        return timeTableRepository.findAllByMemberIdAndSemesterId(memberId, semesterId).stream()
+                .map(TimeTableResponseDto::from)
+                .toList();
+    }
+
 }

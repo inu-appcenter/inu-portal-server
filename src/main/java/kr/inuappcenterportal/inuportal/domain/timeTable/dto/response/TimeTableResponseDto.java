@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 
 public record TimeTableResponseDto(
         Long id,
+        Long semesterId,
         String timeTableName,
         boolean isPrimary,
         Visibility visibility
@@ -12,6 +13,7 @@ public record TimeTableResponseDto(
     public static TimeTableResponseDto from(TimeTable timeTable) {
         return new TimeTableResponseDto(
                 timeTable.getId(),
+                timeTable.getSemester().getId(),
                 timeTable.getTimeTableName(),
                 timeTable.isPrimary(),
                 timeTable.getVisibility()
