@@ -110,5 +110,16 @@ public class TimeTableController {
         );
     }
 
+    @DeleteMapping("/{timeTableId}")
+    public ResponseEntity<ResponseDto<Long>> deleteTimeTable(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long timeTableId
+    ) {
+        timeTableService.deleteTimeTable(member.getId(), timeTableId);
+
+        return ResponseEntity.ok(
+                ResponseDto.of(timeTableId, "시간표 삭제 성공")
+        );
+    }
 
 }
