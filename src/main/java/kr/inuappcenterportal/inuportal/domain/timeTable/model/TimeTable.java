@@ -76,6 +76,18 @@ public class TimeTable {
     }
 
     public void updateVisibility(Visibility visibility) {
+        if (visibility == null) {
+            throw new IllegalArgumentException("공개 범위는 필수입니다.");
+        }
+
         this.visibility = visibility;
+    }
+
+    public void updateTimeTableName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("시간표 이름은 필수입니다.");
+        }
+
+        this.timeTableName = name;
     }
 }
