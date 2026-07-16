@@ -14,4 +14,11 @@ public interface TimeTableRepository extends JpaRepository<TimeTable, Long> {
     boolean existsByMemberIdAndSemesterId(Long memberId, Long semesterId);
 
     Optional<TimeTable> findByMemberIdAndSemesterIdAndIsPrimaryTrue(Long memberId, Long semesterId);
+
+    boolean existsByMemberIdAndSemesterIdAndTimeTableNameAndIdNot(
+            Long memberId,
+            Long semesterId,
+            String timeTableName,
+            Long timeTableId
+    );
 }
