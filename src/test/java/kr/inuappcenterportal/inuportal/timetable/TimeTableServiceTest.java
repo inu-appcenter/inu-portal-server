@@ -91,15 +91,15 @@ public class TimeTableServiceTest {
     }
 
     @Test
-    @DisplayName("다른 사용자의 시간표는 수정할 수 없다")
-    void 다른_사용자_시간표_수정_검증_테스트() {
+    @DisplayName("다른 사용자의 시간표 이름은 수정할 수 없다")
+    void 다른_사용자_시간표_이름_수정_검증_테스트() {
 
         // given
         Long requestMemberId = 1L;
         Long ownerMemberId = 2L;
         Long timeTableId = 1L;
 
-        Member owner = createMember(2L, "20240002");
+        Member owner = createMember(ownerMemberId, "20240002");
         Semester semester = createSemester(1L);
         TimeTable timeTable = createTimeTable(1L, "2026-1학기", true, owner, semester);
 
@@ -120,6 +120,68 @@ public class TimeTableServiceTest {
                         anyLong(), anyLong(), anyString(), anyLong()
                 );
     }
+
+
+    @Test
+    @DisplayName("다른 사용자의 시간표 공개범위는 수정할 수 없다")
+    void 다른_사용자_시간표_공개범위_수정_검증_테스트() {
+
+        // given
+        Long requestMemberId = 1L;
+        Long ownerMemberId = 2L;
+        Long timeTableId = 1L;
+
+        Member owner = createMember(ownerMemberId, "20240002");
+        Semester semester = createSemester(1L);
+        TimeTable timeTable = createTimeTable(1L, "2026-1학기", true, owner, semester);
+
+        when(timeTableRepository.findById(timeTableId)).thenReturn(Optional.of(timeTable));
+
+        // when
+        TimeTableVisibilityUpdateRequestDto request = new TimeTableVisibilityUpdateRequestDto(Visibility.PRIVATE);
+
+        // then
+        assertThatThrownBy(() ->
+                timeTableService.setVisibility(requestMemberId, timeTableId, request)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("해당 시간표에 접근할 권한이 없습니다.");
+
+        assertThat(timeTable.getVisibility()).isEqualTo(Visibility.PUBLIC);
+
+        verify(timeTableRepository, times(1)).findById(timeTableId);
+    }
+
+
+    @Test
+    @DisplayName("다른 사용자의 대표 시간표를 수정할 수 없다")
+    void 다른_사용자_대표_시간표_수정_검증_테스트() {
+        // given
+        Long requestMemberId = 1L;
+        Long ownerMemberId = 2L;
+        Long timeTableId = 1L;
+
+        Member owner = createMember(ownerMemberId, "20240002");
+        Semester semester = createSemester(1L);
+        TimeTable timeTable = createTimeTable(1L, "2026-1학기", false, owner, semester);
+
+        when(timeTableRepository.findById(timeTableId)).thenReturn(Optional.of(timeTable));
+
+        // when & then
+        assertThatThrownBy(() ->
+                timeTableService.setIsPrimary(requestMemberId, timeTableId)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("해당 시간표에 접근할 권한이 없습니다.");
+
+        assertThat(timeTable.isPrimary()).isFalse();
+
+        verify(timeTableRepository, times(1)).findById(timeTableId);
+        verify(timeTableRepository, never())
+                .findByMemberIdAndSemesterIdAndIsPrimaryTrue(anyLong(), anyLong());
+
+    }
+
 
     @Test
     @DisplayName("내 시간표의 이름을 변경합니다.")
@@ -182,7 +244,7 @@ public class TimeTableServiceTest {
         TimeTableResponseDto response = timeTableService.setVisibility(requestMemberId, timeTableId, request);
 
         // then
-        assertThat(response.id()).isEqualTo(requestMemberId);
+        assertThat(response.id()).isEqualTo(timeTableId);
         assertThat(response.visibility()).isEqualTo(Visibility.PRIVATE);
         assertThat(timeTable.getVisibility()).isEqualTo(Visibility.PRIVATE);
 
@@ -190,7 +252,7 @@ public class TimeTableServiceTest {
     }
 
     @Test
-    @DisplayName("내 시간표의 공개범위를 변경합니다.")
+    @DisplayName("내 시간표의 대표 시간표를 변경합니다.")
     void 내_시간표_대표_시간표_수정_테스트() {
         // given
         Long requestMemberId = 1L;
@@ -229,6 +291,13 @@ public class TimeTableServiceTest {
         verify(timeTableRepository, times(1)).findById(newPrimaryTimeTableId);
         verify(timeTableRepository, times(1))
                 .findByMemberIdAndSemesterIdAndIsPrimaryTrue(requestMemberId, semesterId);
+    }
+
+
+    @Test
+    @DisplayName("시간표를 삭제합니다")
+    void 시간표_삭제_테스트() {
+
     }
 
 
