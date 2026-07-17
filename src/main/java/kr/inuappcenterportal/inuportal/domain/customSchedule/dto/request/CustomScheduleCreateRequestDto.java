@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 
 import java.util.List;
 
-public record CustomScheduleRequestDto(
+public record CustomScheduleCreateRequestDto(
         @NotBlank String title,
         @NotEmpty List<@Valid CustomScheduleMeetingRequestDto> meetings
 ) {
