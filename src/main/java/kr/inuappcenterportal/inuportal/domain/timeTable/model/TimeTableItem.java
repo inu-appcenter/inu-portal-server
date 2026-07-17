@@ -31,7 +31,7 @@ public class TimeTableItem {
     @JoinColumn(name = "course_offering_id")
     private CourseOffering courseOffering;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "custom_schedule_id")
     private CustomSchedule customSchedule;
 
