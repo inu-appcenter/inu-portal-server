@@ -4,7 +4,6 @@ import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomS
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
-import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +17,6 @@ import java.util.List;
 @Slf4j
 public class CustomScheduleMeetingService {
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
-    private final CustomScheduleRepository customScheduleRepository;
 
 
     /**
@@ -50,10 +48,13 @@ public class CustomScheduleMeetingService {
     @Transactional
     public CustomScheduleMeeting updateMeetings(
             Long meetingId,
+            Long customScheduleId,
             CustomScheduleMeetingRequestDto request
     ) {
         CustomScheduleMeeting meeting = customScheduleMeetingRepository.findById(meetingId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 커스텀일정 시간이 존재하지 않습니다."));
+
+        validateMeetingBelongsToSchedule(meeting, customScheduleId);
 
         meeting.update(
                 request.location(),
@@ -82,6 +83,10 @@ public class CustomScheduleMeetingService {
         customScheduleMeetingRepository.delete(meeting);
     }
 
+
+    /**
+     * 커스텀일정에 속하는 시간인지 검증하는 메서드
+     */
     private void validateMeetingBelongsToSchedule(
             CustomScheduleMeeting meeting,
             Long customScheduleId
