@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.customSchedule.service;
 
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleRequestDto;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleTitleUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.response.CustomScheduleResponseDto;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
@@ -64,5 +65,33 @@ public class CustomScheduleService {
         customScheduleMeetingRepository.saveAll(meetings);
 
         return CustomScheduleResponseDto.from(customSchedule, meetings);
+    }
+
+    /**
+     * 커스텀일정 소유권 검증 메서드
+     */
+    private void validateOwner(CustomSchedule customSchedule, Long memberId) {
+        if (!customSchedule.getMember().getId().equals(memberId)) {
+            throw new IllegalArgumentException("해당 커스텀일정에 접근할 권한이 없습니다.");
+        }
+    }
+
+    /**
+     * 커스텀일정 이름 수정 메서드
+     */
+    @Transactional
+    public CustomScheduleResponseDto setCustomScheduleTitle(
+            Long memberId,
+            Long customScheduleId,
+            CustomScheduleTitleUpdateRequestDto request
+    ) {
+        CustomSchedule customSchedule = customScheduleRepository.findById(customScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 커스텀일정이 존재하지 않습니다."));
+
+        validateOwner(customSchedule, memberId);
+
+        customSchedule.setCustomScheduleTitle(request.title());
+
+        return CustomScheduleResponseDto.from(customSchedule);
     }
 }
