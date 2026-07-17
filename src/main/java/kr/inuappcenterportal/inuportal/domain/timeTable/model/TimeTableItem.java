@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.model;
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
+import kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,9 @@ public class TimeTableItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "timetable_item_id", nullable = false)
     private Long id;
+
+    @Enumerated(EnumType.STRING)
+    private TimeTableItemType type;
 
     private String memo;
 
@@ -33,11 +37,13 @@ public class TimeTableItem {
 
     private TimeTableItem(
             String memo,
+            TimeTableItemType type,
             TimeTable timeTable,
             CourseOffering courseOffering,
             CustomSchedule customSchedule
     ) {
         this.memo = memo;
+        this.type = type;
         this.timeTable = timeTable;
         this.courseOffering = courseOffering;
         this.customSchedule = customSchedule;
@@ -52,7 +58,7 @@ public class TimeTableItem {
             TimeTable timeTable,
             CourseOffering courseOffering
     ) {
-        return new TimeTableItem(memo, timeTable, courseOffering, null);
+        return new TimeTableItem(memo, TimeTableItemType.COURSE, timeTable, courseOffering, null);
     }
 
     public static TimeTableItem createForCustomSchedule(
@@ -60,6 +66,6 @@ public class TimeTableItem {
             TimeTable timeTable,
             CustomSchedule customSchedule
     ) {
-        return new TimeTableItem(memo, timeTable, null, customSchedule);
+        return new TimeTableItem(memo, TimeTableItemType.CUSTOM, timeTable, null, customSchedule);
     }
 }
