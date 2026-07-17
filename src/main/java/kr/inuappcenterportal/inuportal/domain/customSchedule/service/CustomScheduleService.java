@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.customSchedule.service;
 
-import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleRequestDto;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleTitleUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.response.CustomScheduleResponseDto;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,8 @@ public class CustomScheduleService {
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
     private final MemberRepository memberRepository;
     private final SemesterRepository semesterRepository;
+    private final CustomScheduleMeetingService customScheduleMeetingService;
+    private final TimeTableItemRepository timeTableItemRepository;
 
 
     /**
@@ -37,7 +40,7 @@ public class CustomScheduleService {
     public CustomScheduleResponseDto createCustomSchedule(
             Long memberId,
             Long semesterId,
-            CustomScheduleRequestDto request) {
+            CustomScheduleCreateRequestDto request) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저 존재하지 않습니다."));
 
@@ -51,18 +54,8 @@ public class CustomScheduleService {
         );
 
         // 커스텀일정 시간 생성
-        List<CustomScheduleMeeting> meetings = request.meetings().stream()
-                .map(meeting -> CustomScheduleMeeting.create(
-                        customSchedule,
-                        meeting.location(),
-                        meeting.day(),
-                        meeting.startTime(),
-                        meeting.endTime()
-                ))
-                .toList();
-
-        // 커스텀일정 시간 저장
-        customScheduleMeetingRepository.saveAll(meetings);
+        List<CustomScheduleMeeting> meetings =
+                customScheduleMeetingService.createMeetings(customSchedule, request.meetings());
 
         return CustomScheduleResponseDto.from(customSchedule, meetings);
     }
@@ -75,6 +68,7 @@ public class CustomScheduleService {
             throw new IllegalArgumentException("해당 커스텀일정에 접근할 권한이 없습니다.");
         }
     }
+
 
     /**
      * 커스텀일정 이름 수정 메서드
@@ -93,5 +87,24 @@ public class CustomScheduleService {
         customSchedule.setCustomScheduleTitle(request.title());
 
         return CustomScheduleResponseDto.from(customSchedule);
+    }
+
+
+    /**
+     * 커스텀일정 삭제 메서드
+     */
+    @Transactional
+    public void deleteCustomSchedule(
+            Long memberId,
+            Long customScheduleId
+    ) {
+        CustomSchedule customSchedule = customScheduleRepository.findById(customScheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 커스텀일정이 존재하지 않습니다."));
+
+        validateOwner(customSchedule, memberId);
+
+        timeTableItemRepository.deleteAllByCustomScheduleId(customScheduleId);
+        customScheduleMeetingRepository.deleteAllByCustomScheduleId(customScheduleId);
+        customScheduleRepository.delete(customSchedule);
     }
 }

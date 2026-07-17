@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@Tag(name = "TimeTable", description = "TimeTable 관련 API")
+@Tag(name = "TimeTable", description = "시건표 관련 API")
 public interface TimeTableApiSpecification {
 
 
