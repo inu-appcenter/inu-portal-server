@@ -49,6 +49,7 @@ public class CustomScheduleService {
             CustomScheduleTitleUpdateRequestDto request
     ) {
         customSchedule.setCustomScheduleTitle(request.title());
+        
         return customSchedule;
     }
 

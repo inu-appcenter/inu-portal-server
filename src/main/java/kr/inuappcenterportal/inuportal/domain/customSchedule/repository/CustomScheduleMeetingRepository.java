@@ -5,6 +5,4 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CustomScheduleMeetingRepository extends JpaRepository<CustomScheduleMeeting, Long> {
     void deleteAllByCustomScheduleId(Long customScheduleId);
-
-    Long countByCustomScheduleId(Long customScheduleId);
 }
