@@ -48,11 +48,11 @@ public class CustomSchedule extends BaseTimeEntity {
         return new CustomSchedule(member, semester, title);
     }
 
-    public void setCustomScheduleTitle(String updatedtitle) {
-        if (title == null || title.isBlank()) {
+    public void setCustomScheduleTitle(String updateTitle) {
+        if (updateTitle == null || updateTitle.isBlank()) {
             throw new IllegalArgumentException("커스텀 일정 이름은 필수입니다.");
         }
-        
-        this.title = updatedtitle;
+
+        this.title = updateTitle;
     }
 }
