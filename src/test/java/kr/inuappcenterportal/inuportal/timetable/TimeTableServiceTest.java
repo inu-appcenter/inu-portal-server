@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableNameUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableVisibilityUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
@@ -56,20 +57,8 @@ public class TimeTableServiceTest {
         Long memberId = 1L;
         Long semesterId = 1L;
 
-        Member member = Member.builder()
-                .studentId("20241234")
-                .roles(List.of("ROLE_USER"))
-                .build();
-        ReflectionTestUtils.setField(member, "id", memberId);
-
-        Semester semester = Semester.create(
-                2026,
-                SemesterTerm.FIRST,
-                SemesterStatus.OPEN,
-                LocalDate.of(2026, 3, 2),
-                LocalDate.of(2026, 6, 21)
-        );
-        ReflectionTestUtils.setField(semester, "id", semesterId);
+        Member member = createMember(1L, "20241234");
+        Semester semester = createSemester(1L);
 
         TimeTableCreateRequestDto request = new TimeTableCreateRequestDto("2026-1학기");
 
@@ -104,28 +93,15 @@ public class TimeTableServiceTest {
     @Test
     @DisplayName("다른 사용자의 시간표는 수정할 수 없다")
     void 다른_사용자_시간표_수정_검증_테스트() {
+
         // given
         Long requestMemberId = 1L;
         Long ownerMemberId = 2L;
         Long timeTableId = 1L;
 
-        Member owner = Member.builder()
-                .studentId("20240002")
-                .roles(List.of("ROLE_USER"))
-                .build();
-        ReflectionTestUtils.setField(owner, "id", ownerMemberId);
-
-        Semester semester = Semester.create(
-                2026,
-                SemesterTerm.FIRST,
-                SemesterStatus.OPEN,
-                LocalDate.of(2026, 3, 2),
-                LocalDate.of(2026, 6, 21)
-        );
-        ReflectionTestUtils.setField(semester, "id", 1L);
-
-        TimeTable timeTable = TimeTable.create("기존 시간표", true, owner, semester);
-        ReflectionTestUtils.setField(timeTable, "id", timeTableId);
+        Member owner = createMember(2L, "20240002");
+        Semester semester = createSemester(1L);
+        TimeTable timeTable = createTimeTable(1L, "2026-1학기", true, owner, semester);
 
         when(timeTableRepository.findById(timeTableId)).thenReturn(Optional.of(timeTable));
 
@@ -144,4 +120,152 @@ public class TimeTableServiceTest {
                         anyLong(), anyLong(), anyString(), anyLong()
                 );
     }
+
+    @Test
+    @DisplayName("내 시간표의 이름을 변경합니다.")
+    void 내_시간표_이름_수정_테스트() {
+        // given
+        Long requestMemberId = 1L;
+        Long timeTableId = 1L;
+
+        Member member = createMember(1L, "20241234");
+        Semester semester = createSemester(1L);
+        TimeTable timeTable = createTimeTable(1L, "2026-1학기", true, member, semester);
+
+        when(timeTableRepository.findById(timeTableId)).thenReturn(Optional.of(timeTable));
+
+        TimeTableNameUpdateRequestDto request =
+                new TimeTableNameUpdateRequestDto("2026-첫번째 학기");
+
+        when(timeTableRepository.existsByMemberIdAndSemesterIdAndTimeTableNameAndIdNot(
+                requestMemberId,
+                semester.getId(),
+                request.timeTableName(),
+                timeTableId
+        )).thenReturn(false);
+
+        // when
+        TimeTableResponseDto response =
+                timeTableService.setTimeTableName(requestMemberId, timeTableId, request);
+
+        // then
+        assertThat(response.id()).isEqualTo(timeTableId);
+        assertThat(response.timeTableName()).isEqualTo("2026-첫번째 학기");
+        assertThat(timeTable.getTimeTableName()).isEqualTo("2026-첫번째 학기");
+
+        verify(timeTableRepository, times(1)).findById(timeTableId);
+        verify(timeTableRepository, times(1))
+                .existsByMemberIdAndSemesterIdAndTimeTableNameAndIdNot(
+                        requestMemberId,
+                        semester.getId(),
+                        request.timeTableName(),
+                        timeTableId
+                );
+    }
+
+    @Test
+    @DisplayName("내 시간표의 공개범위를 변경합니다.")
+    void 내_시간표_공개범위_테스트() {
+        // given
+        Long requestMemberId = 1L;
+        Long timeTableId = 1L;
+
+        Member member = createMember(1L, "20241234");
+        Semester semester = createSemester(1L);
+        TimeTable timeTable = createTimeTable(1L, "2026-1학기", true, member, semester);
+
+        when(timeTableRepository.findById(timeTableId)).thenReturn(Optional.of(timeTable));
+
+        TimeTableVisibilityUpdateRequestDto request = new TimeTableVisibilityUpdateRequestDto(Visibility.PRIVATE);
+
+        // when
+        TimeTableResponseDto response = timeTableService.setVisibility(requestMemberId, timeTableId, request);
+
+        // then
+        assertThat(response.id()).isEqualTo(requestMemberId);
+        assertThat(response.visibility()).isEqualTo(Visibility.PRIVATE);
+        assertThat(timeTable.getVisibility()).isEqualTo(Visibility.PRIVATE);
+
+        verify(timeTableRepository, times(1)).findById(timeTableId);
+    }
+
+    @Test
+    @DisplayName("내 시간표의 공개범위를 변경합니다.")
+    void 내_시간표_대표_시간표_수정_테스트() {
+        // given
+        Long requestMemberId = 1L;
+        Long semesterId = 1L;
+        Long currentPrimaryTimeTableId = 1L;
+        Long newPrimaryTimeTableId = 2L;
+
+        Member member = createMember(1L, "20241234");
+        Semester semester = createSemester(semesterId);
+        TimeTable currentPrimaryTimeTable =
+                createTimeTable(currentPrimaryTimeTableId, "기존 대표 시간표", true, member, semester);
+
+        TimeTable newPrimaryTimeTable =
+                createTimeTable(newPrimaryTimeTableId, "새 대표 시간표", false, member, semester);
+
+        when(timeTableRepository.findById(newPrimaryTimeTableId))
+                .thenReturn(Optional.of(newPrimaryTimeTable));
+
+        when(timeTableRepository.findByMemberIdAndSemesterIdAndIsPrimaryTrue(
+                requestMemberId,
+                semesterId
+        )).thenReturn(Optional.of(currentPrimaryTimeTable));
+
+
+        // when
+        TimeTableResponseDto response =
+                timeTableService.setIsPrimary(requestMemberId, newPrimaryTimeTableId);
+
+        // then
+        assertThat(response.id()).isEqualTo(newPrimaryTimeTableId);
+        assertThat(response.isPrimary()).isTrue();
+
+        assertThat(currentPrimaryTimeTable.isPrimary()).isFalse();
+        assertThat(newPrimaryTimeTable.isPrimary()).isTrue();
+
+        verify(timeTableRepository, times(1)).findById(newPrimaryTimeTableId);
+        verify(timeTableRepository, times(1))
+                .findByMemberIdAndSemesterIdAndIsPrimaryTrue(requestMemberId, semesterId);
+    }
+
+
+    // helper 메서드
+    private Member createMember(Long id, String studentId) {
+        Member member = Member.builder()
+                .studentId(studentId)
+                .roles(List.of("ROLE_USER"))
+                .build();
+
+        ReflectionTestUtils.setField(member, "id", id);
+        return member;
+    }
+
+    private Semester createSemester(Long id) {
+        Semester semester = Semester.create(
+                2026,
+                SemesterTerm.FIRST,
+                SemesterStatus.OPEN,
+                LocalDate.of(2026, 3, 2),
+                LocalDate.of(2026, 6, 21)
+        );
+
+        ReflectionTestUtils.setField(semester, "id", id);
+        return semester;
+    }
+
+    private TimeTable createTimeTable(
+            Long id,
+            String name,
+            boolean isPrimary,
+            Member member,
+            Semester semester
+    ) {
+        TimeTable timeTable = TimeTable.create(name, isPrimary, member, semester);
+        ReflectionTestUtils.setField(timeTable, "id", id);
+        return timeTable;
+    }
+
 }
