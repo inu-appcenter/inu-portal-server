@@ -22,4 +22,12 @@ public record CustomScheduleResponseDto(
                         .toList()
         );
     }
+
+    public static CustomScheduleResponseDto from(CustomSchedule customSchedule) {
+        return new CustomScheduleResponseDto(
+                customSchedule.getId(),
+                customSchedule.getTitle(),
+                null
+        );
+    }
 }
