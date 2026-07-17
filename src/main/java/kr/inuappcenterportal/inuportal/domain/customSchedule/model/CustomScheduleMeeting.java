@@ -63,4 +63,23 @@ public class CustomScheduleMeeting {
 
         return new CustomScheduleMeeting(customSchedule, location, day, startTime, endTime);
     }
+
+    public void update(
+            String location, DayOfWeek day, LocalTime startTime, LocalTime endTime
+    ) {
+        if (day == null) {
+            throw new IllegalArgumentException("요일은 필수입니다.");
+        }
+        if (startTime == null || endTime == null) {
+            throw new IllegalArgumentException("시작 시간과 종료 시간은 필수입니다.");
+        }
+        if (!startTime.isBefore(endTime)) {
+            throw new IllegalArgumentException("시작 시간은 종료 시간보다 빨라야 합니다.");
+        }
+        
+        this.location = location;
+        this.day = day;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
 }
