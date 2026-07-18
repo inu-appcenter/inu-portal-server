@@ -19,6 +19,7 @@ public class TimeTableItem {
     private Long id;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "timetable_item_type", nullable = false)
     private TimeTableItemType type;
 
     private String memo;
