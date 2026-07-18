@@ -5,9 +5,9 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableCreateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableNameUpdateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.TimeTableVisibilityUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableNameUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableVisibilityUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
@@ -29,7 +29,7 @@ public class TimeTableService {
     private final TimeTableItemRepository timeTableItemRepository;
     private final MemberRepository memberRepository;
     private final SemesterRepository semesterRepository;
-
+    private final TimeTableItemService timeTableItemService;
 
     /**
      * 시간표 생성 메서드
@@ -102,7 +102,10 @@ public class TimeTableService {
      * 시간표 공개범위 수정 메서드
      */
     @Transactional
-    public TimeTableResponseDto setVisibility(Long memberId, Long timeTableId, TimeTableVisibilityUpdateRequestDto visibilityUpdateRequestDto) {
+    public TimeTableResponseDto setVisibility(
+            Long memberId,
+            Long timeTableId,
+            TimeTableVisibilityUpdateRequestDto visibilityUpdateRequestDto) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
 
@@ -141,7 +144,10 @@ public class TimeTableService {
      * 시간표 이름 변경 메서드
      */
     @Transactional
-    public TimeTableResponseDto setTimeTableName(Long memberId, Long timeTableId, TimeTableNameUpdateRequestDto nameUpdateRequestDto) {
+    public TimeTableResponseDto setTimeTableName(
+            Long memberId,
+            Long timeTableId,
+            TimeTableNameUpdateRequestDto nameUpdateRequestDto) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
 
@@ -169,7 +175,8 @@ public class TimeTableService {
 
         validateOwner(timeTable, memberId);
 
-        timeTableItemRepository.deleteAllByTimeTableId(timeTableId);
+        timeTableItemService.deleteAllTimeTableItems(timeTable);
+
         timeTableRepository.delete(timeTable);
     }
 
