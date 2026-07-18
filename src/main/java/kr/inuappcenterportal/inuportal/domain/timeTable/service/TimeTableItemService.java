@@ -39,7 +39,8 @@ public class TimeTableItemService {
             String memo,
             Long memberId,
             Long timeTableId,
-            Long courseOfferingId) {
+            Long courseOfferingId
+    ) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 시간표가 존재하지 않습니다."));
 
