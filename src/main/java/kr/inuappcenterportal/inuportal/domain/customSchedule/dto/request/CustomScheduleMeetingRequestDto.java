@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
 import java.time.LocalTime;
 
 public record CustomScheduleMeetingRequestDto(
+        Long id,
         String location,
         @NotNull DayOfWeek day,
         @NotNull LocalTime startTime,

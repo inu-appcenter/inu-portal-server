@@ -1,14 +1,16 @@
 package kr.inuappcenterportal.inuportal.domain.customSchedule.service;
 
-import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleCreateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleTitleUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.request.CustomScheduleRequestDto;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,39 +20,57 @@ public class CustomScheduleService {
 
     private final CustomScheduleRepository customScheduleRepository;
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
-    private final CustomScheduleMeetingService customScheduleMeetingService;
 
 
     /**
      * 커스텀일정 생성 메서드
      */
     @Transactional
-    public CustomSchedule createCustomSchedule(CustomScheduleCreateRequestDto request) {
+    public CustomSchedule createCustomSchedule(CustomScheduleRequestDto request) {
         CustomSchedule customSchedule = customScheduleRepository.save(
                 CustomSchedule.create(request.title())
         );
 
-        customScheduleMeetingService.createMeetings(
-                customSchedule,
-                request.meetings()
-        );
+        List<CustomScheduleMeeting> meetings = request.meetings().stream()
+                .map(meetingRequest -> CustomScheduleMeeting.create(
+                        customSchedule,
+                        meetingRequest.location(),
+                        meetingRequest.day(),
+                        meetingRequest.startTime(),
+                        meetingRequest.endTime()
+                ))
+                .toList();
+
+        customScheduleMeetingRepository.saveAll(meetings);
 
         return customSchedule;
-
     }
 
 
     /**
-     * 커스텀일정 이름 수정 메서드
+     * 커스텀일정 수정 메서드
      */
     @Transactional
-    public CustomSchedule updateTitle(
+    public void updateCustomSchedule(
             CustomSchedule customSchedule,
-            CustomScheduleTitleUpdateRequestDto request
+            CustomScheduleRequestDto request
+
     ) {
         customSchedule.setCustomScheduleTitle(request.title());
-        
-        return customSchedule;
+
+        customScheduleMeetingRepository.deleteAllByCustomScheduleId(customSchedule.getId());
+
+        List<CustomScheduleMeeting> meetings = request.meetings().stream()
+                .map(meetingRequest -> CustomScheduleMeeting.create(
+                        customSchedule,
+                        meetingRequest.location(),
+                        meetingRequest.day(),
+                        meetingRequest.startTime(),
+                        meetingRequest.endTime()
+                ))
+                .toList();
+
+        customScheduleMeetingRepository.saveAll(meetings);
     }
 
 
