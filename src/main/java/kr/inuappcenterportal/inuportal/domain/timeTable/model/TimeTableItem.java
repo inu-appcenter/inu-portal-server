@@ -7,10 +7,16 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Check;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Check(constraints = """
+        (timetable_item_type = 'COURSE' and course_offering_id is not null and custom_schedule_id is null)
+        or
+        (timetable_item_type = 'CUSTOM' and course_offering_id is null and custom_schedule_id is not null)
+        """)
 public class TimeTableItem {
 
     @Id
