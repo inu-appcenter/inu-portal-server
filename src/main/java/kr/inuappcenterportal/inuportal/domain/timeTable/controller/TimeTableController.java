@@ -79,6 +79,7 @@ public class TimeTableController implements TimeTableApiSpecification {
         );
     }
 
+
     /**
      * 대표 시간표 수정 컨트롤러
      */
@@ -94,6 +95,7 @@ public class TimeTableController implements TimeTableApiSpecification {
                 ResponseDto.of(response, "대표 시간표 변경 성공")
         );
     }
+
 
     /**
      * 시간표 공개범위 수정 컨트롤러
@@ -111,6 +113,7 @@ public class TimeTableController implements TimeTableApiSpecification {
                 ResponseDto.of(response, "시간표 공개 범위 변경 성공")
         );
     }
+
 
     /**
      * 시간표 삭제 메서드
