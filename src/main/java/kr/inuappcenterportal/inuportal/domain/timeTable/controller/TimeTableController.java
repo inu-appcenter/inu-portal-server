@@ -6,7 +6,8 @@ import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableNameUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableVisibilityUpdateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.TimeTableResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,23 @@ import java.util.List;
 public class TimeTableController implements TimeTableApiSpecification {
 
     private final TimeTableService timeTableService;
+
+
+    /**
+     * 시간표 상세 조회 컨트롤러
+     */
+    @GetMapping("/{timeTableId}")
+    public ResponseEntity<ResponseDto<TimeTableDetailResponseDto>> getTimeTableDetail(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long timeTableId
+    ) {
+        TimeTableDetailResponseDto response =
+                timeTableService.getTimeTableDetail(member.getId(), timeTableId);
+
+        return ResponseEntity.ok(
+                ResponseDto.of(response, "시간표 상세 조회 성공")
+        );
+    }
 
     /**
      * 시간표 조회 컨트롤러
