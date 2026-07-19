@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response;
+package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem;
 
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;

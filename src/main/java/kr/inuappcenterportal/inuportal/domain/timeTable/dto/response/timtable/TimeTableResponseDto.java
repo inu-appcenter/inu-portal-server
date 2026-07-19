@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response;
+package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable;
 
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
