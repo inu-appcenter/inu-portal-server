@@ -4,7 +4,7 @@ import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCourseItemRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.TimeTableItemResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableItemService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;

@@ -1,5 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.service;
 
+import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
+import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
+import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -8,8 +14,13 @@ import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterReposi
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableNameUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableVisibilityUpdateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.TimeTableResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.CourseTimeTableItemResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.CustomTimeTableItemResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableDetailItemResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
+import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +41,58 @@ public class TimeTableService {
     private final MemberRepository memberRepository;
     private final SemesterRepository semesterRepository;
     private final TimeTableItemService timeTableItemService;
+    private final CourseMeetingRepository courseMeetingRepository;
+    private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
+
+
+    /**
+     * 시간표 상세 조회 메서드
+     */
+    public TimeTableDetailResponseDto getTimeTableDetail(
+            Long memberId,
+            Long timeTableId
+    ) {
+        TimeTable timeTable = timeTableRepository.findById(timeTableId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+
+        validateOwner(timeTable, memberId);
+
+        List<TimeTableDetailItemResponseDto> items =
+                timeTableItemRepository.findAllByTimeTableId(timeTableId).stream()
+                        .map(this::toDetailItemResponse)
+                        .toList();
+
+        return TimeTableDetailResponseDto.from(timeTable, items);
+    }
+
+    private TimeTableDetailItemResponseDto toDetailItemResponse(TimeTableItem item) {
+        return switch (item.getType()) {
+            case COURSE -> {
+                CourseOffering courseOffering = item.getCourseOffering();
+
+                List<CourseMeeting> meetings =
+                        courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
+
+                yield TimeTableDetailItemResponseDto.ofCourse(
+                        item,
+                        CourseTimeTableItemResponseDto.of(courseOffering, meetings)
+                );
+            }
+
+            case CUSTOM -> {
+                CustomSchedule customSchedule = item.getCustomSchedule();
+
+                List<CustomScheduleMeeting> meetings =
+                        customScheduleMeetingRepository.findAllByCustomScheduleId(customSchedule.getId());
+
+                yield TimeTableDetailItemResponseDto.ofCustom(
+                        item,
+                        CustomTimeTableItemResponseDto.of(customSchedule, meetings)
+                );
+            }
+        };
+    }
+
 
     /**
      * 시간표 생성 메서드
@@ -38,7 +101,8 @@ public class TimeTableService {
     public TimeTableResponseDto createTimeTable(
             Long memberId,
             Long semesterId,
-            TimeTableCreateRequestDto createRequestDto) {
+            TimeTableCreateRequestDto createRequestDto
+    ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
