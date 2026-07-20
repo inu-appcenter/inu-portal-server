@@ -308,14 +308,17 @@ public class NoticeService {
         // 이 범위 안에 있는 공지인데 activeUrls에 없다면 100% 삭제된 것입니다.
         // 경계선(oldestDate, newestDate와 동일한 날짜)은 지우지 않습니다.
         List<Notice> dbNotices = noticeRepository.findAllByCategoryAndCreateDateGreaterThanAndCreateDateLessThan(categoryName, oldestDate, newestDate);
-        
+
         List<Notice> toDelete = dbNotices.stream()
                 .filter(notice -> !activeUrls.contains(notice.getUrl()))
                 .collect(Collectors.toList());
 
         if (!toDelete.isEmpty()) {
-            toDelete.forEach(n -> log.info("[학교공지] 삭제된 공지 제거: [{}] {}", categoryName, n.getTitle())); // 삭제 상세 로그
-            noticeRepository.deleteAllInBatch(toDelete);
+            toDelete.forEach(n -> log.info("[학교공지] 삭제된 공지 제거: [{}] {}", categoryName, n.getTitle()));
+
+            // deleteAllInBatch(toDelete) 대신 deleteAll(toDelete) 사용
+            noticeRepository.deleteAll(toDelete);
+
             log.info("[학교공지] 삭제 처리 완료: category={}, count={}", categoryName, toDelete.size());
         }
     }
