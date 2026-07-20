@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/timetables")
 @RequiredArgsConstructor
-public class TimeTableItemController {
+public class TimeTableItemController implements TimeTableItemApiSpecification {
 
     private final TimeTableItemService timeTableItemService;
 
