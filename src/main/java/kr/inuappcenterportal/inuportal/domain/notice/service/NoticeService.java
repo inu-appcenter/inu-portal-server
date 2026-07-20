@@ -398,10 +398,14 @@ public class NoticeService {
             if (!department.isServiceAvailable()) {
                 continue;
             }
-            if (department.isRssSupported()) {
-                syncDepartmentNoticeByRss(department);
-            } else {
-                getNoticeByDepartment(department, getDepartmentCrawlConfig(department));
+            try {
+                if (department.isRssSupported()) {
+                    syncDepartmentNoticeByRss(department);
+                } else {
+                    getNoticeByDepartment(department, getDepartmentCrawlConfig(department));
+                }
+            } catch (Exception e) {
+                log.error("[학과공지] 크롤링 실패 (격리됨): department={}, reason={}", department.name(), e.getMessage(), e);
             }
         }
     }
@@ -464,39 +468,20 @@ public class NoticeService {
                     }
                 }
 
-                Optional<DepartmentNotice> existingNotice = departmentNoticeRepository.findFirstByDepartmentAndUrl(department, link);
-                if (existingNotice.isEmpty()) {
-                    existingNotice = departmentNoticeRepository.findFirstByDepartmentAndTitleAndCreateDate(department, title, date);
-                }
+                NoticeCrawlHelper.DepartmentNoticeSaveResult saveResult = noticeCrawlHelper.saveOrUpdateDepartmentNotice(
+                        department,
+                        title,
+                        date,
+                        views,
+                        link,
+                        dn -> syncDepartmentNoticeContent(dn, getDepartmentCrawlConfig(department))
+                );
 
-                DepartmentNotice departmentNotice;
-                boolean isNewNotice = false;
-
-                if (existingNotice.isPresent()) {
-                    departmentNotice = existingNotice.get();
-                    departmentNotice.updateListing(title, date, views, link);
-                    updateCount++;
-                } else {
-                    departmentNotice = departmentNoticeRepository.save(
-                            DepartmentNotice.create(department, title, date, views, link)
-                    );
-                    isNewNotice = true;
+                if (saveResult.isNew()) {
                     newCount++;
-                }
-
-                syncDepartmentNoticeContent(departmentNotice, getDepartmentCrawlConfig(department));
-
-                if (isNewNotice) {
-                    if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                            @Override
-                            public void afterCommit() {
-                                scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                            }
-                        });
-                    } else {
-                        scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                    }
+                    scheduleExtractService.extractScheduleAsync(saveResult.getDepartmentNotice(), true);
+                } else {
+                    updateCount++;
                 }
             }
 
@@ -642,37 +627,17 @@ public class NoticeService {
                     }
                     long views = parseLongValue(ele.select(config.getViewsSelector()).text());
 
-                    Optional<DepartmentNotice> existingDepartmentNotice = departmentNoticeRepository.findFirstByDepartmentAndUrl(department, href);
-                    if (existingDepartmentNotice.isEmpty()) {
-                        existingDepartmentNotice = departmentNoticeRepository.findFirstByDepartmentAndTitleAndCreateDate(department, title, date);
-                    }
+                    NoticeCrawlHelper.DepartmentNoticeSaveResult saveResult = noticeCrawlHelper.saveOrUpdateDepartmentNotice(
+                            department,
+                            title,
+                            date,
+                            views,
+                            href,
+                            dn -> syncDepartmentNoticeContent(dn, config)
+                    );
 
-                    DepartmentNotice departmentNotice;
-                    boolean isNewNotice = false;
-
-                    if (existingDepartmentNotice.isPresent()) {
-                        departmentNotice = existingDepartmentNotice.get();
-                        departmentNotice.updateListing(title, date, views, href);
-                    } else {
-                        departmentNotice = departmentNoticeRepository.save(
-                                DepartmentNotice.create(department, title, date, views, href)
-                        );
-                        isNewNotice = true;
-                    }
-
-                    syncDepartmentNoticeContent(departmentNotice, config);
-
-                    if (isNewNotice) {
-                        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                                @Override
-                                public void afterCommit() {
-                                    scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                                }
-                            });
-                        } else {
-                            scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                        }
+                    if (saveResult.isNew()) {
+                        scheduleExtractService.extractScheduleAsync(saveResult.getDepartmentNotice(), true);
                     }
 
                     count++;
