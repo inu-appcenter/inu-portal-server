@@ -60,7 +60,7 @@ public class CustomScheduleMeeting {
             LocalTime endTime
     ) {
         if (day == null) {
-            throw new MyException(MyErrorCode.NECESSARY_DAT_OF_WEEK);
+            throw new MyException(MyErrorCode.NECESSARY_DAY_OF_WEEK);
         }
         if (startTime == null || endTime == null) {
             throw new MyException(MyErrorCode.NECESSARY_STARTTIME_AND_ENDTIME);
@@ -76,7 +76,7 @@ public class CustomScheduleMeeting {
             String location, DayOfWeek day, LocalTime startTime, LocalTime endTime
     ) {
         if (day == null) {
-            throw new MyException(MyErrorCode.NECESSARY_DAT_OF_WEEK);
+            throw new MyException(MyErrorCode.NECESSARY_DAY_OF_WEEK);
         }
         if (startTime == null || endTime == null) {
             throw new MyException(MyErrorCode.NECESSARY_STARTTIME_AND_ENDTIME);
