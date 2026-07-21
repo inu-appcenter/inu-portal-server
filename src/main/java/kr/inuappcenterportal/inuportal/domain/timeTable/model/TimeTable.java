@@ -70,6 +70,7 @@ public class TimeTable {
         return new TimeTable(timeTableName, isPrimary, member, semester);
     }
 
+    // 대표 시간표 여부 플래그 메서드
     public void unmarkPrimary() {
         this.isPrimary = false;
     }
@@ -78,6 +79,7 @@ public class TimeTable {
         this.isPrimary = true;
     }
 
+    // 시간표 공개범위 수정 메서드
     public void updateVisibility(Visibility visibility) {
         if (visibility == null) {
             throw new MyException(MyErrorCode.NECESSARY_VISIBILITY);
@@ -86,6 +88,7 @@ public class TimeTable {
         this.visibility = visibility;
     }
 
+    // 시간표 이름 수정 메서드
     public void updateTimeTableName(String name) {
         if (name == null || name.isBlank()) {
             throw new MyException(MyErrorCode.NECESSARY_TIMETABLE_NAME);
