@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "timetables",
+        name = "timetable",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_timetable_member_semester_name",

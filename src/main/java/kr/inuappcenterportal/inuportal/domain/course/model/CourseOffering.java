@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "course_offerings")
+@Table(name = "course_offering")
 public class CourseOffering extends BaseTimeEntity {
 
     @Id
@@ -29,7 +29,7 @@ public class CourseOffering extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     private Method method;
-    
+
     private String professor;
 
     @ManyToOne(fetch = FetchType.LAZY)

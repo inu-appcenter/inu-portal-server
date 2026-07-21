@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "courses",
+        name = "course",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_course_title_department",

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "custom_schedule")
 public class CustomSchedule extends BaseTimeEntity {
 
     @Id

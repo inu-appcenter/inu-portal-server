@@ -13,6 +13,7 @@ import java.time.LocalTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@Table(name = "custom_schedule_meeting")
 public class CustomScheduleMeeting {
 
     @Id
