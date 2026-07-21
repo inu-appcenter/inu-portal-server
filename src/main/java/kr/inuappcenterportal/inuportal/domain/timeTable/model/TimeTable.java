@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -78,7 +80,7 @@ public class TimeTable {
 
     public void updateVisibility(Visibility visibility) {
         if (visibility == null) {
-            throw new IllegalArgumentException("공개 범위는 필수입니다.");
+            throw new MyException(MyErrorCode.NECESSARY_VISIBILITY);
         }
 
         this.visibility = visibility;
@@ -86,7 +88,7 @@ public class TimeTable {
 
     public void updateTimeTableName(String name) {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("시간표 이름은 필수입니다.");
+            throw new MyException(MyErrorCode.NECESSARY_TIMETABLE_NAME);
         }
 
         this.timeTableName = name;

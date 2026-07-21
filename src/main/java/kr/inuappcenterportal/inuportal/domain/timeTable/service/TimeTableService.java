@@ -23,6 +23,8 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,7 +55,7 @@ public class TimeTableService {
             Long timeTableId
     ) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         validateOwner(timeTable, memberId);
 
@@ -104,10 +106,10 @@ public class TimeTableService {
             TimeTableCreateRequestDto createRequestDto
     ) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         Semester semester = semesterRepository.findById(semesterId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 학기입니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
 
         checkDuplicateTimeTableNameForCreate(memberId, semesterId, createRequestDto.timeTableName());
 
@@ -138,7 +140,7 @@ public class TimeTableService {
                 semesterId,
                 checkName
         )) {
-            throw new IllegalArgumentException("이미 같은 이름의 시간표가 존재합니다.");
+            throw new MyException(MyErrorCode.DUPLICATE_TIMETABLE_NAME);
         }
     }
 
@@ -157,7 +159,7 @@ public class TimeTableService {
                 checkName,
                 timeTableId
         )) {
-            throw new IllegalArgumentException("이미 같은 이름의 시간표가 존재합니다.");
+            throw new MyException(MyErrorCode.DUPLICATE_TIMETABLE_NAME);
         }
     }
 
@@ -171,7 +173,7 @@ public class TimeTableService {
             Long timeTableId,
             TimeTableVisibilityUpdateRequestDto visibilityUpdateRequestDto) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         validateOwner(timeTable, memberId);
 
@@ -186,7 +188,7 @@ public class TimeTableService {
     @Transactional
     public TimeTableResponseDto setIsPrimary(Long memberId, Long timeTableId) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         validateOwner(timeTable, memberId);
 
@@ -213,7 +215,7 @@ public class TimeTableService {
             Long timeTableId,
             TimeTableNameUpdateRequestDto nameUpdateRequestDto) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         validateOwner(timeTable, memberId);
 
@@ -235,7 +237,7 @@ public class TimeTableService {
     @Transactional
     public void deleteTimeTable(Long memberId, Long timeTableId) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간표입니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         validateOwner(timeTable, memberId);
 
@@ -249,7 +251,7 @@ public class TimeTableService {
      */
     private void validateOwner(TimeTable timeTable, Long memberId) {
         if (!timeTable.getMember().getId().equals(memberId)) {
-            throw new IllegalArgumentException("해당 시간표에 접근할 권한이 없습니다.");
+            throw new MyException(MyErrorCode.HAS_NOT_TIMETABLE_AUTHORIZATION);
         }
     }
 
@@ -268,7 +270,7 @@ public class TimeTableService {
      */
     public List<TimeTableResponseDto> getTimeTablesOfSemester(Long memberId, Long semesterId) {
         if (!semesterRepository.existsById(semesterId))
-            throw new IllegalArgumentException("해당 학기가 존재하지 않습니다.");
+            throw new MyException(MyErrorCode.SEMESTER_NOT_FOUND);
 
         return timeTableRepository.findAllByMemberIdAndSemesterId(memberId, semesterId).stream()
                 .map(TimeTableResponseDto::from)
@@ -280,11 +282,11 @@ public class TimeTableService {
      */
     public List<TimeTableResponseDto> getTimeTablesOfYearAndTerm(Long memberId, Integer year, SemesterTerm term) {
         if (year == null || term == null) {
-            throw new IllegalArgumentException("년도와 학기는 함께 입력해야 합니다.");
+            throw new MyException(MyErrorCode.INPUT_YEAR_AND_TERM);
         }
 
         Long semesterId = semesterRepository.findByYearAndTerm(year, term)
-                .orElseThrow(() -> new IllegalArgumentException("해당 학기가 존재하지 않습니다."))
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND))
                 .getId();
 
         return timeTableRepository.findAllByMemberIdAndSemesterId(memberId, semesterId).stream()
