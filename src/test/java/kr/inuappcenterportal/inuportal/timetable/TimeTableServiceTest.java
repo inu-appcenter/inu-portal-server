@@ -16,6 +16,8 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableService;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -112,8 +114,9 @@ public class TimeTableServiceTest {
         assertThatThrownBy(() ->
                 timeTableService.setTimeTableName(requestMemberId, timeTableId, request)
         )
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("해당 시간표에 접근할 권한이 없습니다.");
+                .isInstanceOf(MyException.class)
+                .extracting(ex -> ((MyException) ex).getErrorCode())
+                .isEqualTo(MyErrorCode.HAS_NOT_TIMETABLE_AUTHORIZATION);
 
         verify(timeTableRepository, never())
                 .existsByMemberIdAndSemesterIdAndTimeTableNameAndIdNot(
@@ -144,8 +147,9 @@ public class TimeTableServiceTest {
         assertThatThrownBy(() ->
                 timeTableService.setVisibility(requestMemberId, timeTableId, request)
         )
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("해당 시간표에 접근할 권한이 없습니다.");
+                .isInstanceOf(MyException.class)
+                .extracting(ex -> ((MyException) ex).getErrorCode())
+                .isEqualTo(MyErrorCode.HAS_NOT_TIMETABLE_AUTHORIZATION);
 
         assertThat(timeTable.getVisibility()).isEqualTo(Visibility.PUBLIC);
 
@@ -171,8 +175,9 @@ public class TimeTableServiceTest {
         assertThatThrownBy(() ->
                 timeTableService.setIsPrimary(requestMemberId, timeTableId)
         )
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("해당 시간표에 접근할 권한이 없습니다.");
+                .isInstanceOf(MyException.class)
+                .extracting(ex -> ((MyException) ex).getErrorCode())
+                .isEqualTo(MyErrorCode.HAS_NOT_TIMETABLE_AUTHORIZATION);
 
         assertThat(timeTable.isPrimary()).isFalse();
 
