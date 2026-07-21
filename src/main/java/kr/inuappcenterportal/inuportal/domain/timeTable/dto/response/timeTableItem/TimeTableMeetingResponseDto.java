@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
@@ -7,11 +9,19 @@ import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedul
 import java.time.LocalTime;
 
 public record TimeTableMeetingResponseDto(
+        @Schema(description = "강의 시간 또는 커스텀 일정 시간 id", example = "21")
         Long id,
+        @Schema(description = "장소", example = "07-504")
         String location,
+        @Schema(description = "강의 시간 순서. 커스텀 일정은 null입니다.", example = "1", nullable = true)
         Integer sequence,
+        @Schema(description = "요일", example = "MONDAY")
         DayOfWeek day,
+        @Schema(description = "시작 시간", type = "string", example = "09:00", pattern = "HH:mm")
+        @JsonFormat(pattern = "HH:mm")
         LocalTime startTime,
+        @Schema(description = "종료 시간", type = "string", example = "10:15", pattern = "HH:mm")
+        @JsonFormat(pattern = "HH:mm")
         LocalTime endTime
 ) {
 

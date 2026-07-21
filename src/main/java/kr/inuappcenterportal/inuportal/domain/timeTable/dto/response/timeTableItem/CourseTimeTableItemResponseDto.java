@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
@@ -7,12 +8,19 @@ import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import java.util.List;
 
 public record CourseTimeTableItemResponseDto(
+        @Schema(description = "강의 개설 id", example = "101")
         Long courseOfferingId,
+        @Schema(description = "강의 id", example = "15")
         Long courseId,
+        @Schema(description = "과목명", example = "웹프로그래밍")
         String title,
+        @Schema(description = "교수명", example = "박기석")
         String professor,
+        @Schema(description = "학수번호", example = "0001421001")
         String subjectNumber,
+        @Schema(description = "학점", example = "3")
         String credit,
+        @Schema(description = "강의 시간 목록")
         List<TimeTableMeetingResponseDto> meetings
 ) {
     public static CourseTimeTableItemResponseDto of(

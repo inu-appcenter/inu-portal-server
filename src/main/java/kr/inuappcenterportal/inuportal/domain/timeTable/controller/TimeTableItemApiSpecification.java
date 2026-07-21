@@ -91,7 +91,10 @@ public interface TimeTableItemApiSpecification {
                     로그인한 사용자가 소유한 시간표에 직접 입력한 커스텀 일정 기반 시간표 요소를 추가합니다.
                     <br><br>
                     요청 본문에는 커스텀 일정 제목, 메모, 하나 이상의 시간 정보를 포함합니다.
+                    startTime, endTime은 HH:mm 문자열 형식으로 전달합니다. 예: "09:00"
+                    <br><br>
                     생성 응답은 시간표 요소의 최소 정보만 반환합니다.
+                    생성된 일정의 제목과 시간 목록은 시간표 상세 조회 API에서 확인합니다.
                     """
     )
     @ApiResponses(value = {
@@ -106,9 +109,9 @@ public interface TimeTableItemApiSpecification {
                                     value = """
                                             {
                                               "data": {
-                                                "id": 11,
+                                                "id": 37,
                                                 "type": "CUSTOM",
-                                                "memo": "개인 일정"
+                                                "memo": "스터디룸 예약"
                                               },
                                               "msg": "커스텀 일정 시간표 요소 생성 성공"
                                             }
@@ -144,6 +147,36 @@ public interface TimeTableItemApiSpecification {
                     example = "1"
             )
             @PathVariable Long timeTableId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = TimeTableCustomItemRequestDto.class),
+                            examples = @ExampleObject(
+                                    name = "커스텀 일정 생성 요청 예시",
+                                    value = """
+                                            {
+                                              "title": "알고리즘 스터디",
+                                              "memo": "스터디룸 예약",
+                                              "meetings": [
+                                                {
+                                                  "location": "07-504",
+                                                  "day": "MONDAY",
+                                                  "startTime": "09:00",
+                                                  "endTime": "10:15"
+                                                },
+                                                {
+                                                  "location": "12-402",
+                                                  "day": "WEDNESDAY",
+                                                  "startTime": "13:30",
+                                                  "endTime": "14:45"
+                                                }
+                                              ]
+                                            }
+                                            """
+                            )
+                    )
+            )
             @RequestBody @Valid TimeTableCustomItemRequestDto request
     );
 
@@ -153,6 +186,7 @@ public interface TimeTableItemApiSpecification {
                     로그인한 사용자가 소유한 시간표에 포함된 커스텀 일정 시간표 요소를 수정합니다.
                     <br><br>
                     커스텀 일정 제목, 메모, 시간 목록을 요청값으로 교체합니다.
+                    startTime, endTime은 HH:mm 문자열 형식으로 전달합니다. 예: "09:00"
                     """
     )
     @ApiResponses(value = {
@@ -167,9 +201,9 @@ public interface TimeTableItemApiSpecification {
                                     value = """
                                             {
                                               "data": {
-                                                "id": 11,
+                                                "id": 37,
                                                 "type": "CUSTOM",
-                                                "memo": "수정된 개인 일정"
+                                                "memo": "장소 변경됨"
                                               },
                                               "msg": "커스텀 일정 수정 성공"
                                             }
@@ -212,6 +246,30 @@ public interface TimeTableItemApiSpecification {
                     example = "7"
             )
             @PathVariable Long customScheduleId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = TimeTableCustomItemRequestDto.class),
+                            examples = @ExampleObject(
+                                    name = "커스텀 일정 수정 요청 예시",
+                                    value = """
+                                            {
+                                              "memo": "장소 변경됨",
+                                              "title": "알고리즘 스터디",
+                                              "meetings": [
+                                                {
+                                                  "location": "07-415",
+                                                  "day": "TUESDAY",
+                                                  "startTime": "15:00",
+                                                  "endTime": "16:30"
+                                                }
+                                              ]
+                                            }
+                                            """
+                            )
+                    )
+            )
             @RequestBody @Valid TimeTableCustomItemRequestDto request
     );
 
