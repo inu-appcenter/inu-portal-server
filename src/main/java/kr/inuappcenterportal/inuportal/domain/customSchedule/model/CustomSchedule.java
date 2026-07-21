@@ -1,6 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.customSchedule.model;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -32,7 +34,7 @@ public class CustomSchedule extends BaseTimeEntity {
 
     public void setCustomScheduleTitle(String updateTitle) {
         if (updateTitle == null || updateTitle.isBlank()) {
-            throw new IllegalArgumentException("커스텀 일정 이름은 필수입니다.");
+            throw new MyException(MyErrorCode.NECESSARY_CUSTOM_TITLE);
         }
 
         this.title = updateTitle;

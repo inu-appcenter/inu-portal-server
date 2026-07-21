@@ -12,6 +12,8 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,13 +44,13 @@ public class TimeTableItemService {
             Long courseOfferingId
     ) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 시간표가 존재하지 않습니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         CourseOffering courseOffering = courseOfferingRepository.findById(courseOfferingId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 강의가 존재하지 않습니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.COURSE_NOT_FOUND));
 
         if (!courseOffering.getSemester().getId().equals(timeTable.getSemester().getId())) {
-            throw new IllegalArgumentException("시간표의 학기와 강의의 학기가 일치하지 않습니다.");
+            throw new MyException(MyErrorCode.NO_MATCH_SEMESTER);
         }
 
         validateOwner(memberId, timeTable);
@@ -69,7 +71,7 @@ public class TimeTableItemService {
             Long timeTableId,
             TimeTableCustomItemRequestDto request) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 시간표가 존재하지 않습니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         // 본인 시간표인지 검증v
         validateOwner(memberId, timeTable);
@@ -106,21 +108,21 @@ public class TimeTableItemService {
             TimeTableCustomItemRequestDto request
     ) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 시간표가 존재하지 않습니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         // 본인 시간표인지 검증
         validateOwner(memberId, timeTable);
 
         TimeTableItem timeTableItem = timeTableItemRepository.findByCustomScheduleId(customScheduleId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 시간표 요소가 존재하지 않습니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_ITEM_NOT_FOUND));
 
         // 위에서 찾은 시간표 요소가 해당 시간표에 속하는지 검증
         if (!timeTableItem.getTimeTable().getId().equals(timeTableId)) {
-            throw new IllegalArgumentException("해당 시간표에 속한 커스텀일정이 아닙니다.");
+            throw new MyException(MyErrorCode.NO_CUSTOM_ITEM_IN_TIMETABLE);
         }
 
         if (timeTableItem.getType() != TimeTableItemType.CUSTOM)
-            throw new IllegalArgumentException("해당 요소는 커스텀 일정이 아닙니다.");
+            throw new MyException(MyErrorCode.NO_CUSTOM_ITEM);
 
         CustomSchedule customSchedule = timeTableItem.getCustomSchedule();
 
@@ -152,13 +154,13 @@ public class TimeTableItemService {
             Long timeTableItemId
     ) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 시간표가 존재하지 않습니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         // 본인 시간표인지 검증
         validateOwner(memberId, timeTable);
 
         TimeTableItem timeTableItem = timeTableItemRepository.findById(timeTableItemId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 시간표 요소가 존재하지 않습니다."));
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_ITEM_NOT_FOUND));
 
         validateItemBelongsToTimeTable(timeTableItem, timeTableId);
 
@@ -195,7 +197,7 @@ public class TimeTableItemService {
      */
     private void validateItemBelongsToTimeTable(TimeTableItem timeTableItem, Long timeTableId) {
         if (!timeTableItem.getTimeTable().getId().equals(timeTableId)) {
-            throw new IllegalArgumentException("해당 시간표에 속한 요소가 아닙니다.");
+            throw new MyException(MyErrorCode.NO_ITEM_IN_TIMETABLE);
         }
     }
 
@@ -204,7 +206,7 @@ public class TimeTableItemService {
      */
     private void validateOwner(Long memberId, TimeTable timeTable) {
         if (!timeTable.getMember().getId().equals(memberId)) {
-            throw new IllegalArgumentException("해당 시간표에 접근할 권한이 없습니다.");
+            throw new MyException(MyErrorCode.HAS_NOT_TIMETABLE_AUTHORIZATION);
         }
     }
 }

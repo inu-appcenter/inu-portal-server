@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.domain.customSchedule.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -58,13 +60,13 @@ public class CustomScheduleMeeting {
             LocalTime endTime
     ) {
         if (day == null) {
-            throw new IllegalArgumentException("요일은 필수입니다.");
+            throw new MyException(MyErrorCode.NECESSARY_DAY_OF_WEEK);
         }
         if (startTime == null || endTime == null) {
-            throw new IllegalArgumentException("시작 시간과 종료 시간은 필수입니다.");
+            throw new MyException(MyErrorCode.NECESSARY_STARTTIME_AND_ENDTIME);
         }
         if (!startTime.isBefore(endTime)) {
-            throw new IllegalArgumentException("시작 시간은 종료 시간보다 빨라야합니다.");
+            throw new MyException(MyErrorCode.FASTER_THAN_ENDTIME);
         }
 
         return new CustomScheduleMeeting(customSchedule, location, day, startTime, endTime);
@@ -74,13 +76,13 @@ public class CustomScheduleMeeting {
             String location, DayOfWeek day, LocalTime startTime, LocalTime endTime
     ) {
         if (day == null) {
-            throw new IllegalArgumentException("요일은 필수입니다.");
+            throw new MyException(MyErrorCode.NECESSARY_DAY_OF_WEEK);
         }
         if (startTime == null || endTime == null) {
-            throw new IllegalArgumentException("시작 시간과 종료 시간은 필수입니다.");
+            throw new MyException(MyErrorCode.NECESSARY_STARTTIME_AND_ENDTIME);
         }
         if (!startTime.isBefore(endTime)) {
-            throw new IllegalArgumentException("시작 시간은 종료 시간보다 빨라야 합니다.");
+            throw new MyException(MyErrorCode.FASTER_THAN_ENDTIME);
         }
 
         this.location = location;
