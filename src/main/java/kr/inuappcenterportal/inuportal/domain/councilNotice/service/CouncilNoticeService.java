@@ -44,7 +44,7 @@ public class CouncilNoticeService {
             imageService.saveImageWithThumbnail(councilNotice.getId(),images,path);
         }
         String title = councilNoticeRequestDto.getTitle();
-        fcmService.noticeAll(title);
+        fcmService.noticeAll(title, councilNotice.getId());
         return councilNotice.getId();
     }
 

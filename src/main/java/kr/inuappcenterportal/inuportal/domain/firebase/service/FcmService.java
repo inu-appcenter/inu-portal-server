@@ -167,7 +167,13 @@ public class FcmService {
     @Transactional
     @Async("messageExecutor")
     public void noticeAll(String title) {
-        com.google.firebase.messaging.Message message = com.google.firebase.messaging.Message.builder()
+        noticeAll(title, null);
+    }
+
+    @Transactional
+    @Async("messageExecutor")
+    public void noticeAll(String title, Long councilNoticeId) {
+        com.google.firebase.messaging.Message.Builder messageBuilder = com.google.firebase.messaging.Message.builder()
                 .setTopic("notice")
                 .setNotification(
                         Notification.builder()
@@ -175,8 +181,13 @@ public class FcmService {
                                 .setBody(title)
                                 .build()
                 )
-                .putData("type", "GENERAL")
-                .build();
+                .putData("type", "GENERAL");
+        // 라우팅 정보는 data 블록에만 포함 (총학 공지 상세는 query string ?id= 형태)
+        if (councilNoticeId != null) {
+            messageBuilder.putData("targetId", String.valueOf(councilNoticeId));
+            messageBuilder.putData("path", "/councilnoticedetail?id=" + councilNoticeId);
+        }
+        com.google.firebase.messaging.Message message = messageBuilder.build();
         try {
             firebaseMessaging.send(message);
         } catch (FirebaseMessagingException e) {
@@ -379,6 +390,11 @@ public class FcmService {
      */
     @Transactional
     public TrackedNotificationDispatch prepareTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type, Long targetId) {
+        return prepareTrackedNotification(memberIds, title, body, type, targetId, null);
+    }
+
+    @Transactional
+    public TrackedNotificationDispatch prepareTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type, Long targetId, String path) {
         if (memberIds == null || memberIds.isEmpty()) {
             return null;
         }
@@ -395,7 +411,7 @@ public class FcmService {
         FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
         batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
 
-        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId);
+        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId, path);
     }
 
     public void dispatchTrackedNotification(TrackedNotificationDispatch dispatch) {
@@ -403,7 +419,7 @@ public class FcmService {
             return;
         }
         if (!dispatch.tokenAndMemberId().isEmpty()) {
-            DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(), dispatch.type(), dispatch.targetId());
+            DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(), dispatch.type(), dispatch.targetId(), dispatch.path());
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
         } else {
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), 0, 0);
@@ -543,6 +559,8 @@ public class FcmService {
                 // 웹뷰에서 라우팅할 때 참조할 공통 데이터 페이로드
                 .putData("type", "CHAT")
                 .putData("chatRoomId", roomIdStr)
+                // 라우팅 정보는 data 블록에만 포함 (채팅방은 path param 형태)
+                .putData("path", "/chat/" + roomIdStr)
                 .setAndroidConfig(AndroidConfig.builder()
                         .setNotification(androidNotiBuilder.build())
                         .build())
@@ -684,7 +702,8 @@ public class FcmService {
             String title,
             String body,
             FcmMessageType type,
-            Long targetId
+            Long targetId,
+            String path
     ) {
     }
 }
