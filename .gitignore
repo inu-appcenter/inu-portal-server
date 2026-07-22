@@ -181,3 +181,4 @@ build/
 
 ### Claude Code ###
 .claude/
+.gradle-user-verify/
