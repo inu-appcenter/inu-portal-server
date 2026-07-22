@@ -94,6 +94,7 @@ public enum MyErrorCode {
     NECESSARY_STARTTIME_AND_ENDTIME(HttpStatus.BAD_REQUEST, "시작시간과 종료시간은 필수입니다."),
     FASTER_THAN_ENDTIME(HttpStatus.BAD_REQUEST, "시작시간은 종료시간보다 빨라야합니다."),
     NECESSARY_CUSTOM_TITLE(HttpStatus.BAD_REQUEST, "커스텀 일정 제목은 필수입니다."),
+    TIMETABLE_ITEM_TIME_CONFLICT(HttpStatus.CONFLICT, "시간표 요소의 시간이 중복입니다."),
 
 
     // Chat 관련 에러 코드 추가

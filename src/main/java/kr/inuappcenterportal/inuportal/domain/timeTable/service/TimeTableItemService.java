@@ -85,6 +85,9 @@ public class TimeTableItemService {
                 ))
                 .toList();
 
+        // 중복 일정 검증
+        validateNoTimeConflict(timeTableId, meetings, null);
+        
         // 커스텀일정 생성
         CustomSchedule customSchedule = customScheduleService.createCustomSchedule(request.title(), meetings);
 
@@ -134,6 +137,9 @@ public class TimeTableItemService {
                         meeting.endTime()
                 ))
                 .toList();
+
+        // 중복 일정 검증
+        validateNoTimeConflict(timeTableId, meetings, customSchedule.getId());
 
         customScheduleService.updateCustomSchedule(
                 customSchedule,
@@ -193,7 +199,7 @@ public class TimeTableItemService {
     }
 
     /**
-     * 시간표 요소 검증 메서드
+     * 시간표 요소가 해당 시간표에 속하는지 검증하는 메서드
      */
     private void validateItemBelongsToTimeTable(TimeTableItem timeTableItem, Long timeTableId) {
         if (!timeTableItem.getTimeTable().getId().equals(timeTableId)) {
@@ -207,6 +213,29 @@ public class TimeTableItemService {
     private void validateOwner(Long memberId, TimeTable timeTable) {
         if (!timeTable.getMember().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.HAS_NOT_TIMETABLE_AUTHORIZATION);
+        }
+    }
+
+    /**
+     * 시간표 요소 시간 및 요일 중복 차단 메서드
+     */
+    private void validateNoTimeConflict(
+            Long timeTableId,
+            List<CustomScheduleMeetingCommand> meetings,
+            Long excludeTimeTableItemId
+    ) {
+        for (CustomScheduleMeetingCommand meeting : meetings) {
+            boolean exists = timeTableItemRepository.existsOverlappingMeeting(
+                    timeTableId,
+                    meeting.day(),
+                    meeting.startTime(),
+                    meeting.endTime(),
+                    excludeTimeTableItemId
+            );
+
+            if (exists) {
+                throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_CONFLICT);
+            }
         }
     }
 }

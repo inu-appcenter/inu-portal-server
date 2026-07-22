@@ -1,8 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.repository;
 
+import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,4 +13,37 @@ public interface TimeTableItemRepository extends JpaRepository<TimeTableItem, Lo
     Optional<TimeTableItem> findByCustomScheduleId(Long customScheduleId);
 
     List<TimeTableItem> findAllByTimeTableId(Long timeTableId);
+
+    @Query("""
+            select case when count(item) > 0 then true else false end
+            from TimeTableItem item
+            where item.timeTable.id = :timeTableId
+              and (:excludeTimeTableItemId is null or item.id <> :excludeTimeTableItemId)
+              and (
+                exists (
+                  select 1
+                  from CourseMeeting meeting
+                  where meeting.courseOffering = item.courseOffering
+                    and meeting.day = :day
+                    and meeting.startTime < :endTime
+                    and meeting.endTime > :startTime
+                )
+                or exists (
+                  select 1
+                  from CustomScheduleMeeting meeting
+                  where meeting.customSchedule = item.customSchedule
+                    and meeting.day = :day
+                    and meeting.startTime < :endTime
+                    and meeting.endTime > :startTime
+                )
+              )
+            """)
+    boolean existsOverlappingMeeting(
+            Long timeTableId,
+            DayOfWeek day,
+            LocalTime startTime,
+            LocalTime endTime,
+            Long excludeTimeTableItemId
+    );
+
 }
