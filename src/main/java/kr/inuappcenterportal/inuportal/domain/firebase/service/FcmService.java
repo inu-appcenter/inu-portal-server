@@ -207,10 +207,14 @@ public class FcmService {
     }
 
     public void dispatchKeywordNotice(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId) {
+        dispatchKeywordNotice(fcmMessageId, tokenAndMemberId, title, body, type, targetId, null);
+    }
+
+    public void dispatchKeywordNotice(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId, String path) {
         if (fcmMessageId == null || tokenAndMemberId.isEmpty()) {
             return;
         }
-        DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId);
+        DeliveryResult deliveryResult = dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId, path);
         fcmTransactionService.updateFinalStatus(fcmMessageId, deliveryResult.successCount(), deliveryResult.failureCount());
     }
 
@@ -293,6 +297,10 @@ public class FcmService {
     }
 
     private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId) {
+        return dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId, null);
+    }
+
+    private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId, String path) {
         List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
         int batchSize = 500;
         int successCount = 0;
@@ -300,7 +308,7 @@ public class FcmService {
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
-            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId);
+            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId, path);
 
             int batchSuccess = 0;
             int batchFailure = 0;
@@ -439,6 +447,12 @@ public class FcmService {
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId) {
+        return createMulticastMessage(tokens, title, body, type, targetId, null);
+    }
+
+    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path) {
+        // notification(title, body)과 data를 항상 함께 발송한다 (data-only 발송 금지)
+        // Android 백그라운드 노출 및 포그라운드 배너 표시를 위해 두 블록이 모두 필요하다
         MulticastMessage.Builder builder = MulticastMessage.builder()
                 .addAllTokens(tokens)
                 .setNotification(Notification.builder()
@@ -451,11 +465,15 @@ public class FcmService {
         }
         if (targetId != null) {
             builder.putData("targetId", String.valueOf(targetId));
-            
+
             // 공지사항인 경우 noticeId로도 탑재해 주어 클라이언트 편의 제공
             if (type == FcmMessageType.SCHOOL_NOTICE || type == FcmMessageType.DEPARTMENT) {
                 builder.putData("noticeId", String.valueOf(targetId));
             }
+        }
+        // 라우팅 정보는 클라이언트가 data 블록에서만 판단하므로 notification에는 넣지 않는다
+        if (path != null && !path.isBlank()) {
+            builder.putData("path", path);
         }
         return builder.build();
     }
