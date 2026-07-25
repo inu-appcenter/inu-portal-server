@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
+import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 
 import java.util.List;
 
@@ -41,5 +42,28 @@ public record CourseTimeTableItemResponseDto(
                         .toList()
         );
     }
+
+    public static CourseTimeTableItemResponseDto of(
+            CourseOffering courseOffering,
+            List<CourseMeeting> meetings,
+            Visibility visibility
+    ) {
+        boolean masked = visibility == Visibility.PROTECTED;
+
+        Course course = courseOffering.getCourse();
+
+        return new CourseTimeTableItemResponseDto(
+                masked ? null : courseOffering.getId(),
+                masked ? null : course.getId(),
+                masked ? null : course.getTitle(),
+                masked ? null : courseOffering.getProfessor(),
+                masked ? null : courseOffering.getSubjectNumber(),
+                masked ? null : course.getCredit(),
+                meetings.stream()
+                        .map(meeting -> TimeTableMeetingResponseDto.from(meeting, masked))
+                        .toList()
+        );
+    }
+
 
 }

@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableI
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
+import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 
 import java.util.List;
 
@@ -23,6 +24,22 @@ public record CustomTimeTableItemResponseDto(
                 customSchedule.getTitle(),
                 meetings.stream()
                         .map(TimeTableMeetingResponseDto::from)
+                        .toList()
+        );
+    }
+
+    public static CustomTimeTableItemResponseDto of(
+            CustomSchedule customSchedule,
+            List<CustomScheduleMeeting> meetings,
+            Visibility visibility
+    ) {
+        boolean masked = visibility == Visibility.PROTECTED;
+
+        return new CustomTimeTableItemResponseDto(
+                masked ? null : customSchedule.getId(),
+                masked ? null : customSchedule.getTitle(),
+                meetings.stream()
+                        .map(meeting -> TimeTableMeetingResponseDto.from(meeting, masked))
                         .toList()
         );
     }
