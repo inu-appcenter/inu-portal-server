@@ -236,20 +236,34 @@ public class FriendService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
-    public boolean isAcceptedFriend(Long memberId, Long targetMemberId) {
+    // 친구관계 양방향 확인 메서드
+    private boolean isAcceptedFriend(Long memberId, Long targetMemberId) {
         if (memberId == null || targetMemberId == null) {
             return false;
         }
 
-        if (memberId.equals(targetMemberId)) {
-            return true;
-        }
 
         return friendRepository.existsFriendship(
                 memberId,
                 targetMemberId,
                 FriendStatus.ACCEPTED
         );
+    }
+
+    // 친구 관계 및 차단 관계 검증 메서드
+    @Transactional(readOnly = true)
+    public boolean isReadableFriend(Long memberId, Long targetMemberId) {
+        if (!isAcceptedFriend(memberId, targetMemberId)) {
+            return false;
+        }
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        Member target = memberRepository.findById(targetMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        return !blockRepository.existsByBlockerAndBlocked(member, target)
+                && !blockRepository.existsByBlockerAndBlocked(target, member);
     }
 }
