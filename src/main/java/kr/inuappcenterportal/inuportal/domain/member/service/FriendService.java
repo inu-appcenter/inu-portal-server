@@ -227,7 +227,7 @@ public class FriendService {
         String friendAlias = friend.getRequester().getId().equals(viewerId) ? friend.getRequesterAlias() : friend.getReceiverAlias();
 
         return MemberProfileResponseDto.builder()
-                .memberId(null)
+                .memberId(target.getId())
                 .nickname(target.getNickname())
                 .fireId(target.getFireId())
                 .department(target.getDepartment())
