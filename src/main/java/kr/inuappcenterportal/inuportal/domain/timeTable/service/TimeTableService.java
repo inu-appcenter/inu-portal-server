@@ -309,7 +309,7 @@ public class TimeTableService {
      */
     private Visibility validateFriendTimeTableReadable(TimeTable timeTable, Long memberId) {
         // memberId는 로그인한 사용자, timeTable로 얻는 Id는 그 시간표의 소유자 ID(즉, 친구 ID)
-        boolean friend = friendService.isAcceptedFriend(memberId, timeTable.getMember().getId());
+        boolean friend = friendService.isReadableFriend(memberId, timeTable.getMember().getId());
 
         // 친구관계가 아니면 시간표 조회 불가능
         if (!friend) {
