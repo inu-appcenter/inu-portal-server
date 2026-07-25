@@ -11,7 +11,7 @@ import java.time.LocalTime;
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "course_meetings")
+@Table(name = "course_meeting")
 public class CourseMeeting {
 
     @Id

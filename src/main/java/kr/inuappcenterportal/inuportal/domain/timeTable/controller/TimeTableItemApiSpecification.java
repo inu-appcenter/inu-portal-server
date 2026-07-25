@@ -46,6 +46,7 @@ public interface TimeTableItemApiSpecification {
                                               "data": {
                                                 "id": 10,
                                                 "type": "COURSE",
+                                                "title": "웹프로그래밍",
                                                 "memo": "중간고사 중요"
                                               },
                                               "msg": "강의 시간표 요소 생성 성공"
@@ -92,6 +93,8 @@ public interface TimeTableItemApiSpecification {
                     <br><br>
                     요청 본문에는 커스텀 일정 제목, 메모, 하나 이상의 시간 정보를 포함합니다.
                     startTime, endTime은 HH:mm 문자열 형식으로 전달합니다. 예: "09:00"
+                    <br>
+                    같은 요청 안의 시간끼리 겹치거나, 기존 시간표 요소와 시간이 겹치면 생성할 수 없습니다.
                     <br><br>
                     생성 응답은 시간표 요소의 최소 정보만 반환합니다.
                     생성된 일정의 제목과 시간 목록은 시간표 상세 조회 API에서 확인합니다.
@@ -111,6 +114,7 @@ public interface TimeTableItemApiSpecification {
                                               "data": {
                                                 "id": 37,
                                                 "type": "CUSTOM",
+                                                "title": "알고리즘 스터디",
                                                 "memo": "스터디룸 예약"
                                               },
                                               "msg": "커스텀 일정 시간표 요소 생성 성공"
@@ -131,6 +135,23 @@ public interface TimeTableItemApiSpecification {
                                             {
                                               "data": null,
                                               "msg": "해당 시간표에 접근할 권한이 없습니다."
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "요청한 시간 정보가 같은 요청 안에서 겹치거나, 기존 시간표 요소와 겹칩니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "커스텀 일정 시간 중복 응답 예시",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "시간표 요소의 시간이 중복입니다."
                                             }
                                             """
                             )
@@ -187,6 +208,8 @@ public interface TimeTableItemApiSpecification {
                     <br><br>
                     커스텀 일정 제목, 메모, 시간 목록을 요청값으로 교체합니다.
                     startTime, endTime은 HH:mm 문자열 형식으로 전달합니다. 예: "09:00"
+                    <br>
+                    같은 요청 안의 시간끼리 겹치거나, 수정 대상 자신을 제외한 기존 시간표 요소와 시간이 겹치면 수정할 수 없습니다.
                     """
     )
     @ApiResponses(value = {
@@ -203,6 +226,7 @@ public interface TimeTableItemApiSpecification {
                                               "data": {
                                                 "id": 37,
                                                 "type": "CUSTOM",
+                                                "title": "알고리즘 스터디",
                                                 "memo": "장소 변경됨"
                                               },
                                               "msg": "커스텀 일정 수정 성공"
@@ -223,6 +247,23 @@ public interface TimeTableItemApiSpecification {
                                             {
                                               "data": null,
                                               "msg": "해당 요소는 커스텀 일정이 아닙니다."
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "요청한 시간 정보가 같은 요청 안에서 겹치거나, 수정 대상 자신을 제외한 기존 시간표 요소와 겹칩니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "커스텀 일정 시간 중복 응답 예시",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "시간표 요소의 시간이 중복입니다."
                                             }
                                             """
                             )

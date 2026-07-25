@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.member.service;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
@@ -10,8 +12,6 @@ import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
-import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +34,7 @@ public class FriendService {
     public void requestFriend(Long memberId, FriendRequestDto requestDto) {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-        
+
         Member receiver = memberRepository.findByNickname(requestDto.getNickname())
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
@@ -42,13 +42,13 @@ public class FriendService {
             throw new MyException(MyErrorCode.NOT_SELF_FRIEND_REQUEST);
         }
 
-        if (friendRepository.existsByRequesterAndReceiver(requester, receiver) || 
-            friendRepository.existsByRequesterAndReceiver(receiver, requester)) {
+        if (friendRepository.existsByRequesterAndReceiver(requester, receiver) ||
+                friendRepository.existsByRequesterAndReceiver(receiver, requester)) {
             throw new MyException(MyErrorCode.ALREADY_FRIEND_OR_REQUESTED);
         }
 
-        if (blockRepository.existsByBlockerAndBlocked(requester, receiver) || 
-            blockRepository.existsByBlockerAndBlocked(receiver, requester)) {
+        if (blockRepository.existsByBlockerAndBlocked(requester, receiver) ||
+                blockRepository.existsByBlockerAndBlocked(receiver, requester)) {
             throw new MyException(MyErrorCode.USER_NOT_FOUND);
         }
 
@@ -66,9 +66,9 @@ public class FriendService {
     public List<FriendResponseDto> getPendingRequests(Long memberId) {
         Member receiver = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-        
+
         List<Friend> requests = friendRepository.findAllByReceiverAndStatus(receiver, FriendStatus.PENDING);
-        
+
         return requests.stream().map(f -> FriendResponseDto.builder()
                 .friendId(f.getId())
                 .nickname(f.getRequester().getNickname())
@@ -101,8 +101,8 @@ public class FriendService {
         Member target = memberRepository.findByNickname(nickname)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        if (blockRepository.existsByBlockerAndBlocked(requester, target) || 
-            blockRepository.existsByBlockerAndBlocked(target, requester)) {
+        if (blockRepository.existsByBlockerAndBlocked(requester, target) ||
+                blockRepository.existsByBlockerAndBlocked(target, requester)) {
             throw new MyException(MyErrorCode.USER_NOT_FOUND);
         }
 
@@ -218,7 +218,7 @@ public class FriendService {
         Member viewer = friend.getRequester().getId().equals(viewerId) ? friend.getRequester() : friend.getReceiver();
 
         if (blockRepository.existsByBlockerAndBlocked(target, viewer) ||
-            blockRepository.existsByBlockerAndBlocked(viewer, target)) {
+                blockRepository.existsByBlockerAndBlocked(viewer, target)) {
             throw new MyException(MyErrorCode.USER_NOT_FOUND);
         }
 
@@ -234,5 +234,36 @@ public class FriendService {
                 .friendAlias(friendAlias)
                 .friendId(friend.getId())
                 .build();
+    }
+
+    // 친구관계 양방향 확인 메서드
+    private boolean isAcceptedFriend(Long memberId, Long targetMemberId) {
+        if (memberId == null || targetMemberId == null) {
+            return false;
+        }
+
+
+        return friendRepository.existsFriendship(
+                memberId,
+                targetMemberId,
+                FriendStatus.ACCEPTED
+        );
+    }
+
+    // 친구 관계 및 차단 관계 검증 메서드
+    @Transactional(readOnly = true)
+    public boolean isReadableFriend(Long memberId, Long targetMemberId) {
+        if (!isAcceptedFriend(memberId, targetMemberId)) {
+            return false;
+        }
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        Member target = memberRepository.findById(targetMemberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        return !blockRepository.existsByBlockerAndBlocked(member, target)
+                && !blockRepository.existsByBlockerAndBlocked(target, member);
     }
 }

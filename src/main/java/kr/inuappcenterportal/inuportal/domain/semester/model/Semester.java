@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "semesters",
+        name = "semester",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_semester_year_term",
                 columnNames = {"academic_year", "term"}

@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.service;
 
+import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.CustomScheduleMeetingCommand;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -31,7 +33,6 @@ public class TimeTableItemService {
     private final TimeTableRepository timeTableRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final CustomScheduleService customScheduleService;
-
 
     /**
      * 강의 기반 시간표 요소 생성 메서드
@@ -62,6 +63,7 @@ public class TimeTableItemService {
         return TimeTableItemResponseDto.from(saved);
     }
 
+
     /**
      * 커스텀일정 기반 시간표 요소 생성 메서드
      */
@@ -69,21 +71,22 @@ public class TimeTableItemService {
     public TimeTableItemResponseDto createTimeTableItemForCustom(
             Long memberId,
             Long timeTableId,
-            TimeTableCustomItemRequestDto request) {
+            TimeTableCustomItemRequestDto request
+    ) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
-        // 본인 시간표인지 검증v
+        // 본인 시간표인지 검증
         validateOwner(memberId, timeTable);
 
-        List<CustomScheduleMeetingCommand> meetings = request.meetings().stream()
-                .map(meeting -> new CustomScheduleMeetingCommand(
-                        meeting.location(),
-                        meeting.day(),
-                        meeting.startTime(),
-                        meeting.endTime()
-                ))
-                .toList();
+        // 생성용
+        List<CustomScheduleMeetingCommand> meetings = toCommands(request);
+        // 검증용
+        List<TimeSlot> timeSlots = toTimeSlots(request);
+
+        // 중복 일정 검증
+        validateNoRequestTimeConflict(timeSlots);
+        validateNoDBTimeConflict(timeTableId, timeSlots, null);
 
         // 커스텀일정 생성
         CustomSchedule customSchedule = customScheduleService.createCustomSchedule(request.title(), meetings);
@@ -107,33 +110,36 @@ public class TimeTableItemService {
             Long customScheduleId,
             TimeTableCustomItemRequestDto request
     ) {
+        // 시간표 가져오기
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         // 본인 시간표인지 검증
         validateOwner(memberId, timeTable);
 
-        TimeTableItem timeTableItem = timeTableItemRepository.findByCustomScheduleId(customScheduleId)
+        // 수정할 시간표 요소 가져오기
+        TimeTableItem updatetimeTableItem = timeTableItemRepository.findByCustomScheduleId(customScheduleId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_ITEM_NOT_FOUND));
 
         // 위에서 찾은 시간표 요소가 해당 시간표에 속하는지 검증
-        if (!timeTableItem.getTimeTable().getId().equals(timeTableId)) {
+        if (!updatetimeTableItem.getTimeTable().getId().equals(timeTableId)) {
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM_IN_TIMETABLE);
         }
 
-        if (timeTableItem.getType() != TimeTableItemType.CUSTOM)
+        if (updatetimeTableItem.getType() != TimeTableItemType.CUSTOM)
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM);
 
-        CustomSchedule customSchedule = timeTableItem.getCustomSchedule();
+        // 가져온 시간표 요소에서 커스텀 일정 정보 추출
+        CustomSchedule customSchedule = updatetimeTableItem.getCustomSchedule();
 
-        List<CustomScheduleMeetingCommand> meetings = request.meetings().stream()
-                .map(meeting -> new CustomScheduleMeetingCommand(
-                        meeting.location(),
-                        meeting.day(),
-                        meeting.startTime(),
-                        meeting.endTime()
-                ))
-                .toList();
+        // 생성용
+        List<CustomScheduleMeetingCommand> meetings = toCommands(request);
+        // 검증용
+        List<TimeSlot> timeSlots = toTimeSlots(request);
+
+        // 중복 일정 검증
+        validateNoRequestTimeConflict(timeSlots);
+        validateNoDBTimeConflict(timeTableId, timeSlots, updatetimeTableItem.getId());
 
         customScheduleService.updateCustomSchedule(
                 customSchedule,
@@ -141,8 +147,31 @@ public class TimeTableItemService {
                 meetings
         );
 
-        return TimeTableItemResponseDto.from(timeTableItem);
+        return TimeTableItemResponseDto.from(updatetimeTableItem);
     }
+
+    // 중복 변환 로직 분리
+    private List<CustomScheduleMeetingCommand> toCommands(TimeTableCustomItemRequestDto request) {
+        return request.meetings().stream()
+                .map(meeting -> new CustomScheduleMeetingCommand(
+                        meeting.location(),
+                        meeting.day(),
+                        meeting.startTime(),
+                        meeting.endTime()
+                ))
+                .toList();
+    }
+
+    private List<TimeSlot> toTimeSlots(TimeTableCustomItemRequestDto request) {
+        return request.meetings().stream()
+                .map(meeting -> new TimeSlot(
+                        meeting.day(),
+                        meeting.startTime(),
+                        meeting.endTime()
+                ))
+                .toList();
+    }
+
 
     /**
      * 시간표 요소 단일 삭제 메서드
@@ -193,7 +222,7 @@ public class TimeTableItemService {
     }
 
     /**
-     * 시간표 요소 검증 메서드
+     * 시간표 요소가 해당 시간표에 속하는지 검증하는 메서드
      */
     private void validateItemBelongsToTimeTable(TimeTableItem timeTableItem, Long timeTableId) {
         if (!timeTableItem.getTimeTable().getId().equals(timeTableId)) {
@@ -208,5 +237,74 @@ public class TimeTableItemService {
         if (!timeTable.getMember().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.HAS_NOT_TIMETABLE_AUTHORIZATION);
         }
+    }
+
+    /**
+     * 시간표 요소 시간 및 요일 중복 차단 메서드(DB)
+     */
+    private void validateNoDBTimeConflict(
+            Long timeTableId,
+            List<TimeSlot> meetings,
+            Long excludeTimeTableItemId // 수정할 때 자기 자신을 충돌 검사 대상에서 제외하기 위한 ID
+    ) {
+        for (TimeSlot meeting : meetings) {
+
+            boolean exists = timeTableItemRepository.existsOverlappingMeeting(
+                    timeTableId,
+                    meeting.day(),
+                    meeting.startTime(),
+                    meeting.endTime(),
+                    excludeTimeTableItemId
+            );
+
+            if (exists) {
+                throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_CONFLICT);
+            }
+        }
+    }
+
+    /**
+     * 시간표 요소 시간 및 요일 중복 차단 메서드(요청)
+     */
+    private void validateNoRequestTimeConflict(List<TimeSlot> meetings) {
+        meetings.forEach(this::validateTimeSlot);
+
+        for (int i = 0; i < meetings.size(); i++) {
+            TimeSlot current = meetings.get(i);
+
+            for (int j = i + 1; j < meetings.size(); j++) {
+                TimeSlot other = meetings.get(j);
+
+                if (current.day() == other.day()
+                        && current.startTime().isBefore(other.endTime())
+                        && current.endTime().isAfter(other.startTime())) {
+                    throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_CONFLICT);
+                }
+            }
+        }
+    }
+
+    private void validateTimeSlot(TimeSlot meeting) {
+        if (meeting.day() == null) {
+            throw new MyException(MyErrorCode.NECESSARY_DAY_OF_WEEK);
+        }
+
+        if (meeting.startTime() == null || meeting.endTime() == null) {
+            throw new MyException(MyErrorCode.NECESSARY_STARTTIME_AND_ENDTIME);
+        }
+
+        if (!meeting.startTime().isBefore(meeting.endTime())) {
+            throw new MyException(MyErrorCode.FASTER_THAN_ENDTIME);
+        }
+    }
+
+    /**
+     * 시간 검증용 내부 객체
+     */
+    private record TimeSlot(
+            DayOfWeek day,
+            LocalTime startTime,
+            LocalTime endTime
+    ) {
     }
 }

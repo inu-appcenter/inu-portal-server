@@ -17,6 +17,7 @@ import org.hibernate.annotations.Check;
         or
         (timetable_item_type = 'CUSTOM' and course_offering_id is null and custom_schedule_id is not null)
         """)
+@Table(name = "timetable_item")
 public class TimeTableItem {
 
     @Id

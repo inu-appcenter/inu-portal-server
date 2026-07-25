@@ -33,11 +33,17 @@ public interface TimeTableApiSpecification {
     @Operation(
             summary = "시간표 상세 조회",
             description = """
-                    로그인한 사용자가 소유한 시간표의 상세 정보를 조회합니다.
+                    로그인한 사용자가 소유한 시간표 또는 친구의 공개 시간표 상세 정보를 조회합니다.
                     <br><br>
                     시간표 기본 정보와 시간표에 포함된 모든 요소를 함께 반환합니다.
                     <br>
                     각 시간표 요소는 type에 따라 course 또는 customSchedule 중 하나만 값을 가집니다.
+                    <br><br>
+                    본인 시간표는 공개 범위와 관계없이 전체 정보를 반환합니다.
+                    <br>
+                    친구 시간표는 PUBLIC이면 전체 정보를 반환하고, PROTECTED이면 요일/시작 시간/종료 시간만 반환합니다.
+                    <br>
+                    친구가 아니거나 차단 관계이면 조회할 수 없으며, PRIVATE 시간표도 조회할 수 없습니다.
                     """
     )
     @ApiResponses(value = {
@@ -47,88 +53,170 @@ public interface TimeTableApiSpecification {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ResponseDto.class),
-                            examples = @ExampleObject(
-                                    name = "시간표 상세 조회 응답 예시",
-                                    value = """
-                                            {
-                                              "data": {
-                                                "id": 1,
-                                                "timeTableName": "1학기 기본 시간표",
-                                                "year": 2026,
-                                                "term": "FIRST",
-                                                "items": [
-                                                  {
-                                                    "id": 10,
-                                                    "type": "COURSE",
-                                                    "memo": "중간고사 중요",
-                                                    "course": {
-                                                      "courseOfferingId": 3,
-                                                      "courseId": 12,
-                                                      "title": "웹프로그래밍",
-                                                      "professor": "박기석",
-                                                      "subjectNumber": "0001421001",
-                                                      "credit": "3",
-                                                      "meetings": [
-                                                        {
-                                                          "id": 21,
-                                                          "location": "07-415",
-                                                          "sequence": 1,
-                                                          "day": "TUESDAY",
-                                                          "startTime": "09:00",
-                                                          "endTime": "10:15"
-                                                        },
-                                                        {
-                                                          "id": 22,
-                                                          "location": "07-415",
-                                                          "sequence": 2,
-                                                          "day": "WEDNESDAY",
-                                                          "startTime": "13:30",
-                                                          "endTime": "14:45"
-                                                        }
-                                                      ]
-                                                    },
-                                                    "customSchedule": null
-                                                  },
-                                                  {
-                                                    "id": 11,
-                                                    "type": "CUSTOM",
-                                                    "memo": "개인 일정",
-                                                    "course": null,
-                                                    "customSchedule": {
-                                                      "customScheduleId": 7,
-                                                      "title": "알바",
-                                                      "meetings": [
-                                                        {
-                                                          "id": 31,
-                                                          "location": "송도",
-                                                          "sequence": null,
-                                                          "day": "MONDAY",
-                                                          "startTime": "18:00",
-                                                          "endTime": "21:00"
-                                                        }
-                                                      ]
+                            examples = {
+                                    @ExampleObject(
+                                            name = "본인 또는 PUBLIC 친구 시간표 상세 조회 응답 예시",
+                                            value = """
+                                                    {
+                                                      "data": {
+                                                        "id": 1,
+                                                        "timeTableName": "1학기 기본 시간표",
+                                                        "year": 2026,
+                                                        "term": "FIRST",
+                                                        "items": [
+                                                          {
+                                                            "id": 10,
+                                                            "type": "COURSE",
+                                                            "memo": "중간고사 중요",
+                                                            "course": {
+                                                              "courseOfferingId": 3,
+                                                              "courseId": 12,
+                                                              "title": "웹프로그래밍",
+                                                              "professor": "박기석",
+                                                              "subjectNumber": "0001421001",
+                                                              "credit": "3",
+                                                              "meetings": [
+                                                                {
+                                                                  "id": 21,
+                                                                  "location": "07-415",
+                                                                  "sequence": 1,
+                                                                  "day": "TUESDAY",
+                                                                  "startTime": "09:00",
+                                                                  "endTime": "10:15"
+                                                                }
+                                                              ]
+                                                            },
+                                                            "customSchedule": null
+                                                          },
+                                                          {
+                                                            "id": 11,
+                                                            "type": "CUSTOM",
+                                                            "memo": "개인 일정",
+                                                            "course": null,
+                                                            "customSchedule": {
+                                                              "customScheduleId": 7,
+                                                              "title": "알바",
+                                                              "meetings": [
+                                                                {
+                                                                  "id": 31,
+                                                                  "location": "송도",
+                                                                  "sequence": null,
+                                                                  "day": "MONDAY",
+                                                                  "startTime": "18:00",
+                                                                  "endTime": "21:00"
+                                                                }
+                                                              ]
+                                                            }
+                                                          }
+                                                        ]
+                                                      },
+                                                      "msg": "시간표 상세 조회 성공"
                                                     }
-                                                  }
-                                                ]
-                                              },
-                                              "msg": "시간표 상세 조회 성공"
-                                            }
-                                            """
-                            )
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "PROTECTED 친구 시간표 상세 조회 응답 예시",
+                                            value = """
+                                                    {
+                                                      "data": {
+                                                        "id": 1,
+                                                        "timeTableName": "1학기 기본 시간표",
+                                                        "year": 2026,
+                                                        "term": "FIRST",
+                                                        "items": [
+                                                          {
+                                                            "id": null,
+                                                            "type": "COURSE",
+                                                            "memo": null,
+                                                            "course": {
+                                                              "courseOfferingId": null,
+                                                              "courseId": null,
+                                                              "title": null,
+                                                              "professor": null,
+                                                              "subjectNumber": null,
+                                                              "credit": null,
+                                                              "meetings": [
+                                                                {
+                                                                  "id": null,
+                                                                  "location": null,
+                                                                  "sequence": null,
+                                                                  "day": "TUESDAY",
+                                                                  "startTime": "09:00",
+                                                                  "endTime": "10:15"
+                                                                }
+                                                              ]
+                                                            },
+                                                            "customSchedule": null
+                                                          },
+                                                          {
+                                                            "id": null,
+                                                            "type": "CUSTOM",
+                                                            "memo": null,
+                                                            "course": null,
+                                                            "customSchedule": {
+                                                              "customScheduleId": null,
+                                                              "title": null,
+                                                              "meetings": [
+                                                                {
+                                                                  "id": null,
+                                                                  "location": null,
+                                                                  "sequence": null,
+                                                                  "day": "MONDAY",
+                                                                  "startTime": "18:00",
+                                                                  "endTime": "21:00"
+                                                                }
+                                                              ]
+                                                            }
+                                                          }
+                                                        ]
+                                                      },
+                                                      "msg": "시간표 상세 조회 성공"
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             ),
             @ApiResponse(
-                    responseCode = "400",
-                    description = "존재하지 않는 시간표이거나 접근 권한이 없습니다.",
+                    responseCode = "403",
+                    description = "친구가 아니거나 차단 관계이거나, 비공개 시간표입니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "친구 시간표 조회 권한 없음",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "비공개 시간표 조회 실패",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "비공개된 시간표입니다."
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않는 시간표입니다.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ResponseDto.class),
                             examples = @ExampleObject(
-                                    name = "시간표 상세 조회 실패 응답 예시",
+                                    name = "시간표 없음",
                                     value = """
                                             {
                                               "data": null,
-                                              "msg": "해당 시간표에 접근할 권한이 없습니다."
+                                              "msg": "존재하지 않는 시간표입니다."
                                             }
                                             """
                             )

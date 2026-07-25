@@ -49,4 +49,26 @@ public record TimeTableMeetingResponseDto(
                 meeting.getEndTime()
         );
     }
+
+    public static TimeTableMeetingResponseDto from(CourseMeeting meeting, boolean masked) {
+        return new TimeTableMeetingResponseDto(
+                masked ? null : meeting.getId(),
+                masked ? null : meeting.getLocation(),
+                masked ? null : meeting.getSequence(),
+                meeting.getDay(),
+                meeting.getStartTime(),
+                meeting.getEndTime()
+        );
+    }
+
+    public static TimeTableMeetingResponseDto from(CustomScheduleMeeting meeting, boolean masked) {
+        return new TimeTableMeetingResponseDto(
+                masked ? null : meeting.getId(),
+                masked ? null : meeting.getLocation(),
+                null,
+                meeting.getDay(),
+                meeting.getStartTime(),
+                meeting.getEndTime()
+        );
+    }
 }
