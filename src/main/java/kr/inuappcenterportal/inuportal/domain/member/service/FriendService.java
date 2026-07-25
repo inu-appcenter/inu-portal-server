@@ -153,6 +153,7 @@ public class FriendService {
 
         List<FriendResponseDto> list = sent.stream().map(f -> FriendResponseDto.builder()
                 .friendId(f.getId())
+                .friendMemberId(f.getReceiver().getId())
                 .nickname(f.getReceiver().getNickname())
                 .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
@@ -162,6 +163,7 @@ public class FriendService {
 
         list.addAll(received.stream().map(f -> FriendResponseDto.builder()
                 .friendId(f.getId())
+                .friendMemberId(f.getRequester().getId())
                 .nickname(f.getRequester().getNickname())
                 .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
@@ -225,7 +227,7 @@ public class FriendService {
         String friendAlias = friend.getRequester().getId().equals(viewerId) ? friend.getRequesterAlias() : friend.getReceiverAlias();
 
         return MemberProfileResponseDto.builder()
-                .memberId(null)
+                .memberId(target.getId())
                 .nickname(target.getNickname())
                 .fireId(target.getFireId())
                 .department(target.getDepartment())

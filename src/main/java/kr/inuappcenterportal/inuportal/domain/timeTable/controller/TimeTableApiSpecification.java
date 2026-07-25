@@ -31,19 +31,13 @@ public interface TimeTableApiSpecification {
 
 
     @Operation(
-            summary = "시간표 상세 조회",
+            summary = "내 시간표 상세 조회",
             description = """
-                    로그인한 사용자가 소유한 시간표 또는 친구의 공개 시간표 상세 정보를 조회합니다.
+                    로그인한 사용자가 소유한 시간표의 상세 정보를 조회합니다.
                     <br><br>
                     시간표 기본 정보와 시간표에 포함된 모든 요소를 함께 반환합니다.
                     <br>
                     각 시간표 요소는 type에 따라 course 또는 customSchedule 중 하나만 값을 가집니다.
-                    <br><br>
-                    본인 시간표는 공개 범위와 관계없이 전체 정보를 반환합니다.
-                    <br>
-                    친구 시간표는 PUBLIC이면 전체 정보를 반환하고, PROTECTED이면 요일/시작 시간/종료 시간만 반환합니다.
-                    <br>
-                    친구가 아니거나 차단 관계이면 조회할 수 없으며, PRIVATE 시간표도 조회할 수 없습니다.
                     """
     )
     @ApiResponses(value = {
@@ -53,9 +47,121 @@ public interface TimeTableApiSpecification {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "내 시간표 상세 조회 응답 예시",
+                                    value = """
+                                            {
+                                              "data": {
+                                                "id": 1,
+                                                "timeTableName": "1학기 기본 시간표",
+                                                "year": 2026,
+                                                "term": "FIRST",
+                                                "items": [
+                                                  {
+                                                    "id": 10,
+                                                    "type": "COURSE",
+                                                    "memo": "중간고사 중요",
+                                                    "course": {
+                                                      "courseOfferingId": 3,
+                                                      "courseId": 12,
+                                                      "title": "웹프로그래밍",
+                                                      "professor": "박기석",
+                                                      "subjectNumber": "0001421001",
+                                                      "credit": "3",
+                                                      "meetings": [
+                                                        {
+                                                          "id": 21,
+                                                          "location": "07-415",
+                                                          "sequence": 1,
+                                                          "day": "TUESDAY",
+                                                          "startTime": "09:00",
+                                                          "endTime": "10:15"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "customSchedule": null
+                                                  }
+                                                ]
+                                              },
+                                              "msg": "시간표 상세 조회 성공"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "본인 소유 시간표가 아닙니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "내 시간표 상세 조회 권한 없음",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "해당 시간표에 접근할 권한이 없습니다."
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않는 시간표입니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "시간표 없음",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "존재하지 않는 시간표입니다."
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ResponseEntity<ResponseDto<TimeTableDetailResponseDto>> getTimeTableDetail(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Member member,
+            @Parameter(
+                    name = "timeTableId",
+                    description = "상세 조회할 시간표 id",
+                    in = ParameterIn.PATH,
+                    example = "1"
+            )
+            @PathVariable Long timeTableId
+    );
+
+    @Operation(
+            summary = "친구 대표 시간표 상세 조회",
+            description = """
+                    친구의 특정 년도/학기 대표 시간표 상세 정보를 조회합니다.
+                    <br><br>
+                    친구 관계이고 차단 관계가 아니어야 조회할 수 있습니다.
+                    <br>
+                    대표 시간표는 회원별/학기별로 최대 1개만 존재할 수 있으며, 사용자가 대표 시간표를 삭제한 경우처럼 대표 시간표가 없을 수 있습니다.
+                    <br>
+                    친구의 해당 학기 대표 시간표가 없으면 조회할 수 없습니다.
+                    <br>
+                    PUBLIC이면 전체 정보를 반환하고, PROTECTED이면 요일/시작 시간/종료 시간만 반환합니다.
+                    <br>
+                    PRIVATE 시간표는 조회할 수 없습니다.
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "친구 대표 시간표 상세 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
                             examples = {
                                     @ExampleObject(
-                                            name = "본인 또는 PUBLIC 친구 시간표 상세 조회 응답 예시",
+                                            name = "PUBLIC 친구 대표 시간표 상세 조회 응답 예시",
                                             value = """
                                                     {
                                                       "data": {
@@ -87,35 +193,15 @@ public interface TimeTableApiSpecification {
                                                               ]
                                                             },
                                                             "customSchedule": null
-                                                          },
-                                                          {
-                                                            "id": 11,
-                                                            "type": "CUSTOM",
-                                                            "memo": "개인 일정",
-                                                            "course": null,
-                                                            "customSchedule": {
-                                                              "customScheduleId": 7,
-                                                              "title": "알바",
-                                                              "meetings": [
-                                                                {
-                                                                  "id": 31,
-                                                                  "location": "송도",
-                                                                  "sequence": null,
-                                                                  "day": "MONDAY",
-                                                                  "startTime": "18:00",
-                                                                  "endTime": "21:00"
-                                                                }
-                                                              ]
-                                                            }
                                                           }
                                                         ]
                                                       },
-                                                      "msg": "시간표 상세 조회 성공"
+                                                      "msg": "친구 대표 시간표 상세 조회 성공"
                                                     }
                                                     """
                                     ),
                                     @ExampleObject(
-                                            name = "PROTECTED 친구 시간표 상세 조회 응답 예시",
+                                            name = "PROTECTED 친구 대표 시간표 상세 조회 응답 예시",
                                             value = """
                                                     {
                                                       "data": {
@@ -147,34 +233,31 @@ public interface TimeTableApiSpecification {
                                                               ]
                                                             },
                                                             "customSchedule": null
-                                                          },
-                                                          {
-                                                            "id": null,
-                                                            "type": "CUSTOM",
-                                                            "memo": null,
-                                                            "course": null,
-                                                            "customSchedule": {
-                                                              "customScheduleId": null,
-                                                              "title": null,
-                                                              "meetings": [
-                                                                {
-                                                                  "id": null,
-                                                                  "location": null,
-                                                                  "sequence": null,
-                                                                  "day": "MONDAY",
-                                                                  "startTime": "18:00",
-                                                                  "endTime": "21:00"
-                                                                }
-                                                              ]
-                                                            }
                                                           }
                                                         ]
                                                       },
-                                                      "msg": "시간표 상세 조회 성공"
+                                                      "msg": "친구 대표 시간표 상세 조회 성공"
                                                     }
                                                     """
                                     )
                             }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "year와 term 중 하나만 입력했거나 존재하지 않는 학기입니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "친구 대표 시간표 상세 조회 요청값 오류",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "년도와 학기는 함께 입력해야합니다."
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
@@ -185,7 +268,7 @@ public interface TimeTableApiSpecification {
                             schema = @Schema(implementation = ResponseDto.class),
                             examples = {
                                     @ExampleObject(
-                                            name = "친구 시간표 조회 권한 없음",
+                                            name = "친구 대표 시간표 조회 권한 없음",
                                             value = """
                                                     {
                                                       "data": null,
@@ -194,7 +277,7 @@ public interface TimeTableApiSpecification {
                                                     """
                                     ),
                                     @ExampleObject(
-                                            name = "비공개 시간표 조회 실패",
+                                            name = "비공개 대표 시간표 조회 실패",
                                             value = """
                                                     {
                                                       "data": null,
@@ -207,12 +290,12 @@ public interface TimeTableApiSpecification {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "존재하지 않는 시간표입니다.",
+                    description = "친구의 해당 년도/학기 대표 시간표가 존재하지 않습니다.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ResponseDto.class),
                             examples = @ExampleObject(
-                                    name = "시간표 없음",
+                                    name = "친구 대표 시간표 없음",
                                     value = """
                                             {
                                               "data": null,
@@ -223,16 +306,29 @@ public interface TimeTableApiSpecification {
                     )
             )
     })
-    ResponseEntity<ResponseDto<TimeTableDetailResponseDto>> getTimeTableDetail(
+    ResponseEntity<ResponseDto<TimeTableDetailResponseDto>> getFriendPrimarySemesterTimeTable(
             @Parameter(hidden = true)
             @AuthenticationPrincipal Member member,
             @Parameter(
-                    name = "timeTableId",
-                    description = "상세 조회할 시간표 id",
+                    name = "friendMemberId",
+                    description = "대표 시간표를 조회할 친구 회원 id",
                     in = ParameterIn.PATH,
-                    example = "1"
+                    example = "2"
             )
-            @PathVariable Long timeTableId
+            @PathVariable Long friendMemberId,
+            @Parameter(
+                    description = "조회할 학년도. term과 함께 입력해야 합니다.",
+                    example = "2026"
+            )
+            @RequestParam(required = false) Integer year,
+            @Parameter(
+                    description = "조회할 학기. year와 함께 입력해야 합니다.",
+                    schema = @Schema(
+                            allowableValues = {"FIRST", "SUMMER", "SECOND", "WINTER"},
+                            example = "FIRST"
+                    )
+            )
+            @RequestParam(required = false) SemesterTerm term
     );
 
 
@@ -447,7 +543,13 @@ public interface TimeTableApiSpecification {
 
     @Operation(
             summary = "대표 시간표 변경",
-            description = "로그인한 사용자가 소유한 시간표를 해당 학기의 대표 시간표로 설정합니다."
+            description = """
+                    로그인한 사용자가 소유한 시간표를 해당 학기의 대표 시간표로 설정합니다.
+                    <br><br>
+                    대표 시간표는 회원별/학기별로 최대 1개만 존재할 수 있습니다.
+                    <br>
+                    대표 시간표는 반드시 존재해야 하는 값은 아니며, 대표 시간표를 삭제해도 다른 시간표가 자동으로 대표 시간표로 지정되지 않습니다.
+                    """
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -570,7 +672,13 @@ public interface TimeTableApiSpecification {
 
     @Operation(
             summary = "시간표 삭제",
-            description = "로그인한 사용자가 소유한 시간표를 삭제합니다."
+            description = """
+                    로그인한 사용자가 소유한 시간표를 삭제합니다.
+                    <br><br>
+                    삭제한 시간표가 대표 시간표여도 다른 시간표가 자동으로 대표 시간표로 지정되지 않습니다.
+                    <br>
+                    따라서 해당 회원의 해당 학기에는 대표 시간표가 없을 수 있습니다.
+                    """
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -623,7 +731,13 @@ public interface TimeTableApiSpecification {
 
     @Operation(
             summary = "시간표 생성",
-            description = "로그인한 사용자의 특정 학기에 시간표를 생성합니다. 해당 학기의 첫 시간표이면 대표 시간표로 생성됩니다."
+            description = """
+                    로그인한 사용자의 특정 학기에 시간표를 생성합니다.
+                    <br><br>
+                    해당 학기의 첫 시간표이면 편의상 대표 시간표로 생성됩니다.
+                    <br>
+                    대표 시간표는 반드시 존재해야 하는 값은 아니며, 사용자가 따로 대표 시간표를 설정하지 않으면 자동으로 다시 설정되지 않습니다.
+                    """
     )
     @ApiResponses(value = {
             @ApiResponse(
