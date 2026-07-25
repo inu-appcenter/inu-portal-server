@@ -1,11 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.member.repository;
 
-import io.lettuce.core.dynamic.annotation.Param;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;

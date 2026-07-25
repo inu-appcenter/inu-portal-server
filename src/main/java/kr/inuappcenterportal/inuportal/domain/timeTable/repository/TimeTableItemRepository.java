@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -39,11 +40,11 @@ public interface TimeTableItemRepository extends JpaRepository<TimeTableItem, Lo
               )
             """)
     boolean existsOverlappingMeeting(
-            Long timeTableId,
-            DayOfWeek day,
-            LocalTime startTime,
-            LocalTime endTime,
-            Long excludeTimeTableItemId
+            @Param("timeTableId") Long timeTableId,
+            @Param("day") DayOfWeek day,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime,
+            @Param("excludeTimeTableItemId") Long excludeTimeTableItemId
     );
 
 }
