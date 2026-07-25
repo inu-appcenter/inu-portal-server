@@ -52,10 +52,10 @@ public record TimeTableDetailItemResponseDto(
             Visibility visibility
     ) {
         boolean masked = visibility == Visibility.PROTECTED;
-        
+
         return new TimeTableDetailItemResponseDto(
                 masked ? null : item.getId(),
-                masked ? null : item.getType(),
+                item.getType(),
                 masked ? null : item.getMemo(),
                 course,
                 null
@@ -72,7 +72,7 @@ public record TimeTableDetailItemResponseDto(
 
         return new TimeTableDetailItemResponseDto(
                 masked ? null : item.getId(),
-                masked ? null : item.getType(),
+                item.getType(),
                 masked ? null : item.getMemo(),
                 null,
                 customSchedule
