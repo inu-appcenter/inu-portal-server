@@ -97,6 +97,7 @@ public enum MyErrorCode {
     TIMETABLE_ITEM_TIME_CONFLICT(HttpStatus.CONFLICT, "시간표 요소의 시간이 중복입니다."),
     PRIVATE_TIMETABLE(HttpStatus.FORBIDDEN, "비공개된 시간표입니다."),
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
+    PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
 
 
     // Chat 관련 에러 코드 추가
