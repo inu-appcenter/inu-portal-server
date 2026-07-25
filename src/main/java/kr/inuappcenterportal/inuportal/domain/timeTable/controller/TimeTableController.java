@@ -27,7 +27,7 @@ public class TimeTableController implements TimeTableApiSpecification {
 
 
     /**
-     * 시간표 상세 조회 컨트롤러
+     * 내 시간표 상세 조회 컨트롤러
      */
     @GetMapping("/{timeTableId}")
     public ResponseEntity<ResponseDto<TimeTableDetailResponseDto>> getTimeTableDetail(
@@ -39,6 +39,24 @@ public class TimeTableController implements TimeTableApiSpecification {
 
         return ResponseEntity.ok(
                 ResponseDto.of(response, "시간표 상세 조회 성공")
+        );
+    }
+
+    /**
+     * 친구 대표 시간표 학기별 조회 컨트롤러
+     */
+    @GetMapping("/friends/{friendMemberId}/primary")
+    public ResponseEntity<ResponseDto<TimeTableDetailResponseDto>> getFriendPrimarySemesterTimeTable(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long friendMemberId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) SemesterTerm term
+    ) {
+        TimeTableDetailResponseDto response =
+                timeTableService.getFriendPrimaryTimeTableDetailYearAndTerm(member.getId(), friendMemberId, year, term);
+
+        return ResponseEntity.ok(
+                ResponseDto.of(response, "친구 대표 시간표 상세 조회 성공")
         );
     }
 
