@@ -9,10 +9,10 @@ public record TimeTableItemResponseDto(
         Long id,
         @Schema(description = "시간표 요소 타입", example = "CUSTOM")
         TimeTableItemType type,
-        @Schema(description = "시간표 요소 메모", example = "스터디룸 예약")
-        String memo,
         @Schema(description = "시간표 요소 제목. COURSE는 강의명, CUSTOM은 커스텀 일정 제목입니다.", example = "알고리즘 스터디")
-        String title
+        String title,
+        @Schema(description = "시간표 요소 메모", example = "스터디룸 예약")
+        String memo
 ) {
 
     public static TimeTableItemResponseDto from(TimeTableItem timeTableItem) {
