@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableI
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType;
+import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 
 public record TimeTableDetailItemResponseDto(
@@ -44,4 +45,37 @@ public record TimeTableDetailItemResponseDto(
         );
     }
 
+    // 강의 시간표 요소
+    public static TimeTableDetailItemResponseDto ofCourse(
+            TimeTableItem item,
+            CourseTimeTableItemResponseDto course,
+            Visibility visibility
+    ) {
+        boolean masked = visibility == Visibility.PROTECTED;
+        
+        return new TimeTableDetailItemResponseDto(
+                masked ? null : item.getId(),
+                masked ? null : item.getType(),
+                masked ? null : item.getMemo(),
+                course,
+                null
+        );
+    }
+
+    // 커스텀일정 시간표 요소
+    public static TimeTableDetailItemResponseDto ofCustom(
+            TimeTableItem item,
+            CustomTimeTableItemResponseDto customSchedule,
+            Visibility visibility
+    ) {
+        boolean masked = visibility == Visibility.PROTECTED;
+
+        return new TimeTableDetailItemResponseDto(
+                masked ? null : item.getId(),
+                masked ? null : item.getType(),
+                masked ? null : item.getMemo(),
+                null,
+                customSchedule
+        );
+    }
 }
