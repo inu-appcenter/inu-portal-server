@@ -51,7 +51,7 @@ public class TimeTableService {
 
 
     /**
-     * 시간표 상세 조회 메서드
+     * 내 시간표 상세 조회 메서드
      */
     public TimeTableDetailResponseDto getTimeTableDetail(
             Long memberId,
@@ -60,20 +60,12 @@ public class TimeTableService {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
-        boolean owner = timeTable.getMember().getId().equals(memberId);
-        List<TimeTableDetailItemResponseDto> items;
+        validateOwner(timeTable, memberId);
 
-        if (owner) {
-            items = timeTableItemRepository.findAllByTimeTableId(timeTableId).stream()
-                    .map(this::toDetailItemResponse)
-                    .toList();
-        } else {
-            Visibility visibility = validateFriendTimeTableReadable(timeTable, memberId);
+        List<TimeTableDetailItemResponseDto> items = timeTableItemRepository.findAllByTimeTableId(timeTableId).stream()
+                .map(this::toDetailItemResponse)
+                .toList();
 
-            items = timeTableItemRepository.findAllByTimeTableId(timeTableId).stream()
-                    .map(item -> toDetailItemResponse(item, visibility))
-                    .toList();
-        }
         return TimeTableDetailResponseDto.from(timeTable, items);
     }
 
@@ -104,40 +96,6 @@ public class TimeTableService {
                 yield TimeTableDetailItemResponseDto.ofCustom(
                         item,
                         CustomTimeTableItemResponseDto.of(customSchedule, meetings)
-                );
-            }
-        };
-    }
-
-    // 친구용
-    private TimeTableDetailItemResponseDto toDetailItemResponse(
-            TimeTableItem item,
-            Visibility visibility
-    ) {
-        return switch (item.getType()) {
-            case COURSE -> {
-                CourseOffering courseOffering = item.getCourseOffering();
-
-                List<CourseMeeting> meetings =
-                        courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
-
-                yield TimeTableDetailItemResponseDto.ofCourse(
-                        item,
-                        CourseTimeTableItemResponseDto.of(courseOffering, meetings, visibility),
-                        visibility
-                );
-            }
-
-            case CUSTOM -> {
-                CustomSchedule customSchedule = item.getCustomSchedule();
-
-                List<CustomScheduleMeeting> meetings =
-                        customScheduleMeetingRepository.findAllByCustomScheduleId(customSchedule.getId());
-
-                yield TimeTableDetailItemResponseDto.ofCustom(
-                        item,
-                        CustomTimeTableItemResponseDto.of(customSchedule, meetings, visibility),
-                        visibility
                 );
             }
         };
@@ -307,16 +265,7 @@ public class TimeTableService {
     /**
      * 친구의 시간표를 읽을 수 있는지 검증하는 메서드
      */
-    private Visibility validateFriendTimeTableReadable(TimeTable timeTable, Long memberId) {
-        // memberId는 로그인한 사용자, timeTable로 얻는 Id는 그 시간표의 소유자 ID(즉, 친구 ID)
-        boolean friend = friendService.isReadableFriend(memberId, timeTable.getMember().getId());
-
-        // 친구관계가 아니면 시간표 조회 불가능
-        if (!friend) {
-            throw new MyException(MyErrorCode.NOT_READABLE_TIMETABLE);
-        }
-
-        // 해당 시간표의 공개범위를 확인
+    private Visibility validateFriendTimeTableVisibility(TimeTable timeTable) {
         return switch (timeTable.getVisibility()) {
             case PRIVATE -> throw new MyException(MyErrorCode.PRIVATE_TIMETABLE);
             case PROTECTED -> Visibility.PROTECTED;
@@ -361,5 +310,81 @@ public class TimeTableService {
         return timeTableRepository.findAllByMemberIdAndSemesterId(memberId, semesterId).stream()
                 .map(TimeTableResponseDto::from)
                 .toList();
+    }
+
+
+    /**
+     * 학기별 친구 대표 시간표 상세 조회 (년도+학기)
+     */
+    public TimeTableDetailResponseDto getFriendPrimaryTimeTableDetailYearAndTerm(
+            Long viewerId,
+            Long friendMemberId,
+            Integer year,
+            SemesterTerm term
+    ) {
+        // 입력 검증
+        if (year == null || term == null) {
+            throw new MyException(MyErrorCode.INPUT_YEAR_AND_TERM);
+        }
+
+        // 학기 가져오기
+        Long semesterId = semesterRepository.findByYearAndTerm(year, term)
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND))
+                .getId();
+
+        // 친구관계인지 검증
+        if (!friendService.isReadableFriend(viewerId, friendMemberId)) {
+            throw new MyException(MyErrorCode.NOT_READABLE_TIMETABLE);
+        }
+
+        // 친구의 시간표 가져오기
+        TimeTable timeTable = timeTableRepository
+                .findByMemberIdAndSemesterIdAndIsPrimaryTrue(friendMemberId, semesterId)
+                .orElseThrow(() -> new MyException(MyErrorCode.PRIMARY_TIMETABLE_NOT_FOUND));
+
+        // 친구 시간표의 공개범위 확인
+        Visibility visibility = validateFriendTimeTableVisibility(timeTable);
+
+        // 공개범위에 따라 가져올 item 선택
+        List<TimeTableDetailItemResponseDto> items =
+                timeTableItemRepository.findAllByTimeTableId(timeTable.getId()).stream()
+                        .map(item -> toDetailItemResponse(item, visibility))
+                        .toList();
+
+        return TimeTableDetailResponseDto.from(timeTable, items);
+    }
+
+    // 친구용
+    private TimeTableDetailItemResponseDto toDetailItemResponse(
+            TimeTableItem item,
+            Visibility visibility
+    ) {
+        return switch (item.getType()) {
+            case COURSE -> {
+                CourseOffering courseOffering = item.getCourseOffering();
+
+                List<CourseMeeting> meetings =
+                        courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
+
+                yield TimeTableDetailItemResponseDto.ofCourse(
+                        item,
+                        CourseTimeTableItemResponseDto.of(courseOffering, meetings, visibility),
+                        visibility
+                );
+            }
+
+            case CUSTOM -> {
+                CustomSchedule customSchedule = item.getCustomSchedule();
+
+                List<CustomScheduleMeeting> meetings =
+                        customScheduleMeetingRepository.findAllByCustomScheduleId(customSchedule.getId());
+
+                yield TimeTableDetailItemResponseDto.ofCustom(
+                        item,
+                        CustomTimeTableItemResponseDto.of(customSchedule, meetings, visibility),
+                        visibility
+                );
+            }
+        };
     }
 }
