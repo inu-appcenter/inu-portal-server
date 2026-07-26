@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,12 +32,35 @@ public class SemesterService {
      */
     @Transactional(readOnly = true)
     public List<SemesterResponseDto> getSemesters() {
-        return semesterRepository.findAllByStatusInOrderByYearDescTermAsc(
-                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED, SemesterStatus.UPCOMING)
+        return semesterRepository.findAllByStatusIn(
+                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)
                 )
                 .stream()
+                .sorted(Comparator
+                        .comparingInt((Semester semester) -> statusOrder(semester.getStatus()))
+                        .thenComparing(Semester::getYear, Comparator.reverseOrder())
+                        .thenComparingInt(semester -> termOrderDescending(semester.getTerm())))
                 .map(SemesterResponseDto::from)
                 .toList();
+    }
+
+    // 상태 기준 정렬
+    private int statusOrder(SemesterStatus status) {
+        return switch (status) {
+            case OPEN -> 0;
+            case CLOSED -> 1;
+            case UPCOMING -> 2;
+        };
+    }
+
+    // 학기 기준 정렬
+    private int termOrderDescending(SemesterTerm term) {
+        return switch (term) {
+            case WINTER -> 1;
+            case SECOND -> 2;
+            case SUMMER -> 3;
+            case FIRST -> 4;
+        };
     }
 
     /**
