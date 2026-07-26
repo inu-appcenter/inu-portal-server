@@ -95,6 +95,8 @@ public enum MyErrorCode {
     FASTER_THAN_ENDTIME(HttpStatus.BAD_REQUEST, "시작시간은 종료시간보다 빨라야합니다."),
     NECESSARY_CUSTOM_TITLE(HttpStatus.BAD_REQUEST, "커스텀 일정 제목은 필수입니다."),
     TIMETABLE_ITEM_TIME_CONFLICT(HttpStatus.CONFLICT, "시간표 요소의 시간이 중복입니다."),
+    TIMETABLE_ITEM_TIME_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소를 추가할 수 없습니다."),
+    TIMETABLE_ITEM_TIME_DB_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소가 존재합니다."),
     PRIVATE_TIMETABLE(HttpStatus.FORBIDDEN, "비공개된 시간표입니다."),
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
