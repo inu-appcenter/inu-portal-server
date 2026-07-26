@@ -73,4 +73,14 @@ public class Semester extends BaseTimeEntity {
     public void updateStatus(SemesterStatus status) {
         this.status = status;
     }
+
+    public void updatePeriodAndStatus(
+            LocalDate startDate,
+            LocalDate endDate,
+            SemesterStatus status
+    ) {
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = status;
+    }
 }

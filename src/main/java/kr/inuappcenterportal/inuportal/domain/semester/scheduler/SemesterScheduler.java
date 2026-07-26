@@ -40,9 +40,9 @@ public class SemesterScheduler {
     }
 
     /**
-     * 매월 1일 새벽 5시에 학기 자동 동기화
+     * 매월 3일 새벽 5시에 학기 자동 동기화
      */
-    @Scheduled(cron = "0 0 5 1 * *")
+    @Scheduled(cron = "0 0 5 3 * *")
     @SchedulerLock(
             name = "semester-sync",
             lockAtMostFor = "PT10M",

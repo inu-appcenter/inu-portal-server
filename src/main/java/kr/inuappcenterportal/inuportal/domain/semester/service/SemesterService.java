@@ -93,25 +93,19 @@ public class SemesterService {
     private void createSemester(
             Integer year,
             SemesterTerm term,
-            Optional<Schedule> startSchedule,
+            Optional<Schedule> semesterSchedule,
             Optional<Schedule> summerSemesterStart,
             Optional<Schedule> winterSemesterStart
     ) {
-        if (startSchedule.isEmpty()) {
+        if (semesterSchedule.isEmpty()) {
             return;
         }
 
-        boolean alreadyExists = semesterRepository.findByYearAndTerm(year, term).isPresent();
-
-        if (alreadyExists) {
-            return;
-        }
-
-        LocalDate startDate = startSchedule.get().getStartDate(); // 학기 시작일
+        LocalDate startDate = semesterSchedule.get().getStartDate(); // 학기 시작일
 
         LocalDate endDate = calculateEndDate( // 학기 종료일
                 term,
-                startDate,
+                semesterSchedule,
                 summerSemesterStart,
                 winterSemesterStart
         );
@@ -120,18 +114,19 @@ public class SemesterService {
             return;
         }
 
-        SemesterStatus status = calculateStatus(startDate, endDate, LocalDate.now(clock)); // 학기 상태 계산
+        // 학기 상태 계산
+        SemesterStatus status = calculateStatus(startDate, endDate, LocalDate.now(clock));
 
 
-        Semester semester = Semester.create(
-                year,
-                term,
-                status,
-                startDate,
-                endDate
-        );
-
-        semesterRepository.save(semester);
+        // 정규학기 종료일은 계절학기 시작일 기준으로 계산
+        // 계절학기 종료일은 학사일정의 endDate 그대로 사용
+        semesterRepository.findByYearAndTerm(year, term)
+                .ifPresentOrElse(
+                        semester -> semester.updatePeriodAndStatus(startDate, endDate, status),
+                        () -> semesterRepository.save(
+                                Semester.create(year, term, status, startDate, endDate)
+                        )
+                );
     }
 
     /**
@@ -139,7 +134,7 @@ public class SemesterService {
      */
     private LocalDate calculateEndDate(
             SemesterTerm term,
-            LocalDate startDate,
+            Optional<Schedule> semesterSchedule,
             Optional<Schedule> summerSemesterStart,
             Optional<Schedule> winterSemesterStart
     ) {
@@ -157,9 +152,11 @@ public class SemesterService {
                     .orElse(null);
         }
 
-        // 각 계절학기는 정확히 3주, 21일간 진행
+        // 계절학기는 학사일정에 저장된 종료일을 그대로 사용
         if (term == SemesterTerm.SUMMER || term == SemesterTerm.WINTER) {
-            return startDate.plusDays(20);
+            return semesterSchedule
+                    .map(Schedule::getEndDate)
+                    .orElse(null);
         }
 
         return null;
