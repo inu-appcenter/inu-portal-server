@@ -84,6 +84,7 @@ public enum MyErrorCode {
     HAS_NOT_TIMETABLE_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 시간표에 접근할 권한이 없습니다."),
     INPUT_YEAR_AND_TERM(HttpStatus.BAD_REQUEST, "년도와 학기는 함께 입력해야합니다."),
     COURSE_NOT_FOUND(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다."),
+    COURSE_OFFERING_NOT_FOUND(HttpStatus.BAD_REQUEST, "존재하지 않는 개설 강의입니다."),
     NO_MATCH_SEMESTER(HttpStatus.BAD_REQUEST, "학기가 일치하지 않습니다."),
     NO_CUSTOM_ITEM_IN_TIMETABLE(HttpStatus.BAD_REQUEST, "해당 시간표에 속한 강의가 아닙니다."),
     NO_CUSTOM_ITEM(HttpStatus.BAD_REQUEST, "해당 요소는 커스텀 일정이 아닙니다."),
