@@ -47,4 +47,34 @@ public interface TimeTableItemRepository extends JpaRepository<TimeTableItem, Lo
             @Param("excludeTimeTableItemId") Long excludeTimeTableItemId
     );
 
+    @Query("""
+            select case when count(item) > 0 then true else false end
+            from TimeTableItem item
+            where item.timeTable.id = :timeTableId
+              and (
+                exists (
+                  select 1
+                  from CourseMeeting meeting
+                  where meeting.courseOffering = item.courseOffering
+                    and meeting.day = :day
+                    and meeting.startTime < :endTime
+                    and meeting.endTime > :startTime
+                )
+                or exists (
+                  select 1
+                  from CustomScheduleMeeting meeting
+                  where meeting.customSchedule = item.customSchedule
+                    and meeting.day = :day
+                    and meeting.startTime < :endTime
+                    and meeting.endTime > :startTime
+                )
+              )
+            """)
+    boolean existsOverlappingMeeting(
+            @Param("timeTableId") Long timeTableId,
+            @Param("day") DayOfWeek day,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime
+    );
+
 }

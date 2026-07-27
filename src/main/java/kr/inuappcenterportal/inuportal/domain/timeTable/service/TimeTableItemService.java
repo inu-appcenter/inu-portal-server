@@ -86,7 +86,7 @@ public class TimeTableItemService {
 
         // 중복 일정 검증
         validateNoRequestTimeConflict(timeSlots);
-        validateNoDBTimeConflict(timeTableId, timeSlots, null);
+        validateNoDBTimeConflict(timeTableId, timeSlots);
 
         // 커스텀일정 생성
         CustomSchedule customSchedule = customScheduleService.createCustomSchedule(request.title(), meetings);
@@ -240,7 +240,7 @@ public class TimeTableItemService {
     }
 
     /**
-     * 시간표 요소 시간 및 요일 중복 차단 메서드(DB)
+     * 시간표 요소 시간 및 요일 중복 차단 메서드(DB, 수정용)
      */
     private void validateNoDBTimeConflict(
             Long timeTableId,
@@ -255,6 +255,28 @@ public class TimeTableItemService {
                     meeting.startTime(),
                     meeting.endTime(),
                     excludeTimeTableItemId
+            );
+
+            if (exists) {
+                throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_DB_CONFLICT);
+            }
+        }
+    }
+
+    /**
+     * 시간표 요소 시간 및 요일 중복 차단 메서드(DB, 생성용)
+     */
+    private void validateNoDBTimeConflict(
+            Long timeTableId,
+            List<TimeSlot> meetings
+    ) {
+        for (TimeSlot meeting : meetings) {
+
+            boolean exists = timeTableItemRepository.existsOverlappingMeeting(
+                    timeTableId,
+                    meeting.day(),
+                    meeting.startTime(),
+                    meeting.endTime()
             );
 
             if (exists) {
