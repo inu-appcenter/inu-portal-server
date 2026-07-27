@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.semester;
 
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.dto.SemesterResponseDto;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
@@ -61,15 +62,21 @@ public class SemesterServiceTest {
     }
 
     // 테스트용 학기 생성 메서드
-    private Schedule SemesterCreate(int month, int day, String content) {
-        LocalDate date = LocalDate.of(TEST_YEAR, month, day);
-
+    private Schedule createSchedule(LocalDate startDate, LocalDate endDate, String content) {
         return Schedule.builder()
-                .startDate(date)
-                .endDate(date)
+                .startDate(startDate)
+                .endDate(endDate)
                 .content(content)
                 .aiGenerated(false)
                 .build();
+    }
+
+    private Schedule createSchedule(int startMonth, int startDay, int endMonth, int endDay, String content) {
+        return createSchedule(
+                LocalDate.of(TEST_YEAR, startMonth, startDay),
+                LocalDate.of(TEST_YEAR, endMonth, endDay),
+                content
+        );
     }
 
     @Test
@@ -79,10 +86,14 @@ public class SemesterServiceTest {
         // Given
         // 학사일정 크롤링한 데이터로 가정
         List<Schedule> schedules = List.of(
-                SemesterCreate(3, 2, "1학기 개강"),
-                SemesterCreate(6, 22, "하계 계절학기"),
-                SemesterCreate(9, 1, "2학기 개강"),
-                SemesterCreate(12, 22, "동계 계절학기")
+                createSchedule(3, 2, 3, 2, "1학기 개강"),
+                createSchedule(6, 22, 7, 12, "하계 계절학기"),
+                createSchedule(9, 1, 9, 1, "2학기 개강"),
+                createSchedule(
+                        LocalDate.of(TEST_YEAR, 12, 22),
+                        LocalDate.of(TEST_YEAR + 1, 1, 13),
+                        "동계 계절학기"
+                )
         );
 
         // 레포지토리의 동작을 가짜로 지정
@@ -130,18 +141,30 @@ public class SemesterServiceTest {
 
         assertThat(savedSemesters.get(1).getEndDate())
                 .isEqualTo(LocalDate.of(TEST_YEAR, 12, 21));
+
+        assertThat(savedSemesters.get(2).getStartDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR, 6, 22));
+
+        assertThat(savedSemesters.get(2).getEndDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR, 7, 12));
+
+        assertThat(savedSemesters.get(3).getStartDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR, 12, 22));
+
+        assertThat(savedSemesters.get(3).getEndDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR + 1, 1, 13));
     }
 
 
     @Test
-    @DisplayName("이미 같은 연도와 학기의 학기가 있으면 해당 학기는 저장하지 않는다.")
+    @DisplayName("이미 같은 연도와 학기의 학기가 있으면 기간과 상태를 갱신한다.")
     void 중복_학기_검사_로직_테스트() {
 
         // Given
         // 크롤링된 학사일정에 1학기, 하계 계절학가 있다고 가정
         List<Schedule> schedules = List.of(
-                SemesterCreate(3, 2, "1학기 개강"),
-                SemesterCreate(6, 22, "하계 계절학기")
+                createSchedule(3, 2, 3, 2, "1학기 개강"),
+                createSchedule(6, 22, 7, 12, "하계 계절학기")
         );
 
         // 이미 DB에 1학기가 저장되어 있음을 가정
@@ -149,8 +172,8 @@ public class SemesterServiceTest {
                 TEST_YEAR,
                 SemesterTerm.FIRST,
                 SemesterStatus.UPCOMING,
-                LocalDate.of(TEST_YEAR, 3, 2),
-                LocalDate.of(TEST_YEAR, 6, 21)
+                LocalDate.of(TEST_YEAR, 3, 1),
+                LocalDate.of(TEST_YEAR, 6, 20)
         );
 
         // 학사일정을 조회하면 위에서 만든 schedules을 반환
@@ -164,23 +187,33 @@ public class SemesterServiceTest {
         // FIRST를 조회하는 요청이오면 위에서 existingSemester를 반환
         when(semesterRepository.findByYearAndTerm(TEST_YEAR, SemesterTerm.FIRST))
                 .thenReturn(Optional.of(existingSemester));
+        when(semesterRepository.findByYearAndTerm(TEST_YEAR, SemesterTerm.SUMMER))
+                .thenReturn(Optional.empty());
 
         // When
         semesterService.syncSemestersByYear();
 
         // Then
-        // Semester 타입 객체를 잡아둘 캡처 도구를 만든다.
         ArgumentCaptor<Semester> semesterCaptor = ArgumentCaptor.forClass(Semester.class);
-
-        // semesterRepository.save(...)가 1회 호출됐는지 확인하고, 그때 save() 안으로 들어간 Semester 객체를 semesterCaptor가 잡는다.
         verify(semesterRepository, times(1)).save(semesterCaptor.capture());
 
-        // 방금 잡은 Semester 객체를 꺼내서 savedSemester라는 변수에 담는다.
         Semester savedSemester = semesterCaptor.getValue();
 
-        // 저장된 학기의 term이 SUMMER인지 확인한다.
+        assertThat(existingSemester.getStartDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR, 3, 2));
+        assertThat(existingSemester.getEndDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR, 6, 21));
+        assertThat(existingSemester.getStatus())
+                .isEqualTo(SemesterStatus.CLOSED);
+
         assertThat(savedSemester.getTerm())
                 .isEqualTo(SemesterTerm.SUMMER);
+        assertThat(savedSemester.getStartDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR, 6, 22));
+        assertThat(savedSemester.getEndDate())
+                .isEqualTo(LocalDate.of(TEST_YEAR, 7, 12));
+        assertThat(savedSemester.getStatus())
+                .isEqualTo(SemesterStatus.OPEN);
     }
 
 
@@ -190,7 +223,7 @@ public class SemesterServiceTest {
 
         // Given
         List<Schedule> schedules = List.of(
-                SemesterCreate(3, 2, "1학기 개강")
+                createSchedule(3, 2, 3, 2, "1학기 개강")
         );
 
         when(scheduleRepository.findAcademicSemesterSchedules(
@@ -200,15 +233,76 @@ public class SemesterServiceTest {
                 eq("계절학기")
         )).thenReturn(schedules);
 
-        when(semesterRepository.findByYearAndTerm(any(Integer.class), any(SemesterTerm.class)))
-                .thenReturn(Optional.empty());
-
         // When
         semesterService.syncSemestersByYear();
 
         // Then
         // 1학기의 종료일은 하계 계절학기의 -1일인데 하계 계절학기가 주어지지 않아서 생성되지 못하는 걸 체크
         verify(semesterRepository, never()).save(any(Semester.class));
+    }
+
+    @Test
+    @DisplayName("학기 목록은 OPEN과 CLOSED만 최신 학기순으로 조회한다.")
+    void 학기_목록_조회_정렬_테스트() {
+        // Given
+        Semester openFirst = createSemester(
+                2026,
+                SemesterTerm.FIRST,
+                SemesterStatus.OPEN,
+                LocalDate.of(2026, 3, 2),
+                LocalDate.of(2026, 6, 21)
+        );
+
+        Semester openSummer = createSemester(
+                2026,
+                SemesterTerm.SUMMER,
+                SemesterStatus.OPEN,
+                LocalDate.of(2026, 6, 22),
+                LocalDate.of(2026, 7, 12)
+        );
+
+        Semester closedSecond = createSemester(
+                2025,
+                SemesterTerm.SECOND,
+                SemesterStatus.CLOSED,
+                LocalDate.of(2025, 9, 1),
+                LocalDate.of(2025, 12, 21)
+        );
+
+        Semester closedWinter = createSemester(
+                2025,
+                SemesterTerm.WINTER,
+                SemesterStatus.CLOSED,
+                LocalDate.of(2025, 12, 22),
+                LocalDate.of(2026, 1, 13)
+        );
+
+        when(semesterRepository.findAllByStatusIn(List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)))
+                .thenReturn(List.of(closedSecond, openFirst, closedWinter, openSummer));
+
+        // When
+        List<SemesterResponseDto> response = semesterService.getSemesters();
+
+        // Then
+        assertThat(response)
+                .extracting(SemesterResponseDto::term)
+                .containsExactly(
+                        SemesterTerm.SUMMER,
+                        SemesterTerm.FIRST,
+                        SemesterTerm.WINTER,
+                        SemesterTerm.SECOND
+                );
+
+        assertThat(response)
+                .extracting(SemesterResponseDto::status)
+                .containsExactly(
+                        SemesterStatus.OPEN,
+                        SemesterStatus.OPEN,
+                        SemesterStatus.CLOSED,
+                        SemesterStatus.CLOSED
+                );
+
+        verify(semesterRepository).findAllByStatusIn(List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED));
     }
 
 
@@ -266,5 +360,21 @@ public class SemesterServiceTest {
 
         assertThat(closedSemester.getStatus())
                 .isEqualTo(SemesterStatus.CLOSED);
+    }
+
+    private Semester createSemester(
+            Integer year,
+            SemesterTerm term,
+            SemesterStatus status,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        return Semester.create(
+                year,
+                term,
+                status,
+                startDate,
+                endDate
+        );
     }
 }
