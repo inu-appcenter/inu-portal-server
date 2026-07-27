@@ -258,7 +258,7 @@ public class TimeTableItemService {
             );
 
             if (exists) {
-                throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_CONFLICT);
+                throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_DB_CONFLICT);
             }
         }
     }
@@ -278,7 +278,7 @@ public class TimeTableItemService {
                 if (current.day() == other.day()
                         && current.startTime().isBefore(other.endTime())
                         && current.endTime().isAfter(other.startTime())) {
-                    throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_CONFLICT);
+                    throw new MyException(MyErrorCode.TIMETABLE_ITEM_TIME_REQUEST_CONFLICT);
                 }
             }
         }
