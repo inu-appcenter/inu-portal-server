@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.dto.response;
+package kr.inuappcenterportal.inuportal.domain.course.dto.course.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;

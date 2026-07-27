@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.crawler.base;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.CurriculumItemDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.CurriculumItemDto;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;

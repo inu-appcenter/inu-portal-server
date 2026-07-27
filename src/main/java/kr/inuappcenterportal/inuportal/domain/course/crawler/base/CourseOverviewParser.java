@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.crawler.base;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.CourseOverviewItemDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.CourseOverviewItemDto;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
