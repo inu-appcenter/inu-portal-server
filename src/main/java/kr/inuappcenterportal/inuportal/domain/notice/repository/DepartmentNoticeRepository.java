@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import org.springframework.data.repository.query.Param;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -39,9 +41,16 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
             Pageable pageable
     );
 
+    @Query("""
+            select dn from DepartmentNotice dn
+            join fetch dn.content
+            where dn.department = :department
+              and (dn.contentStatus is null or dn.contentStatus in :statuses)
+            order by dn.id desc
+            """)
     List<DepartmentNotice> findByDepartmentAndContentStatusInOrderByIdDesc(
-            Department department,
-            List<DepartmentNoticeContentStatus> statuses,
+            @Param("department") Department department,
+            @Param("statuses") List<DepartmentNoticeContentStatus> statuses,
             Pageable pageable
     );
 
