@@ -34,9 +34,10 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
 
     @Query("""
             select n from Notice n
-            join fetch n.content
+            left join fetch n.content
             where (
-                    n.content.contentText is null
+                    n.content is null
+                    or n.content.contentText is null
                     or n.content.inlineImageUrlsJson is null
                     or n.content.attachmentMetaJson is null
               )
@@ -48,7 +49,7 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
             Pageable pageable
     );
 
-    @Query(value = "select n from Notice n join fetch n.content where (:category is null or n.category = :category)",
+    @Query(value = "select n from Notice n left join fetch n.content where (:category is null or n.category = :category)",
            countQuery = "select count(n) from Notice n where (:category is null or n.category = :category)")
     Page<Notice> findAllWithContentByCategory(@Param("category") String category, Pageable pageable);
 }

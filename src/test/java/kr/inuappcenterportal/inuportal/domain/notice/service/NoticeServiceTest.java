@@ -35,6 +35,7 @@ class NoticeServiceTest {
     private ObjectMapper objectMapper;
     private ScheduleRepository scheduleRepository;
     private DepartmentNoticeScheduleExtractService scheduleExtractService;
+    private NoticeCrawlHelper noticeCrawlHelper;
 
     @BeforeEach
     void setUp() {
@@ -48,6 +49,7 @@ class NoticeServiceTest {
         objectMapper = new ObjectMapper();
         scheduleRepository = mock(ScheduleRepository.class);
         scheduleExtractService = mock(DepartmentNoticeScheduleExtractService.class);
+        noticeCrawlHelper = mock(NoticeCrawlHelper.class);
 
         noticeService = new NoticeService(
                 cacheManager,
@@ -59,7 +61,8 @@ class NoticeServiceTest {
                 keywordService,
                 objectMapper,
                 scheduleRepository,
-                scheduleExtractService
+                scheduleExtractService,
+                noticeCrawlHelper
         );
     }
 

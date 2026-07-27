@@ -101,6 +101,7 @@ public class NoticeService {
     private final ObjectMapper objectMapper;
     private final ScheduleRepository scheduleRepository;
     private final DepartmentNoticeScheduleExtractService scheduleExtractService;
+    private final NoticeCrawlHelper noticeCrawlHelper;
 
     @Qualifier("localCacheManager")
     private final CacheManager localCacheManager;
@@ -118,7 +119,8 @@ public class NoticeService {
             KeywordService keywordService,
             ObjectMapper objectMapper,
             ScheduleRepository scheduleRepository,
-            DepartmentNoticeScheduleExtractService scheduleExtractService
+            DepartmentNoticeScheduleExtractService scheduleExtractService,
+            NoticeCrawlHelper noticeCrawlHelper
     ) {
         this.noticeRepository = noticeRepository;
         this.noticeContentRepository = noticeContentRepository;
@@ -130,6 +132,7 @@ public class NoticeService {
         this.objectMapper = objectMapper;
         this.scheduleRepository = scheduleRepository;
         this.scheduleExtractService = scheduleExtractService;
+        this.noticeCrawlHelper = noticeCrawlHelper;
     }
 
     @Scheduled(cron = "0 0/15 * * * *")
@@ -139,7 +142,6 @@ public class NoticeService {
             lockAtLeastFor = "PT1M"
     )
     @CacheEvict(value = "noticeCache", cacheManager = "cacheManager")
-    @Transactional
     public void getNewNotice() {
         crawlingNotices();
     }
@@ -151,7 +153,6 @@ public class NoticeService {
             lockAtLeastFor = "PT30S"
     )
     @CacheEvict(value = "noticeCache", cacheManager = "cacheManager")
-    @Transactional
     public void getNewDepartmentNotice() {
         Department[] departments = Department.values();
         int start = getCrawlerIndex(DEPT_INDEX_KEY);
@@ -169,7 +170,6 @@ public class NoticeService {
             lockAtMostFor = "PT5M",
             lockAtLeastFor = "PT30S"
     )
-    @Transactional
     public void backfillDepartmentNoticeContents() {
         Department[] departments = Department.values();
         int start = getCrawlerIndex(DEPT_CONTENT_INDEX_KEY);
@@ -187,7 +187,6 @@ public class NoticeService {
             lockAtMostFor = "PT8M",
             lockAtLeastFor = "PT30S"
     )
-    @Transactional
     public void enrichDepartmentNoticeContents() {
         Department[] departments = Department.values();
         int start = getCrawlerIndex(DEPT_ENRICH_INDEX_KEY);
@@ -199,7 +198,6 @@ public class NoticeService {
         log.info("학과 공지 본문 보강을 완료했습니다. startIndex={}, endIndex={}, count={}", start, end, count);
     }
 
-    @Transactional
     public void crawlingNotices() {
         syncNoticesByCategory(246, SCHOOL_NOTICE_ACADEMIC, 100, true);
         syncNoticesByCategory(247, SCHOOL_NOTICE_CREDIT_EXCHANGE, 100, true);
@@ -271,28 +269,20 @@ public class NoticeService {
                 String subCategory = item.select("category").text();
                 String description = item.select("description").text();
 
-                Optional<Notice> existingNotice = noticeRepository.findByUrl(link);
-                if (existingNotice.isPresent()) {
-                    Notice notice = existingNotice.get();
-                    notice.update(subCategory, title, writer, description);
-                    updateCount++;
-                } else {
-                    Notice notice = noticeRepository.save(Notice.builder()
-                            .category(categoryName)
-                            .subCategory(subCategory)
-                            .title(title)
-                            .writer(writer)
-                            .createDate(createDate)
-                            .url(link)
-                            .description(description)
-                            .build());
-
-                    log.info("[학교공지] 새 공지 발견: [{}] {}", categoryName, title); // 개별 새 공지 로그
+                boolean isNew = noticeCrawlHelper.saveOrUpdateNotice(
+                        categoryName,
+                        subCategory,
+                        title,
+                        writer,
+                        createDate,
+                        link,
+                        description,
+                        shouldNotify
+                );
+                if (isNew) {
                     newCount++;
-
-                    if (shouldNotify) {
-                        keywordService.noticeNotifyMatchedUsers(notice);
-                    }
+                } else {
+                    updateCount++;
                 }
             }
 
@@ -312,7 +302,7 @@ public class NoticeService {
         // 이 범위 안에 있는 공지인데 activeUrls에 없다면 100% 삭제된 것입니다.
         // 경계선(oldestDate, newestDate와 동일한 날짜)은 지우지 않습니다.
         List<Notice> dbNotices = noticeRepository.findAllByCategoryAndCreateDateGreaterThanAndCreateDateLessThan(categoryName, oldestDate, newestDate);
-        
+
         List<Notice> toDelete = dbNotices.stream()
                 .filter(notice -> !activeUrls.contains(notice.getUrl()))
                 .collect(Collectors.toList());
@@ -405,17 +395,20 @@ public class NoticeService {
         );
     }
 
-    @Transactional
     public void crawlingDepartmentNotices(Department[] departments, int start, int end) {
         for (int i = start; i < end; i++) {
             Department department = departments[i];
             if (!department.isServiceAvailable()) {
                 continue;
             }
-            if (department.isRssSupported()) {
-                syncDepartmentNoticeByRss(department);
-            } else {
-                getNoticeByDepartment(department, getDepartmentCrawlConfig(department));
+            try {
+                if (department.isRssSupported()) {
+                    syncDepartmentNoticeByRss(department);
+                } else {
+                    getNoticeByDepartment(department, getDepartmentCrawlConfig(department));
+                }
+            } catch (Exception e) {
+                log.error("[학과공지] 크롤링 실패 (격리됨): department={}, reason={}", department.name(), e.getMessage(), e);
             }
         }
     }
@@ -478,39 +471,20 @@ public class NoticeService {
                     }
                 }
 
-                Optional<DepartmentNotice> existingNotice = departmentNoticeRepository.findFirstByDepartmentAndUrl(department, link);
-                if (existingNotice.isEmpty()) {
-                    existingNotice = departmentNoticeRepository.findFirstByDepartmentAndTitleAndCreateDate(department, title, date);
-                }
+                NoticeCrawlHelper.DepartmentNoticeSaveResult saveResult = noticeCrawlHelper.saveOrUpdateDepartmentNotice(
+                        department,
+                        title,
+                        date,
+                        views,
+                        link,
+                        dn -> syncDepartmentNoticeContent(dn, getDepartmentCrawlConfig(department))
+                );
 
-                DepartmentNotice departmentNotice;
-                boolean isNewNotice = false;
-
-                if (existingNotice.isPresent()) {
-                    departmentNotice = existingNotice.get();
-                    departmentNotice.updateListing(title, date, views, link);
-                    updateCount++;
-                } else {
-                    departmentNotice = departmentNoticeRepository.save(
-                            DepartmentNotice.create(department, title, date, views, link)
-                    );
-                    isNewNotice = true;
+                if (saveResult.isNew()) {
                     newCount++;
-                }
-
-                syncDepartmentNoticeContent(departmentNotice, getDepartmentCrawlConfig(department));
-
-                if (isNewNotice) {
-                    if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                            @Override
-                            public void afterCommit() {
-                                scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                            }
-                        });
-                    } else {
-                        scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                    }
+                    scheduleExtractService.extractScheduleAsync(saveResult.getDepartmentNotice(), true);
+                } else {
+                    updateCount++;
                 }
             }
 
@@ -656,37 +630,17 @@ public class NoticeService {
                     }
                     long views = parseLongValue(ele.select(config.getViewsSelector()).text());
 
-                    Optional<DepartmentNotice> existingDepartmentNotice = departmentNoticeRepository.findFirstByDepartmentAndUrl(department, href);
-                    if (existingDepartmentNotice.isEmpty()) {
-                        existingDepartmentNotice = departmentNoticeRepository.findFirstByDepartmentAndTitleAndCreateDate(department, title, date);
-                    }
+                    NoticeCrawlHelper.DepartmentNoticeSaveResult saveResult = noticeCrawlHelper.saveOrUpdateDepartmentNotice(
+                            department,
+                            title,
+                            date,
+                            views,
+                            href,
+                            dn -> syncDepartmentNoticeContent(dn, config)
+                    );
 
-                    DepartmentNotice departmentNotice;
-                    boolean isNewNotice = false;
-
-                    if (existingDepartmentNotice.isPresent()) {
-                        departmentNotice = existingDepartmentNotice.get();
-                        departmentNotice.updateListing(title, date, views, href);
-                    } else {
-                        departmentNotice = departmentNoticeRepository.save(
-                                DepartmentNotice.create(department, title, date, views, href)
-                        );
-                        isNewNotice = true;
-                    }
-
-                    syncDepartmentNoticeContent(departmentNotice, config);
-
-                    if (isNewNotice) {
-                        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                                @Override
-                                public void afterCommit() {
-                                    scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                                }
-                            });
-                        } else {
-                            scheduleExtractService.extractScheduleAsync(departmentNotice, true);
-                        }
+                    if (saveResult.isNew()) {
+                        scheduleExtractService.extractScheduleAsync(saveResult.getDepartmentNotice(), true);
                     }
 
                     count++;
