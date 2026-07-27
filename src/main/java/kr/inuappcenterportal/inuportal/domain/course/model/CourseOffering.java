@@ -13,7 +13,15 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "course_offering")
+@Table(
+        name = "course_offering",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_courseOffering_semester_subjectNumber",
+                        columnNames = {"semester", "subjectNumber"}
+                )
+        }
+)
 public class CourseOffering extends BaseTimeEntity {
 
     @Id
