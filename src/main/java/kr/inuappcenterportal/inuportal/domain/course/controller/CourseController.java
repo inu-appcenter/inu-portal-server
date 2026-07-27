@@ -1,12 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.CourseResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.response.CourseResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseCrawlerService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,8 +28,9 @@ public class CourseController implements CourseApiSpecification {
     ) {
         Department parsedDepartment = Department.from(department);
 
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ResponseDto.of(courseService.getCourses(parsedDepartment), "강의 목록 조회 성공"));
+        return ResponseEntity.ok(
+                ResponseDto.of(courseService.getCourses(parsedDepartment), "강의 목록 조회 성공")
+        );
     }
 
     /**

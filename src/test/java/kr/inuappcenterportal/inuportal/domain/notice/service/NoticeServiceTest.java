@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.notice.service;
 
 import kr.inuappcenterportal.inuportal.domain.notice.enums.NoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
+import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeContentRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentCrawlerStateRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
@@ -25,6 +26,7 @@ class NoticeServiceTest {
 
     private NoticeService noticeService;
     private NoticeRepository noticeRepository;
+    private NoticeContentRepository noticeContentRepository;
     private DepartmentNoticeRepository departmentNoticeRepository;
     private DepartmentCrawlerStateRepository departmentCrawlerStateRepository;
     private CacheManager cacheManager;
@@ -38,6 +40,7 @@ class NoticeServiceTest {
     @BeforeEach
     void setUp() {
         noticeRepository = mock(NoticeRepository.class);
+        noticeContentRepository = mock(NoticeContentRepository.class);
         departmentNoticeRepository = mock(DepartmentNoticeRepository.class);
         departmentCrawlerStateRepository = mock(DepartmentCrawlerStateRepository.class);
         cacheManager = mock(CacheManager.class);
@@ -52,6 +55,7 @@ class NoticeServiceTest {
                 cacheManager,
                 localCacheManager,
                 noticeRepository,
+                noticeContentRepository,
                 departmentNoticeRepository,
                 departmentCrawlerStateRepository,
                 keywordService,

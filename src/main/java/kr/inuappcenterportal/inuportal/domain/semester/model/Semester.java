@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "semesters",
+        name = "semester",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_semester_year_term",
                 columnNames = {"academic_year", "term"}
@@ -71,6 +71,16 @@ public class Semester extends BaseTimeEntity {
     }
 
     public void updateStatus(SemesterStatus status) {
+        this.status = status;
+    }
+
+    public void updatePeriodAndStatus(
+            LocalDate startDate,
+            LocalDate endDate,
+            SemesterStatus status
+    ) {
+        this.startDate = startDate;
+        this.endDate = endDate;
         this.status = status;
     }
 }

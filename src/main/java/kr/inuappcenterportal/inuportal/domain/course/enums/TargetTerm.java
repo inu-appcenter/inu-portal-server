@@ -9,7 +9,7 @@ public enum TargetTerm {
     FIRST("1학기"),
     SECOND("2학기"),
     COMMON("공통"),
-    UNKNOWN("미정");
+    UNKNOWN("알 수 없음");
 
     private final String displayName;
 

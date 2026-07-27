@@ -18,6 +18,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentCrawlerStateRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
+import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeContentRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.repository.NoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
@@ -92,6 +93,7 @@ public class NoticeService {
     private static final TypeReference<List<AttachmentMeta>> ATTACHMENT_META_LIST_TYPE = new TypeReference<>() {};
 
     private final NoticeRepository noticeRepository;
+    private final NoticeContentRepository noticeContentRepository;
     private final DepartmentNoticeRepository departmentNoticeRepository;
     private final DepartmentCrawlerStateRepository departmentCrawlerStateRepository;
     private final CacheManager cacheManager;
@@ -111,6 +113,7 @@ public class NoticeService {
             @Qualifier("cacheManager") CacheManager cacheManager,
             @Qualifier("localCacheManager") CacheManager localCacheManager,
             NoticeRepository noticeRepository,
+            NoticeContentRepository noticeContentRepository,
             DepartmentNoticeRepository departmentNoticeRepository,
             DepartmentCrawlerStateRepository departmentCrawlerStateRepository,
             KeywordService keywordService,
@@ -120,6 +123,7 @@ public class NoticeService {
             NoticeCrawlHelper noticeCrawlHelper
     ) {
         this.noticeRepository = noticeRepository;
+        this.noticeContentRepository = noticeContentRepository;
         this.departmentNoticeRepository = departmentNoticeRepository;
         this.cacheManager = cacheManager;
         this.localCacheManager = localCacheManager;
@@ -304,11 +308,10 @@ public class NoticeService {
                 .collect(Collectors.toList());
 
         if (!toDelete.isEmpty()) {
-            toDelete.forEach(n -> log.info("[학교공지] 삭제된 공지 제거: [{}] {}", categoryName, n.getTitle()));
-
-            // deleteAllInBatch(toDelete) 대신 deleteAll(toDelete) 사용
-            noticeRepository.deleteAll(toDelete);
-
+            toDelete.forEach(n -> log.info("[학교공지] 삭제된 공지 제거: [{}] {}", categoryName, n.getTitle())); // 삭제 상세 로그
+            List<Long> idsToDelete = toDelete.stream().map(Notice::getId).collect(Collectors.toList());
+            noticeContentRepository.deleteAllByIdInBatch(idsToDelete);
+            noticeRepository.deleteAllInBatch(toDelete);
             log.info("[학교공지] 삭제 처리 완료: category={}, count={}", categoryName, toDelete.size());
         }
     }

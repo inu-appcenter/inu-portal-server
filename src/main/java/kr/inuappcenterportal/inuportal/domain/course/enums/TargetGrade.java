@@ -11,7 +11,7 @@ public enum TargetGrade {
     SECOND("2학년"),
     THIRD("3학년"),
     FOURTH("4학년"),
-    UNKNOWN("미정");
+    UNKNOWN("알 수 없음");
 
     private final String displayName;
 

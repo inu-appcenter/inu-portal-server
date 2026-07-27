@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCrawledItemDto;
-import kr.inuappcenterportal.inuportal.domain.course.dto.CourseResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.response.CourseResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetTerm;
@@ -117,12 +117,7 @@ public class CourseService {
             return null;
         }
 
-        try {
-            return CompletionDivision.from(value);
-        } catch (IllegalArgumentException e) {
-            log.warn("지원하지 않는 이수구분입니다. value={}", value);
-            return null;
-        }
+        return CompletionDivision.from(value);
     }
 
 
