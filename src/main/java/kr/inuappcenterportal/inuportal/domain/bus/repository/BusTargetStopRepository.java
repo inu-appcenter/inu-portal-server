@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface BusTargetStopRepository extends JpaRepository<BusTargetStop, Long> {
     List<BusTargetStop> findByIsActiveTrue();
     Optional<BusTargetStop> findByBstopId(String bstopId);
+    boolean existsByBstopId(String bstopId);
+
 }

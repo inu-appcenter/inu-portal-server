@@ -163,16 +163,15 @@ public class BusService {
 
     @Transactional
     public List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> getTargetRules() {
-
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> rules = busTargetRuleRepository.findAll();
         if (rules.isEmpty()) {
             // 기본 룰 자동 등록
             List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> defaults = List.of(
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startStopName("인천대입구역 2번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startStopName("인천대입구역 1번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("지정단런").startStopName("지식정보단지역 3번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("인천대 정문").startStopName("인천대 정문(길 건너)").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("공대/자연대").startStopName("인천대 공과대학").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build()
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startBstopId("164000395").startStopName("인천대입구역 2번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startBstopId("164000396").startStopName("인천대입구역 1번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("지정단런").startBstopId("164000403").startStopName("지식정보단지역 3번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("인천대 정문").startBstopId("164000385").startStopName("인천대 정문(길 건너)").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("공대/자연대").startBstopId("164000377").startStopName("인천대 공과대학").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build()
             );
             busTargetRuleRepository.saveAll(defaults);
             rules = busTargetRuleRepository.findAll();
@@ -185,9 +184,20 @@ public class BusService {
         kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule rule = kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                 .category(dto.getCategory())
                 .tabName(dto.getTabName())
+                .startBstopId(dto.getStartBstopId())
                 .startStopName(dto.getStartStopName())
                 .targetKeywords(dto.getTargetKeywords())
                 .build();
+
+        // 수집 대상 정류장 자동 보장
+        if (dto.getStartBstopId() != null && !busTargetStopRepository.existsByBstopId(dto.getStartBstopId())) {
+            addTargetStop(TargetStopRequestDto.builder()
+                    .bstopId(dto.getStartBstopId())
+                    .bstopName(dto.getStartStopName())
+                    .category(dto.getTabName())
+                    .build());
+        }
+
         return busTargetRuleRepository.save(rule);
     }
 
@@ -199,45 +209,30 @@ public class BusService {
     @Transactional
     public List<BusRouteSectionResponseDto> autoSyncRoutes() {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> rules = getTargetRules();
-        List<BusTargetStop> activeTargetStops = busTargetStopRepository.findByIsActiveTrue();
-        if (activeTargetStops.isEmpty()) {
-            List<TargetStopRequestDto> defaults = List.of(
-                    TargetStopRequestDto.builder().bstopId("164000395").bstopName("인천대입구역 2번출구").category("인입런").build(),
-                    TargetStopRequestDto.builder().bstopId("164000396").bstopName("인천대입구역 1번출구").category("인입런").build(),
-                    TargetStopRequestDto.builder().bstopId("164000403").bstopName("지식정보단지역 3번출구").category("지정단런").build(),
-                    TargetStopRequestDto.builder().bstopId("164000385").bstopName("인천대 정문(길 건너)").category("인천대 정문").build(),
-                    TargetStopRequestDto.builder().bstopId("164000377").bstopName("인천대 공과대학").category("공대/자연대").build()
-            );
-            for (TargetStopRequestDto d : defaults) {
-                addTargetStop(d);
-            }
-            activeTargetStops = busTargetStopRepository.findByIsActiveTrue();
-        }
-
         List<BusRouteSectionResponseDto> syncedResults = new ArrayList<>();
-
 
         for (kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule rule : rules) {
             String category = rule.getCategory();
             String tabName = rule.getTabName();
+            String bstopId = rule.getStartBstopId();
             String startStopName = rule.getStartStopName();
             List<String> targetKeywords = Arrays.stream(rule.getTargetKeywords().split(","))
                     .map(String::trim)
                     .filter(s -> !s.isBlank())
                     .collect(Collectors.toList());
 
-            // 시작 정류장 matching target stop 찾기
-            Optional<BusTargetStop> matchedStopOpt = activeTargetStops.stream()
-                    .filter(s -> s.getBstopName().contains(startStopName) || startStopName.contains(s.getBstopName()))
-                    .findFirst();
-
-            String bstopId = matchedStopOpt.map(BusTargetStop::getBstopId).orElse(null);
-            if (bstopId == null) {
-                continue;
+            // 수집 대상 정류소 자동 활성화 확인
+            if (!busTargetStopRepository.existsByBstopId(bstopId)) {
+                addTargetStop(TargetStopRequestDto.builder()
+                        .bstopId(bstopId)
+                        .bstopName(startStopName)
+                        .category(tabName)
+                        .build());
             }
 
             // 정류소에 도착하는 모든 노선 목록 탐색
             List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(bstopId);
+
             for (BusArrivalItemDto arrival : arrivals) {
                 String routeId = arrival.getRouteId();
                 String routeNo = arrival.getRouteNo();

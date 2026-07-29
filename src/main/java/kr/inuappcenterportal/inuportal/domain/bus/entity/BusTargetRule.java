@@ -23,16 +23,21 @@ public class BusTargetRule {
     private String tabName; // 인입런, 지정단런, 인천대 정문, 공대/자연대 등
 
     @Column(nullable = false)
+    private String startBstopId; // 164000395 등 정류소 ID
+
+    @Column(nullable = false)
     private String startStopName; // 인천대입구역 2번출구, 인천대 공과대학 등
 
     @Column(nullable = false, length = 500)
     private String targetKeywords; // 콤마로 구분된 목적지 키워드 (예: "정문,자연,공과,공대,송도캠")
 
     @Builder
-    public BusTargetRule(String category, String tabName, String startStopName, String targetKeywords) {
+    public BusTargetRule(String category, String tabName, String startBstopId, String startStopName, String targetKeywords) {
         this.category = category;
         this.tabName = tabName;
+        this.startBstopId = startBstopId;
         this.startStopName = startStopName;
         this.targetKeywords = targetKeywords;
     }
+
 }

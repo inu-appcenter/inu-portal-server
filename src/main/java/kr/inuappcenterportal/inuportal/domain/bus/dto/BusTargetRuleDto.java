@@ -24,9 +24,14 @@ public class BusTargetRuleDto {
     @Schema(description = "탭명", example = "인입런")
     private String tabName;
 
+    @NotBlank(message = "시작 정류소 ID는 필수입니다.")
+    @Schema(description = "시작 정류소 ID", example = "164000395")
+    private String startBstopId;
+
     @NotBlank(message = "시작 정류장명은 필수입니다.")
     @Schema(description = "시작 정류장명", example = "인천대입구역 2번출구")
     private String startStopName;
+
 
     @NotBlank(message = "목적지 키워드는 필수입니다.")
     @Schema(description = "콤마로 구분된 목적지 키워드 목록", example = "정문,자연,공과,공대,송도캠")
