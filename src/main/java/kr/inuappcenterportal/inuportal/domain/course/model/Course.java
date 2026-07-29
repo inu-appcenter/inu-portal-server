@@ -30,6 +30,9 @@ public class Course extends BaseTimeEntity {
     @Column(name = "course_id", nullable = false)
     private Long id;
 
+    @Column(name = "course_code")
+    private String courseCode;
+
     @Column(nullable = false, length = 255)
     private String title;
 
@@ -132,6 +135,18 @@ public class Course extends BaseTimeEntity {
         if (content != null && !content.isBlank()) {
             this.content = content;
         }
+    }
+
+    public void updateApiInfo(
+            String courseCode,
+            TargetGrade targetGrade,
+            CompletionDivision completionDivision,
+            String credit
+    ) {
+        if (courseCode != null && !courseCode.isBlank()) {
+            this.courseCode = courseCode;
+        }
+        updateBaseInfo(targetGrade, null, completionDivision, credit);
     }
 
     public void deactivate() {
