@@ -161,7 +161,114 @@ public class BusService {
 
 
     @Transactional
+    public List<BusRouteSectionResponseDto> autoSyncRoutes() {
+        // 1. 등록된 30초 수집 정류소 목록 조회 (없을 경우 기본 정류소 세트 사용)
+        List<BusTargetStop> targetStops = busTargetStopRepository.findByIsActiveTrue();
+        if (targetStops.isEmpty()) {
+            // 기본 주요 정류소 자동 등록
+            List<TargetStopRequestDto> defaults = List.of(
+                    TargetStopRequestDto.builder().bstopId("164000395").bstopName("인천대입구역 2번출구").category("인입런").build(),
+                    TargetStopRequestDto.builder().bstopId("164000396").bstopName("인천대입구역 1번출구").category("인입런").build(),
+                    TargetStopRequestDto.builder().bstopId("164000403").bstopName("지식정보단지역 3번출구").category("지정단런").build(),
+                    TargetStopRequestDto.builder().bstopId("164000385").bstopName("인천대 정문(길 건너)").category("인천대 정문").build(),
+                    TargetStopRequestDto.builder().bstopId("164000377").bstopName("인천대 공과대학").category("공대/자연대").build()
+            );
+            for (TargetStopRequestDto d : defaults) {
+                addTargetStop(d);
+            }
+            targetStops = busTargetStopRepository.findByIsActiveTrue();
+        }
+
+        List<BusRouteSectionResponseDto> syncedResults = new ArrayList<>();
+
+        // 주요 목적지 키워드 정의
+        List<String> schoolKeywords = List.of("인천대", "정문", "자연", "공과", "공대", "송도캠");
+        List<String> homeKeywords = List.of("인천대입구역", "지식정보단지역", "홍대입구");
+
+        for (BusTargetStop stop : targetStops) {
+            String bstopId = stop.getBstopId();
+            String bstopName = stop.getBstopName();
+
+            // 정류소에 도착하는 모든 노선 목록 탐색
+            List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(bstopId);
+            for (BusArrivalItemDto arrival : arrivals) {
+                String routeId = arrival.getRouteId();
+                String routeNo = arrival.getRouteNo();
+
+                if (routeId == null || routeId.isBlank() || routeNo == null) {
+                    continue;
+                }
+
+                List<BusRouteStopDto> allStops = busApiService.fetchRouteStops(routeId);
+                if (allStops.isEmpty()) {
+                    continue;
+                }
+
+                // 시작 정류장 인덱스 찾기
+                int startIdx = -1;
+                for (int i = 0; i < allStops.size(); i++) {
+                    BusRouteStopDto s = allStops.get(i);
+                    if (bstopId.equals(s.getBstopId()) || (s.getBstopName() != null && s.getBstopName().contains(bstopName))) {
+                        startIdx = i;
+                        break;
+                    }
+                }
+
+                if (startIdx == -1) {
+                    continue;
+                }
+
+                // 카테고리 결정 (역 출발 = go-school, 학교 출발 = go-home)
+                boolean isStartingFromStation = bstopName.contains("입구역") || bstopName.contains("단지역") || bstopName.contains("롯데몰");
+                String category = isStartingFromStation ? "go-school" : "go-home";
+                String tabName = stop.getCategory() != null && !stop.getCategory().isBlank() ? stop.getCategory() : (isStartingFromStation ? "인입런" : "인천대 정문");
+                List<String> targetKeywords = isStartingFromStation ? schoolKeywords : homeKeywords;
+
+                // startIdx 이후의 가장 멀리 있는 목표 정류장 인덱스 감지
+                int endIdx = -1;
+                String endStopName = null;
+                for (int i = startIdx + 1; i < allStops.size(); i++) {
+                    BusRouteStopDto s = allStops.get(i);
+                    String name = s.getBstopName();
+                    if (name != null) {
+                        for (String kw : targetKeywords) {
+                            if (name.contains(kw)) {
+                                endIdx = i;
+                                endStopName = name;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (endIdx != -1 && endStopName != null) {
+                    String sectionName = String.format("%s - %s번 버스", tabName, routeNo);
+                    RouteSectionCreateRequest req = RouteSectionCreateRequest.builder()
+                            .sectionName(sectionName)
+                            .category(category)
+                            .tabName(tabName)
+                            .routeNo(routeNo)
+                            .startStop(bstopName)
+                            .endStop(endStopName)
+                            .build();
+
+                    try {
+                        BusRouteSectionResponseDto created = createOrUpdateRouteSection(req);
+                        syncedResults.add(created);
+                    } catch (Exception e) {
+                        log.error("자동 노선 생성 실패: {}", sectionName, e);
+                    }
+                }
+            }
+        }
+
+
+        return syncedResults;
+    }
+
+    @Transactional
     public void deleteRouteSection(Long id) {
+
         busRouteSectionRepository.deleteById(id);
     }
 

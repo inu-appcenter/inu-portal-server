@@ -2,13 +2,18 @@ package kr.inuappcenterportal.inuportal.domain.bus.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Schema(description = "어드민 동적 노선 생성/수정 요청 DTO")
 public class RouteSectionCreateRequest {
+
 
     @NotBlank(message = "구간명은 필수입니다.")
     @Schema(description = "구간명", example = "인입런 - 8번 버스")

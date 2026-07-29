@@ -38,7 +38,18 @@ public class AdminBusController {
         return ResponseEntity.ok(ResponseDto.of(result, "노선 구간 등록 성공"));
     }
 
+    @Operation(summary = "학교/하교 전체 노선 자동 탐색 및 동기화", description = "주요 출발 정류장을 통과하는 버스 노선을 자동 탐색하고 학교 캠퍼스 최장 종점까지 자동 슬라이싱하여 노선 구간을 구축합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "동기화 성공")
+    })
+    @PostMapping("/routes/auto-sync")
+    public ResponseEntity<ResponseDto<List<BusRouteSectionResponseDto>>> autoSyncRoutes() {
+        List<BusRouteSectionResponseDto> result = busService.autoSyncRoutes();
+        return ResponseEntity.ok(ResponseDto.of(result, String.format("총 %d개의 노선 구간이 자동 탐색 및 동기화되었습니다.", result.size())));
+    }
+
     @Operation(summary = "등록된 동적 노선 구간 목록 조회", description = "어드민에 등록된 모든 노선 구간 및 정류장 목록을 조회합니다.")
+
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공")
     })
