@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.dto.course;
+package kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem;
 
 public record CourseCrawledItemDto(
         String title,
