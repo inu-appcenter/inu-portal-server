@@ -88,27 +88,36 @@ public class BusService {
                     BusRouteSectionResponseDto dto = BusRouteSectionResponseDto.from(section);
                     // DB 실측 데이터 기반 첫차/막차 시각 계산 시도
                     String dbFirstLastTime = calculateStopFirstLastTime(section.getStartBstopId(), section.getRouteId());
-                    if (dbFirstLastTime != null) {
-                        return BusRouteSectionResponseDto.builder()
-                                .id(dto.getId())
-                                .sectionName(dto.getSectionName())
-                                .category(dto.getCategory())
-                                .tabName(dto.getTabName())
-                                .routeNo(dto.getRouteNo())
-                                .routeId(dto.getRouteId())
-                                .startBstopId(dto.getStartBstopId())
-                                .startBstopName(dto.getStartBstopName())
-                                .endBstopId(dto.getEndBstopId())
-                                .endBstopName(dto.getEndBstopName())
-                                .busNotice(dbFirstLastTime)
-                                .routeNotice(dto.getRouteNotice())
-                                .stops(dto.getStops())
-                                .build();
+                    String allocGap = busApiService.fetchAllocGap(section.getRouteId());
+
+                    String combinedNotice = dto.getBusNotice();
+                    if (dbFirstLastTime != null && allocGap != null) {
+                        combinedNotice = dbFirstLastTime + "\n" + allocGap;
+                    } else if (dbFirstLastTime != null) {
+                        combinedNotice = dbFirstLastTime;
+                    } else if (allocGap != null && (combinedNotice == null || combinedNotice.isBlank())) {
+                        combinedNotice = allocGap;
                     }
-                    return dto;
+
+                    return BusRouteSectionResponseDto.builder()
+                            .id(dto.getId())
+                            .sectionName(dto.getSectionName())
+                            .category(dto.getCategory())
+                            .tabName(dto.getTabName())
+                            .routeNo(dto.getRouteNo())
+                            .routeId(dto.getRouteId())
+                            .startBstopId(dto.getStartBstopId())
+                            .startBstopName(dto.getStartBstopName())
+                            .endBstopId(dto.getEndBstopId())
+                            .endBstopName(dto.getEndBstopName())
+                            .busNotice(combinedNotice)
+                            .routeNotice(dto.getRouteNotice())
+                            .stops(dto.getStops())
+                            .build();
                 })
                 .collect(Collectors.toList());
     }
+
 
     public String calculateStopFirstLastTime(String bstopId, String routeId) {
         if (bstopId == null || routeId == null) {

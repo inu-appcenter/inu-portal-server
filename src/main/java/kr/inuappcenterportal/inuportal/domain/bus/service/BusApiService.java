@@ -33,6 +33,8 @@ public class BusApiService {
 
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
+    private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteInfoItem";
+
 
     public List<BusArrivalItemDto> fetchBusArrivals(String bstopId) {
         if (busApiKey == null || busApiKey.isBlank()) {
@@ -62,7 +64,48 @@ public class BusApiService {
         }
     }
 
+    public String fetchAllocGap(String routeId) {
+        if (busApiKey == null || busApiKey.isBlank() || routeId == null) {
+            return null;
+        }
+
+        try {
+            String url = String.format("%s?serviceKey=%s&routeId=%s&pageNo=1&numOfRows=10",
+                    ROUTE_INFO_API_URL, busApiKey, routeId);
+
+            String xmlResponse = webClient.get()
+                    .uri(URI.create(url))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            if (xmlResponse == null || xmlResponse.isBlank()) {
+                return null;
+            }
+
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(xmlResponse)));
+
+            NodeList items = doc.getElementsByTagName("itemList");
+            if (items.getLength() > 0) {
+                Element item = (Element) items.item(0);
+                String minGap = getTagValue("MIN_ALLOC_GAP", item);
+                String maxGap = getTagValue("MAX_ALLOC_GAP", item);
+                if (!minGap.isBlank() && !maxGap.isBlank()) {
+                    return String.format("배차간격 | %s ~ %s분", minGap, maxGap);
+                } else if (!minGap.isBlank()) {
+                    return String.format("배차간격 | %s분", minGap);
+                }
+            }
+        } catch (Exception e) {
+            log.error("버스 노선 배차간격 API 호출 실패 (routeId: {})", routeId, e);
+        }
+        return null;
+    }
+
     public List<BusRouteStopDto> fetchRouteStops(String routeId) {
+
         if (busApiKey == null || busApiKey.isBlank()) {
             return List.of();
         }
