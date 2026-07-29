@@ -90,4 +90,27 @@ public class AdminBusController {
         List<BusTargetStop> result = busService.getTargetStops();
         return ResponseEntity.ok(ResponseDto.of(result, "수집 대상 정류장 목록 조회 성공"));
     }
+
+    @Operation(summary = "자동 탐색 타겟 규칙 목록 조회", description = "자동 탐색 및 슬라이싱 시 사용되는 시종점 및 목적지 키워드 규칙 목록을 조회합니다.")
+    @GetMapping("/target-rules")
+    public ResponseEntity<ResponseDto<List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule>>> getTargetRules() {
+        List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> result = busService.getTargetRules();
+        return ResponseEntity.ok(ResponseDto.of(result, "타겟 규칙 목록 조회 성공"));
+    }
+
+    @Operation(summary = "자동 탐색 타겟 규칙 추가", description = "카테고리, 탭명, 시작 정류소, 목적지 키워드를 포함하는 탐색 규칙을 추가합니다.")
+    @PostMapping("/target-rules")
+    public ResponseEntity<ResponseDto<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule>> addTargetRule(
+            @Valid @RequestBody kr.inuappcenterportal.inuportal.domain.bus.dto.BusTargetRuleDto request) {
+        kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule result = busService.addTargetRule(request);
+        return ResponseEntity.ok(ResponseDto.of(result, "타겟 규칙 추가 성공"));
+    }
+
+    @Operation(summary = "자동 탐색 타겟 규칙 삭제", description = "등록된 탐색 규칙을 삭제합니다.")
+    @DeleteMapping("/target-rules/{id}")
+    public ResponseEntity<ResponseDto<Void>> deleteTargetRule(@PathVariable Long id) {
+        busService.deleteTargetRule(id);
+        return ResponseEntity.ok(ResponseDto.of(null, "타겟 규칙 삭제 성공"));
+    }
 }
+
