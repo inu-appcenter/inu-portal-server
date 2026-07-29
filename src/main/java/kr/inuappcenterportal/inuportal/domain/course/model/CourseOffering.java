@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_courseOffering_semester_subjectNumber",
-                        columnNames = {"semester", "subjectNumber"}
+                        columnNames = {"semester_id", "subject_number"}
                 )
         }
 )
@@ -62,4 +62,60 @@ public class CourseOffering extends BaseTimeEntity {
 
     @Column(columnDefinition = "TEXT")
     private String note;
+
+    // 생성자
+    private CourseOffering(
+            String syllabus,
+            String subjectNumber,
+            Method method,
+            String professor,
+            Course course,
+            Semester semester,
+            Department targetDepartment,
+            Language language,
+            Integer capacity,
+            Integer enrolledCount,
+            String note
+    ) {
+        this.syllabus = syllabus;
+        this.subjectNumber = subjectNumber;
+        this.method = method;
+        this.professor = professor;
+        this.course = course;
+        this.semester = semester;
+        this.targetDepartment = targetDepartment;
+        this.language = language;
+        this.capacity = capacity;
+        this.enrolledCount = enrolledCount;
+        this.note = note;
+    }
+
+    // 정적 팩토리 메서드
+    public static CourseOffering create(
+            String syllabus,
+            String subjectNumber,
+            Method method,
+            String professor,
+            Course course,
+            Semester semester,
+            Department targetDepartment,
+            Language language,
+            Integer capacity,
+            Integer enrolledCount,
+            String note
+    ) {
+        return new CourseOffering(
+                syllabus,
+                subjectNumber,
+                method,
+                professor,
+                course,
+                semester,
+                targetDepartment,
+                language,
+                capacity,
+                enrolledCount,
+                note
+        );
+    }
 }
