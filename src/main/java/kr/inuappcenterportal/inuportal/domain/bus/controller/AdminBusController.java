@@ -38,7 +38,28 @@ public class AdminBusController {
         return ResponseEntity.ok(ResponseDto.of(result, "노선 구간 등록 성공"));
     }
 
+    @Operation(summary = "등록된 동적 노선 구간 목록 조회", description = "어드민에 등록된 모든 노선 구간 및 정류장 목록을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공")
+    })
+    @GetMapping("/routes")
+    public ResponseEntity<ResponseDto<List<BusRouteSectionResponseDto>>> getRouteSections() {
+        List<BusRouteSectionResponseDto> result = busService.getRouteSections(null);
+        return ResponseEntity.ok(ResponseDto.of(result, "등록된 노선 구간 목록 조회 성공"));
+    }
+
+    @Operation(summary = "동적 노선 구간 삭제", description = "등록된 노선 구간을 삭제합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "삭제 성공")
+    })
+    @DeleteMapping("/routes/{id}")
+    public ResponseEntity<ResponseDto<Void>> deleteRouteSection(@PathVariable Long id) {
+        busService.deleteRouteSection(id);
+        return ResponseEntity.ok(ResponseDto.of(null, "노선 구간 삭제 성공"));
+    }
+
     @Operation(summary = "30초 폴링 수집 대상 정류장 추가", description = "30초 간격으로 실시간 도착 정보를 수집할 기점/출발 정류장을 추가합니다.")
+
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "추가 성공")
     })

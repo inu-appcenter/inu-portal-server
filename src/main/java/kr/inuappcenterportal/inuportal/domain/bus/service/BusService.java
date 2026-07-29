@@ -89,7 +89,13 @@ public class BusService {
     }
 
     @Transactional
+    public void deleteRouteSection(Long id) {
+        busRouteSectionRepository.deleteById(id);
+    }
+
+    @Transactional
     public BusRouteSectionResponseDto createOrUpdateRouteSection(RouteSectionCreateRequest request) {
+
         Optional<BusRouteSection> existingOpt = busRouteSectionRepository
                 .findByRouteNoAndCategoryAndTabName(request.getRouteNo(), request.getCategory(), request.getTabName());
 
