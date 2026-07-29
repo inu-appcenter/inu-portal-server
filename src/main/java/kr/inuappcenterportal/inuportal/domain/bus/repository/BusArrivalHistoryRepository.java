@@ -17,6 +17,10 @@ public interface BusArrivalHistoryRepository extends JpaRepository<BusArrivalHis
     List<BusArrivalHistory> findByBstopIdAndRouteNoAndCreateDateBetweenOrderByCreateDateAsc(
             String bstopId, String routeNo, LocalDateTime start, LocalDateTime end);
 
+    List<BusArrivalHistory> findByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(
+            String bstopId, String routeId, LocalDateTime start, LocalDateTime end);
+
+
     @Modifying
     @Query("DELETE FROM BusArrivalHistory b WHERE b.createDate < :cutoffDate")
     int deleteByCreateDateBefore(@Param("cutoffDate") LocalDateTime cutoffDate);

@@ -84,9 +84,72 @@ public class BusService {
                 : busRouteSectionRepository.findAll();
 
         return sections.stream()
-                .map(BusRouteSectionResponseDto::from)
+                .map(section -> {
+                    BusRouteSectionResponseDto dto = BusRouteSectionResponseDto.from(section);
+                    // DB 실측 데이터 기반 첫차/막차 시각 계산 시도
+                    String dbFirstLastTime = calculateStopFirstLastTime(section.getStartBstopId(), section.getRouteId());
+                    if (dbFirstLastTime != null) {
+                        return BusRouteSectionResponseDto.builder()
+                                .id(dto.getId())
+                                .sectionName(dto.getSectionName())
+                                .category(dto.getCategory())
+                                .tabName(dto.getTabName())
+                                .routeNo(dto.getRouteNo())
+                                .routeId(dto.getRouteId())
+                                .startBstopId(dto.getStartBstopId())
+                                .startBstopName(dto.getStartBstopName())
+                                .endBstopId(dto.getEndBstopId())
+                                .endBstopName(dto.getEndBstopName())
+                                .busNotice(dbFirstLastTime)
+                                .routeNotice(dto.getRouteNotice())
+                                .stops(dto.getStops())
+                                .build();
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
+
+    public String calculateStopFirstLastTime(String bstopId, String routeId) {
+        if (bstopId == null || routeId == null) {
+            return null;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<LocalTime> arrivalTimes = new ArrayList<>();
+
+        for (int i = 0; i < 28; i++) {
+            LocalDate pastDate = now.toLocalDate().minusDays(i);
+            if (pastDate.getDayOfWeek() == now.getDayOfWeek()) {
+                LocalDateTime startOfDay = pastDate.atStartOfDay();
+                LocalDateTime endOfDay = pastDate.atTime(LocalTime.MAX);
+
+                List<BusArrivalHistory> logs = busArrivalHistoryRepository
+                        .findByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(bstopId, routeId, startOfDay, endOfDay);
+
+                for (BusArrivalHistory logItem : logs) {
+                    if (logItem.getArrivalEstimateTime() != null && logItem.getArrivalEstimateTime() <= 180) {
+                        arrivalTimes.add(logItem.getCreateDate().toLocalTime());
+                    }
+                }
+            }
+        }
+
+        if (arrivalTimes.isEmpty()) {
+            return null;
+        }
+
+        LocalTime earliest = arrivalTimes.stream().min(LocalTime::compareTo).orElse(null);
+        LocalTime latest = arrivalTimes.stream().max(LocalTime::compareTo).orElse(null);
+
+        if (earliest == null || latest == null) {
+            return null;
+        }
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
+        return String.format("해당 정류소 실측 첫/막차 | %s ~ %s", earliest.format(fmt), latest.format(fmt));
+    }
+
 
     @Transactional
     public void deleteRouteSection(Long id) {
