@@ -200,7 +200,22 @@ public class BusService {
     public List<BusRouteSectionResponseDto> autoSyncRoutes() {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> rules = getTargetRules();
         List<BusTargetStop> activeTargetStops = busTargetStopRepository.findByIsActiveTrue();
+        if (activeTargetStops.isEmpty()) {
+            List<TargetStopRequestDto> defaults = List.of(
+                    TargetStopRequestDto.builder().bstopId("164000395").bstopName("인천대입구역 2번출구").category("인입런").build(),
+                    TargetStopRequestDto.builder().bstopId("164000396").bstopName("인천대입구역 1번출구").category("인입런").build(),
+                    TargetStopRequestDto.builder().bstopId("164000403").bstopName("지식정보단지역 3번출구").category("지정단런").build(),
+                    TargetStopRequestDto.builder().bstopId("164000385").bstopName("인천대 정문(길 건너)").category("인천대 정문").build(),
+                    TargetStopRequestDto.builder().bstopId("164000377").bstopName("인천대 공과대학").category("공대/자연대").build()
+            );
+            for (TargetStopRequestDto d : defaults) {
+                addTargetStop(d);
+            }
+            activeTargetStops = busTargetStopRepository.findByIsActiveTrue();
+        }
+
         List<BusRouteSectionResponseDto> syncedResults = new ArrayList<>();
+
 
         for (kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule rule : rules) {
             String category = rule.getCategory();
