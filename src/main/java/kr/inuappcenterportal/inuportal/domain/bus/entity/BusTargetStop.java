@@ -23,6 +23,9 @@ public class BusTargetStop extends BaseTimeEntity {
     @Column(name = "bstop_name", nullable = false)
     private String bstopName;
 
+    @Column(name = "stop_alias")
+    private String stopAlias; // 축약명/별칭 (예: "인입", "지정단", "정문", "공대")
+
     @Column(name = "category")
     private String category; // 예: "인입런", "인천대 정문", "기숙사 앞"
 
@@ -30,14 +33,16 @@ public class BusTargetStop extends BaseTimeEntity {
     private Boolean isActive = true;
 
     @Builder
-    public BusTargetStop(String bstopId, String bstopName, String category, Boolean isActive) {
+    public BusTargetStop(String bstopId, String bstopName, String stopAlias, String category, Boolean isActive) {
         this.bstopId = bstopId;
         this.bstopName = bstopName;
+        this.stopAlias = stopAlias;
         this.category = category;
         if (isActive != null) {
             this.isActive = isActive;
         }
     }
+
 
     public void updateActive(boolean isActive) {
         this.isActive = isActive;

@@ -101,6 +101,10 @@ public class BusService {
                         combinedNotice = allocGap;
                     }
 
+                    String alias = busTargetStopRepository.findByBstopId(section.getStartBstopId())
+                            .map(BusTargetStop::getStopAlias)
+                            .orElse(null);
+
                     return BusRouteSectionResponseDto.builder()
                             .id(dto.getId())
                             .sectionName(dto.getSectionName())
@@ -110,6 +114,7 @@ public class BusService {
                             .routeId(dto.getRouteId())
                             .startBstopId(dto.getStartBstopId())
                             .startBstopName(dto.getStartBstopName())
+                            .startBstopAlias(alias)
                             .endBstopId(dto.getEndBstopId())
                             .endBstopName(dto.getEndBstopName())
                             .busNotice(combinedNotice)
@@ -119,6 +124,7 @@ public class BusService {
                 })
                 .collect(Collectors.toList());
     }
+
 
 
     public String calculateStopFirstLastTime(String bstopId, String routeId) {
@@ -167,11 +173,11 @@ public class BusService {
         if (rules.isEmpty()) {
             // 기본 룰 자동 등록
             List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> defaults = List.of(
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startBstopId("164000395").startStopName("인천대입구역 2번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startBstopId("164000396").startStopName("인천대입구역 1번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("지정단런").startBstopId("164000403").startStopName("지식정보단지역 3번출구").targetKeywords("정문,자연,공과,공대,송도캠").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("인천대 정문").startBstopId("164000385").startStopName("인천대 정문(길 건너)").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build(),
-                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("공대/자연대").startBstopId("164000377").startStopName("인천대 공과대학").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build()
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startBstopId("164000395").startStopName("인천대입구역 2번출구").startStopAlias("인입").targetKeywords("정문,자연,공과,공대,송도캠").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("인입런").startBstopId("164000396").startStopName("인천대입구역 1번출구").startStopAlias("인입").targetKeywords("정문,자연,공과,공대,송도캠").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-school").tabName("지정단런").startBstopId("164000403").startStopName("지식정보단지역 3번출구").startStopAlias("지정단").targetKeywords("정문,자연,공과,공대,송도캠").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("인천대 정문").startBstopId("164000385").startStopName("인천대 정문(길 건너)").startStopAlias("정문").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder().category("go-home").tabName("공대/자연대").startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대").targetKeywords("인천대입구역,지식정보단지역,홍대입구").build()
             );
             busTargetRuleRepository.saveAll(defaults);
             rules = busTargetRuleRepository.findAll();
@@ -186,6 +192,7 @@ public class BusService {
                 .tabName(dto.getTabName())
                 .startBstopId(dto.getStartBstopId())
                 .startStopName(dto.getStartStopName())
+                .startStopAlias(dto.getStartStopAlias())
                 .targetKeywords(dto.getTargetKeywords())
                 .build();
 
@@ -194,12 +201,14 @@ public class BusService {
             addTargetStop(TargetStopRequestDto.builder()
                     .bstopId(dto.getStartBstopId())
                     .bstopName(dto.getStartStopName())
+                    .stopAlias(dto.getStartStopAlias())
                     .category(dto.getTabName())
                     .build());
         }
 
         return busTargetRuleRepository.save(rule);
     }
+
 
     @Transactional
     public void deleteTargetRule(Long id) {
@@ -343,11 +352,13 @@ public class BusService {
                 .orElseGet(() -> BusTargetStop.builder()
                         .bstopId(request.getBstopId())
                         .bstopName(request.getBstopName())
+                        .stopAlias(request.getStopAlias())
                         .category(request.getCategory())
                         .isActive(true)
                         .build());
         return busTargetStopRepository.save(targetStop);
     }
+
 
     public List<BusTargetStop> getTargetStops() {
         return busTargetStopRepository.findByIsActiveTrue();

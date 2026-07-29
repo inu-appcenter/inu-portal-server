@@ -41,7 +41,11 @@ public class BusRouteSectionResponseDto {
     @Schema(description = "기점 정류장 명칭", example = "인천대입구역 2번출구")
     private String startBstopName;
 
+    @Schema(description = "기점 정류장 축약명/별칭", example = "인입")
+    private String startBstopAlias;
+
     @Schema(description = "종점 정류장 ID", example = "165000350")
+
     private String endBstopId;
 
     @Schema(description = "종점 정류장 명칭", example = "인천대학교 자연과학대학")
