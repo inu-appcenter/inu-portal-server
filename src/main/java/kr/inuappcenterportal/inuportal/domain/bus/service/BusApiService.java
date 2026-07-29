@@ -31,8 +31,9 @@ public class BusApiService {
     @Value("${busApiKey}")
     private String busApiKey;
 
-    @Value("${bus.api.enabled:true}")
+    @Value("${bus.api.enabled:false}")
     private boolean isApiEnabled;
+
 
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
