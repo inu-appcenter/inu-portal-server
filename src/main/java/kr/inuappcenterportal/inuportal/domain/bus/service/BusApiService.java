@@ -31,14 +31,16 @@ public class BusApiService {
     @Value("${busApiKey}")
     private String busApiKey;
 
+    @Value("${bus.api.enabled:true}")
+    private boolean isApiEnabled;
+
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
     private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteInfoItem";
 
 
     public List<BusArrivalItemDto> fetchBusArrivals(String bstopId) {
-        if (busApiKey == null || busApiKey.isBlank()) {
-            log.warn("인천 버스 API Key가 설정되지 않았습니다.");
+        if (!isApiEnabled || busApiKey == null || busApiKey.isBlank()) {
             return List.of();
         }
 
@@ -65,11 +67,12 @@ public class BusApiService {
     }
 
     public String fetchAllocGap(String routeId) {
-        if (busApiKey == null || busApiKey.isBlank() || routeId == null) {
+        if (!isApiEnabled || busApiKey == null || busApiKey.isBlank() || routeId == null) {
             return null;
         }
 
         try {
+
             String url = String.format("%s?serviceKey=%s&routeId=%s&pageNo=1&numOfRows=10",
                     ROUTE_INFO_API_URL, busApiKey, routeId);
 
@@ -105,10 +108,10 @@ public class BusApiService {
     }
 
     public List<BusRouteStopDto> fetchRouteStops(String routeId) {
-
-        if (busApiKey == null || busApiKey.isBlank()) {
+        if (!isApiEnabled || busApiKey == null || busApiKey.isBlank()) {
             return List.of();
         }
+
 
         try {
             String url = String.format("%s?serviceKey=%s&routeId=%s&pageNo=1&numOfRows=200",

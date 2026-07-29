@@ -24,6 +24,9 @@ public class BusScheduler {
     private final BusTargetStopRepository busTargetStopRepository;
     private final BusArrivalHistoryRepository busArrivalHistoryRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${bus.api.enabled:true}")
+    private boolean isApiEnabled;
+
     /**
      * 30초마다 관리 대상 정류장의 실시간 버스 도착 정보를 DB에 수집
      */
@@ -35,7 +38,13 @@ public class BusScheduler {
     )
     @Transactional
     public void pollTargetStopsArrivalData() {
+        if (!isApiEnabled) {
+            log.trace("공공데이터 버스 API 수집이 일시 중단된 상태입니다. (bus.api.enabled=false)");
+            return;
+        }
+
         List<BusTargetStop> activeStops = busTargetStopRepository.findByIsActiveTrue();
+
         if (activeStops.isEmpty()) {
             return;
         }
