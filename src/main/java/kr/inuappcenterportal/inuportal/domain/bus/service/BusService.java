@@ -106,9 +106,12 @@ public class BusService {
                 .routeNo(request.getRouteNo())
                 .startBstopName(request.getStartStop())
                 .endBstopName(request.getEndStop())
+                .busNotice(request.getBusNotice())
+                .routeNotice(request.getRouteNotice())
                 .build());
 
         // 공공데이터포털에서 노선 경유 정류장 목록 가져와서 슬라이싱
+
         if (section.getRouteId() != null && !section.getRouteId().isBlank()) {
             List<BusRouteStopDto> allStops = busApiService.fetchRouteStops(section.getRouteId());
             List<BusRouteStop> slicedStops = sliceStopsByStartAndEnd(allStops, request.getStartStop(), request.getEndStop());

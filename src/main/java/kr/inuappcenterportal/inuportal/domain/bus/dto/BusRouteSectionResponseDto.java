@@ -47,6 +47,12 @@ public class BusRouteSectionResponseDto {
     @Schema(description = "종점 정류장 명칭", example = "인천대학교 자연과학대학")
     private String endBstopName;
 
+    @Schema(description = "운행 시간 및 배차 간격 안내 문구", example = "운행시간 | 05:54 ~ 00:31\n배차간격 | 5 ~ 13분")
+    private String busNotice;
+
+    @Schema(description = "한 줄 팁 또는 경고 코멘트", example = "많이 돌아가는 노선이니 주의하세요!")
+    private String routeNotice;
+
     @Schema(description = "경유 정류장 및 좌표 목록")
     private List<BusRouteStopDto> stops;
 
@@ -62,6 +68,8 @@ public class BusRouteSectionResponseDto {
                 .startBstopName(section.getStartBstopName())
                 .endBstopId(section.getEndBstopId())
                 .endBstopName(section.getEndBstopName())
+                .busNotice(section.getBusNotice())
+                .routeNotice(section.getRouteNotice())
                 .stops(section.getStops().stream()
                         .map(stop -> BusRouteStopDto.builder()
                                 .seq(stop.getSeq())
@@ -73,4 +81,5 @@ public class BusRouteSectionResponseDto {
                         .collect(Collectors.toList()))
                 .build();
     }
+
 }

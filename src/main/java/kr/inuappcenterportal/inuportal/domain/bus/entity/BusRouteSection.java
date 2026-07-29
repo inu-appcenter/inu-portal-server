@@ -47,6 +47,12 @@ public class BusRouteSection extends BaseTimeEntity {
     @Column(name = "end_bstop_name")
     private String endBstopName;
 
+    @Column(name = "bus_notice", length = 500)
+    private String busNotice; // 운행시간 및 배차간격 안내 (예: "운행시간 | 05:54 ~ 00:31\n배차간격 | 5 ~ 13분")
+
+    @Column(name = "route_notice", length = 500)
+    private String routeNotice; // 한줄 팁/경고 (예: "많이 돌아가는 노선이니 주의하세요!")
+
     @OneToMany(mappedBy = "routeSection", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("seq ASC")
     private List<BusRouteStop> stops = new ArrayList<>();
@@ -54,7 +60,8 @@ public class BusRouteSection extends BaseTimeEntity {
     @Builder
     public BusRouteSection(String sectionName, String category, String tabName,
                            String routeNo, String routeId, String startBstopId,
-                           String startBstopName, String endBstopId, String endBstopName) {
+                           String startBstopName, String endBstopId, String endBstopName,
+                           String busNotice, String routeNotice) {
         this.sectionName = sectionName;
         this.category = category;
         this.tabName = tabName;
@@ -64,7 +71,10 @@ public class BusRouteSection extends BaseTimeEntity {
         this.startBstopName = startBstopName;
         this.endBstopId = endBstopId;
         this.endBstopName = endBstopName;
+        this.busNotice = busNotice;
+        this.routeNotice = routeNotice;
     }
+
 
     public void updateStops(List<BusRouteStop> newStops) {
         this.stops.clear();
