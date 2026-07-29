@@ -36,4 +36,31 @@ public class CourseMeeting {
 
     @Column(name = "end_time")
     private LocalTime endTime;
+
+    private CourseMeeting(
+            CourseOffering courseOffering,
+            String location,
+            Integer sequence,
+            DayOfWeek day,
+            LocalTime startTime,
+            LocalTime endTime
+    ) {
+        this.courseOffering = courseOffering;
+        this.location = location;
+        this.sequence = sequence;
+        this.day = day;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
+    public static CourseMeeting create(
+            CourseOffering courseOffering,
+            String location,
+            Integer sequence,
+            DayOfWeek day,
+            LocalTime startTime,
+            LocalTime endTime
+    ) {
+        return new CourseMeeting(courseOffering, location, sequence, day, startTime, endTime);
+    }
 }
