@@ -26,9 +26,8 @@ public class BusScheduler {
     private final BusTargetStopRepository busTargetStopRepository;
     private final BusArrivalHistoryRepository busArrivalHistoryRepository;
 
-    @Value("${bus.api.enabled:false}")
-    private boolean isApiEnabled;
-
+    // TODO: API 키 갱신 후 true로 변경하여 공공데이터포털 연동 재개 가능
+    private static final boolean IS_API_ENABLED = false;
 
     /**
      * 30초마다 관리 대상 정류장의 실시간 버스 도착 정보를 DB에 수집
@@ -41,10 +40,11 @@ public class BusScheduler {
     )
     @Transactional
     public void pollTargetStopsArrivalData() {
-        if (!isApiEnabled) {
-            log.trace("공공데이터 버스 API 수집이 일시 중단된 상태입니다. (bus.api.enabled=false)");
+        if (!IS_API_ENABLED) {
+            log.trace("공공데이터 버스 API 수집이 일시 중단된 상태입니다.");
             return;
         }
+
 
         List<BusTargetStop> activeStops = busTargetStopRepository.findByIsActiveTrue();
 

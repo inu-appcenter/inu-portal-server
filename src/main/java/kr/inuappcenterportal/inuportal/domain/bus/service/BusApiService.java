@@ -31,9 +31,8 @@ public class BusApiService {
     @Value("${busApiKey}")
     private String busApiKey;
 
-    @Value("${bus.api.enabled:false}")
-    private boolean isApiEnabled;
-
+    // TODO: API 키 갱신 후 true로 변경하여 공공데이터포털 연동 재개 가능
+    private static final boolean IS_API_ENABLED = false;
 
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
@@ -41,9 +40,10 @@ public class BusApiService {
 
 
     public List<BusArrivalItemDto> fetchBusArrivals(String bstopId) {
-        if (!isApiEnabled || busApiKey == null || busApiKey.isBlank()) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank()) {
             return List.of();
         }
+
 
         try {
             String encodedKey = URLEncoder.encode(busApiKey, StandardCharsets.UTF_8);
@@ -68,9 +68,10 @@ public class BusApiService {
     }
 
     public String fetchAllocGap(String routeId) {
-        if (!isApiEnabled || busApiKey == null || busApiKey.isBlank() || routeId == null) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || routeId == null) {
             return null;
         }
+
 
         try {
 
@@ -109,9 +110,10 @@ public class BusApiService {
     }
 
     public List<BusRouteStopDto> fetchRouteStops(String routeId) {
-        if (!isApiEnabled || busApiKey == null || busApiKey.isBlank()) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank()) {
             return List.of();
         }
+
 
 
         try {
