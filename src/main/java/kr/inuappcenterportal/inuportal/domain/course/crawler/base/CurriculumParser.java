@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 @Slf4j
@@ -59,7 +61,7 @@ public class CurriculumParser {
 
             String completionDivision = normalizeDivision(get(row, indexes.divisionIndex()));
             String title = normalizeTitle(get(row, indexes.titleIndex()));
-            Integer credit = indexes.creditIndex();
+            Integer credit = normalizeCredit(get(row, indexes.creditIndex()));
 
             if (isBlank(title) || isLikelyNonCourseRow(title)) {
                 continue;
@@ -485,6 +487,15 @@ public class CurriculumParser {
         return value;
     }
 
+    private Integer normalizeCredit(String value) {
+        Matcher matcher = Pattern.compile("\\d+").matcher(clean(value));
+
+        if (!matcher.find()) {
+            return null;
+        }
+
+        return Integer.parseInt(matcher.group());
+    }
 
     private String clean(String value) {
         if (value == null) {
