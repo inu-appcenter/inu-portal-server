@@ -8,7 +8,9 @@ import kr.inuappcenterportal.inuportal.domain.course.enums.Language;
 import kr.inuappcenterportal.inuportal.domain.course.enums.Method;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
+import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
+import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
@@ -19,6 +21,8 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,12 +38,24 @@ public class CourseOfferingService {
     private final CourseRepository courseRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final SemesterRepository semesterRepository;
+    private final CourseMeetingRepository courseMeetingRepository;
 
     /**
      * 개설 강의 조회
      */
-    public CourseOfferingResponseDto getCourseOffering() {
-        return null;
+    public Page<CourseOfferingResponseDto> getCourseOfferings(
+            Integer year,
+            SemesterTerm term,
+            Pageable pageable) {
+        Semester semester = semesterRepository.findByYearAndTerm(year, term)
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+
+        return courseOfferingRepository.findAllBySemesterId(semester.getId(), pageable)
+                .map(courseOffering -> {
+                    List<CourseMeeting> meetings = courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
+
+                    return CourseOfferingResponseDto.from(courseOffering, meetings);
+                });
     }
 
 
