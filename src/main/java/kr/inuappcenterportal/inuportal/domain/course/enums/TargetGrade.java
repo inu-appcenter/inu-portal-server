@@ -25,9 +25,9 @@ public enum TargetGrade {
 
         return switch (value.trim()) {
             case "1", "1학년" -> FIRST;
-            case "2", "2학년" -> FIRST;
-            case "3", "3학년" -> FIRST;
-            case "4", "4학년" -> FIRST;
+            case "2", "2학년" -> SECOND;
+            case "3", "3학년" -> THIRD;
+            case "4", "4학년" -> FOURTH;
             case "공통" -> COMMON;
             default -> UNKNOWN;
         };
