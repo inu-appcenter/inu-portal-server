@@ -26,7 +26,7 @@ public class CourseMeeting {
     private String location;
 
     @Column(name = "meeting_sequence", nullable = false)
-    private Integer sequence;
+    private String sequence;
 
     @Enumerated(EnumType.STRING)
     private DayOfWeek day;
@@ -40,7 +40,7 @@ public class CourseMeeting {
     private CourseMeeting(
             CourseOffering courseOffering,
             String location,
-            Integer sequence,
+            String sequence,
             DayOfWeek day,
             LocalTime startTime,
             LocalTime endTime
@@ -56,7 +56,7 @@ public class CourseMeeting {
     public static CourseMeeting create(
             CourseOffering courseOffering,
             String location,
-            Integer sequence,
+            String sequence,
             DayOfWeek day,
             LocalTime startTime,
             LocalTime endTime

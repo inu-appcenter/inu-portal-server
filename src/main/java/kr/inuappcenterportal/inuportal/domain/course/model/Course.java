@@ -36,6 +36,9 @@ public class Course extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String title;
 
+    @Column(length = 255)
+    private String englishTitle;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 255)
     private Department department;
@@ -56,8 +59,7 @@ public class Course extends BaseTimeEntity {
     @Column(name = "completion_division", length = 30)
     private CompletionDivision completionDivision;
 
-    @Column(length = 5)
-    private String credit;
+    private Integer credit;
 
     @Column(columnDefinition = "TEXT")
     private String content;
@@ -68,15 +70,17 @@ public class Course extends BaseTimeEntity {
 
     private Course(
             String title,
+            String englishTitle,
             Department department,
             College college,
             TargetGrade targetGrade,
             TargetTerm targetTerm,
             CompletionDivision completionDivision,
-            String credit,
+            Integer credit,
             String content
     ) {
         this.title = title;
+        this.englishTitle = englishTitle;
         this.department = department;
         this.college = college;
         this.targetGrade = targetGrade;
@@ -87,26 +91,28 @@ public class Course extends BaseTimeEntity {
         this.active = true;
     }
 
+    // 생성용 정적 팩토리 메서드
     public static Course create(
             String title,
+            String englishTitle,
             Department department,
             College college,
             TargetGrade targetGrade,
             TargetTerm targetTerm,
             CompletionDivision completionDivision,
-            String credit,
+            Integer credit,
             String content
     ) {
-        return new Course(title, department, college, targetGrade, targetTerm, completionDivision, credit, content);
+        return new Course(title, englishTitle, department, college, targetGrade, targetTerm, completionDivision, credit, content);
     }
 
-    // 교육과정에서 가져올 필수 데이터들에 대한 정적 팩토리 메서드
+    // 교육과정 크롤링에서 가져올 필수 데이터들에 대한 정적 팩토리 메서드
     public static Course create(
             String title,
             Department department,
             College college
     ) {
-        return new Course(title, department, college, null, null, null, null, null);
+        return new Course(title, null, department, college, null, null, null, null, null);
     }
 
 
@@ -114,7 +120,7 @@ public class Course extends BaseTimeEntity {
             TargetGrade targetGrade,
             TargetTerm targetTerm,
             CompletionDivision completionDivision,
-            String credit
+            Integer credit
     ) {
         if (targetGrade != null) {
             this.targetGrade = targetGrade;
@@ -125,7 +131,7 @@ public class Course extends BaseTimeEntity {
         if (completionDivision != null) {
             this.completionDivision = completionDivision;
         }
-        if (credit != null && !credit.isBlank()) {
+        if (credit != null) {
             this.credit = credit;
         }
         this.active = true;
@@ -141,7 +147,7 @@ public class Course extends BaseTimeEntity {
             String courseCode,
             TargetGrade targetGrade,
             CompletionDivision completionDivision,
-            String credit
+            Integer credit
     ) {
         if (courseCode != null && !courseCode.isBlank()) {
             this.courseCode = courseCode;

@@ -8,7 +8,7 @@ import java.time.LocalTime;
 public record CourseMeetingResponseDto(
         Long id,
         String location,
-        Integer sequence,
+        String sequence,
         DayOfWeek day,
         LocalTime startTime,
         LocalTime endTime
