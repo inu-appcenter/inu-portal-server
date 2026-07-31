@@ -102,6 +102,7 @@ public enum MyErrorCode {
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
     DUPLICATE_COURSE_OFFERING(HttpStatus.CONFLICT, "중복된 개설 강의입니다."),
+    INVALID_DAY_OF_WEEK(HttpStatus.CONFLICT, "허용하지 않은 요일입니다."),
 
 
     // Chat 관련 에러 코드 추가
