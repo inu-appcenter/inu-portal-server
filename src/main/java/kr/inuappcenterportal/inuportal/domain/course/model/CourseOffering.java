@@ -60,7 +60,6 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "enrolled_count")
     private Integer enrolledCount;
 
-    @Column(columnDefinition = "TEXT")
     private String note;
 
     // 생성자
@@ -117,5 +116,18 @@ public class CourseOffering extends BaseTimeEntity {
                 enrolledCount,
                 note
         );
+    }
+
+    // api에서 개설 강의로 정보 업데이트 하는 메서드
+    public void updateFromApi(
+            Course course,
+            Department department,
+            Language language,
+            Method method
+    ) {
+        this.course = course;
+        this.targetDepartment = department;
+        this.language = language;
+        this.method = method;
     }
 }
