@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.global.config;
 
 import io.netty.channel.ChannelOption;
-import kr.inuappcenterportal.inuportal.domain.course.dto.SchoolApiProperties;
+import kr.inuappcenterportal.inuportal.domain.course.dto.api.SchoolApiProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;

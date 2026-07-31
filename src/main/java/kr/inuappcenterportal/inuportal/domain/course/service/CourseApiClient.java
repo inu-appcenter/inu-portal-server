@@ -1,8 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.course.service;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.SchoolApiProperties;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
+import kr.inuappcenterportal.inuportal.domain.course.dto.api.SchoolApiProperties;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.SchoolApiResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;

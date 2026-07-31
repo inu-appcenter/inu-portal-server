@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.dto;
+package kr.inuappcenterportal.inuportal.domain.course.dto.api;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
