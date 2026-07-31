@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum Method {
     K_MOOC("K_MOOC"),
     RISE_TIMETABLE("RISE(시간표 있음)"),
-    RISE("RISE(시간표 없음"),
+    RISE("RISE(시간표 없음)"),
     E_LEARNING("e-learning"),
     E_LEARNING_HUSS("e-learning(HUSS)"),
     OFFLINE("강의(이론)"),
@@ -25,8 +25,18 @@ public enum Method {
     THEORY_EXPERIMENT("이론실험실습"),
     SELF("자기설계세미나"),
     EXERCISE("체육실기"),
-    HUSS("현장형(HUSS)");
-
+    HUSS("현장형(HUSS)"),
+    UNKNOWN("알 수 없음");
 
     private final String description;
+
+    public static Method from(String value) {
+        for (Method method : values()) {
+            if (method.description.equals(value)) {
+                return method;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }
