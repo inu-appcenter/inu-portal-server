@@ -1,9 +1,11 @@
-package kr.inuappcenterportal.inuportal.domain.course;
+package kr.inuappcenterportal.inuportal.domain.course.service;
 
+import kr.inuappcenterportal.inuportal.domain.course.dto.SchoolApiProperties;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.SchoolApiResponseDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -14,19 +16,23 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class CourseApiClient {
+
+    @Qualifier("schoolApiWebClient")
     private final WebClient schoolApiWebClient;
+    private final SchoolApiProperties schoolApiProperties;
 
     public SchoolApiResponseDto<CourseOfferingApiItem> fetchCourseOfferings(
             int year,
-            String termCode,
+            String modDate,
             int page
     ) {
         return schoolApiWebClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/course-offerings")
-                        .queryParam("year", year)
-                        .queryParam("termCode", termCode)
-                        .queryParam("page", page)
+                        .path(schoolApiProperties.courseInfoPath())
+                        .queryParam("AUTH_KEY", schoolApiProperties.authKey())
+                        .queryParam("PAGE", page)
+                        .queryParam("MOD_DATE", modDate)
+                        .queryParam("YEAR", year)
                         .build())
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<SchoolApiResponseDto<CourseOfferingApiItem>>() {
@@ -36,15 +42,16 @@ public class CourseApiClient {
 
     public SchoolApiResponseDto<CourseMeetingApiItem> fetchCourseMeetings(
             int year,
-            String termCode,
+            String modDate,
             int page
     ) {
         return schoolApiWebClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/course-meetings")
-                        .queryParam("year", year)
-                        .queryParam("termCode", termCode)
-                        .queryParam("page", page)
+                        .path(schoolApiProperties.courseMeetingInfoPath())
+                        .queryParam("AUTH_KEY", schoolApiProperties.authKey())
+                        .queryParam("PAGE", page)
+                        .queryParam("MOD_DATE", modDate)
+                        .queryParam("YEAR", year)
                         .build())
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<SchoolApiResponseDto<CourseMeetingApiItem>>() {
@@ -52,14 +59,14 @@ public class CourseApiClient {
                 .block();
     }
 
-    public List<CourseOfferingApiItem> fetchAllCourseOfferings(int year, String termCode) {
+    public List<CourseOfferingApiItem> fetchAllCourseOfferings(int year, String modDate) {
         List<CourseOfferingApiItem> result = new ArrayList<>();
 
         int page = 1;
 
         while (true) {
             SchoolApiResponseDto<CourseOfferingApiItem> response =
-                    fetchCourseOfferings(year, termCode, page);
+                    fetchCourseOfferings(year, modDate, page);
 
             if (response == null || response.data() == null || response.data().isEmpty()) {
                 break;
@@ -67,7 +74,7 @@ public class CourseApiClient {
 
             result.addAll(response.data());
 
-            if (page >= response.totalPageSize()) {
+            if (response.totalPageSize() == null || page >= response.totalPageSize()) {
                 break;
             }
 
@@ -77,21 +84,21 @@ public class CourseApiClient {
         return result;
     }
 
-    public List<CourseMeetingApiItem> fetchAllMeetings(int year, String termCode) {
+    public List<CourseMeetingApiItem> fetchAllMeetings(int year, String modDate) {
         List<CourseMeetingApiItem> result = new ArrayList<>();
 
         int page = 1;
 
         while (true) {
             SchoolApiResponseDto<CourseMeetingApiItem> response =
-                    fetchCourseMeetings(year, termCode, page);
+                    fetchCourseMeetings(year, modDate, page);
 
             if (response == null || response.data() == null || response.data().isEmpty()) {
                 break;
             }
             result.addAll(response.data());
 
-            if (page >= response.totalPageSize()) {
+            if (response.totalPageSize() == null || page >= response.totalPageSize()) {
                 break;
             }
 
