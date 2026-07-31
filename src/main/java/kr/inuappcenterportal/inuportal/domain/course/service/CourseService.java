@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.service;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCrawledItemDto;
-import kr.inuappcenterportal.inuportal.domain.course.dto.response.CourseResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseCrawledItemDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.response.CourseResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetTerm;
@@ -83,6 +83,7 @@ public class CourseService {
 
             Course course = Course.create(
                     crawledCourse.title(),
+                    null,
                     department,
                     department.getCollegeName(),
                     targetGrade,

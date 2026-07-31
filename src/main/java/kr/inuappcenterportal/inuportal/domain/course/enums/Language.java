@@ -5,5 +5,11 @@ import lombok.Getter;
 @Getter
 public enum Language {
     KOREAN,
-    ENGLISH
+    ENGLISH;
+
+    public static Language toLanguage(String englishYn) {
+        return "Y".equalsIgnoreCase(englishYn)
+                ? Language.ENGLISH
+                : Language.KOREAN;
+    }
 }

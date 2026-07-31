@@ -19,12 +19,17 @@ public enum TargetGrade {
      * 외부에서 들어온 문자열 값을 enum으로 바꾸는 정적 팩토리 메서드
      */
     public static TargetGrade from(String value) {
-        for (TargetGrade targetGrade : values()) {
-            if (targetGrade.displayName.equals(value)) {
-                return targetGrade;
-            }
+        if (value == null || value.isBlank()) {
+            return UNKNOWN;
         }
 
-        return UNKNOWN;
+        return switch (value.trim()) {
+            case "1", "1학년" -> FIRST;
+            case "2", "2학년" -> SECOND;
+            case "3", "3학년" -> THIRD;
+            case "4", "4학년" -> FOURTH;
+            case "공통" -> COMMON;
+            default -> UNKNOWN;
+        };
     }
 }

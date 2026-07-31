@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.crawler.base;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.CurriculumItemDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CurriculumItemDto;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -59,7 +59,7 @@ public class CurriculumParser {
 
             String completionDivision = normalizeDivision(get(row, indexes.divisionIndex()));
             String title = normalizeTitle(get(row, indexes.titleIndex()));
-            String credit = normalizeCredit(get(row, indexes.creditIndex()));
+            Integer credit = indexes.creditIndex();
 
             if (isBlank(title) || isLikelyNonCourseRow(title)) {
                 continue;
@@ -485,15 +485,6 @@ public class CurriculumParser {
         return value;
     }
 
-    private String normalizeCredit(String value) {
-        value = clean(value);
-
-        if (value.endsWith(".0")) {
-            return value.substring(0, value.length() - 2);
-        }
-
-        return value;
-    }
 
     private String clean(String value) {
         if (value == null) {

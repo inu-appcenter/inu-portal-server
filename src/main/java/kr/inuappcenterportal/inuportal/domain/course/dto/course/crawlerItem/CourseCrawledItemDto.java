@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.dto;
+package kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem;
 
 public record CourseCrawledItemDto(
         String title,
@@ -6,6 +6,6 @@ public record CourseCrawledItemDto(
         String targetGrade,
         String targetTerm,
         String completionDivision,
-        String credit
+        Integer credit
 ) {
 }

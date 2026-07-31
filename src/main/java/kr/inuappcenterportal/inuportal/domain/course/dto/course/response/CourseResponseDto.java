@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.dto.response;
+package kr.inuappcenterportal.inuportal.domain.course.dto.course.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
@@ -41,7 +41,7 @@ public record CourseResponseDto(
         String completionDivisionName,
 
         @Schema(description = "학점", example = "3")
-        String credit,
+        Integer credit,
 
         @Schema(description = "강의개요", example = "운영체제의 Process 구현, 동기화, 기억장치 운영, 자원분배, 시스템 보안 등에 대하여 연구하며, 대형컴퓨터의 사례연구와 실제 설계의 구성 능력을 배양한다.")
         String content,
