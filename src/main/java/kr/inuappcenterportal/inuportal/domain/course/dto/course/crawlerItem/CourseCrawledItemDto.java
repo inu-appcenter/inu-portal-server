@@ -6,6 +6,6 @@ public record CourseCrawledItemDto(
         String targetGrade,
         String targetTerm,
         String completionDivision,
-        String credit
+        Integer credit
 ) {
 }

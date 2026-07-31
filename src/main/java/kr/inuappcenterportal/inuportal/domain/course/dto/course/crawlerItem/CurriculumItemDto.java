@@ -5,6 +5,6 @@ public record CurriculumItemDto(
         String targetTerm,
         String completionDivision,
         String title,
-        String credit
+        Integer credit
 ) {
 }

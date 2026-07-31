@@ -83,6 +83,7 @@ public class CourseService {
 
             Course course = Course.create(
                     crawledCourse.title(),
+                    null,
                     department,
                     department.getCollegeName(),
                     targetGrade,

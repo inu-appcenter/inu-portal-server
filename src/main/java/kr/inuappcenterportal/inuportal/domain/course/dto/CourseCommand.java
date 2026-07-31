@@ -8,9 +8,10 @@ public record CourseCommand(
         Long courseId,
         String courseCode,
         String title,
+        String englishTitle,
         Department department,
         TargetGrade targetGrade,
         CompletionDivision completionDivision,
-        String credit
+        Integer credit
 ) {
 }
