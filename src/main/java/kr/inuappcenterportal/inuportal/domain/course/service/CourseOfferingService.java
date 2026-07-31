@@ -1,15 +1,18 @@
 package kr.inuappcenterportal.inuportal.domain.course.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
-import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingRequestDto;
-import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
+import kr.inuappcenterportal.inuportal.domain.course.enums.Language;
+import kr.inuappcenterportal.inuportal.domain.course.enums.Method;
+import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
-import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
-import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -30,9 +33,7 @@ public class CourseOfferingService {
 
     private final CourseRepository courseRepository;
     private final CourseOfferingRepository courseOfferingRepository;
-    private final CourseMeetingRepository courseMeetingRepository;
     private final SemesterRepository semesterRepository;
-
 
     /**
      * 개설 강의 조회
@@ -46,43 +47,46 @@ public class CourseOfferingService {
      * 개설 강의 생성
      */
     @Transactional
-    public CourseOfferingResponseDto create(CourseOfferingCreateRequestDto request) {
+    public CourseOfferingResponseDto upsertCourseOfferings(CourseOfferingApiItem request) {
 
-        // 기본 강의 데이터 가져오기
+        // 학기 정보 가져오기
+        Semester semester = semesterRepository.findByYearAndTerm(
+                Integer.parseInt(request.year()),
+                SemesterTerm.mapToTermCode(request.termCode())
+        ).orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+
+        // 개설 강의와 연결할 기본 강의: 있으면 사용, 없으면 생성
         Course course = resolveCourse(toCourseCommand(request));
 
-        // 현재 학기 가져오기
-        Semester semester = semesterRepository.findById(request.semesterId())
-                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+        // 중복되는 개설 강의가 있으면 업데이트, 없으면 새로 생성
+        CourseOffering offering = courseOfferingRepository
+                .findBySemesterIdAndSubjectNumber(semester.getId(), request.haksuCode())
+                .map(existing -> {
+                    existing.updateFromApi(
+                            course,
+                            Department.from(request.deptName()),
+                            Language.toLanguage(request.englishYn()),
+                            Method.from(request.suupTypeName())
+                    );
+                    return existing;
+                })
+                .orElseGet(() -> courseOfferingRepository.save(
+                        CourseOffering.create(
+                                null,
+                                request.haksuCode(),
+                                Method.from(request.suupTypeName()),
+                                null,
+                                course,
+                                semester,
+                                Department.from(request.deptName()),
+                                Language.toLanguage(request.englishYn()),
+                                null,
+                                null,
+                                null
+                        )
+                ));
 
-        // 학기+학수번호로 중복되는 개설 강의 검증
-        if (courseOfferingRepository.existsBySemesterIdAndSubjectNumber(
-                semester.getId(),
-                request.subjectNumber())
-        ) {
-            throw new MyException(MyErrorCode.DUPLICATE_COURSE_OFFERING);
-        }
-
-        // 개설 강의 생성
-        CourseOffering offering = CourseOffering.create(
-                request.syllabus(),
-                request.subjectNumber(),
-                request.method(),
-                request.professor(),
-                course,
-                semester,
-                request.targetDepartment(),
-                request.language(),
-                request.capacity(),
-                request.enrolledCount(),
-                request.note()
-        );
-
-        CourseOffering saved = courseOfferingRepository.save(offering);
-
-        List<CourseMeeting> meetings = saveMeetings(saved, request.meetings());
-
-        return CourseOfferingResponseDto.from(saved, meetings);
+        return CourseOfferingResponseDto.from(offering, List.of());
     }
 
     /**
@@ -129,6 +133,7 @@ public class CourseOfferingService {
         // 그래도 없으면 Course를 새로 생성
         Course course = Course.create(
                 command.title(),
+                command.englishTitle(),
                 command.department(),
                 command.department().getCollegeName(),
                 command.targetGrade(),
@@ -141,44 +146,19 @@ public class CourseOfferingService {
         return courseRepository.save(course);
     }
 
-    /**
-     * 해당 개설 강의에 딸려있는 시간 저장하는 메서드
-     */
-    private List<CourseMeeting> saveMeetings(
-            CourseOffering courseOffering,
-            List<CourseMeetingRequestDto> meetingRequests
-    ) {
-        if (meetingRequests == null || meetingRequests.isEmpty()) {
-            return List.of();
-        }
-
-        List<CourseMeeting> meetings = meetingRequests.stream()
-                .map(request -> CourseMeeting.create(
-                        courseOffering,
-                        request.location(),
-                        request.sequence(),
-                        request.day(),
-                        request.startTime(),
-                        request.endTime()
-                ))
-                .toList();
-
-        return courseMeetingRepository.saveAll(meetings);
-    }
-
     // 개설 강의 생성 dto로 내부 객체 생성
-    private CourseCommand toCourseCommand(CourseOfferingCreateRequestDto request) {
+    private CourseCommand toCourseCommand(CourseOfferingApiItem item) {
         return new CourseCommand(
-                request.courseId(),
                 null,
-                request.courseTitle(),
-                request.department(),
-                null,
-                null,
-                null
+                item.courseCode(),
+                item.courseNameKor(),
+                item.courseNameEng(),
+                Department.from(item.deptName()),
+                TargetGrade.from(item.hyName()),
+                CompletionDivision.from(item.isuName()),
+                item.credit()
         );
     }
-
 
     /**
      * 개설 강의 수정
