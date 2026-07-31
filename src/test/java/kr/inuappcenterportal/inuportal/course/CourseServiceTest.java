@@ -36,7 +36,7 @@ public class CourseServiceTest {
     @DisplayName("크롤링된 강의가 DB에 없으면 새로 저장한다")
     void 신규_강의_저장_테스트() {
         List<CourseCrawledItemDto> crawledCourses = List.of(
-                crawledCourse("운영체제", "운영체제 설명", "2학년", "1학기", "전필", "3")
+                crawledCourse("운영체제", "운영체제 설명", "2학년", "1학기", "전필", 3)
         );
 
         courseService.applyCrawledCourses(Department.COMPUTER_ENGINEERING, crawledCourses);
@@ -48,7 +48,7 @@ public class CourseServiceTest {
         assertThat(course.getTargetGrade()).isEqualTo(TargetGrade.SECOND);
         assertThat(course.getTargetTerm()).isEqualTo(TargetTerm.FIRST);
         assertThat(course.getCompletionDivision()).isEqualTo(CompletionDivision.ESSENTIAL_MAJOR);
-        assertThat(course.getCredit()).isEqualTo("3");
+        assertThat(course.getCredit()).isEqualTo(3);
         assertThat(course.getContent()).isEqualTo("운영체제 설명");
         assertThat(course.isActive()).isTrue();
     }
@@ -59,11 +59,11 @@ public class CourseServiceTest {
     void 기존_강의_수정_테스트() {
         Course existingCourse = courseRepository.save(
                 course("운영체제", Department.COMPUTER_ENGINEERING, TargetGrade.SECOND, TargetTerm.FIRST,
-                        CompletionDivision.ESSENTIAL_MAJOR, "2", "기존 설명")
+                        CompletionDivision.ESSENTIAL_MAJOR, 2, "기존 설명")
         );
 
         List<CourseCrawledItemDto> crawledCourses = List.of(
-                crawledCourse("운영체제", "변경된 설명", "3학년", "2학기", "전선", "3")
+                crawledCourse("운영체제", "변경된 설명", "3학년", "2학기", "전선", 3)
         );
 
         courseService.applyCrawledCourses(Department.COMPUTER_ENGINEERING, crawledCourses);
@@ -75,7 +75,7 @@ public class CourseServiceTest {
         assertThat(updatedCourse.getTargetGrade()).isEqualTo(TargetGrade.THIRD);
         assertThat(updatedCourse.getTargetTerm()).isEqualTo(TargetTerm.SECOND);
         assertThat(updatedCourse.getCompletionDivision()).isEqualTo(CompletionDivision.SELECT_MAJOR);
-        assertThat(updatedCourse.getCredit()).isEqualTo("3");
+        assertThat(updatedCourse.getCredit()).isEqualTo(3);
         assertThat(updatedCourse.getContent()).isEqualTo("변경된 설명");
         assertThat(updatedCourse.isActive()).isTrue();
 
@@ -88,15 +88,15 @@ public class CourseServiceTest {
     void 누락된_강의_비활성화_테스트() {
         courseRepository.save(
                 course("운영체제", Department.COMPUTER_ENGINEERING, TargetGrade.SECOND, TargetTerm.FIRST,
-                        CompletionDivision.ESSENTIAL_MAJOR, "3", "운영체제 설명")
+                        CompletionDivision.ESSENTIAL_MAJOR, 3, "운영체제 설명")
         );
         courseRepository.save(
                 course("자료구조", Department.COMPUTER_ENGINEERING, TargetGrade.FIRST, TargetTerm.SECOND,
-                        CompletionDivision.SELECT_MAJOR, "3", "자료구조 설명")
+                        CompletionDivision.SELECT_MAJOR, 3, "자료구조 설명")
         );
 
         List<CourseCrawledItemDto> crawledCourses = List.of(
-                crawledCourse("운영체제", "운영체제 설명", "2학년", "1학기", "전필", "3")
+                crawledCourse("운영체제", "운영체제 설명", "2학년", "1학기", "전필", 3)
         );
 
         courseService.applyCrawledCourses(Department.COMPUTER_ENGINEERING, crawledCourses);
@@ -120,14 +120,14 @@ public class CourseServiceTest {
                 TargetGrade.SECOND,
                 TargetTerm.FIRST,
                 CompletionDivision.ESSENTIAL_MAJOR,
-                "3",
+                3,
                 "기존 설명"
         );
         inactiveCourse.deactivate();
         courseRepository.save(inactiveCourse);
 
         List<CourseCrawledItemDto> crawledCourses = List.of(
-                crawledCourse("운영체제", "다시 열린 강의", "2학년", "1학기", "전필", "3")
+                crawledCourse("운영체제", "다시 열린 강의", "2학년", "1학기", "전필", 3)
         );
 
         courseService.applyCrawledCourses(Department.COMPUTER_ENGINEERING, crawledCourses);
@@ -147,11 +147,11 @@ public class CourseServiceTest {
 
         courseRepository.save(
                 course("운영체제", Department.COMPUTER_ENGINEERING, TargetGrade.SECOND, TargetTerm.FIRST,
-                        CompletionDivision.ESSENTIAL_MAJOR, "3", "운영체제 설명")
+                        CompletionDivision.ESSENTIAL_MAJOR, 3, "운영체제 설명")
         );
         Course otherDepartmentCourse = courseRepository.save(
                 course("영문학개론", otherDepartment, TargetGrade.FIRST, TargetTerm.FIRST,
-                        CompletionDivision.ESSENTIAL_MAJOR, "3", "영문학 설명")
+                        CompletionDivision.ESSENTIAL_MAJOR, 3, "영문학 설명")
         );
 
         courseService.applyCrawledCourses(Department.COMPUTER_ENGINEERING, List.of());
@@ -173,7 +173,7 @@ public class CourseServiceTest {
             String targetGrade,
             String targetTerm,
             String completionDivision,
-            String credit
+            Integer credit
     ) {
         return new CourseCrawledItemDto(
                 title,
@@ -191,11 +191,12 @@ public class CourseServiceTest {
             TargetGrade targetGrade,
             TargetTerm targetTerm,
             CompletionDivision completionDivision,
-            String credit,
+            Integer credit,
             String content
     ) {
         return Course.create(
                 title,
+                null,
                 department,
                 department.getCollegeName(),
                 targetGrade,
