@@ -36,7 +36,12 @@ public class CourseOfferingSyncService {
                 courseApiClient.fetchAllCourseOfferings(year, modDate);
 
         for (CourseOfferingApiItem item : items) {
-            courseOfferingService.upsertCourseOfferings(item);
+            try {
+                courseOfferingService.upsertCourseOfferings(item);
+            } catch (Exception e) {
+                log.warn("개설 강의 동기화 스킵. year={}, termCode={}, haksuCode={}, reason={}",
+                        item.year(), item.termCode(), item.haksuCode(), e.getMessage());
+            }
         }
     }
 
