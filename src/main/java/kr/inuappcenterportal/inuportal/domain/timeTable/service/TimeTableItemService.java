@@ -60,18 +60,18 @@ public class TimeTableItemService {
             throw new MyException(MyErrorCode.NO_MATCH_SEMESTER);
         }
 
-        // 생성용
-        List<CourseMeeting> meetings = courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
-        if (meetings.isEmpty()) {
-            throw new MyException(MyErrorCode.MEETINGS_NOT_FOUND);
+        if (timeTableItemRepository.existsByTimeTableIdAndCourseOfferingId(timeTableId, courseOfferingId)) {
+            throw new MyException(MyErrorCode.DUPLICATE_TIMETABLE_COURSE_ITEM);
         }
 
-        // 검증용
-        List<TimeSlot> timeSlots = toTimeSlots(meetings);
+        // 생성용
+        List<CourseMeeting> meetings = courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
+        if (!meetings.isEmpty()) {
+            List<TimeSlot> timeSlots = toTimeSlots(meetings);
 
-        // 중복 일정 검증
-        validateNoRequestTimeConflict(timeSlots);
-        validateNoDBTimeConflict(timeTableId, timeSlots);
+            validateNoRequestTimeConflict(timeSlots);
+            validateNoDBTimeConflict(timeTableId, timeSlots);
+        }
 
         TimeTableItem courseItem = TimeTableItem.createForCourse(memo, timeTable, courseOffering);
 

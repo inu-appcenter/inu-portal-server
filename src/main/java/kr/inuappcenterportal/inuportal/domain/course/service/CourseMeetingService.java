@@ -50,7 +50,13 @@ public class CourseMeetingService {
             // 찾은 학기와 학수코드로 개설 강의 찾기
             CourseOffering courseOffering = courseOfferingRepository
                     .findBySemesterIdAndSubjectNumber(semester.getId(), key.haksuCode())
-                    .orElseThrow(() -> new MyException(MyErrorCode.COURSE_OFFERING_NOT_FOUND));
+                    .orElse(null);
+
+            if (courseOffering == null) {
+                log.warn("강의 시간 정보에 해당하는 개설 강의를 찾을 수 없습니다. year={}, termCode={}, haksuCode={}",
+                        key.year(), key.termCode(), key.haksuCode());
+                continue;
+            }
 
             // 업데이트가 될 떄 기존 시간 정보를 지웠다가 다시 생성(이게 더 안전하고 효율적, 데이터가 적어서)
             courseMeetingRepository.deleteAllByCourseOfferingId(courseOffering.getId());
