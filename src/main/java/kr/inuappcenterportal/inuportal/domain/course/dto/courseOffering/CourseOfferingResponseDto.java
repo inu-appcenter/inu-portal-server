@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import java.util.List;
 
 public record CourseOfferingResponseDto(
+        Long id,
         String syllabus,
         String subjectNumber,
         Method method,
@@ -30,6 +31,7 @@ public record CourseOfferingResponseDto(
 
     public static CourseOfferingResponseDto from(CourseOffering courseOffering, List<CourseMeeting> meetings) {
         return new CourseOfferingResponseDto(
+                courseOffering.getId(),
                 courseOffering.getSyllabus(),
                 courseOffering.getSubjectNumber(),
                 courseOffering.getMethod(),
