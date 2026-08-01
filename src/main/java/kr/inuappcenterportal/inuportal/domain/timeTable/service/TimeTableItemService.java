@@ -48,18 +48,23 @@ public class TimeTableItemService {
             Long timeTableId,
             Long courseOfferingId
     ) {
+        // 시간표 가져오기
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
+        // 시간표 유저 검증
         validateOwner(memberId, timeTable);
 
+        // 개설 강의 가져오기
         CourseOffering courseOffering = courseOfferingRepository.findById(courseOfferingId)
                 .orElseThrow(() -> new MyException(MyErrorCode.COURSE_OFFERING_NOT_FOUND));
 
+        // 시간표의 학기와 개설 겅의 학기가 맞는지 검증
         if (!courseOffering.getSemester().getId().equals(timeTable.getSemester().getId())) {
             throw new MyException(MyErrorCode.NO_MATCH_SEMESTER);
         }
 
+        // 동일한 개설 강의 요소가 들어가는지 검증
         if (timeTableItemRepository.existsByTimeTableIdAndCourseOfferingId(timeTableId, courseOfferingId)) {
             throw new MyException(MyErrorCode.DUPLICATE_TIMETABLE_COURSE_ITEM);
         }
@@ -143,6 +148,7 @@ public class TimeTableItemService {
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM_IN_TIMETABLE);
         }
 
+        // 수정하려는 시간표 요소가 커스텀인지 아닌지 검증
         if (updatetimeTableItem.getType() != TimeTableItemType.CUSTOM)
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM);
 
