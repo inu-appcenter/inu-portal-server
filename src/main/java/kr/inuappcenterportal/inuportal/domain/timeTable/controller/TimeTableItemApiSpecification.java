@@ -85,15 +85,26 @@ public interface TimeTableItemApiSpecification {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ResponseDto.class),
-                            examples = @ExampleObject(
-                                    name = "강의 시간 중복 응답 예시",
-                                    value = """
-                                            {
-                                              "data": null,
-                                              "msg": "동일한 시간의 시간표 요소가 존재합니다."
-                                            }
-                                            """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "강의 시간 중복 응답 예시",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "동일한 시간의 시간표 요소가 존재합니다."
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "동일 개설 강의 중복 응답 예시",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "이미 시간표에 추가된 개설 강의입니다."
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             )
     })
