@@ -1,7 +1,7 @@
 name: "[Dev] CI & CD"
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch: { }
 
 permissions:
   contents: read
@@ -87,7 +87,7 @@ jobs:
           host: ${{ secrets.HOST_ADDRESS }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_KEY }}
-          port : ${{ secrets.SERVER_PORT }}
+          port: ${{ secrets.SERVER_PORT }}
           script: |
             set -e
             
@@ -109,6 +109,10 @@ jobs:
               --shm-size=2gb \
               -p 8104:8080 \
               -e TZ=Asia/Seoul \
+              -e SCHOOL_API_BASE_URL="${{ secrets.SCHOOL_API_BASE_URL }}" \
+              -e SCHOOL_API_AUTH_KEY="${{ secrets.SCHOOL_API_AUTH_KEY }}" \
+              -e SCHOOL_API_COURSE_INFO_PATH="${{ secrets.SCHOOL_API_COURSE_INFO_PATH }}" \
+              -e SCHOOL_API_COURSE_TIMETABLE_PATH="${{ secrets.SCHOOL_API_COURSE_TIMETABLE_PATH }}" \
               -v ${{ secrets.MOUNT_PATH }}:/intip \
               -v ${{ secrets.MOUNT_PATH }}-dev:/intip-dev \
               --name ${{ secrets.APPLICATION_NAME }}-dev ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev

@@ -47,7 +47,7 @@ public class CourseApiClient {
     ) {
         return schoolApiWebClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path(schoolApiProperties.courseMeetingInfoPath())
+                        .path(schoolApiProperties.courseTimetablePath())
                         .queryParam("AUTH_KEY", schoolApiProperties.authKey())
                         .queryParam("PAGE", page)
                         .queryParam("MOD_DATE", modDate)

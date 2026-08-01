@@ -7,6 +7,6 @@ public record SchoolApiProperties(
         String baseUrl,
         String authKey,
         String courseInfoPath,
-        String courseMeetingInfoPath
+        String courseTimetablePath
 ) {
 }
