@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -88,7 +89,7 @@ public interface CourseOfferingApiSpecification {
                     년도와 학기 기준으로 개설 강의 목록을 페이지네이션하여 조회합니다.
                     
                     응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
-                    page는 0부터 시작하며, 기본 size는 20입니다.
+                    page는 0부터 시작하며, 기본 size는 50입니다.
                     """
     )
     @ApiResponses(value = {
@@ -133,7 +134,7 @@ public interface CourseOfferingApiSpecification {
                                                 ],
                                                 "totalElements": 1,
                                                 "totalPages": 1,
-                                                "size": 20,
+                                                "size": 50,
                                                 "number": 0
                                               },
                                               "msg": "개설 강의 목록 조회 성공"
@@ -172,10 +173,7 @@ public interface CourseOfferingApiSpecification {
             )
             @RequestParam SemesterTerm term,
 
-            @Parameter(
-                    description = "페이지 정보입니다. page는 0부터 시작하고 기본 size는 20입니다. 예: page=0&size=20",
-                    example = "page=0&size=20"
-            )
+            @ParameterObject
             Pageable pageable
     );
 }

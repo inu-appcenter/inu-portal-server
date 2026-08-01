@@ -28,6 +28,10 @@ public interface TimeTableItemApiSpecification {
             description = """
                     로그인한 사용자가 소유한 시간표에 강의 기반 시간표 요소를 추가합니다.
                     <br><br>
+                    요청한 개설 강의는 시간표와 같은 학기에 속해야 하며, 강의 시간 정보가 존재해야 합니다.
+                    <br>
+                    강의 시간이 같은 요청 안에서 겹치거나, 기존 시간표 요소와 겹치면 생성할 수 없습니다.
+                    <br><br>
                     생성 응답은 시간표 요소의 최소 정보만 반환합니다.
                     화면 갱신에 필요한 강의명, 강의 시간 등 상세 정보는 시간표 상세 조회 API를 다시 호출해 조회합니다.
                     """
@@ -57,7 +61,7 @@ public interface TimeTableItemApiSpecification {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "존재하지 않는 시간표/강의이거나, 시간표와 강의 학기가 일치하지 않거나, 접근 권한이 없습니다.",
+                    description = "요청값이 올바르지 않거나, 존재하지 않는 시간표/개설 강의이거나, 시간표와 개설 강의의 학기가 일치하지 않거나, 접근 권한이 없습니다.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ResponseDto.class),
@@ -67,6 +71,40 @@ public interface TimeTableItemApiSpecification {
                                             {
                                               "data": null,
                                               "msg": "시간표의 학기와 강의의 학기가 일치하지 않습니다."
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "개설 강의의 시간 정보가 존재하지 않습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "강의 시간 정보 없음 응답 예시",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "시간 정보가 존재하지 않습니다."
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "개설 강의의 시간 정보가 같은 강의 안에서 겹치거나, 기존 시간표 요소와 겹칩니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "강의 시간 중복 응답 예시",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "동일한 시간의 시간표 요소가 존재합니다."
                                             }
                                             """
                             )
@@ -83,6 +121,22 @@ public interface TimeTableItemApiSpecification {
                     example = "1"
             )
             @PathVariable Long timeTableId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = TimeTableCourseItemRequestDto.class),
+                            examples = @ExampleObject(
+                                    name = "강의 시간표 요소 생성 요청 예시",
+                                    value = """
+                                            {
+                                              "memo": "중간고사 중요",
+                                              "courseOfferingId": 101
+                                            }
+                                            """
+                            )
+                    )
+            )
             @RequestBody @Valid TimeTableCourseItemRequestDto request
     );
 

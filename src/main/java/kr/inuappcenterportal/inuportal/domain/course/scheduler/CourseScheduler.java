@@ -5,9 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncS
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,18 +18,6 @@ public class CourseScheduler {
     private final CourseCrawlerService courseCrawlerService;
     private final CourseOfferingSyncService courseOfferingSyncService;
 
-    /**
-     * 서버 시작 시 강의 기본 정보를 1회 동기화
-     */
-    @EventListener(ApplicationReadyEvent.class)
-    public void syncBaseCoursesOnStartup() {
-        try {
-            log.info("강의 기본 정보 동기화 시작");
-            courseCrawlerService.syncBaseCourses();
-        } catch (Exception e) {
-            log.warn("강의 기본 정보 동기화 실패", e);
-        }
-    }
 
     /**
      * 매월 1일 오전 4시에 동기화 메서드 실행
