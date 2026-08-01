@@ -1,7 +1,9 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
+import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.CustomScheduleMeetingCommand;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
@@ -33,6 +35,8 @@ public class TimeTableItemService {
     private final TimeTableRepository timeTableRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final CustomScheduleService customScheduleService;
+    private final CourseMeetingRepository courseMeetingRepository;
+
 
     /**
      * 강의 기반 시간표 요소 생성 메서드
@@ -47,14 +51,27 @@ public class TimeTableItemService {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
+        validateOwner(memberId, timeTable);
+
         CourseOffering courseOffering = courseOfferingRepository.findById(courseOfferingId)
-                .orElseThrow(() -> new MyException(MyErrorCode.COURSE_NOT_FOUND));
+                .orElseThrow(() -> new MyException(MyErrorCode.COURSE_OFFERING_NOT_FOUND));
 
         if (!courseOffering.getSemester().getId().equals(timeTable.getSemester().getId())) {
             throw new MyException(MyErrorCode.NO_MATCH_SEMESTER);
         }
 
-        validateOwner(memberId, timeTable);
+        // 생성용
+        List<CourseMeeting> meetings = courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
+        if (meetings.isEmpty()) {
+            throw new MyException(MyErrorCode.MEETINGS_NOT_FOUND);
+        }
+
+        // 검증용
+        List<TimeSlot> timeSlots = toTimeSlots(meetings);
+
+        // 중복 일정 검증
+        validateNoRequestTimeConflict(timeSlots);
+        validateNoDBTimeConflict(timeTableId, timeSlots);
 
         TimeTableItem courseItem = TimeTableItem.createForCourse(memo, timeTable, courseOffering);
 
@@ -80,7 +97,7 @@ public class TimeTableItemService {
         validateOwner(memberId, timeTable);
 
         // 생성용
-        List<CustomScheduleMeetingCommand> meetings = toCommands(request);
+        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request);
         // 검증용
         List<TimeSlot> timeSlots = toTimeSlots(request);
 
@@ -133,7 +150,7 @@ public class TimeTableItemService {
         CustomSchedule customSchedule = updatetimeTableItem.getCustomSchedule();
 
         // 생성용
-        List<CustomScheduleMeetingCommand> meetings = toCommands(request);
+        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request);
         // 검증용
         List<TimeSlot> timeSlots = toTimeSlots(request);
 
@@ -151,7 +168,7 @@ public class TimeTableItemService {
     }
 
     // 중복 변환 로직 분리
-    private List<CustomScheduleMeetingCommand> toCommands(TimeTableCustomItemRequestDto request) {
+    private List<CustomScheduleMeetingCommand> toCustomCommands(TimeTableCustomItemRequestDto request) {
         return request.meetings().stream()
                 .map(meeting -> new CustomScheduleMeetingCommand(
                         meeting.location(),
@@ -162,12 +179,24 @@ public class TimeTableItemService {
                 .toList();
     }
 
+    // 커스텀 일정용
     private List<TimeSlot> toTimeSlots(TimeTableCustomItemRequestDto request) {
         return request.meetings().stream()
                 .map(meeting -> new TimeSlot(
                         meeting.day(),
                         meeting.startTime(),
                         meeting.endTime()
+                ))
+                .toList();
+    }
+
+    // 개설 강의용
+    private List<TimeSlot> toTimeSlots(List<CourseMeeting> meetings) {
+        return meetings.stream()
+                .map(meeting -> new TimeSlot(
+                        meeting.getDay(),
+                        meeting.getStartTime(),
+                        meeting.getEndTime()
                 ))
                 .toList();
     }
