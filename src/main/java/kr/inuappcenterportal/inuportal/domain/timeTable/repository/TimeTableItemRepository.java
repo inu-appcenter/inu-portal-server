@@ -15,6 +15,8 @@ public interface TimeTableItemRepository extends JpaRepository<TimeTableItem, Lo
 
     List<TimeTableItem> findAllByTimeTableId(Long timeTableId);
 
+    boolean existsByTimeTableIdAndCourseOfferingId(Long timeTableId, Long courseOfferingId);
+
     @Query("""
             select case when count(item) > 0 then true else false end
             from TimeTableItem item
