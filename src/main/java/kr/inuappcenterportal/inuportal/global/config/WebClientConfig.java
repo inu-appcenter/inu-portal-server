@@ -38,7 +38,7 @@ public class WebClientConfig {
     public WebClient schoolApiWebClient(SchoolApiProperties properties) {
         return WebClient.builder()
                 .baseUrl(properties.baseUrl())
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(20 * 1024 * 1024))
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }
