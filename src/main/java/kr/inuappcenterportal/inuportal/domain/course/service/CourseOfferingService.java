@@ -27,7 +27,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,16 +48,27 @@ public class CourseOfferingService {
     public Page<CourseOfferingResponseDto> getCourseOfferings(
             Integer year,
             SemesterTerm term,
-            Pageable pageable) {
+            Pageable pageable
+    ) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
 
-        return courseOfferingRepository.findAllBySemesterId(semester.getId(), pageable)
-                .map(courseOffering -> {
-                    List<CourseMeeting> meetings = courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
+        Page<CourseOffering> courseOfferings =
+                courseOfferingRepository.findAllBySemesterId(semester.getId(), pageable);
 
-                    return CourseOfferingResponseDto.from(courseOffering, meetings);
-                });
+        List<Long> courseOfferingIds = courseOfferings.getContent().stream().map(CourseOffering::getId).toList();
+
+        Map<Long, List<CourseMeeting>> meetingsByCourseOfferingId =
+                courseMeetingRepository.findAllByCourseOfferingIdIn(courseOfferingIds).stream()
+                        .collect(Collectors.groupingBy(
+                                meeting -> meeting.getCourseOffering().getId()
+                        ));
+
+        return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
+                        courseOffering,
+                        meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
+                )
+        );
     }
 
 
