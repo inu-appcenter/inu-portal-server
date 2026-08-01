@@ -98,6 +98,7 @@ public enum MyErrorCode {
     TIMETABLE_ITEM_TIME_CONFLICT(HttpStatus.CONFLICT, "시간표 요소의 시간이 중복입니다."),
     TIMETABLE_ITEM_TIME_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소를 추가할 수 없습니다."),
     TIMETABLE_ITEM_TIME_DB_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소가 존재합니다."),
+    DUPLICATE_TIMETABLE_COURSE_ITEM(HttpStatus.CONFLICT, "이미 시간표에 추가된 개설 강의입니다."),
     PRIVATE_TIMETABLE(HttpStatus.FORBIDDEN, "비공개된 시간표입니다."),
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),

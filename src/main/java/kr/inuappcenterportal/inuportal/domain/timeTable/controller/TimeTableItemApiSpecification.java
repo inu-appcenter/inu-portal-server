@@ -28,9 +28,12 @@ public interface TimeTableItemApiSpecification {
             description = """
                     로그인한 사용자가 소유한 시간표에 강의 기반 시간표 요소를 추가합니다.
                     <br><br>
-                    요청한 개설 강의는 시간표와 같은 학기에 속해야 하며, 강의 시간 정보가 존재해야 합니다.
+                    요청한 개설 강의는 시간표와 같은 학기에 속해야 합니다.
                     <br>
-                    강의 시간이 같은 요청 안에서 겹치거나, 기존 시간표 요소와 겹치면 생성할 수 없습니다.
+                    개설 강의에 시간 정보가 있는 경우에만 시간 중복 검사를 수행합니다.
+                    강의 시간이 같은 강의 안에서 겹치거나, 기존 시간표 요소와 겹치면 생성할 수 없습니다.
+                    <br>
+                    온라인 강의 또는 시간 미정 강의처럼 시간 정보가 없는 개설 강의도 시간표 요소로 추가할 수 있습니다.
                     <br><br>
                     생성 응답은 시간표 요소의 최소 정보만 반환합니다.
                     화면 갱신에 필요한 강의명, 강의 시간 등 상세 정보는 시간표 상세 조회 API를 다시 호출해 조회합니다.
@@ -77,37 +80,31 @@ public interface TimeTableItemApiSpecification {
                     )
             ),
             @ApiResponse(
-                    responseCode = "404",
-                    description = "개설 강의의 시간 정보가 존재하지 않습니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ResponseDto.class),
-                            examples = @ExampleObject(
-                                    name = "강의 시간 정보 없음 응답 예시",
-                                    value = """
-                                            {
-                                              "data": null,
-                                              "msg": "시간 정보가 존재하지 않습니다."
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
                     responseCode = "409",
-                    description = "개설 강의의 시간 정보가 같은 강의 안에서 겹치거나, 기존 시간표 요소와 겹칩니다.",
+                    description = "이미 같은 시간표에 추가된 개설 강의이거나, 개설 강의에 시간 정보가 있는 경우 강의 시간끼리 겹치거나 기존 시간표 요소와 시간이 겹칩니다.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ResponseDto.class),
-                            examples = @ExampleObject(
-                                    name = "강의 시간 중복 응답 예시",
-                                    value = """
-                                            {
-                                              "data": null,
-                                              "msg": "동일한 시간의 시간표 요소가 존재합니다."
-                                            }
-                                            """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "강의 시간 중복 응답 예시",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "동일한 시간의 시간표 요소가 존재합니다."
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "동일 개설 강의 중복 응답 예시",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "이미 시간표에 추가된 개설 강의입니다."
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             )
     })

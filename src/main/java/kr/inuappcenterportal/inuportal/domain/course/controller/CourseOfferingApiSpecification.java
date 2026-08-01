@@ -31,6 +31,7 @@ public interface CourseOfferingApiSpecification {
                     
                     CourseOffering은 YEAR + TERM_CODE + HAKSU_CODE 기준으로 식별합니다.
                     CourseMeeting은 기존 시간을 삭제한 뒤 최신 API 응답 기준으로 다시 저장합니다.
+                    강의 시간 API에만 존재하고 매칭되는 CourseOffering이 없는 시간 정보는 로그를 남기고 스킵합니다.
                     """
     )
     @ApiResponses(value = {
@@ -89,6 +90,8 @@ public interface CourseOfferingApiSpecification {
                     년도와 학기 기준으로 개설 강의 목록을 페이지네이션하여 조회합니다.
                     
                     응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
+                    CourseOffering의 id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
+                    온라인 강의 또는 시간 미정 강의는 CourseMeeting 목록이 빈 배열일 수 있습니다.
                     page는 0부터 시작하며, 기본 size는 50입니다.
                     """
     )
@@ -106,6 +109,7 @@ public interface CourseOfferingApiSpecification {
                                               "data": {
                                                 "content": [
                                                   {
+                                                    "id": 10,
                                                     "syllabus": null,
                                                     "subjectNumber": "2000259001",
                                                     "method": "OFFLINE",
