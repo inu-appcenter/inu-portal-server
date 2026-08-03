@@ -48,13 +48,13 @@ public class CourseOfferingService {
     public Page<CourseOfferingResponseDto> getCourseOfferings(
             Integer year,
             SemesterTerm term,
-            DEPT_NAME deptCode,
-            COLLEGE_NAME collegeCode,
-            HY_NAME hyCode,
-            ISU_NAME isuCode,
-            ISU_FLD_NAME isuFldCode,
-            SSUP_TYPE_NAME ssupTypeCode,
-            ENGLISH_NAME englishCode,
+            String deptName,
+            String collegeName,
+            String hyName,
+            String isuName,
+            String isuFldName,
+            String ssupTypeName,
+            String englishName,
             Integer credit,
             String keyword,
             Pageable pageable
@@ -64,13 +64,13 @@ public class CourseOfferingService {
 
         CourseOfferingSearchCondition condition = new CourseOfferingSearchCondition(
                 semester.getId(),
-                deptCode,
-                collegeCode,
-                hyCode,
-                isuCode,
-                isuFldCode,
-                ssupTypeCode,
-                englishCode,
+                toDeptName(deptName),
+                toCollegeName(collegeName),
+                toHyName(hyName),
+                toIsuName(isuName),
+                toIsuFldName(isuFldName),
+                toSsupTypeName(ssupTypeName),
+                toEnglishName(englishName),
                 credit,
                 keyword
         );
@@ -91,6 +91,38 @@ public class CourseOfferingService {
                 courseOffering,
                 meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
         ));
+    }
+
+    private DEPT_NAME toDeptName(String value) {
+        return isBlank(value) ? null : DEPT_NAME.from(value);
+    }
+
+    private COLLEGE_NAME toCollegeName(String value) {
+        return isBlank(value) ? null : COLLEGE_NAME.from(value);
+    }
+
+    private HY_NAME toHyName(String value) {
+        return isBlank(value) ? null : HY_NAME.from(value);
+    }
+
+    private ISU_NAME toIsuName(String value) {
+        return isBlank(value) ? null : ISU_NAME.from(value);
+    }
+
+    private ISU_FLD_NAME toIsuFldName(String value) {
+        return isBlank(value) ? null : ISU_FLD_NAME.from(value);
+    }
+
+    private SSUP_TYPE_NAME toSsupTypeName(String value) {
+        return isBlank(value) ? null : SSUP_TYPE_NAME.from(value);
+    }
+
+    private ENGLISH_NAME toEnglishName(String value) {
+        return isBlank(value) ? null : ENGLISH_NAME.from(value);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
 
