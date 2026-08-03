@@ -1,9 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.course.enums.Language;
-import kr.inuappcenterportal.inuportal.domain.course.enums.Method;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
@@ -35,9 +33,6 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "subject_number")
     private String subjectNumber;
 
-    @Enumerated(EnumType.STRING)
-    private Method method;
-
     private String professor;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -49,11 +44,39 @@ public class CourseOffering extends BaseTimeEntity {
     private Semester semester;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_department")
-    private Department targetDepartment;
+    @Column(name = "cnctr_isu_name", nullable = false)
+    private CNCTR_ISU_NAME cnctrIsuName;
 
     @Enumerated(EnumType.STRING)
-    private Language language;
+    @Column(name = "dept_name", nullable = false)
+    private DEPT_NAME deptName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "college_name", nullable = false)
+    private COLLEGE_NAME collegeName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "isu_fld_name", nullable = false)
+    private ISU_FLD_NAME isuFldName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "isu_name", nullable = false)
+    private ISU_NAME isuName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ssup_type_name", nullable = false)
+    private SSUP_TYPE_NAME ssupTypeName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "hy_name", nullable = false)
+    private HY_NAME hyName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "english_name", nullable = false)
+    private ENGLISH_NAME englishName;
+
+    @Column(nullable = false)
+    private Integer credit;
 
     private Integer capacity;
 
@@ -66,24 +89,36 @@ public class CourseOffering extends BaseTimeEntity {
     private CourseOffering(
             String syllabus,
             String subjectNumber,
-            Method method,
             String professor,
             Course course,
             Semester semester,
-            Department targetDepartment,
-            Language language,
+            CNCTR_ISU_NAME cnctrIsuName,
+            DEPT_NAME deptName,
+            COLLEGE_NAME collegeName,
+            ISU_FLD_NAME isuFldName,
+            ISU_NAME isuName,
+            SSUP_TYPE_NAME ssupTypeName,
+            HY_NAME hyName,
+            ENGLISH_NAME englishName,
+            Integer credit,
             Integer capacity,
             Integer enrolledCount,
             String note
     ) {
         this.syllabus = syllabus;
         this.subjectNumber = subjectNumber;
-        this.method = method;
         this.professor = professor;
         this.course = course;
         this.semester = semester;
-        this.targetDepartment = targetDepartment;
-        this.language = language;
+        this.cnctrIsuName = cnctrIsuName;
+        this.deptName = deptName;
+        this.collegeName = collegeName;
+        this.isuFldName = isuFldName;
+        this.isuName = isuName;
+        this.ssupTypeName = ssupTypeName;
+        this.hyName = hyName;
+        this.englishName = englishName;
+        this.credit = credit;
         this.capacity = capacity;
         this.enrolledCount = enrolledCount;
         this.note = note;
@@ -93,12 +128,18 @@ public class CourseOffering extends BaseTimeEntity {
     public static CourseOffering create(
             String syllabus,
             String subjectNumber,
-            Method method,
             String professor,
             Course course,
             Semester semester,
-            Department targetDepartment,
-            Language language,
+            CNCTR_ISU_NAME cnctrIsuName,
+            DEPT_NAME deptName,
+            COLLEGE_NAME collegeName,
+            ISU_FLD_NAME isuFldName,
+            ISU_NAME isuName,
+            SSUP_TYPE_NAME ssupTypeName,
+            HY_NAME hyName,
+            ENGLISH_NAME englishName,
+            Integer credit,
             Integer capacity,
             Integer enrolledCount,
             String note
@@ -106,28 +147,49 @@ public class CourseOffering extends BaseTimeEntity {
         return new CourseOffering(
                 syllabus,
                 subjectNumber,
-                method,
                 professor,
                 course,
                 semester,
-                targetDepartment,
-                language,
+                cnctrIsuName,
+                deptName,
+                collegeName,
+                isuFldName,
+                isuName,
+                ssupTypeName,
+                hyName,
+                englishName,
+                credit,
                 capacity,
                 enrolledCount,
                 note
         );
     }
 
-    // api에서 개설 강의로 정보 업데이트 하는 메서드
+    /**
+     * 중복되는 개설 강의가 있을 떄(semester+haksu) api에서 개설 강의의 정보 업데이트 하는 메서드
+     * (예를 들어 편람이 업데이트가 된 경우)
+     */
     public void updateFromApi(
             Course course,
-            Department department,
-            Language language,
-            Method method
+            CNCTR_ISU_NAME cnctrIsuName,
+            DEPT_NAME deptName,
+            COLLEGE_NAME collegeName,
+            ISU_FLD_NAME isuFldName,
+            ISU_NAME isuName,
+            SSUP_TYPE_NAME ssupTypeName,
+            HY_NAME hyName,
+            ENGLISH_NAME englishName,
+            Integer credit
     ) {
         this.course = course;
-        this.targetDepartment = department;
-        this.language = language;
-        this.method = method;
+        this.cnctrIsuName = cnctrIsuName;
+        this.deptName = deptName;
+        this.collegeName = collegeName;
+        this.isuFldName = isuFldName;
+        this.isuName = isuName;
+        this.ssupTypeName = ssupTypeName;
+        this.hyName = hyName;
+        this.englishName = englishName;
+        this.credit = credit;
     }
 }
