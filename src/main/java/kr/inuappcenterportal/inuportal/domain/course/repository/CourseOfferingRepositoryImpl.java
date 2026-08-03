@@ -3,11 +3,11 @@ package kr.inuappcenterportal.inuportal.domain.course.repository;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -22,10 +22,15 @@ import static kr.inuappcenterportal.inuportal.domain.course.model.QCourseOfferin
 import static kr.inuappcenterportal.inuportal.domain.semester.model.QSemester.semester;
 
 @Repository
-@RequiredArgsConstructor
 public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCustom {
 
     private final JPAQueryFactory jpaQueryFactory;
+
+    // @DataJpaTest에서는 전체 설정이 다 올라가지 않기 때문에 QuerydslConfig가 올라가지 않아 JPAQueryFactory Bean이 없음
+    // 따라서 Bean 주입대신 EntityManager를 주입시긴다.
+    public CourseOfferingRepositoryImpl(EntityManager entityManager) {
+        this.jpaQueryFactory = new JPAQueryFactory(entityManager);
+    }
 
     @Override
     public Page<CourseOffering> search(CourseOfferingSearchCondition condition, Pageable pageable) {
