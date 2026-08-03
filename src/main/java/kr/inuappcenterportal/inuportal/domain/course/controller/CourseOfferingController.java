@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncService;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;

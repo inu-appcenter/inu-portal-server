@@ -5,7 +5,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

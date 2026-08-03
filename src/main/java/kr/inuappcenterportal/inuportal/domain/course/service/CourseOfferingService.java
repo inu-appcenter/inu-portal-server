@@ -8,7 +8,6 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOf
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;

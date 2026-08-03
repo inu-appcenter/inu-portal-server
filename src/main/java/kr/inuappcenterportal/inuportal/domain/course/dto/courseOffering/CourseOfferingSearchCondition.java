@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 
 import java.util.List;
