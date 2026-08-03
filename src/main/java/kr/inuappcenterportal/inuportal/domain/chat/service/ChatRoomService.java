@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoomMember;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatMemberStatus;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomStatus;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.MessageType;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.*;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
@@ -99,6 +100,8 @@ public class ChatRoomService {
         int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
         int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
+        MessageType messageType = messageDto.getMessageType() != null ? messageDto.getMessageType() : MessageType.TEXT;
+
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
                 .roomId(messageDto.getRoomId())
@@ -107,6 +110,8 @@ public class ChatRoomService {
                 .senderChatRoomMemberId(senderChatRoomMember.getId())
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
+                .messageType(messageType)
+                .extraData(messageDto.getExtraData())
                 .unreadCount(initialUnreadCount)
                 .createDate(now)
                 .build();
@@ -124,6 +129,8 @@ public class ChatRoomService {
                 .content(messageDto.getContent())
                 .senderNickname(nickname)
                 .imageCount(messageDto.getImageCount())
+                .messageType(messageType)
+                .extraData(messageDto.getExtraData())
                 .createDate(now)
                 .modifiedDate(now)
                 .build();

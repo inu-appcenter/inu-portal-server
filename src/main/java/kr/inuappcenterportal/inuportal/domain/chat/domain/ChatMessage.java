@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.chat.domain;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.MessageType;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
@@ -36,14 +37,23 @@ public class ChatMessage extends BaseTimeEntity {
     @Column(name = "imageCount", nullable = false)
     private int imageCount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "messageType")
+    private MessageType messageType;
+
+    @Column(name = "extraData", length = 2000)
+    private String extraData;
+
     @Builder
-    public ChatMessage(Long id, ChatRoom chatRoom, Member sender, String content, String senderNickname, int imageCount, LocalDateTime createDate, LocalDateTime modifiedDate) {
+    public ChatMessage(Long id, ChatRoom chatRoom, Member sender, String content, String senderNickname, int imageCount, MessageType messageType, String extraData, LocalDateTime createDate, LocalDateTime modifiedDate) {
         this.id = id;
         this.chatRoom = chatRoom;
         this.sender = sender;
         this.content = content;
         this.senderNickname = senderNickname;
         this.imageCount = imageCount;
+        this.messageType = messageType != null ? messageType : MessageType.TEXT;
+        this.extraData = extraData;
         this.createDate = createDate;
         this.modifiedDate = modifiedDate;
     }
