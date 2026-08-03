@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

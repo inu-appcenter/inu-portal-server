@@ -1,8 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingRequestDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.Language;
-import kr.inuappcenterportal.inuportal.domain.course.enums.Method;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.Language;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.Method;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 
 import java.util.List;
