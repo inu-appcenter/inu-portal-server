@@ -120,7 +120,7 @@ public interface CourseOfferingApiSpecification {
                                                     "courseId": 10,
                                                     "courseCode": "2000259",
                                                     "courseTitle": "영어회화",
-                                                    "courseTItleEng": "English Conversation",
+                                                    "courseTitleEng": "English Conversation",
                                                     "semesterId": 3,
                                                     "year": 2026,
                                                     "term": "SECOND",
