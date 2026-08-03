@@ -91,6 +91,7 @@ public interface CourseOfferingApiSpecification {
                     
                     응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
                     CourseOffering의 id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
+                    xxxCode 필드는 서버 enum의 name() 값이며, xxxName 필드는 사용자에게 표시할 한글명입니다.
                     온라인 강의 또는 시간 미정 강의는 CourseMeeting 목록이 빈 배열일 수 있습니다.
                     page는 0부터 시작하며, 기본 size는 50입니다.
                     """
@@ -114,10 +115,13 @@ public interface CourseOfferingApiSpecification {
                                                     "subjectNumber": "2000259001",
                                                     "professor": null,
                                                     "courseId": 10,
+                                                    "courseCode": "2000259",
                                                     "courseTitle": "영어회화",
+                                                    "courseTItleEng": "English Conversation",
                                                     "semesterId": 3,
                                                     "year": 2026,
                                                     "term": "SECOND",
+                                                    "termName": "2학기",
                                                     "cnctrIsuCode": "NORMAL",
                                                     "cnctrIsuName": "일반(1~15주)",
                                                     "deptCode": "ENGLISH_LANGUAGE_LITERATURE",
