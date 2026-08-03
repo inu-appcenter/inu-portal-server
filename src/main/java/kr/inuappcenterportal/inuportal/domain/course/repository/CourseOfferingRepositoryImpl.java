@@ -76,10 +76,10 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
                 meetingOverlapBuilder.or(
                         courseMeeting.day.eq(meeting.day())
                                 .and(courseMeeting.startTime.lt(meeting.endTime()))
-                                .and((courseMeeting.endTime.gt(meeting.startTime())))
+                                .and(courseMeeting.endTime.gt(meeting.startTime()))
                 );
             }
-            
+
             if (condition.filterMode() == MeetingFilterMode.HAS_CLASS) {
                 builder.and(
                         JPAExpressions
