@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -165,7 +166,7 @@ public class CourseOfferingService {
 
 
     private CourseOfferingMeetingFilter toMeetingFilter(String value) {
-        String[] parts = value.split(",");
+        String[] parts = value.contains("|") ? value.split("\\|") : value.split(",");
 
         if (parts.length != 3) {
             throw new MyException(MyErrorCode.INVALID_INPUT);
@@ -194,10 +195,27 @@ public class CourseOfferingService {
             return List.of();
         }
 
-        return values.stream()
+        List<String> filteredValues = values.stream()
                 .filter(value -> value != null && !value.isBlank())
-                .map(this::toMeetingFilter)
                 .toList();
+
+        if (filteredValues.isEmpty()) {
+            return List.of();
+        }
+
+        if (filteredValues.stream().noneMatch(value -> value.contains("|") || value.contains(","))) {
+            if (filteredValues.size() % 3 != 0) {
+                throw new MyException(MyErrorCode.INVALID_INPUT);
+            }
+
+            List<CourseOfferingMeetingFilter> meetingFilters = new ArrayList<>();
+            for (int i = 0; i < filteredValues.size(); i += 3) {
+                meetingFilters.add(toMeetingFilter(String.join("|", filteredValues.subList(i, i + 3))));
+            }
+            return meetingFilters;
+        }
+
+        return filteredValues.stream().map(this::toMeetingFilter).toList();
     }
 
 
