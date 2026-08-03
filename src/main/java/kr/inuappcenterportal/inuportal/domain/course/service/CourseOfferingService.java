@@ -5,8 +5,8 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiIt
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.Language;
-import kr.inuappcenterportal.inuportal.domain.course.enums.Method;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
@@ -93,9 +93,14 @@ public class CourseOfferingService {
                 .map(existing -> {
                     existing.updateFromApi(
                             course,
-                            Department.from(request.deptName()),
-                            Language.toLanguage(request.englishYn()),
-                            Method.from(request.suupTypeName())
+                            CNCTR_ISU_NAME.from(request.cnctrIsuName()),
+                            DEPT_NAME.from(request.deptName()),
+                            COLLEGE_NAME.from(request.collegeName()),
+                            ISU_FLD_NAME.from(request.isuFldName()),
+                            ISU_NAME.from(request.isuName()),
+                            SSUP_TYPE_NAME.from(request.suupTypeName()),
+                            CREDIT.from(request.credit().toString()),
+                            Language.toLanguage(request.englishYn())
                     );
                     return existing;
                 })
@@ -103,11 +108,16 @@ public class CourseOfferingService {
                         CourseOffering.create(
                                 null,
                                 request.haksuCode(),
-                                Method.from(request.suupTypeName()),
                                 null,
                                 course,
                                 semester,
-                                Department.from(request.deptName()),
+                                CNCTR_ISU_NAME.from(request.cnctrIsuName()),
+                                DEPT_NAME.from(request.deptName()),
+                                COLLEGE_NAME.from(request.collegeName()),
+                                ISU_FLD_NAME.from(request.isuFldName()),
+                                ISU_NAME.from(request.isuName()),
+                                SSUP_TYPE_NAME.from(request.suupTypeName()),
+                                CREDIT.from(request.credit().toString()),
                                 Language.toLanguage(request.englishYn()),
                                 null,
                                 null,
