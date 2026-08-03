@@ -45,6 +45,11 @@ public class BusScheduler {
             return;
         }
 
+        // 운행 시간대(05:00~24:00)에만 수집
+        int currentHour = java.time.LocalTime.now().getHour();
+        if (currentHour >= 0 && currentHour < 5) {
+            return;
+        }
 
         List<BusTargetStop> activeStops = busTargetStopRepository.findByIsActiveTrue();
 
