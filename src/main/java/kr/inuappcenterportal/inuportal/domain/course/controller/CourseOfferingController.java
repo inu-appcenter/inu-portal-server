@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncService;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -35,13 +34,13 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
     public ResponseEntity<ResponseDto<Page<CourseOfferingResponseDto>>> getCourseOfferings(
             @RequestParam Integer year,
             @RequestParam SemesterTerm term,
-            @RequestParam(required = false) DEPT_NAME deptCode,
-            @RequestParam(required = false) COLLEGE_NAME collegeCode,
-            @RequestParam(required = false) HY_NAME hyCode,
-            @RequestParam(required = false) ISU_NAME isuCode,
-            @RequestParam(required = false) ISU_FLD_NAME isuFldCode,
-            @RequestParam(required = false) SSUP_TYPE_NAME ssupTypeCode,
-            @RequestParam(required = false) ENGLISH_NAME englishCode,
+            @RequestParam(required = false) String deptName,
+            @RequestParam(required = false) String collegeName,
+            @RequestParam(required = false) String hyName,
+            @RequestParam(required = false) String isuName,
+            @RequestParam(required = false) String isuFldName,
+            @RequestParam(required = false) String ssupTypeName,
+            @RequestParam(required = false) String englishName,
             @RequestParam(required = false) Integer credit,
             @RequestParam(required = false) String keyword,
             @ParameterObject @PageableDefault(size = 50) Pageable pageable
@@ -51,13 +50,13 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
                         courseOfferingService.getCourseOfferings(
                                 year,
                                 term,
-                                deptCode,
-                                collegeCode,
-                                hyCode,
-                                isuCode,
-                                isuFldCode,
-                                ssupTypeCode,
-                                englishCode,
+                                deptName,
+                                collegeName,
+                                hyName,
+                                isuName,
+                                isuFldName,
+                                ssupTypeName,
+                                englishName,
                                 credit,
                                 keyword,
                                 pageable

@@ -29,32 +29,32 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
 
         builder.and(courseOffering.semester.id.eq(condition.semesterId()));
 
-        if (condition.deptCode() != null) {
-            builder.and(courseOffering.deptName.eq(condition.deptCode()));
+        if (condition.deptName() != null) {
+            builder.and(courseOffering.deptName.eq(condition.deptName()));
         }
 
-        if (condition.collegeCode() != null) {
-            builder.and(courseOffering.collegeName.eq(condition.collegeCode()));
+        if (condition.collegeName() != null) {
+            builder.and(courseOffering.collegeName.eq(condition.collegeName()));
         }
 
-        if (condition.hyCode() != null) {
-            builder.and(courseOffering.hyName.eq(condition.hyCode()));
+        if (condition.hyName() != null) {
+            builder.and(courseOffering.hyName.eq(condition.hyName()));
         }
 
-        if (condition.isuCode() != null) {
-            builder.and(courseOffering.isuName.eq(condition.isuCode()));
+        if (condition.isuName() != null) {
+            builder.and(courseOffering.isuName.eq(condition.isuName()));
         }
 
-        if (condition.isuFldCode() != null) {
-            builder.and(courseOffering.isuFldName.eq(condition.isuFldCode()));
+        if (condition.isuFldName() != null) {
+            builder.and(courseOffering.isuFldName.eq(condition.isuFldName()));
         }
 
-        if (condition.ssupTypeCode() != null) {
-            builder.and(courseOffering.ssupTypeName.eq(condition.ssupTypeCode()));
+        if (condition.ssupTypeName() != null) {
+            builder.and(courseOffering.ssupTypeName.eq(condition.ssupTypeName()));
         }
 
-        if (condition.englishCode() != null) {
-            builder.and(courseOffering.englishName.eq(condition.englishCode()));
+        if (condition.englishName() != null) {
+            builder.and(courseOffering.englishName.eq(condition.englishName()));
         }
 
         if (condition.credit() != null) {
