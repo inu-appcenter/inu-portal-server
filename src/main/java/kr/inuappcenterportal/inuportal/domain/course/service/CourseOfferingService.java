@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,8 +173,15 @@ public class CourseOfferingService {
         }
 
         DayOfWeek day = toDayOfWeek(parts[0].trim());
-        LocalTime startTime = LocalTime.parse(parts[1].trim());
-        LocalTime endTime = LocalTime.parse(parts[2].trim());
+        LocalTime startTime;
+        LocalTime endTime;
+
+        try {
+            startTime = LocalTime.parse(parts[1].trim());
+            endTime = LocalTime.parse(parts[2].trim());
+        } catch (DateTimeParseException e) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
 
         if (!startTime.isBefore(endTime)) {
             throw new MyException(MyErrorCode.FASTER_THAN_ENDTIME);
