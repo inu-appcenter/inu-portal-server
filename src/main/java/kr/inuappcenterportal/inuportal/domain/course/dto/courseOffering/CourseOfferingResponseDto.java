@@ -14,11 +14,14 @@ public record CourseOfferingResponseDto(
         String professor,
 
         Long courseId,
+        String courseCode,
         String courseTitle,
+        String courseTItleEng,
 
         Long semesterId,
         Integer year,
         SemesterTerm term,
+        String termName,
 
         String cnctrIsuCode,
         String cnctrIsuName,
@@ -59,10 +62,13 @@ public record CourseOfferingResponseDto(
                 courseOffering.getSubjectNumber(),
                 courseOffering.getProfessor(),
                 courseOffering.getCourse().getId(),
+                courseOffering.getCourse().getCourseCode(),
                 courseOffering.getCourse().getTitle(),
+                courseOffering.getCourse().getEnglishTitle(),
                 courseOffering.getSemester().getId(),
                 courseOffering.getSemester().getYear(),
                 courseOffering.getSemester().getTerm(),
+                courseOffering.getSemester().getTerm().getDisplayName(),
                 courseOffering.getCnctrIsuName().name(),
                 courseOffering.getCnctrIsuName().getDescription(),
                 courseOffering.getDeptName().name(),
