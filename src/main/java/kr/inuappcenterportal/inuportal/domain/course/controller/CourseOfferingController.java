@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncService;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -45,6 +46,8 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
             @RequestParam(required = false) List<String> ssupTypeNames,
             @RequestParam(required = false) List<Integer> credits,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) MeetingFilterMode meetingFilterMode,
+            @RequestParam(required = false) List<String> meetings,
             @RequestParam(defaultValue = "0") Integer page
     ) {
         Pageable pageable = PageRequest.of(page, COURSE_OFFERING_PAGE_SIZE);
@@ -62,6 +65,8 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
                                 ssupTypeNames,
                                 credits,
                                 keyword,
+                                meetingFilterMode,
+                                meetings,
                                 pageable
                         ),
                         "개설 강의 목록 조회 성공"
