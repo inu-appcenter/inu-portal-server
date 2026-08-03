@@ -333,24 +333,17 @@ public class CourseOfferingService {
         }
 
         // 그래도 없으면 Course를 새로 생성
-        Course course = Course.create(
+        Course course = Course.createFromApi(
+                command.courseCode(),
                 command.title(),
                 command.englishTitle(),
                 command.department(),
                 command.department().getCollegeName(),
                 command.targetGrade(),
-                null,
-                command.completionDivision(),
-                command.credit(),
-                null
-        );
-        course.updateApiInfo(
-                command.courseCode(),
-                command.englishTitle(),
-                command.targetGrade(),
                 command.completionDivision(),
                 command.credit()
         );
+
         return courseRepository.save(course);
     }
 
