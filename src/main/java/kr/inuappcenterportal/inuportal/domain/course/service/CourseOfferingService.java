@@ -4,7 +4,6 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
-import kr.inuappcenterportal.inuportal.domain.course.enums.Language;
 import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
@@ -99,8 +98,9 @@ public class CourseOfferingService {
                             ISU_FLD_NAME.from(request.isuFldName()),
                             ISU_NAME.from(request.isuName()),
                             SSUP_TYPE_NAME.from(request.suupTypeName()),
-                            CREDIT.from(request.credit().toString()),
-                            Language.toLanguage(request.englishYn())
+                            HY_NAME.from(request.hyName()),
+                            ENGLISH_NAME.from(request.englishName()),
+                            request.credit()
                     );
                     return existing;
                 })
@@ -117,8 +117,9 @@ public class CourseOfferingService {
                                 ISU_FLD_NAME.from(request.isuFldName()),
                                 ISU_NAME.from(request.isuName()),
                                 SSUP_TYPE_NAME.from(request.suupTypeName()),
-                                CREDIT.from(request.credit().toString()),
-                                Language.toLanguage(request.englishYn()),
+                                HY_NAME.from(request.hyName()),
+                                ENGLISH_NAME.from(request.englishName()),
+                                request.credit(),
                                 null,
                                 null,
                                 null

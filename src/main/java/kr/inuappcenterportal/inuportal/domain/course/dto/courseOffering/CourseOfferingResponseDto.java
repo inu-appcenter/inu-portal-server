@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.Language;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -39,10 +38,14 @@ public record CourseOfferingResponseDto(
         String ssupTypeCode,
         String ssupTypeName,
 
-        String creditCode,
-        String creditName,
+        String hyCode,
+        String hyName,
 
-        Language language,
+        String englishCode,
+        String englishName,
+
+        Integer credit,
+
         Integer capacity,
         Integer enrolledCount,
         String note,
@@ -72,9 +75,11 @@ public record CourseOfferingResponseDto(
                 courseOffering.getIsuName().getDescription(),
                 courseOffering.getSsupTypeName().name(),
                 courseOffering.getSsupTypeName().getDescription(),
-                courseOffering.getCredit().name(),
-                courseOffering.getCredit().getDescription(),
-                courseOffering.getLanguage(),
+                courseOffering.getHyName().name(),
+                courseOffering.getHyName().getDescription(),
+                courseOffering.getEnglishName().name(),
+                courseOffering.getEnglishName().getDescription(),
+                courseOffering.getCredit(),
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
                 courseOffering.getNote(),
