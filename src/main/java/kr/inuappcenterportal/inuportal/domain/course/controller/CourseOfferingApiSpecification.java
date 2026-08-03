@@ -364,7 +364,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string", allowableValues = {"1", "2", "3", "4", "전학년"})),
+                    array = @ArraySchema(schema = @Schema(type = "string")),
                     example = "2"
             )
             @RequestParam(required = false) List<String> hyNames,
@@ -374,20 +374,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(
-                            type = "string",
-                            allowableValues = {
-                                    "교직",
-                                    "군사학",
-                                    "기초교양",
-                                    "심화교양",
-                                    "일반선택",
-                                    "전공기초",
-                                    "전공심화",
-                                    "전공핵심",
-                                    "핵심교양"
-                            }
-                    )),
+                    array = @ArraySchema(schema = @Schema(type = "string")),
                     example = "전공심화"
             )
             @RequestParam(required = false) List<String> isuNames,
@@ -397,30 +384,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(
-                            type = "string",
-                            allowableValues = {
-                                    "(핵심)INU세미나",
-                                    "(핵심)과학기술",
-                                    "(핵심)사회",
-                                    "(핵심)예술체육",
-                                    "(핵심)외국어",
-                                    "(핵심)인문",
-                                    "과학기술",
-                                    "교직",
-                                    "군사학",
-                                    "기초과학ㆍ공학",
-                                    "사회",
-                                    "예술체육",
-                                    "외국어",
-                                    "인문",
-                                    "일반선택",
-                                    "전공기초",
-                                    "전공심화",
-                                    "전공핵심",
-                                    "학문의기초"
-                            }
-                    )),
+                    array = @ArraySchema(schema = @Schema(type = "string")),
                     example = "전공심화"
             )
             @RequestParam(required = false) List<String> isuFldNames,
@@ -430,31 +394,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(
-                            type = "string",
-                            allowableValues = {
-                                    "K-MOOC",
-                                    "RISE(시간표 없음)",
-                                    "RISE(시간표 있음)",
-                                    "e-Learning",
-                                    "e-Learning(HUSS)",
-                                    "강의(이론)",
-                                    "담장너머~,사회봉사(1)",
-                                    "미술실기",
-                                    "사회봉사(2)",
-                                    "사회봉사(3)",
-                                    "실험실습",
-                                    "열린사이버대학(OCU)",
-                                    "예술체육실기",
-                                    "온라인혼합형강좌",
-                                    "온라인혼합형강좌(HUSS)",
-                                    "이론(어학)",
-                                    "이론실험실습",
-                                    "자기설계세미나",
-                                    "체육실기",
-                                    "현장형(HUSS)"
-                            }
-                    )),
+                    array = @ArraySchema(schema = @Schema(type = "string")),
                     example = "이론(어학)"
             )
             @RequestParam(required = false) List<String> ssupTypeNames,
@@ -464,7 +404,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "integer", allowableValues = {"1", "2", "3", "4"})),
+                    array = @ArraySchema(schema = @Schema(type = "integer")),
                     example = "3"
             )
             @RequestParam(required = false) List<Integer> credits,
