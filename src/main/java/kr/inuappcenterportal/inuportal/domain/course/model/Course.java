@@ -20,6 +20,10 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(
                         name = "uk_course_title_department",
                         columnNames = {"title", "department"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_course_course_code",
+                        columnNames = {"course_code"}
                 )
         }
 )
