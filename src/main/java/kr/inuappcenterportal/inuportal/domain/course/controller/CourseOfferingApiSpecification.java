@@ -324,8 +324,7 @@ public interface CourseOfferingApiSpecification {
                                     "화학과",
                                     "환경공학전공"
                             }
-                    ),
-                    example = "컴퓨터공학부"
+                    )
             )
             @RequestParam(required = false) String deptName,
 
@@ -354,8 +353,7 @@ public interface CourseOfferingApiSpecification {
                                     "자연과학대학",
                                     "정보기술대학"
                             }
-                    ),
-                    example = "정보기술대학"
+                    )
             )
             @RequestParam(required = false) String collegeName,
 
@@ -364,8 +362,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string")),
-                    example = "2"
+                    array = @ArraySchema(schema = @Schema(type = "string"))
             )
             @RequestParam(required = false) List<String> hyNames,
 
@@ -374,8 +371,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string")),
-                    example = "전공심화"
+                    array = @ArraySchema(schema = @Schema(type = "string"))
             )
             @RequestParam(required = false) List<String> isuNames,
 
@@ -384,8 +380,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string")),
-                    example = "전공심화"
+                    array = @ArraySchema(schema = @Schema(type = "string"))
             )
             @RequestParam(required = false) List<String> isuFldNames,
 
@@ -394,8 +389,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string")),
-                    example = "이론(어학)"
+                    array = @ArraySchema(schema = @Schema(type = "string"))
             )
             @RequestParam(required = false) List<String> ssupTypeNames,
 
@@ -404,8 +398,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "integer")),
-                    example = "3"
+                    array = @ArraySchema(schema = @Schema(type = "integer"))
             )
             @RequestParam(required = false) List<Integer> credits,
 
@@ -420,8 +413,7 @@ public interface CourseOfferingApiSpecification {
                     schema = @Schema(
                             implementation = MeetingFilterMode.class,
                             allowableValues = {"HAS_CLASS", "NO_CLASS"}
-                    ),
-                    example = "HAS_CLASS"
+                    )
             )
             @RequestParam(required = false) MeetingFilterMode meetingFilterMode,
 
@@ -435,8 +427,7 @@ public interface CourseOfferingApiSpecification {
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string")),
-                    example = "MONDAY|10:00|12:00"
+                    array = @ArraySchema(schema = @Schema(type = "string"))
             )
             @RequestParam(required = false) List<String> meetings,
 
