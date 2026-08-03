@@ -37,28 +37,24 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
             builder.and(courseOffering.collegeName.eq(condition.collegeName()));
         }
 
-        if (condition.hyName() != null) {
-            builder.and(courseOffering.hyName.eq(condition.hyName()));
+        if (!condition.hyNames().isEmpty()) {
+            builder.and(courseOffering.hyName.in(condition.hyNames()));
         }
 
-        if (condition.isuName() != null) {
-            builder.and(courseOffering.isuName.eq(condition.isuName()));
+        if (!condition.isuNames().isEmpty()) {
+            builder.and(courseOffering.isuName.in(condition.isuNames()));
         }
 
-        if (condition.isuFldName() != null) {
-            builder.and(courseOffering.isuFldName.eq(condition.isuFldName()));
+        if (!condition.isuFldNames().isEmpty()) {
+            builder.and(courseOffering.isuFldName.in(condition.isuFldNames()));
         }
 
-        if (condition.ssupTypeName() != null) {
-            builder.and(courseOffering.ssupTypeName.eq(condition.ssupTypeName()));
+        if (!condition.ssupTypeNames().isEmpty()) {
+            builder.and(courseOffering.ssupTypeName.in(condition.ssupTypeNames()));
         }
 
-        if (condition.englishName() != null) {
-            builder.and(courseOffering.englishName.eq(condition.englishName()));
-        }
-
-        if (condition.credit() != null) {
-            builder.and(courseOffering.credit.eq(condition.credit()));
+        if (!condition.credits().isEmpty()) {
+            builder.and(courseOffering.credit.in(condition.credits()));
         }
 
         if (StringUtils.hasText(condition.keyword())) {

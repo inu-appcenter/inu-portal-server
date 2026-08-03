@@ -7,15 +7,19 @@ import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/course-offerings")
 public class CourseOfferingController implements CourseOfferingApiSpecification {
+
+    private static final int COURSE_OFFERING_PAGE_SIZE = 50;
 
     private final CourseOfferingSyncService courseOfferingSyncService;
     private final CourseOfferingService courseOfferingService;
@@ -35,15 +39,16 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
             @RequestParam SemesterTerm term,
             @RequestParam(required = false) String deptName,
             @RequestParam(required = false) String collegeName,
-            @RequestParam(required = false) String hyName,
-            @RequestParam(required = false) String isuName,
-            @RequestParam(required = false) String isuFldName,
-            @RequestParam(required = false) String ssupTypeName,
-            @RequestParam(required = false) String englishName,
-            @RequestParam(required = false) Integer credit,
+            @RequestParam(required = false) List<String> hyNames,
+            @RequestParam(required = false) List<String> isuNames,
+            @RequestParam(required = false) List<String> isuFldNames,
+            @RequestParam(required = false) List<String> ssupTypeNames,
+            @RequestParam(required = false) List<Integer> credits,
             @RequestParam(required = false) String keyword,
-            @PageableDefault(size = 50) Pageable pageable
+            @RequestParam(defaultValue = "0") Integer page
     ) {
+        Pageable pageable = PageRequest.of(page, COURSE_OFFERING_PAGE_SIZE);
+
         return ResponseEntity.ok(
                 ResponseDto.of(
                         courseOfferingService.getCourseOfferings(
@@ -51,12 +56,11 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
                                 term,
                                 deptName,
                                 collegeName,
-                                hyName,
-                                isuName,
-                                isuFldName,
-                                ssupTypeName,
-                                englishName,
-                                credit,
+                                hyNames,
+                                isuNames,
+                                isuFldNames,
+                                ssupTypeNames,
+                                credits,
                                 keyword,
                                 pageable
                         ),

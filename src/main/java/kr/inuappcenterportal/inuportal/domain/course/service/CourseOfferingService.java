@@ -50,12 +50,11 @@ public class CourseOfferingService {
             SemesterTerm term,
             String deptName,
             String collegeName,
-            String hyName,
-            String isuName,
-            String isuFldName,
-            String ssupTypeName,
-            String englishName,
-            Integer credit,
+            List<String> hyName,
+            List<String> isuName,
+            List<String> isuFldName,
+            List<String> ssupTypeName,
+            List<Integer> credit,
             String keyword,
             Pageable pageable
     ) {
@@ -66,12 +65,11 @@ public class CourseOfferingService {
                 semester.getId(),
                 toDeptName(deptName),
                 toCollegeName(collegeName),
-                toHyName(hyName),
-                toIsuName(isuName),
-                toIsuFldName(isuFldName),
-                toSsupTypeName(ssupTypeName),
-                toEnglishName(englishName),
-                credit,
+                toHyNames(hyName),
+                toIsuNames(isuName),
+                toIsuFldNames(isuFldName),
+                toSsupTypeNames(ssupTypeName),
+                toCredits(credit),
                 keyword
         );
 
@@ -101,24 +99,47 @@ public class CourseOfferingService {
         return isBlank(value) ? null : COLLEGE_NAME.from(value);
     }
 
-    private HY_NAME toHyName(String value) {
-        return isBlank(value) ? null : HY_NAME.from(value);
+    private List<HY_NAME> toHyNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(HY_NAME::from)
+                .toList();
     }
 
-    private ISU_NAME toIsuName(String value) {
-        return isBlank(value) ? null : ISU_NAME.from(value);
+    private List<ISU_NAME> toIsuNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(ISU_NAME::from)
+                .toList();
     }
 
-    private ISU_FLD_NAME toIsuFldName(String value) {
-        return isBlank(value) ? null : ISU_FLD_NAME.from(value);
+    private List<ISU_FLD_NAME> toIsuFldNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(ISU_FLD_NAME::from)
+                .toList();
     }
 
-    private SSUP_TYPE_NAME toSsupTypeName(String value) {
-        return isBlank(value) ? null : SSUP_TYPE_NAME.from(value);
+    private List<SSUP_TYPE_NAME> toSsupTypeNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(SSUP_TYPE_NAME::from)
+                .toList();
     }
 
-    private ENGLISH_NAME toEnglishName(String value) {
-        return isBlank(value) ? null : ENGLISH_NAME.from(value);
+    private List<Integer> toCredits(List<Integer> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values;
     }
 
     private boolean isBlank(String value) {
