@@ -13,7 +13,7 @@ public enum SSUP_TYPE_NAME {
     E_LEARNING("e-Learning"),
     E_LEARNING_HUSS("e-Learning(HUSS)"),
     THEORY_LECTURE("강의(이론)"),
-    BEYOND_WALL_VOLUNTEER_1("사회봉사(1)"),
+    BEYOND_WALL_VOLUNTEER_1("담장너머~,사회봉사(1)"),
     ART_PRACTICE("미술실기"),
     VOLUNTEER_2("사회봉사(2)"),
     VOLUNTEER_3("사회봉사(3)"),
