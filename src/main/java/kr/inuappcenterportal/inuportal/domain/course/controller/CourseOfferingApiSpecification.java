@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -14,9 +15,10 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOf
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @Tag(name = "CourseOffering", description = "개설 강의 관련 API")
 public interface CourseOfferingApiSpecification {
@@ -92,12 +94,14 @@ public interface CourseOfferingApiSpecification {
                     
                     year와 term은 필수이며, 모든 검색은 해당 학기의 개설 강의 안에서만 수행됩니다.
                     필터 파라미터는 한글 표시명(xxxName)을 전달합니다.
+                    hyNames, isuNames, isuFldNames, ssupTypeNames, credits는 다중 선택 필터입니다.
+                    다중 선택은 같은 query parameter를 반복해서 전달합니다. 예: hyNames=2&hyNames=3&credits=2&credits=3
                     서버 내부에서는 전달된 한글 표시명을 enum code로 변환하여 검색합니다.
                     응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
                     CourseOffering의 id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
                     xxxCode 필드는 서버 enum의 name() 값이며, xxxName 필드는 사용자에게 표시할 한글명입니다.
                     온라인 강의 또는 시간 미정 강의는 CourseMeeting 목록이 빈 배열일 수 있습니다.
-                    page는 0부터 시작하며, 기본 size는 50입니다.
+                    page는 0부터 시작하며, 페이지 크기는 50으로 고정됩니다.
                     """
     )
     @Parameters({
@@ -107,13 +111,6 @@ public interface CourseOfferingApiSpecification {
                     description = "페이지 번호입니다. 0부터 시작합니다.",
                     schema = @Schema(type = "integer", defaultValue = "0", minimum = "0"),
                     example = "0"
-            ),
-            @Parameter(
-                    name = "size",
-                    in = ParameterIn.QUERY,
-                    description = "페이지 크기입니다. 기본값은 50입니다.",
-                    schema = @Schema(type = "integer", defaultValue = "50", minimum = "1"),
-                    example = "50"
             )
     })
     @ApiResponses(value = {
@@ -344,15 +341,15 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String collegeName,
 
             @Parameter(
-                    description = "대상 학년 필터입니다. 응답의 hyName 값을 전달합니다.",
-                    schema = @Schema(type = "string", allowableValues = {"1", "2", "3", "4", "전학년"}),
+                    description = "대상 학년 필터입니다. 응답의 hyName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    array = @ArraySchema(schema = @Schema(type = "string", allowableValues = {"1", "2", "3", "4", "전학년"})),
                     example = "2"
             )
-            @RequestParam(required = false) String hyName,
+            @RequestParam(required = false) List<String> hyNames,
 
             @Parameter(
-                    description = "이수 구분 필터입니다. 응답의 isuName 값을 전달합니다.",
-                    schema = @Schema(
+                    description = "이수 구분 필터입니다. 응답의 isuName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    array = @ArraySchema(schema = @Schema(
                             type = "string",
                             allowableValues = {
                                     "교직",
@@ -365,14 +362,14 @@ public interface CourseOfferingApiSpecification {
                                     "전공핵심",
                                     "핵심교양"
                             }
-                    ),
+                    )),
                     example = "전공심화"
             )
-            @RequestParam(required = false) String isuName,
+            @RequestParam(required = false) List<String> isuNames,
 
             @Parameter(
-                    description = "이수 영역 필터입니다. 응답의 isuFldName 값을 전달합니다.",
-                    schema = @Schema(
+                    description = "이수 영역 필터입니다. 응답의 isuFldName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    array = @ArraySchema(schema = @Schema(
                             type = "string",
                             allowableValues = {
                                     "(핵심)INU세미나",
@@ -395,14 +392,14 @@ public interface CourseOfferingApiSpecification {
                                     "전공핵심",
                                     "학문의기초"
                             }
-                    ),
+                    )),
                     example = "전공심화"
             )
-            @RequestParam(required = false) String isuFldName,
+            @RequestParam(required = false) List<String> isuFldNames,
 
             @Parameter(
-                    description = "수업 유형 필터입니다. 응답의 ssupTypeName 값을 전달합니다.",
-                    schema = @Schema(
+                    description = "수업 유형 필터입니다. 응답의 ssupTypeName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    array = @ArraySchema(schema = @Schema(
                             type = "string",
                             allowableValues = {
                                     "K-MOOC",
@@ -426,23 +423,17 @@ public interface CourseOfferingApiSpecification {
                                     "체육실기",
                                     "현장형(HUSS)"
                             }
-                    ),
+                    )),
                     example = "이론(어학)"
             )
-            @RequestParam(required = false) String ssupTypeName,
+            @RequestParam(required = false) List<String> ssupTypeNames,
 
             @Parameter(
-                    description = "원어강의 구분 필터입니다. 응답의 englishName 값을 전달합니다.",
-                    schema = @Schema(type = "string", allowableValues = {"글로벌강의(ES)", "비대상", "원어강의(EN)"}),
-                    example = "비대상"
-            )
-            @RequestParam(required = false) String englishName,
-
-            @Parameter(
-                    description = "학점 필터입니다.",
+                    description = "학점 필터입니다. 여러 개 선택 가능합니다.",
+                    array = @ArraySchema(schema = @Schema(type = "integer", allowableValues = {"1", "2", "3", "4"})),
                     example = "3"
             )
-            @RequestParam(required = false) Integer credit,
+            @RequestParam(required = false) List<Integer> credits,
 
             @Parameter(
                     description = "강의명, 영문명, 학수번호 검색 키워드입니다.",
@@ -451,6 +442,6 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String keyword,
 
             @Parameter(hidden = true)
-            Pageable pageable
+            @RequestParam(defaultValue = "0") Integer page
     );
 }
