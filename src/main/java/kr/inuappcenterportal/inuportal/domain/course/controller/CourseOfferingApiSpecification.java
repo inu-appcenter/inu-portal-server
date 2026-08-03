@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springdoc.core.annotations.ParameterObject;
@@ -89,6 +90,8 @@ public interface CourseOfferingApiSpecification {
             description = """
                     년도와 학기 기준으로 개설 강의 목록을 페이지네이션하여 조회합니다.
                     
+                    year와 term은 필수이며, 모든 검색은 해당 학기의 개설 강의 안에서만 수행됩니다.
+                    필터 파라미터는 응답의 xxxCode 값과 같은 enum name() 값을 전달합니다.
                     응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
                     CourseOffering의 id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
                     xxxCode 필드는 서버 enum의 name() 값이며, xxxName 필드는 사용자에게 표시할 한글명입니다.
@@ -194,6 +197,60 @@ public interface CourseOfferingApiSpecification {
                     required = true
             )
             @RequestParam SemesterTerm term,
+
+            @Parameter(
+                    description = "학과 필터입니다. 응답의 deptCode 값을 전달합니다.",
+                    example = "COMPUTER_ENGINEERING"
+            )
+            @RequestParam(required = false) DEPT_NAME deptCode,
+
+            @Parameter(
+                    description = "단과대 필터입니다. 응답의 collegeCode 값을 전달합니다.",
+                    example = "INFORMATION_TECHNOLOGY"
+            )
+            @RequestParam(required = false) COLLEGE_NAME collegeCode,
+
+            @Parameter(
+                    description = "대상 학년 필터입니다. 응답의 hyCode 값을 전달합니다.",
+                    example = "GRADE2"
+            )
+            @RequestParam(required = false) HY_NAME hyCode,
+
+            @Parameter(
+                    description = "이수 구분 필터입니다. 응답의 isuCode 값을 전달합니다.",
+                    example = "MAJOR_ADVANCED"
+            )
+            @RequestParam(required = false) ISU_NAME isuCode,
+
+            @Parameter(
+                    description = "이수 영역 필터입니다. 응답의 isuFldCode 값을 전달합니다.",
+                    example = "MAJOR_ADVANCED"
+            )
+            @RequestParam(required = false) ISU_FLD_NAME isuFldCode,
+
+            @Parameter(
+                    description = "수업 유형 필터입니다. 응답의 ssupTypeCode 값을 전달합니다.",
+                    example = "LANGUAGE_THEORY"
+            )
+            @RequestParam(required = false) SSUP_TYPE_NAME ssupTypeCode,
+
+            @Parameter(
+                    description = "원어강의 구분 필터입니다. 응답의 englishCode 값을 전달합니다.",
+                    example = "UN_TARGET"
+            )
+            @RequestParam(required = false) ENGLISH_NAME englishCode,
+
+            @Parameter(
+                    description = "학점 필터입니다.",
+                    example = "3"
+            )
+            @RequestParam(required = false) Integer credit,
+
+            @Parameter(
+                    description = "강의명, 영문명, 학수번호 검색 키워드입니다.",
+                    example = "운영체제"
+            )
+            @RequestParam(required = false) String keyword,
 
             @ParameterObject
             Pageable pageable
