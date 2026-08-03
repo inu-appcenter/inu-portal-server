@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingGroupKey;
-import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;

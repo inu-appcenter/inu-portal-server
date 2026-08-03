@@ -20,6 +20,10 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(
                         name = "uk_course_title_department",
                         columnNames = {"title", "department"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_course_course_code",
+                        columnNames = {"course_code"}
                 )
         }
 )
@@ -69,6 +73,7 @@ public class Course extends BaseTimeEntity {
 
 
     private Course(
+            String courseCode,
             String title,
             String englishTitle,
             Department department,
@@ -79,6 +84,7 @@ public class Course extends BaseTimeEntity {
             Integer credit,
             String content
     ) {
+        this.courseCode = courseCode;
         this.title = title;
         this.englishTitle = englishTitle;
         this.department = department;
@@ -103,16 +109,31 @@ public class Course extends BaseTimeEntity {
             Integer credit,
             String content
     ) {
-        return new Course(title, englishTitle, department, college, targetGrade, targetTerm, completionDivision, credit, content);
+        return new Course(null, title, englishTitle, department, college, targetGrade, targetTerm, completionDivision, credit, content);
     }
 
-    // 교육과정 크롤링에서 가져올 필수 데이터들에 대한 정적 팩토리 메서드
-    public static Course create(
+    // 크롤링용
+    // 현재는 사용하지 않지만 혹시 몰라서 남겨둠
+    public static Course createFromCrawler(
             String title,
             Department department,
             College college
     ) {
-        return new Course(title, null, department, college, null, null, null, null, null);
+        return new Course(null, title, null, department, college, null, null, null, null, null);
+    }
+
+    // 학교API 데이터용
+    public static Course createFromApi(
+            String courseCode,
+            String title,
+            String englishTitle,
+            Department department,
+            College college,
+            TargetGrade targetGrade,
+            CompletionDivision completionDivision,
+            Integer credit
+    ) {
+        return new Course(courseCode, title, englishTitle, department, college, targetGrade, null, completionDivision, credit, null);
     }
 
 
@@ -145,12 +166,16 @@ public class Course extends BaseTimeEntity {
 
     public void updateApiInfo(
             String courseCode,
+            String englishTitle,
             TargetGrade targetGrade,
             CompletionDivision completionDivision,
             Integer credit
     ) {
         if (courseCode != null && !courseCode.isBlank()) {
             this.courseCode = courseCode;
+        }
+        if (englishTitle != null && !englishTitle.isBlank()) {
+            this.englishTitle = englishTitle;
         }
         updateBaseInfo(targetGrade, null, completionDivision, credit);
     }

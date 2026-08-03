@@ -6,7 +6,6 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOff
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
-import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
@@ -309,6 +308,7 @@ public class CourseOfferingService {
                 Course course = byCode.get();
                 course.updateApiInfo(
                         command.courseCode(),
+                        command.englishTitle(),
                         command.targetGrade(),
                         command.completionDivision(),
                         command.credit()
@@ -324,6 +324,7 @@ public class CourseOfferingService {
             Course course = byTitleAndDepartment.get();
             course.updateApiInfo(
                     command.courseCode(),
+                    command.englishTitle(),
                     command.targetGrade(),
                     command.completionDivision(),
                     command.credit()
@@ -332,18 +333,17 @@ public class CourseOfferingService {
         }
 
         // 그래도 없으면 Course를 새로 생성
-        Course course = Course.create(
+        Course course = Course.createFromApi(
+                command.courseCode(),
                 command.title(),
                 command.englishTitle(),
                 command.department(),
                 command.department().getCollegeName(),
                 command.targetGrade(),
-                null,
                 command.completionDivision(),
-                command.credit(),
-                null
+                command.credit()
         );
-        course.updateApiInfo(command.courseCode(), command.targetGrade(), command.completionDivision(), command.credit());
+
         return courseRepository.save(course);
     }
 

@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.enums.course;
+package kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering;
 
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
