@@ -145,12 +145,16 @@ public class Course extends BaseTimeEntity {
 
     public void updateApiInfo(
             String courseCode,
+            String englishTitle,
             TargetGrade targetGrade,
             CompletionDivision completionDivision,
             Integer credit
     ) {
         if (courseCode != null && !courseCode.isBlank()) {
             this.courseCode = courseCode;
+        }
+        if (englishTitle != null && !englishTitle.isBlank()) {
+            this.englishTitle = englishTitle;
         }
         updateBaseInfo(targetGrade, null, completionDivision, credit);
     }

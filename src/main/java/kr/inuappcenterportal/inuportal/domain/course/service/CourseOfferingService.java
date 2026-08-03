@@ -308,6 +308,7 @@ public class CourseOfferingService {
                 Course course = byCode.get();
                 course.updateApiInfo(
                         command.courseCode(),
+                        command.englishTitle(),
                         command.targetGrade(),
                         command.completionDivision(),
                         command.credit()
@@ -323,6 +324,7 @@ public class CourseOfferingService {
             Course course = byTitleAndDepartment.get();
             course.updateApiInfo(
                     command.courseCode(),
+                    command.englishTitle(),
                     command.targetGrade(),
                     command.completionDivision(),
                     command.credit()
@@ -342,7 +344,13 @@ public class CourseOfferingService {
                 command.credit(),
                 null
         );
-        course.updateApiInfo(command.courseCode(), command.targetGrade(), command.completionDivision(), command.credit());
+        course.updateApiInfo(
+                command.courseCode(),
+                command.englishTitle(),
+                command.targetGrade(),
+                command.completionDivision(),
+                command.credit()
+        );
         return courseRepository.save(course);
     }
 
