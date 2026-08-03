@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springdoc.core.annotations.ParameterObject;
@@ -91,7 +90,8 @@ public interface CourseOfferingApiSpecification {
                     년도와 학기 기준으로 개설 강의 목록을 페이지네이션하여 조회합니다.
                     
                     year와 term은 필수이며, 모든 검색은 해당 학기의 개설 강의 안에서만 수행됩니다.
-                    필터 파라미터는 응답의 xxxCode 값과 같은 enum name() 값을 전달합니다.
+                    필터 파라미터는 한글 표시명(xxxName)을 전달합니다.
+                    서버 내부에서는 전달된 한글 표시명을 enum code로 변환하여 검색합니다.
                     응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
                     CourseOffering의 id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
                     xxxCode 필드는 서버 enum의 name() 값이며, xxxName 필드는 사용자에게 표시할 한글명입니다.
@@ -199,46 +199,227 @@ public interface CourseOfferingApiSpecification {
             @RequestParam SemesterTerm term,
 
             @Parameter(
-                    description = "학과 필터입니다. 응답의 deptCode 값을 전달합니다.",
-                    example = "COMPUTER_ENGINEERING"
+                    description = "학과 필터입니다. 응답의 deptName 값을 전달합니다.",
+                    schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "Global Trade & Service학부",
+                                    "HUSS(타대학)",
+                                    "HUSS포용사회이니셔티브학부",
+                                    "IBE전공",
+                                    "건설환경공학전공",
+                                    "건축공학전공",
+                                    "경영학부",
+                                    "경제학과",
+                                    "경제학과(야)",
+                                    "공연예술학과",
+                                    "광전자공학전공(연계)",
+                                    "교양",
+                                    "교직",
+                                    "국어교육과",
+                                    "국어국문학과",
+                                    "군사학",
+                                    "기계공학과",
+                                    "나노바이오공학전공",
+                                    "데이터과학과",
+                                    "도시건축학부",
+                                    "도시건축학전공",
+                                    "도시공학과",
+                                    "도시행정학과",
+                                    "도시환경공학부",
+                                    "독어독문학과",
+                                    "동북아국제통상전공",
+                                    "디자인학부",
+                                    "무역학부(야)",
+                                    "문헌정보학과",
+                                    "물류학전공(연계)",
+                                    "물리학과",
+                                    "미디어커뮤니케이션학과",
+                                    "미래교육디자인연계전공",
+                                    "미래자동차연계전공",
+                                    "바이오-로봇시스템공학과",
+                                    "반도체융합전공",
+                                    "법학부",
+                                    "분자의생명전공",
+                                    "불어불문학과",
+                                    "사회복지학과",
+                                    "산업경영공학과",
+                                    "생명공학부",
+                                    "생명공학전공",
+                                    "생명과학부",
+                                    "생명과학전공",
+                                    "서양화전공",
+                                    "세무회계학과",
+                                    "소비자학과",
+                                    "소셜데이터사이언스연계전공",
+                                    "수학과",
+                                    "수학교육과",
+                                    "스마트물류공학전공",
+                                    "스포츠과학부",
+                                    "신소재공학과",
+                                    "안전공학과",
+                                    "에너지화학공학과",
+                                    "역사교육과",
+                                    "영어교육과",
+                                    "영어영문학과",
+                                    "운동건강학부",
+                                    "유아교육과",
+                                    "윤리교육과",
+                                    "인문문화예술기획연계전공",
+                                    "일본지역문화학과",
+                                    "일선",
+                                    "일어교육과",
+                                    "임베디드시스템공학과",
+                                    "자유전공학부",
+                                    "전기공학과",
+                                    "전자공학과",
+                                    "전자공학부",
+                                    "전자공학전공",
+                                    "정보통신공학과",
+                                    "정치외교학과",
+                                    "조형예술학부",
+                                    "중어중국학과",
+                                    "지능형로봇시스템연계전공",
+                                    "창의인재개발학과",
+                                    "창의적디자인연계전공",
+                                    "체육교육과",
+                                    "컴퓨터공학부",
+                                    "패션산업학과",
+                                    "한국화전공",
+                                    "해양학과",
+                                    "행정학과",
+                                    "화학과",
+                                    "환경공학전공"
+                            }
+                    ),
+                    example = "컴퓨터공학부"
             )
-            @RequestParam(required = false) DEPT_NAME deptCode,
+            @RequestParam(required = false) String deptName,
 
             @Parameter(
-                    description = "단과대 필터입니다. 응답의 collegeCode 값을 전달합니다.",
-                    example = "INFORMATION_TECHNOLOGY"
+                    description = "단과대 필터입니다. 응답의 collegeName 값을 전달합니다.",
+                    schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "경영대학",
+                                    "공과대학",
+                                    "교양",
+                                    "교직",
+                                    "군사학",
+                                    "글로벌정경대학",
+                                    "기타",
+                                    "단과대구분없음",
+                                    "단과대구분없음(법학)",
+                                    "도시과학대학",
+                                    "사범대학",
+                                    "사회과학대학",
+                                    "생명과학기술대학",
+                                    "예술체육대학",
+                                    "융합자유전공대학",
+                                    "인문대학",
+                                    "일선",
+                                    "자연과학대학",
+                                    "정보기술대학"
+                            }
+                    ),
+                    example = "정보기술대학"
             )
-            @RequestParam(required = false) COLLEGE_NAME collegeCode,
+            @RequestParam(required = false) String collegeName,
 
             @Parameter(
-                    description = "대상 학년 필터입니다. 응답의 hyCode 값을 전달합니다.",
-                    example = "GRADE2"
+                    description = "대상 학년 필터입니다. 응답의 hyName 값을 전달합니다.",
+                    schema = @Schema(type = "string", allowableValues = {"1", "2", "3", "4", "전학년"}),
+                    example = "2"
             )
-            @RequestParam(required = false) HY_NAME hyCode,
+            @RequestParam(required = false) String hyName,
 
             @Parameter(
-                    description = "이수 구분 필터입니다. 응답의 isuCode 값을 전달합니다.",
-                    example = "MAJOR_ADVANCED"
+                    description = "이수 구분 필터입니다. 응답의 isuName 값을 전달합니다.",
+                    schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "교직",
+                                    "군사학",
+                                    "기초교양",
+                                    "심화교양",
+                                    "일반선택",
+                                    "전공기초",
+                                    "전공심화",
+                                    "전공핵심",
+                                    "핵심교양"
+                            }
+                    ),
+                    example = "전공심화"
             )
-            @RequestParam(required = false) ISU_NAME isuCode,
+            @RequestParam(required = false) String isuName,
 
             @Parameter(
-                    description = "이수 영역 필터입니다. 응답의 isuFldCode 값을 전달합니다.",
-                    example = "MAJOR_ADVANCED"
+                    description = "이수 영역 필터입니다. 응답의 isuFldName 값을 전달합니다.",
+                    schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "(핵심)INU세미나",
+                                    "(핵심)과학기술",
+                                    "(핵심)사회",
+                                    "(핵심)예술체육",
+                                    "(핵심)외국어",
+                                    "(핵심)인문",
+                                    "과학기술",
+                                    "교직",
+                                    "군사학",
+                                    "기초과학ㆍ공학",
+                                    "사회",
+                                    "예술체육",
+                                    "외국어",
+                                    "인문",
+                                    "일반선택",
+                                    "전공기초",
+                                    "전공심화",
+                                    "전공핵심",
+                                    "학문의기초"
+                            }
+                    ),
+                    example = "전공심화"
             )
-            @RequestParam(required = false) ISU_FLD_NAME isuFldCode,
+            @RequestParam(required = false) String isuFldName,
 
             @Parameter(
-                    description = "수업 유형 필터입니다. 응답의 ssupTypeCode 값을 전달합니다.",
-                    example = "LANGUAGE_THEORY"
+                    description = "수업 유형 필터입니다. 응답의 ssupTypeName 값을 전달합니다.",
+                    schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "K-MOOC",
+                                    "RISE(시간표 없음)",
+                                    "RISE(시간표 있음)",
+                                    "e-Learning",
+                                    "e-Learning(HUSS)",
+                                    "강의(이론)",
+                                    "담장너머~,사회봉사(1)",
+                                    "미술실기",
+                                    "사회봉사(2)",
+                                    "사회봉사(3)",
+                                    "실험실습",
+                                    "열린사이버대학(OCU)",
+                                    "예술체육실기",
+                                    "온라인혼합형강좌",
+                                    "온라인혼합형강좌(HUSS)",
+                                    "이론(어학)",
+                                    "이론실험실습",
+                                    "자기설계세미나",
+                                    "체육실기",
+                                    "현장형(HUSS)"
+                            }
+                    ),
+                    example = "이론(어학)"
             )
-            @RequestParam(required = false) SSUP_TYPE_NAME ssupTypeCode,
+            @RequestParam(required = false) String ssupTypeName,
 
             @Parameter(
-                    description = "원어강의 구분 필터입니다. 응답의 englishCode 값을 전달합니다.",
-                    example = "UN_TARGET"
+                    description = "원어강의 구분 필터입니다. 응답의 englishName 값을 전달합니다.",
+                    schema = @Schema(type = "string", allowableValues = {"글로벌강의(ES)", "비대상", "원어강의(EN)"}),
+                    example = "비대상"
             )
-            @RequestParam(required = false) ENGLISH_NAME englishCode,
+            @RequestParam(required = false) String englishName,
 
             @Parameter(
                     description = "학점 필터입니다.",
