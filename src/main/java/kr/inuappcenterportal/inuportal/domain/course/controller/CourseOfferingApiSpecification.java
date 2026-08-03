@@ -109,11 +109,11 @@ public interface CourseOfferingApiSpecification {
                     시간대 필터:
                     - HAS_CLASS: 선택 시간대에 수업이 있는 강의
                     - NO_CLASS: 선택 시간대에 수업이 없는 강의
-                    - meetings는 DAY,startTime,endTime 형식입니다.
+                    - meetings는 DAY|startTime|endTime 형식입니다.
                     - DAY는 MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY 중 하나입니다.
                     - 시간은 HH:mm 형식입니다.
-                    - 단일 시간대 예: meetingFilterMode=HAS_CLASS&meetings=MONDAY,10:00,12:00
-                    - 여러 시간대 예: meetingFilterMode=NO_CLASS&meetings=MONDAY,10:00,12:00&meetings=WEDNESDAY,13:00,15:00
+                    - 단일 시간대 예: meetingFilterMode=HAS_CLASS&meetings=MONDAY|10:00|12:00
+                    - 여러 시간대 예: meetingFilterMode=NO_CLASS&meetings=MONDAY|10:00|12:00&meetings=WEDNESDAY|13:00|15:00
                     - meetingFilterMode 생략 시 HAS_CLASS로 동작합니다.
                     - 시간 정보가 없는 강의는 HAS_CLASS에서는 제외되고, NO_CLASS에서는 포함될 수 있습니다.
                     
@@ -428,15 +428,15 @@ public interface CourseOfferingApiSpecification {
             @Parameter(
                     description = """
                             시간대 필터
-                            형식: DAY,startTime,endTime
-                            예: MONDAY,10:00,12:00
-                            여러 개 입력 예: MONDAY,10:00,12:00 / WEDNESDAY,13:00,15:00
+                            형식: DAY|startTime|endTime
+                            예: MONDAY|10:00|12:00
+                            여러 개 입력 예: MONDAY|10:00|12:00 / WEDNESDAY|13:00|15:00
                             """,
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
                     array = @ArraySchema(schema = @Schema(type = "string")),
-                    example = "MONDAY,10:00,12:00"
+                    example = "MONDAY|10:00|12:00"
             )
             @RequestParam(required = false) List<String> meetings,
 
