@@ -2,10 +2,13 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
@@ -26,6 +29,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,6 +60,8 @@ public class CourseOfferingService {
             List<String> ssupTypeName,
             List<Integer> credit,
             String keyword,
+            MeetingFilterMode filterMode,
+            List<String> meetings,
             Pageable pageable
     ) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
@@ -70,7 +76,9 @@ public class CourseOfferingService {
                 toIsuFldNames(isuFldName),
                 toSsupTypeNames(ssupTypeName),
                 toCredits(credit),
-                keyword
+                keyword,
+                resolveMeetingFilterMode(filterMode, meetings),
+                toMeetingFilters(meetings)
         );
 
         Page<CourseOffering> courseOfferings = courseOfferingRepository.search(condition, pageable);
@@ -140,6 +148,58 @@ public class CourseOfferingService {
             return List.of();
 
         return values;
+    }
+
+    private MeetingFilterMode resolveMeetingFilterMode(
+            MeetingFilterMode meetingFilterMode,
+            List<String> meetings
+    ) {
+        // meetings 파라미터가 null일때
+        if (meetings == null || meetings.isEmpty()) {
+            return null;
+        }
+
+        // 기본값은 HAS_CLASS 모드
+        return meetingFilterMode == null ? MeetingFilterMode.HAS_CLASS : meetingFilterMode;
+    }
+
+
+    private CourseOfferingMeetingFilter toMeetingFilter(String value) {
+        String[] parts = value.split(",");
+
+        if (parts.length != 3) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        DayOfWeek day = toDayOfWeek(parts[0].trim());
+        LocalTime startTime = LocalTime.parse(parts[1].trim());
+        LocalTime endTime = LocalTime.parse(parts[2].trim());
+
+        if (!startTime.isBefore(endTime)) {
+            throw new MyException(MyErrorCode.FASTER_THAN_ENDTIME);
+        }
+
+        return new CourseOfferingMeetingFilter(day, startTime, endTime);
+    }
+
+    private List<CourseOfferingMeetingFilter> toMeetingFilters(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+
+        return values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(this::toMeetingFilter)
+                .toList();
+    }
+
+
+    private DayOfWeek toDayOfWeek(String value) {
+        try {
+            return DayOfWeek.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new MyException(MyErrorCode.INVALID_DAY_OF_WEEK);
+        }
     }
 
     private boolean isBlank(String value) {
