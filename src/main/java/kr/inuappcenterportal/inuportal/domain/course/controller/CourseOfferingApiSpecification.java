@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.data.domain.Page;
@@ -96,11 +97,18 @@ public interface CourseOfferingApiSpecification {
                     필터 파라미터는 한글 표시명(xxxName)을 전달합니다.
                     hyNames, isuNames, isuFldNames, ssupTypeNames, credits는 다중 선택 필터입니다.
                     다중 선택은 같은 query parameter를 반복해서 전달합니다. 예: hyNames=2&hyNames=3&credits=2&credits=3
+                    시간대 필터는 meetingFilterMode와 meetings를 함께 사용합니다.
+                    meetingFilterMode가 HAS_CLASS이면 선택한 요일/시간대에 수업이 있는 개설 강의를 조회합니다.
+                    meetingFilterMode가 NO_CLASS이면 선택한 요일/시간대에 수업이 없는 개설 강의를 조회합니다.
+                    meetings는 DAY,startTime,endTime 형식으로 전달하며, 여러 개 선택 시 같은 query parameter를 반복합니다.
+                    예: meetingFilterMode=HAS_CLASS&meetings=MONDAY,10:00,12:00&meetings=WEDNESDAY,13:00,15:00
+                    meetings가 있고 meetingFilterMode가 없으면 기본값은 HAS_CLASS입니다.
                     서버 내부에서는 전달된 한글 표시명을 enum code로 변환하여 검색합니다.
                     응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
                     CourseOffering의 id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
                     xxxCode 필드는 서버 enum의 name() 값이며, xxxName 필드는 사용자에게 표시할 한글명입니다.
                     온라인 강의 또는 시간 미정 강의는 CourseMeeting 목록이 빈 배열일 수 있습니다.
+                    온라인 강의 또는 시간 미정 강의는 HAS_CLASS 시간대 필터에서는 제외되고, NO_CLASS 시간대 필터에서는 포함될 수 있습니다.
                     page는 0부터 시작하며, 페이지 크기는 50으로 고정됩니다.
                     """
     )
@@ -440,6 +448,34 @@ public interface CourseOfferingApiSpecification {
                     example = "운영체제"
             )
             @RequestParam(required = false) String keyword,
+
+            @Parameter(
+                    description = """
+                            시간대 필터 모드입니다.
+                            HAS_CLASS: 선택한 요일/시간대에 수업이 있는 개설 강의 조회
+                            NO_CLASS: 선택한 요일/시간대에 수업이 없는 개설 강의 조회
+                            meetings가 있고 meetingFilterMode가 없으면 HAS_CLASS로 동작합니다.
+                            """,
+                    schema = @Schema(
+                            implementation = MeetingFilterMode.class,
+                            allowableValues = {"HAS_CLASS", "NO_CLASS"}
+                    ),
+                    example = "HAS_CLASS"
+            )
+            @RequestParam(required = false) MeetingFilterMode meetingFilterMode,
+
+            @Parameter(
+                    description = """
+                            시간대 필터입니다. DAY,startTime,endTime 형식으로 전달합니다.
+                            DAY 값은 MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY를 지원합니다.
+                            시간은 HH:mm 형식입니다.
+                            여러 시간대를 선택하려면 같은 query parameter를 반복합니다.
+                            예: meetings=MONDAY,10:00,12:00&meetings=WEDNESDAY,13:00,15:00
+                            """,
+                    array = @ArraySchema(schema = @Schema(type = "string")),
+                    example = "MONDAY,10:00,12:00"
+            )
+            @RequestParam(required = false) List<String> meetings,
 
             @Parameter(hidden = true)
             @RequestParam(defaultValue = "0") Integer page
