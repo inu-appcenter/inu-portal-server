@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
@@ -42,20 +43,43 @@ public class CourseOfferingService {
     private final CourseMeetingRepository courseMeetingRepository;
 
     /**
-     * 개설 강의 조회
+     * 개설 강의 조건별 조회
      */
     public Page<CourseOfferingResponseDto> getCourseOfferings(
             Integer year,
             SemesterTerm term,
+            DEPT_NAME deptCode,
+            COLLEGE_NAME collegeCode,
+            HY_NAME hyCode,
+            ISU_NAME isuCode,
+            ISU_FLD_NAME isuFldCode,
+            SSUP_TYPE_NAME ssupTypeCode,
+            ENGLISH_NAME englishCode,
+            Integer credit,
+            String keyword,
             Pageable pageable
     ) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
 
-        Page<CourseOffering> courseOfferings =
-                courseOfferingRepository.findAllBySemesterId(semester.getId(), pageable);
+        CourseOfferingSearchCondition condition = new CourseOfferingSearchCondition(
+                semester.getId(),
+                deptCode,
+                collegeCode,
+                hyCode,
+                isuCode,
+                isuFldCode,
+                ssupTypeCode,
+                englishCode,
+                credit,
+                keyword
+        );
 
-        List<Long> courseOfferingIds = courseOfferings.getContent().stream().map(CourseOffering::getId).toList();
+        Page<CourseOffering> courseOfferings = courseOfferingRepository.search(condition, pageable);
+
+        List<Long> courseOfferingIds = courseOfferings.getContent().stream()
+                .map(CourseOffering::getId)
+                .toList();
 
         Map<Long, List<CourseMeeting>> meetingsByCourseOfferingId =
                 courseMeetingRepository.findAllByCourseOfferingIdIn(courseOfferingIds).stream()
@@ -64,10 +88,9 @@ public class CourseOfferingService {
                         ));
 
         return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
-                        courseOffering,
-                        meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
-                )
-        );
+                courseOffering,
+                meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
+        ));
     }
 
 
