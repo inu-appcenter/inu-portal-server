@@ -3,7 +3,9 @@ package kr.inuappcenterportal.inuportal.domain.course.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.enums.Explode;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.enums.ParameterStyle;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -91,25 +93,34 @@ public interface CourseOfferingApiSpecification {
     @Operation(
             summary = "학기별 개설 강의 목록 조회",
             description = """
-                    년도와 학기 기준으로 개설 강의 목록을 페이지네이션하여 조회합니다.
+                    특정 학기의 개설 강의를 검색합니다.
                     
-                    year와 term은 필수이며, 모든 검색은 해당 학기의 개설 강의 안에서만 수행됩니다.
-                    필터 파라미터는 한글 표시명(xxxName)을 전달합니다.
-                    hyNames, isuNames, isuFldNames, ssupTypeNames, credits는 다중 선택 필터입니다.
-                    다중 선택은 같은 query parameter를 반복해서 전달합니다. 예: hyNames=2&hyNames=3&credits=2&credits=3
-                    시간대 필터는 meetingFilterMode와 meetings를 함께 사용합니다.
-                    meetingFilterMode가 HAS_CLASS이면 선택한 요일/시간대에 수업이 있는 개설 강의를 조회합니다.
-                    meetingFilterMode가 NO_CLASS이면 선택한 요일/시간대에 수업이 없는 개설 강의를 조회합니다.
-                    meetings는 DAY,startTime,endTime 형식으로 전달하며, 여러 개 선택 시 같은 query parameter를 반복합니다.
-                    예: meetingFilterMode=HAS_CLASS&meetings=MONDAY,10:00,12:00&meetings=WEDNESDAY,13:00,15:00
-                    meetings가 있고 meetingFilterMode가 없으면 기본값은 HAS_CLASS입니다.
-                    서버 내부에서는 전달된 한글 표시명을 enum code로 변환하여 검색합니다.
-                    응답에는 CourseOffering 정보와 해당 개설 강의의 CourseMeeting 목록이 포함됩니다.
-                    CourseOffering의 id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
-                    xxxCode 필드는 서버 enum의 name() 값이며, xxxName 필드는 사용자에게 표시할 한글명입니다.
-                    온라인 강의 또는 시간 미정 강의는 CourseMeeting 목록이 빈 배열일 수 있습니다.
-                    온라인 강의 또는 시간 미정 강의는 HAS_CLASS 시간대 필터에서는 제외되고, NO_CLASS 시간대 필터에서는 포함될 수 있습니다.
-                    page는 0부터 시작하며, 페이지 크기는 50으로 고정됩니다.
+                    기본 조건:
+                    - year, term은 필수입니다.
+                    - 모든 필터는 해당 학기의 개설 강의 안에서만 적용됩니다.
+                    - page는 0부터 시작하며, 페이지 크기는 50으로 고정됩니다.
+                    
+                    필터 값:
+                    - Name 계열 필터는 응답의 한글 Name 값을 그대로 전달합니다.
+                    - 다중 선택 필터는 같은 query parameter를 반복합니다.
+                    - 예: hyNames=2&hyNames=3&credits=2&credits=3
+                    - 쉼표가 포함된 한글 값이 있어 CSV 방식은 사용하지 않습니다.
+                    
+                    시간대 필터:
+                    - HAS_CLASS: 선택 시간대에 수업이 있는 강의
+                    - NO_CLASS: 선택 시간대에 수업이 없는 강의
+                    - meetings는 DAY,startTime,endTime 형식입니다.
+                    - DAY는 MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY 중 하나입니다.
+                    - 시간은 HH:mm 형식입니다.
+                    - 단일 시간대 예: meetingFilterMode=HAS_CLASS&meetings=MONDAY,10:00,12:00
+                    - 여러 시간대 예: meetingFilterMode=NO_CLASS&meetings=MONDAY,10:00,12:00&meetings=WEDNESDAY,13:00,15:00
+                    - meetingFilterMode 생략 시 HAS_CLASS로 동작합니다.
+                    - 시간 정보가 없는 강의는 HAS_CLASS에서는 제외되고, NO_CLASS에서는 포함될 수 있습니다.
+                    
+                    응답:
+                    - id는 시간표 요소 생성 시 courseOfferingId로 사용합니다.
+                    - xxxCode는 서버 enum name, xxxName은 사용자 표시용 한글명입니다.
+                    - meetings는 해당 개설 강의의 강의 시간 목록이며, 없으면 빈 배열입니다.
                     """
     )
     @Parameters({
@@ -221,7 +232,7 @@ public interface CourseOfferingApiSpecification {
             @RequestParam SemesterTerm term,
 
             @Parameter(
-                    description = "학과 필터입니다. 응답의 deptName 값을 전달합니다.",
+                    description = "학과명 필터",
                     schema = @Schema(
                             type = "string",
                             allowableValues = {
@@ -319,7 +330,7 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String deptName,
 
             @Parameter(
-                    description = "단과대 필터입니다. 응답의 collegeName 값을 전달합니다.",
+                    description = "단과대명 필터",
                     schema = @Schema(
                             type = "string",
                             allowableValues = {
@@ -349,14 +360,20 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String collegeName,
 
             @Parameter(
-                    description = "대상 학년 필터입니다. 응답의 hyName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    description = "대상 학년 필터",
+                    in = ParameterIn.QUERY,
+                    style = ParameterStyle.FORM,
+                    explode = Explode.TRUE,
                     array = @ArraySchema(schema = @Schema(type = "string", allowableValues = {"1", "2", "3", "4", "전학년"})),
                     example = "2"
             )
             @RequestParam(required = false) List<String> hyNames,
 
             @Parameter(
-                    description = "이수 구분 필터입니다. 응답의 isuName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    description = "이수 구분 필터",
+                    in = ParameterIn.QUERY,
+                    style = ParameterStyle.FORM,
+                    explode = Explode.TRUE,
                     array = @ArraySchema(schema = @Schema(
                             type = "string",
                             allowableValues = {
@@ -376,7 +393,10 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) List<String> isuNames,
 
             @Parameter(
-                    description = "이수 영역 필터입니다. 응답의 isuFldName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    description = "이수 영역 필터",
+                    in = ParameterIn.QUERY,
+                    style = ParameterStyle.FORM,
+                    explode = Explode.TRUE,
                     array = @ArraySchema(schema = @Schema(
                             type = "string",
                             allowableValues = {
@@ -406,7 +426,10 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) List<String> isuFldNames,
 
             @Parameter(
-                    description = "수업 유형 필터입니다. 응답의 ssupTypeName 값을 전달합니다. 여러 개 선택 가능합니다.",
+                    description = "수업 유형 필터",
+                    in = ParameterIn.QUERY,
+                    style = ParameterStyle.FORM,
+                    explode = Explode.TRUE,
                     array = @ArraySchema(schema = @Schema(
                             type = "string",
                             allowableValues = {
@@ -437,7 +460,10 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) List<String> ssupTypeNames,
 
             @Parameter(
-                    description = "학점 필터입니다. 여러 개 선택 가능합니다.",
+                    description = "학점 필터",
+                    in = ParameterIn.QUERY,
+                    style = ParameterStyle.FORM,
+                    explode = Explode.TRUE,
                     array = @ArraySchema(schema = @Schema(type = "integer", allowableValues = {"1", "2", "3", "4"})),
                     example = "3"
             )
@@ -450,12 +476,7 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String keyword,
 
             @Parameter(
-                    description = """
-                            시간대 필터 모드입니다.
-                            HAS_CLASS: 선택한 요일/시간대에 수업이 있는 개설 강의 조회
-                            NO_CLASS: 선택한 요일/시간대에 수업이 없는 개설 강의 조회
-                            meetings가 있고 meetingFilterMode가 없으면 HAS_CLASS로 동작합니다.
-                            """,
+                    description = "시간대 필터 모드",
                     schema = @Schema(
                             implementation = MeetingFilterMode.class,
                             allowableValues = {"HAS_CLASS", "NO_CLASS"}
@@ -466,12 +487,14 @@ public interface CourseOfferingApiSpecification {
 
             @Parameter(
                     description = """
-                            시간대 필터입니다. DAY,startTime,endTime 형식으로 전달합니다.
-                            DAY 값은 MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY를 지원합니다.
-                            시간은 HH:mm 형식입니다.
-                            여러 시간대를 선택하려면 같은 query parameter를 반복합니다.
-                            예: meetings=MONDAY,10:00,12:00&meetings=WEDNESDAY,13:00,15:00
+                            시간대 필터
+                            형식: DAY,startTime,endTime
+                            예: MONDAY,10:00,12:00
+                            여러 개 입력 예: MONDAY,10:00,12:00 / WEDNESDAY,13:00,15:00
                             """,
+                    in = ParameterIn.QUERY,
+                    style = ParameterStyle.FORM,
+                    explode = Explode.TRUE,
                     array = @ArraySchema(schema = @Schema(type = "string")),
                     example = "MONDAY,10:00,12:00"
             )
