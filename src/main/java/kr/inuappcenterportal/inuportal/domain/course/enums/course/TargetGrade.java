@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.enums;
+package kr.inuappcenterportal.inuportal.domain.course.enums.course;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -6,7 +6,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum TargetGrade {
-    COMMON("공통"),
+    // 교육과정에서 파싱한 대상 학년 관련 enum
+    COMMON("전학년"),
     FIRST("1학년"),
     SECOND("2학년"),
     THIRD("3학년"),
@@ -28,7 +29,7 @@ public enum TargetGrade {
             case "2", "2학년" -> SECOND;
             case "3", "3학년" -> THIRD;
             case "4", "4학년" -> FOURTH;
-            case "공통" -> COMMON;
+            case "전학년" -> COMMON;
             default -> UNKNOWN;
         };
     }

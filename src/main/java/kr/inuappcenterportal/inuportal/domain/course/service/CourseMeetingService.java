@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingGroupKey;
-import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
@@ -75,7 +75,7 @@ public class CourseMeetingService {
                         )).toList();
 
                 courseMeetingRepository.saveAll(meetings);
-                
+
             } catch (Exception e) {
                 CourseMeetingGroupKey key = entry.getKey();
                 log.warn("강의 시간 동기화 스킵. year={}, termCode={}, haksuCode={}, reason={}",

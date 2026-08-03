@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto;
 
-import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
-import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 
 public record CourseCommand(

@@ -1,9 +1,9 @@
 package kr.inuappcenterportal.inuportal.course;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseCrawledItemDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
-import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
-import kr.inuappcenterportal.inuportal.domain.course.enums.TargetTerm;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetTerm;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseService;

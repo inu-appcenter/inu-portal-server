@@ -4,9 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 
 import java.time.LocalTime;
 
-public record CourseMeetingRequestDto(
-        String location,
-        Integer sequence,
+public record CourseOfferingMeetingFilter(
         DayOfWeek day,
         LocalTime startTime,
         LocalTime endTime

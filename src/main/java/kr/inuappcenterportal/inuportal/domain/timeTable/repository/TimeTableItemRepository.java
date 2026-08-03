@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.repository;
 
-import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

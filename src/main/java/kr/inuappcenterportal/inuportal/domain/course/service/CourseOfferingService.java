@@ -2,9 +2,12 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
-import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
@@ -25,6 +28,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,20 +47,45 @@ public class CourseOfferingService {
     private final CourseMeetingRepository courseMeetingRepository;
 
     /**
-     * 개설 강의 조회
+     * 개설 강의 조건별 조회
      */
     public Page<CourseOfferingResponseDto> getCourseOfferings(
             Integer year,
             SemesterTerm term,
+            String deptName,
+            String collegeName,
+            List<String> hyName,
+            List<String> isuName,
+            List<String> isuFldName,
+            List<String> ssupTypeName,
+            List<Integer> credit,
+            String keyword,
+            MeetingFilterMode filterMode,
+            List<String> meetings,
             Pageable pageable
     ) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
 
-        Page<CourseOffering> courseOfferings =
-                courseOfferingRepository.findAllBySemesterId(semester.getId(), pageable);
+        CourseOfferingSearchCondition condition = new CourseOfferingSearchCondition(
+                semester.getId(),
+                toDeptName(deptName),
+                toCollegeName(collegeName),
+                toHyNames(hyName),
+                toIsuNames(isuName),
+                toIsuFldNames(isuFldName),
+                toSsupTypeNames(ssupTypeName),
+                toCredits(credit),
+                keyword,
+                resolveMeetingFilterMode(filterMode, meetings),
+                toMeetingFilters(meetings)
+        );
 
-        List<Long> courseOfferingIds = courseOfferings.getContent().stream().map(CourseOffering::getId).toList();
+        Page<CourseOffering> courseOfferings = courseOfferingRepository.search(condition, pageable);
+
+        List<Long> courseOfferingIds = courseOfferings.getContent().stream()
+                .map(CourseOffering::getId)
+                .toList();
 
         Map<Long, List<CourseMeeting>> meetingsByCourseOfferingId =
                 courseMeetingRepository.findAllByCourseOfferingIdIn(courseOfferingIds).stream()
@@ -64,10 +94,123 @@ public class CourseOfferingService {
                         ));
 
         return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
-                        courseOffering,
-                        meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
-                )
-        );
+                courseOffering,
+                meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
+        ));
+    }
+
+    private DEPT_NAME toDeptName(String value) {
+        return isBlank(value) ? null : DEPT_NAME.from(value);
+    }
+
+    private COLLEGE_NAME toCollegeName(String value) {
+        return isBlank(value) ? null : COLLEGE_NAME.from(value);
+    }
+
+    private List<HY_NAME> toHyNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(HY_NAME::from)
+                .toList();
+    }
+
+    private List<ISU_NAME> toIsuNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(ISU_NAME::from)
+                .toList();
+    }
+
+    private List<ISU_FLD_NAME> toIsuFldNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(ISU_FLD_NAME::from)
+                .toList();
+    }
+
+    private List<SSUP_TYPE_NAME> toSsupTypeNames(List<String> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values.stream().filter(value -> value != null && !value.isBlank())
+                .map(SSUP_TYPE_NAME::from)
+                .toList();
+    }
+
+    private List<Integer> toCredits(List<Integer> values) {
+        if (values == null || values.isEmpty())
+            return List.of();
+
+        return values;
+    }
+
+    private MeetingFilterMode resolveMeetingFilterMode(
+            MeetingFilterMode meetingFilterMode,
+            List<String> meetings
+    ) {
+        // meetings 파라미터가 null일때
+        if (meetings == null || meetings.isEmpty()) {
+            return null;
+        }
+
+        // 기본값은 HAS_CLASS 모드
+        return meetingFilterMode == null ? MeetingFilterMode.HAS_CLASS : meetingFilterMode;
+    }
+
+
+    private CourseOfferingMeetingFilter toMeetingFilter(String value) {
+        String[] parts = value.split(",");
+
+        if (parts.length != 3) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        DayOfWeek day = toDayOfWeek(parts[0].trim());
+        LocalTime startTime;
+        LocalTime endTime;
+
+        try {
+            startTime = LocalTime.parse(parts[1].trim());
+            endTime = LocalTime.parse(parts[2].trim());
+        } catch (DateTimeParseException e) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        if (!startTime.isBefore(endTime)) {
+            throw new MyException(MyErrorCode.FASTER_THAN_ENDTIME);
+        }
+
+        return new CourseOfferingMeetingFilter(day, startTime, endTime);
+    }
+
+    private List<CourseOfferingMeetingFilter> toMeetingFilters(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+
+        return values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(this::toMeetingFilter)
+                .toList();
+    }
+
+
+    private DayOfWeek toDayOfWeek(String value) {
+        try {
+            return DayOfWeek.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new MyException(MyErrorCode.INVALID_DAY_OF_WEEK);
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
 

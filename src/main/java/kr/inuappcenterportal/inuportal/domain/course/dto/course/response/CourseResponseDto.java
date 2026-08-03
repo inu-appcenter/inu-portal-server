@@ -1,9 +1,9 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.course.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.inuappcenterportal.inuportal.domain.course.enums.CompletionDivision;
-import kr.inuappcenterportal.inuportal.domain.course.enums.TargetGrade;
-import kr.inuappcenterportal.inuportal.domain.course.enums.TargetTerm;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetTerm;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.department.enums.College;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;

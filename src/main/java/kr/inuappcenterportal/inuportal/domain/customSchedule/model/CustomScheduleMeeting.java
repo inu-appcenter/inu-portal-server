@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.customSchedule.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.AccessLevel;
