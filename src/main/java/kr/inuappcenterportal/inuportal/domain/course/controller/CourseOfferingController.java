@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncService;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -34,10 +35,35 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
     public ResponseEntity<ResponseDto<Page<CourseOfferingResponseDto>>> getCourseOfferings(
             @RequestParam Integer year,
             @RequestParam SemesterTerm term,
+            @RequestParam(required = false) DEPT_NAME deptCode,
+            @RequestParam(required = false) COLLEGE_NAME collegeCode,
+            @RequestParam(required = false) HY_NAME hyCode,
+            @RequestParam(required = false) ISU_NAME isuCode,
+            @RequestParam(required = false) ISU_FLD_NAME isuFldCode,
+            @RequestParam(required = false) SSUP_TYPE_NAME ssupTypeCode,
+            @RequestParam(required = false) ENGLISH_NAME englishCode,
+            @RequestParam(required = false) Integer credit,
+            @RequestParam(required = false) String keyword,
             @ParameterObject @PageableDefault(size = 50) Pageable pageable
     ) {
         return ResponseEntity.ok(
-                ResponseDto.of(courseOfferingService.getCourseOfferings(year, term, pageable), "개설 강의 목록 조회 성공")
+                ResponseDto.of(
+                        courseOfferingService.getCourseOfferings(
+                                year,
+                                term,
+                                deptCode,
+                                collegeCode,
+                                hyCode,
+                                isuCode,
+                                isuFldCode,
+                                ssupTypeCode,
+                                englishCode,
+                                credit,
+                                keyword,
+                                pageable
+                        ),
+                        "개설 강의 목록 조회 성공"
+                )
         );
     }
 }
