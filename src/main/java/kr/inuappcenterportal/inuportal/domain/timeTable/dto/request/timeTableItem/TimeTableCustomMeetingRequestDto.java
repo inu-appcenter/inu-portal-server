@@ -3,7 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableIt
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 
 import java.time.LocalTime;
 

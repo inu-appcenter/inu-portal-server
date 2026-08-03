@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting;
 
-import kr.inuappcenterportal.inuportal.domain.course.enums.course.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 
 import java.time.LocalTime;
 
