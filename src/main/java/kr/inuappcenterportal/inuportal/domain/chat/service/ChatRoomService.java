@@ -876,6 +876,8 @@ public class ChatRoomService {
                             .imageCount(msg.getImageCount())
                             .unreadCount(unread)
                             .senderAlias(senderAlias)
+                            .messageType(msg.getMessageType())
+                            .extraData(msg.getExtraData())
                             .createDate(msg.getCreateDate())
                             .build();
                 }).collect(Collectors.toList());
@@ -965,6 +967,8 @@ public class ChatRoomService {
                             .imageCount(dto.getImageCount())
                             .unreadCount(unread)
                             .senderAlias(senderAlias)
+                            .messageType(dto.getMessageType())
+                            .extraData(dto.getExtraData())
                             .createDate(dto.getCreateDate())
                             .build();
                 })
@@ -1318,6 +1322,8 @@ public class ChatRoomService {
                 .content(message.getContent())
                 .imageCount(message.getImageCount())
                 .unreadCount(0)
+                .messageType(message.getMessageType())
+                .extraData(message.getExtraData())
                 .createDate(message.getCreateDate())
                 .build();
     }
