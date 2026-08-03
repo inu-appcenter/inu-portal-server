@@ -14,4 +14,6 @@
       ADD COLUMN isu_fld_name varchar(255) NULL,
       ADD COLUMN isu_name varchar(255) NULL,
       ADD COLUMN ssup_type_name varchar(255) NULL,
-      ADD COLUMN credit varchar(255) NULL;
+      ADD COLUMN hy_name varchar(255) NULL,
+      ADD COLUMN english_name varchar(255) NULL,
+      ADD COLUMN credit int NULL;
