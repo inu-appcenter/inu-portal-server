@@ -1,8 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.course.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,6 +17,7 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 
 import static kr.inuappcenterportal.inuportal.domain.course.model.QCourse.course;
+import static kr.inuappcenterportal.inuportal.domain.course.model.QCourseMeeting.courseMeeting;
 import static kr.inuappcenterportal.inuportal.domain.course.model.QCourseOffering.courseOffering;
 import static kr.inuappcenterportal.inuportal.domain.semester.model.QSemester.semester;
 
@@ -63,7 +67,44 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
                             .or(courseOffering.course.title.containsIgnoreCase(condition.keyword()))
                             .or(courseOffering.course.englishTitle.containsIgnoreCase(condition.keyword()))
             );
+        }
 
+        if (!condition.meetings().isEmpty()) {
+            BooleanBuilder meetingOverlapBuilder = new BooleanBuilder();
+
+            for (CourseOfferingMeetingFilter meeting : condition.meetings()) {
+                meetingOverlapBuilder.or(
+                        courseMeeting.day.eq(meeting.day())
+                                .and(courseMeeting.startTime.lt(meeting.endTime()))
+                                .and((courseMeeting.endTime.gt(meeting.startTime())))
+                );
+            }
+            
+            if (condition.filterMode() == MeetingFilterMode.HAS_CLASS) {
+                builder.and(
+                        JPAExpressions
+                                .selectOne()
+                                .from(courseMeeting)
+                                .where(
+                                        courseMeeting.courseOffering.eq(courseOffering),
+                                        meetingOverlapBuilder
+                                )
+                                .exists()
+                );
+            }
+
+            if (condition.filterMode() == MeetingFilterMode.NO_CLASS) {
+                builder.and(
+                        JPAExpressions
+                                .selectOne()
+                                .from(courseMeeting)
+                                .where(
+                                        courseMeeting.courseOffering.eq(courseOffering),
+                                        meetingOverlapBuilder
+                                )
+                                .notExists()
+                );
+            }
         }
 
         List<CourseOffering> content = jpaQueryFactory
