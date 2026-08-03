@@ -26,8 +26,8 @@ public class BusScheduler {
     private final BusTargetStopRepository busTargetStopRepository;
     private final BusArrivalHistoryRepository busArrivalHistoryRepository;
 
-    // TODO: API 키 갱신 후 true로 변경하여 공공데이터포털 연동 재개 가능
-    private static final boolean IS_API_ENABLED = false;
+    // API 키 만료 시 false로 변경하여 공공데이터포털 연동 일시 중단 가능
+    private static final boolean IS_API_ENABLED = true;
 
     /**
      * 30초마다 관리 대상 정류장의 실시간 버스 도착 정보를 DB에 수집

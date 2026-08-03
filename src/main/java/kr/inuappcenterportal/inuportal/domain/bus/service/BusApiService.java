@@ -31,8 +31,8 @@ public class BusApiService {
     @Value("${busApiKey}")
     private String busApiKey;
 
-    // TODO: API 키 갱신 후 true로 변경하여 공공데이터포털 연동 재개 가능
-    private static final boolean IS_API_ENABLED = false;
+    // API 키 만료 시 false로 변경하여 공공데이터포털 연동 일시 중단 가능
+    private static final boolean IS_API_ENABLED = true;
 
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
