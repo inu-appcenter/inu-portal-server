@@ -6,7 +6,6 @@ import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncS
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -43,7 +42,7 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
             @RequestParam(required = false) String englishName,
             @RequestParam(required = false) Integer credit,
             @RequestParam(required = false) String keyword,
-            @ParameterObject @PageableDefault(size = 50) Pageable pageable
+            @PageableDefault(size = 50) Pageable pageable
     ) {
         return ResponseEntity.ok(
                 ResponseDto.of(

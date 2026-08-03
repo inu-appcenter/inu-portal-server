@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +13,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -99,6 +100,22 @@ public interface CourseOfferingApiSpecification {
                     page는 0부터 시작하며, 기본 size는 50입니다.
                     """
     )
+    @Parameters({
+            @Parameter(
+                    name = "page",
+                    in = ParameterIn.QUERY,
+                    description = "페이지 번호입니다. 0부터 시작합니다.",
+                    schema = @Schema(type = "integer", defaultValue = "0", minimum = "0"),
+                    example = "0"
+            ),
+            @Parameter(
+                    name = "size",
+                    in = ParameterIn.QUERY,
+                    description = "페이지 크기입니다. 기본값은 50입니다.",
+                    schema = @Schema(type = "integer", defaultValue = "50", minimum = "1"),
+                    example = "50"
+            )
+    })
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -433,7 +450,7 @@ public interface CourseOfferingApiSpecification {
             )
             @RequestParam(required = false) String keyword,
 
-            @ParameterObject
+            @Parameter(hidden = true)
             Pageable pageable
     );
 }
