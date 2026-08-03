@@ -16,7 +16,7 @@ public record CourseOfferingResponseDto(
         Long courseId,
         String courseCode,
         String courseTitle,
-        String courseTItleEng,
+        String courseTitleEng,
 
         Long semesterId,
         Integer year,
