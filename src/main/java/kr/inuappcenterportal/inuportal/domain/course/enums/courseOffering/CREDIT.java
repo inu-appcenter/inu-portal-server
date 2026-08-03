@@ -13,7 +13,19 @@ public enum CREDIT {
     GRADE_5("5"),
     GRADE_6("6"),
     GRADE_12("12"),
-    GRADE_15("15");
+    GRADE_15("15"),
+    UNKNOWN("알 수 없는 값");
 
-    private final String value;
+    private final String description;
+
+    // api에서 돌어온 값은 enum으로 바꾸는 정적 팩토리 메서드
+    public static CREDIT from(String value) {
+        for (CREDIT credit : values()) {
+            if (credit.description.equals(value)) {
+                return credit;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }

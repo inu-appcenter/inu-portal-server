@@ -14,7 +14,19 @@ public enum ISU_NAME {
     MAJOR_FOUNDATION("전공기초"),
     MAJOR_ADVANCED("전공심화"),
     MAJOR_CORE("전공핵심"),
-    CORE_LIBERAL_ARTS("핵심교양");
+    CORE_LIBERAL_ARTS("핵심교양"),
+    UNKNOWN("알 수 없는 값");
 
     private final String description;
+
+    // api에서 돌어온 값은 enum으로 바꾸는 정적 팩토리 메서드
+    public static ISU_NAME from(String value) {
+        for (ISU_NAME isuName : values()) {
+            if (isuName.description.equals(value)) {
+                return isuName;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }

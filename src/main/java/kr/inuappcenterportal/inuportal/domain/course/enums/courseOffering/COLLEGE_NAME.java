@@ -24,7 +24,20 @@ public enum COLLEGE_NAME {
     HUMANITIES("인문대학"),
     GENERAL_ELECTIVE("일선"),
     NATURAL_SCIENCES("자연과학대학"),
-    INFORMATION_TECHNOLOGY("정보기술대학");
+    INFORMATION_TECHNOLOGY("정보기술대학"),
+    UNKNOWN("알 수 없는 값");
+
 
     private final String description;
+
+    // api에서 돌어온 값은 enum으로 바꾸는 정적 팩토리 메서드
+    public static COLLEGE_NAME from(String value) {
+        for (COLLEGE_NAME collegeName : values()) {
+            if (collegeName.description.equals(value)) {
+                return collegeName;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }

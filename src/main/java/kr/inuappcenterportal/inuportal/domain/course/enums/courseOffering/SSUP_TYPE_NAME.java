@@ -26,7 +26,19 @@ public enum SSUP_TYPE_NAME {
     THEORY_AND_EXPERIMENT_PRACTICE("이론실험실습"),
     SELF_DESIGNED_SEMINAR("자기설계세미나"),
     PHYSICAL_PRACTICE("체육실기"),
-    OFFLINE_HUSS("현장형(HUSS)");
+    OFFLINE_HUSS("현장형(HUSS)"),
+    UNKNOWN("알 수 없는 값");
 
     private final String description;
+
+    // api에서 돌어온 값은 enum으로 바꾸는 정적 팩토리 메서드
+    public static SSUP_TYPE_NAME from(String value) {
+        for (SSUP_TYPE_NAME ssupTypeName : values()) {
+            if (ssupTypeName.description.equals(value)) {
+                return ssupTypeName;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }

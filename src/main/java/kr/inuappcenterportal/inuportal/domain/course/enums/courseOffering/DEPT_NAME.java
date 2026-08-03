@@ -104,7 +104,20 @@ public enum DEPT_NAME {
     MARINE_SCIENCE("해양학과"),
     PUBLIC_ADMINISTRATION("행정학과"),
     CHEMISTRY("화학과"),
-    ENVIRONMENTAL_ENGINEERING("환경공학전공");
+    ENVIRONMENTAL_ENGINEERING("환경공학전공"),
+    UNKNOWN("알 수 없는 값");
+
 
     private final String description;
+
+    // api에서 돌어온 값은 enum으로 바꾸는 정적 팩토리 메서드
+    public static DEPT_NAME from(String value) {
+        for (DEPT_NAME deptName : values()) {
+            if (deptName.description.equals(value)) {
+                return deptName;
+            }
+        }
+
+        return UNKNOWN;
+    }
 }
