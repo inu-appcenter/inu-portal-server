@@ -1,4 +1,4 @@
-package kr.inuappcenterportal.inuportal.domain.course.enums;
+package kr.inuappcenterportal.inuportal.domain.course.enums.course;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum TargetTerm {
+    // 교육과정에서 파싱한 대상 학기 관련 enum
     FIRST("1학기"),
     SECOND("2학기"),
     COMMON("공통"),

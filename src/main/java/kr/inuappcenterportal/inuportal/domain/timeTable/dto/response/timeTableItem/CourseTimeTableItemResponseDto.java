@@ -20,7 +20,7 @@ public record CourseTimeTableItemResponseDto(
         @Schema(description = "학수번호", example = "0001421001")
         String subjectNumber,
         @Schema(description = "학점", example = "3")
-        String credit,
+        Integer credit,
         @Schema(description = "강의 시간 목록")
         List<TimeTableMeetingResponseDto> meetings
 ) {

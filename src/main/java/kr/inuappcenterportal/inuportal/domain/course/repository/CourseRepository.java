@@ -15,4 +15,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findAllByActiveTrue();
 
     List<Course> findAllByDepartmentAndActiveTrue(Department department);
+
+    Optional<Course> findByCourseCode(String courseCode);
 }

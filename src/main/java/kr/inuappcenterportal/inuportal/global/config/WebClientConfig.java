@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.global.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.ChannelOption;
+import kr.inuappcenterportal.inuportal.domain.course.dto.api.SchoolApiProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -30,6 +30,15 @@ public class WebClientConfig {
         return WebClient.builder()
                 .uriBuilderFactory(factory)
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+    }
+
+    @Bean
+    public WebClient schoolApiWebClient(SchoolApiProperties properties) {
+        return WebClient.builder()
+                .baseUrl(properties.baseUrl())
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(20 * 1024 * 1024))
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }

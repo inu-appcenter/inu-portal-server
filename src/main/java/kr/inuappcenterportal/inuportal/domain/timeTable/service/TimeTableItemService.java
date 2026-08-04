@@ -1,7 +1,9 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.service;
 
-import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
+import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.CustomScheduleMeetingCommand;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
@@ -33,6 +35,8 @@ public class TimeTableItemService {
     private final TimeTableRepository timeTableRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final CustomScheduleService customScheduleService;
+    private final CourseMeetingRepository courseMeetingRepository;
+
 
     /**
      * 강의 기반 시간표 요소 생성 메서드
@@ -44,17 +48,35 @@ public class TimeTableItemService {
             Long timeTableId,
             Long courseOfferingId
     ) {
+        // 시간표 가져오기
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
-        CourseOffering courseOffering = courseOfferingRepository.findById(courseOfferingId)
-                .orElseThrow(() -> new MyException(MyErrorCode.COURSE_NOT_FOUND));
+        // 시간표 유저 검증
+        validateOwner(memberId, timeTable);
 
+        // 개설 강의 가져오기
+        CourseOffering courseOffering = courseOfferingRepository.findById(courseOfferingId)
+                .orElseThrow(() -> new MyException(MyErrorCode.COURSE_OFFERING_NOT_FOUND));
+
+        // 시간표의 학기와 개설 겅의 학기가 맞는지 검증
         if (!courseOffering.getSemester().getId().equals(timeTable.getSemester().getId())) {
             throw new MyException(MyErrorCode.NO_MATCH_SEMESTER);
         }
 
-        validateOwner(memberId, timeTable);
+        // 동일한 개설 강의 요소가 들어가는지 검증
+        if (timeTableItemRepository.existsByTimeTableIdAndCourseOfferingId(timeTableId, courseOfferingId)) {
+            throw new MyException(MyErrorCode.DUPLICATE_TIMETABLE_COURSE_ITEM);
+        }
+
+        // 생성용
+        List<CourseMeeting> meetings = courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
+        if (!meetings.isEmpty()) {
+            List<TimeSlot> timeSlots = toTimeSlots(meetings);
+
+            validateNoRequestTimeConflict(timeSlots);
+            validateNoDBTimeConflict(timeTableId, timeSlots);
+        }
 
         TimeTableItem courseItem = TimeTableItem.createForCourse(memo, timeTable, courseOffering);
 
@@ -80,7 +102,7 @@ public class TimeTableItemService {
         validateOwner(memberId, timeTable);
 
         // 생성용
-        List<CustomScheduleMeetingCommand> meetings = toCommands(request);
+        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request);
         // 검증용
         List<TimeSlot> timeSlots = toTimeSlots(request);
 
@@ -126,6 +148,7 @@ public class TimeTableItemService {
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM_IN_TIMETABLE);
         }
 
+        // 수정하려는 시간표 요소가 커스텀인지 아닌지 검증
         if (updatetimeTableItem.getType() != TimeTableItemType.CUSTOM)
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM);
 
@@ -133,7 +156,7 @@ public class TimeTableItemService {
         CustomSchedule customSchedule = updatetimeTableItem.getCustomSchedule();
 
         // 생성용
-        List<CustomScheduleMeetingCommand> meetings = toCommands(request);
+        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request);
         // 검증용
         List<TimeSlot> timeSlots = toTimeSlots(request);
 
@@ -151,7 +174,7 @@ public class TimeTableItemService {
     }
 
     // 중복 변환 로직 분리
-    private List<CustomScheduleMeetingCommand> toCommands(TimeTableCustomItemRequestDto request) {
+    private List<CustomScheduleMeetingCommand> toCustomCommands(TimeTableCustomItemRequestDto request) {
         return request.meetings().stream()
                 .map(meeting -> new CustomScheduleMeetingCommand(
                         meeting.location(),
@@ -162,12 +185,24 @@ public class TimeTableItemService {
                 .toList();
     }
 
+    // 커스텀 일정용
     private List<TimeSlot> toTimeSlots(TimeTableCustomItemRequestDto request) {
         return request.meetings().stream()
                 .map(meeting -> new TimeSlot(
                         meeting.day(),
                         meeting.startTime(),
                         meeting.endTime()
+                ))
+                .toList();
+    }
+
+    // 개설 강의용
+    private List<TimeSlot> toTimeSlots(List<CourseMeeting> meetings) {
+        return meetings.stream()
+                .map(meeting -> new TimeSlot(
+                        meeting.getDay(),
+                        meeting.getStartTime(),
+                        meeting.getEndTime()
                 ))
                 .toList();
     }

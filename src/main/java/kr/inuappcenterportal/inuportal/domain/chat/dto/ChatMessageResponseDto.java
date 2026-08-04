@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.chat.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatMessage;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.MessageType;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,10 +23,12 @@ public class ChatMessageResponseDto {
     private int unreadCount;
     private String senderAlias;
     private Long senderChatRoomMemberId;
+    private MessageType messageType;
+    private String extraData;
     private LocalDateTime createDate; // createdAt 대신 createDate 사용
 
     @Builder
-    public ChatMessageResponseDto(Long messageId, Long roomId, String senderNickname, String senderHash, String content, int imageCount, int unreadCount, String senderAlias, Long senderChatRoomMemberId, LocalDateTime createDate) {
+    public ChatMessageResponseDto(Long messageId, Long roomId, String senderNickname, String senderHash, String content, int imageCount, int unreadCount, String senderAlias, Long senderChatRoomMemberId, MessageType messageType, String extraData, LocalDateTime createDate) {
         this.messageId = messageId;
         this.roomId = roomId;
         this.senderNickname = senderNickname;
@@ -35,6 +38,8 @@ public class ChatMessageResponseDto {
         this.unreadCount = unreadCount;
         this.senderAlias = senderAlias;
         this.senderChatRoomMemberId = senderChatRoomMemberId;
+        this.messageType = messageType != null ? messageType : MessageType.TEXT;
+        this.extraData = extraData;
         this.createDate = createDate;
     }
 
@@ -47,6 +52,8 @@ public class ChatMessageResponseDto {
                 .senderChatRoomMemberId(senderChatRoomMemberId)
                 .content(chatMessage.getContent())
                 .imageCount(chatMessage.getImageCount())
+                .messageType(chatMessage.getMessageType())
+                .extraData(chatMessage.getExtraData())
                 .createDate(chatMessage.getCreateDate()) // getCreatedAt() 대신 getCreateDate() 사용
                 .build();
     }

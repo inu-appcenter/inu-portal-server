@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.crawler.base;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.CurriculumItemDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CurriculumItemDto;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 @Slf4j
@@ -59,7 +61,7 @@ public class CurriculumParser {
 
             String completionDivision = normalizeDivision(get(row, indexes.divisionIndex()));
             String title = normalizeTitle(get(row, indexes.titleIndex()));
-            String credit = normalizeCredit(get(row, indexes.creditIndex()));
+            Integer credit = normalizeCredit(get(row, indexes.creditIndex()));
 
             if (isBlank(title) || isLikelyNonCourseRow(title)) {
                 continue;
@@ -485,14 +487,14 @@ public class CurriculumParser {
         return value;
     }
 
-    private String normalizeCredit(String value) {
-        value = clean(value);
+    private Integer normalizeCredit(String value) {
+        Matcher matcher = Pattern.compile("\\d+").matcher(clean(value));
 
-        if (value.endsWith(".0")) {
-            return value.substring(0, value.length() - 2);
+        if (!matcher.find()) {
+            return null;
         }
 
-        return value;
+        return Integer.parseInt(matcher.group());
     }
 
     private String clean(String value) {

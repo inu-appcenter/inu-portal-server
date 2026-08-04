@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.repository;
 
-import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +14,8 @@ public interface TimeTableItemRepository extends JpaRepository<TimeTableItem, Lo
     Optional<TimeTableItem> findByCustomScheduleId(Long customScheduleId);
 
     List<TimeTableItem> findAllByTimeTableId(Long timeTableId);
+
+    boolean existsByTimeTableIdAndCourseOfferingId(Long timeTableId, Long courseOfferingId);
 
     @Query("""
             select case when count(item) > 0 then true else false end

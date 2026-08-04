@@ -84,6 +84,7 @@ public enum MyErrorCode {
     HAS_NOT_TIMETABLE_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 시간표에 접근할 권한이 없습니다."),
     INPUT_YEAR_AND_TERM(HttpStatus.BAD_REQUEST, "년도와 학기는 함께 입력해야합니다."),
     COURSE_NOT_FOUND(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다."),
+    COURSE_OFFERING_NOT_FOUND(HttpStatus.BAD_REQUEST, "존재하지 않는 개설 강의입니다."),
     NO_MATCH_SEMESTER(HttpStatus.BAD_REQUEST, "학기가 일치하지 않습니다."),
     NO_CUSTOM_ITEM_IN_TIMETABLE(HttpStatus.BAD_REQUEST, "해당 시간표에 속한 강의가 아닙니다."),
     NO_CUSTOM_ITEM(HttpStatus.BAD_REQUEST, "해당 요소는 커스텀 일정이 아닙니다."),
@@ -97,9 +98,13 @@ public enum MyErrorCode {
     TIMETABLE_ITEM_TIME_CONFLICT(HttpStatus.CONFLICT, "시간표 요소의 시간이 중복입니다."),
     TIMETABLE_ITEM_TIME_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소를 추가할 수 없습니다."),
     TIMETABLE_ITEM_TIME_DB_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소가 존재합니다."),
+    DUPLICATE_TIMETABLE_COURSE_ITEM(HttpStatus.CONFLICT, "이미 시간표에 추가된 개설 강의입니다."),
     PRIVATE_TIMETABLE(HttpStatus.FORBIDDEN, "비공개된 시간표입니다."),
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
+    DUPLICATE_COURSE_OFFERING(HttpStatus.CONFLICT, "중복된 개설 강의입니다."),
+    INVALID_DAY_OF_WEEK(HttpStatus.CONFLICT, "허용하지 않은 요일입니다."),
+    MEETINGS_NOT_FOUND(HttpStatus.NOT_FOUND, "시간 정보가 존재하지 않습니다."),
 
 
     // Chat 관련 에러 코드 추가

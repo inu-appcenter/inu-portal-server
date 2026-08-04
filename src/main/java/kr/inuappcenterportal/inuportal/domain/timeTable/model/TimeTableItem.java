@@ -17,7 +17,15 @@ import org.hibernate.annotations.Check;
         or
         (timetable_item_type = 'CUSTOM' and course_offering_id is null and custom_schedule_id is not null)
         """)
-@Table(name = "timetable_item")
+@Table(
+        name = "timetable_item",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_timetable_item_course",
+                        columnNames = {"timetable_id", "course_offering_id"}
+                )
+        }
+)
 public class TimeTableItem {
 
     @Id
