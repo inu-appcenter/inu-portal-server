@@ -192,4 +192,17 @@ public class CourseOffering extends BaseTimeEntity {
         this.englishName = englishName;
         this.credit = credit;
     }
+
+
+    /**
+     * 엑셀 파일에서 파싱한 교수명 업데이트 메서드
+     * (public void updateFromExcel(...)) 나중에 이런 식으로 확장
+     */
+    public void updateProfessor(String professor) {
+        if (professor == null || professor.isBlank()) {
+            return;
+        }
+
+        this.professor = professor.trim();
+    }
 }
