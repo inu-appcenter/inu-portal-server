@@ -32,7 +32,8 @@ public class PostListResponseDto {
     private Long replyCount;
     @Schema(description = "이미지수")
     private Long imageCount;
-    @Schema(description = "생성일",example = "yyyy.mm.dd")
+    @Schema(description = "생성일",example = "yyyy.MM.dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
     private String createDate;
     @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
     private String modifiedDate;
@@ -55,7 +56,7 @@ public class PostListResponseDto {
     public static PostListResponseDto of(Post post, String writer){
         return PostListResponseDto.builder()
                 .id(post.getId())
-                .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
                 .modifiedDate(post.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
                 .category(post.getCategory())
                 .writer(writer)
