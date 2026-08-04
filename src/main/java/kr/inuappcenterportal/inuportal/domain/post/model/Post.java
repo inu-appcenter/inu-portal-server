@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -63,7 +62,7 @@ public class Post{
     private Boolean isDeleted;
 
     @Column(name = "create_date")
-    private LocalDate createDate;
+    private LocalDateTime createDate;
 
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
@@ -102,7 +101,7 @@ public class Post{
         this.scrap = 0L;
         this.replyCount = 0L;
         this.isDeleted = false;
-        this.createDate = LocalDate.now();
+        this.createDate = LocalDateTime.now();
         this.modifiedDate = LocalDateTime.now();
     }
 
