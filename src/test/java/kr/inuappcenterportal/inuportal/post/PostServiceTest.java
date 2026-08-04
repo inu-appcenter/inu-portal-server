@@ -390,12 +390,12 @@ public class PostServiceTest {
         Member member = createMember("201900000");
         Post post1 = Post.builder().title("title1").content("content1").category("자유게시판").member(member).build();
         ReflectionTestUtils.setField(post1, "id", 1L);
-        ReflectionTestUtils.setField(post1, "createDate", LocalDate.now());
+        ReflectionTestUtils.setField(post1, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(post1, "modifiedDate", LocalDateTime.now());
 
         Post post2 = Post.builder().title("title2").content("content2").category("학사").member(member).build();
         ReflectionTestUtils.setField(post2, "id", 2L);
-        ReflectionTestUtils.setField(post2, "createDate", LocalDate.now());
+        ReflectionTestUtils.setField(post2, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(post2, "modifiedDate", LocalDateTime.now());
 
         Page<Post> page1 = new PageImpl<>(Collections.singletonList(post1));
