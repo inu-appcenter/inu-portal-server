@@ -63,7 +63,8 @@ public class CourseOfferingService {
             String keyword,
             MeetingFilterMode filterMode,
             List<String> meetings,
-            Pageable pageable
+            Pageable pageable,
+            boolean exposeProfessor
     ) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
@@ -96,7 +97,8 @@ public class CourseOfferingService {
 
         return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
                 courseOffering,
-                meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
+                meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of()),
+                exposeProfessor
         ));
     }
 
