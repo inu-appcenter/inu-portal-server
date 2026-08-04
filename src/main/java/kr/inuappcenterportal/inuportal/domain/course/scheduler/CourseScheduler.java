@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -21,6 +23,7 @@ public class CourseScheduler {
 
     /**
      * 매월 1일 오전 4시에 동기화 메서드 실행
+     * 크롤링으로 강의 기본정보 동기화
      */
     @Scheduled(cron = "0 0 4 1 * *")
     @SchedulerLock(
@@ -35,6 +38,7 @@ public class CourseScheduler {
 
     /**
      * 매일 오전 3시에 동기화 메서드 실행
+     * 학교API로 개설 강의 동기화
      */
     @Scheduled(cron = "0 0 3 * * *")
     @SchedulerLock(
@@ -43,9 +47,8 @@ public class CourseScheduler {
             lockAtLeastFor = "PT1M"
     )
     public void syncCourseOffering() {
-        // 학기마다 주기적으로 바꿔줘야하는 값
-        int year = 2026;
-        String modDate = "20260101";
+        int year = LocalDate.now().getYear();
+        String modDate = year + "0101";
         courseOfferingSyncService.syncCourseWithSchoolApi(year, modDate);
     }
 }
