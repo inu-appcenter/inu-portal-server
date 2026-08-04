@@ -1,7 +1,9 @@
 package kr.inuappcenterportal.inuportal.domain.course.service;
 
+import kr.inuappcenterportal.inuportal.domain.course.crawler.excel.ExcelParser;
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseExcelRow;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
@@ -27,12 +29,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +45,7 @@ public class CourseOfferingService {
     private final CourseOfferingRepository courseOfferingRepository;
     private final SemesterRepository semesterRepository;
     private final CourseMeetingRepository courseMeetingRepository;
+    private final ExcelParser excelParser;
 
     /**
      * 개설 강의 조건별 조회
@@ -358,6 +359,56 @@ public class CourseOfferingService {
                 TargetGrade.from(item.hyName()),
                 CompletionDivision.from(item.isuName()),
                 item.credit()
+        );
+    }
+
+
+    /**
+     * Excel 편람 파일에서 가져온 교수명 업데이트
+     */
+    @Transactional
+    public void updateProfessorsFromExcel(
+            Integer year,
+            SemesterTerm term,
+            InputStream inputStream
+    ) {
+        Semester semester = semesterRepository.findByYearAndTerm(year, term)
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+
+        List<CourseExcelRow> rows = excelParser.parse(inputStream);
+        Map<String, String> professorBySubjectNumber = rows.stream()
+                .filter(row -> row.subjectNumber() != null && !row.subjectNumber().isBlank())
+                .filter(row -> row.professor() != null && !row.professor().isBlank())
+                .collect(Collectors.toMap(
+                        row -> row.subjectNumber().trim(),
+                        row -> row.professor().trim(),
+                        (first, ignored) -> first,
+                        LinkedHashMap::new
+                ));
+
+        int updatedCount = 0;
+        int skippedCount = rows.size() - professorBySubjectNumber.size();
+
+        for (Map.Entry<String, String> entry : professorBySubjectNumber.entrySet()) {
+            Optional<CourseOffering> courseOffering =
+                    courseOfferingRepository.findBySemesterIdAndSubjectNumber(semester.getId(), entry.getKey());
+
+            if (courseOffering.isPresent()) {
+                courseOffering.get().updateProfessor(entry.getValue());
+                updatedCount++;
+            } else {
+                skippedCount++;
+                log.warn("교수명 업데이트 대상 강의를 찾을 수 없습니다. year={}, term={}, subjectNumber={}",
+                        year, term, entry.getKey());
+            }
+        }
+
+        log.info("교수명 엑셀 반영 완료. year={}, term={}, total={}, updated={}, skipped={}",
+                year,
+                term,
+                rows.size(),
+                updatedCount,
+                skippedCount
         );
     }
 
