@@ -32,6 +32,8 @@ public class PostListResponseDto {
     private Long replyCount;
     @Schema(description = "이미지수")
     private Long imageCount;
+    @Schema(description = "첫번째 이미지 URL", example = "/api/posts/1/images/1")
+    private String imageUrl;
     @Schema(description = "생성일",example = "yyyy.MM.dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
     private String createDate;
@@ -39,7 +41,7 @@ public class PostListResponseDto {
     private String modifiedDate;
 
     @Builder
-    private PostListResponseDto(Long id, String title, String category, String writer,String content, String createDate, String modifiedDate, long like, long scrap, long imageCount, long replyCount){
+    private PostListResponseDto(Long id, String title, String category, String writer,String content, String createDate, String modifiedDate, long like, long scrap, long imageCount, long replyCount, String imageUrl){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -51,9 +53,14 @@ public class PostListResponseDto {
         this.scrap = scrap;
         this.imageCount = imageCount;
         this.replyCount = replyCount;
+        this.imageUrl = imageUrl;
     }
 
     public static PostListResponseDto of(Post post, String writer){
+        String imageUrl = (post.getImageCount() != null && post.getImageCount() > 0)
+                ? "/api/posts/" + post.getId() + "/images/1"
+                : null;
+
         return PostListResponseDto.builder()
                 .id(post.getId())
                 .createDate(post.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
@@ -66,6 +73,7 @@ public class PostListResponseDto {
                 .imageCount(post.getImageCount())
                 .scrap(post.getScrap())
                 .replyCount(post.getReplyCount())
+                .imageUrl(imageUrl)
                 .build();
     }
 
