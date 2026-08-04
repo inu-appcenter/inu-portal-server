@@ -15,10 +15,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -213,6 +215,9 @@ public interface CourseOfferingApiSpecification {
             )
     })
     ResponseEntity<ResponseDto<Page<CourseOfferingResponseDto>>> getCourseOfferings(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Member member,
+
             @Parameter(
                     description = "조회할 개설 강의의 연도입니다.",
                     example = "2026",

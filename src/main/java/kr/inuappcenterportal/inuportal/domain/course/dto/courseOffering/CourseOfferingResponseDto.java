@@ -56,11 +56,19 @@ public record CourseOfferingResponseDto(
 ) {
 
     public static CourseOfferingResponseDto from(CourseOffering courseOffering, List<CourseMeeting> meetings) {
+        return from(courseOffering, meetings, true);
+    }
+
+    public static CourseOfferingResponseDto from(
+            CourseOffering courseOffering,
+            List<CourseMeeting> meetings,
+            boolean exposeProfessor
+    ) {
         return new CourseOfferingResponseDto(
                 courseOffering.getId(),
                 courseOffering.getSyllabus(),
                 courseOffering.getSubjectNumber(),
-                courseOffering.getProfessor(),
+                exposeProfessor ? courseOffering.getProfessor() : null,
                 courseOffering.getCourse().getId(),
                 courseOffering.getCourse().getCourseCode(),
                 courseOffering.getCourse().getTitle(),

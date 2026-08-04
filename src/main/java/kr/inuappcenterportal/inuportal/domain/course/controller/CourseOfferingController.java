@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOf
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncService;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,6 +38,7 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
 
     @GetMapping
     public ResponseEntity<ResponseDto<Page<CourseOfferingResponseDto>>> getCourseOfferings(
+            @AuthenticationPrincipal Member member,
             @RequestParam Integer year,
             @RequestParam SemesterTerm term,
             @RequestParam(required = false) String deptName,
@@ -67,10 +70,17 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
                                 keyword,
                                 meetingFilterMode,
                                 meetings,
-                                pageable
+                                pageable,
+                                canViewProfessor(member)
                         ),
                         "개설 강의 목록 조회 성공"
                 )
         );
+    }
+
+    private boolean canViewProfessor(Member member) {
+        return member != null
+                && member.getStudentId() != null
+                && member.getStudentId().matches("\\d{9}");
     }
 }
