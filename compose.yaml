@@ -8,6 +8,8 @@ services:
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: prod
+      COURSE_OVERVIEW_DIRECTORY: /intip/overviews
+      COURSE_OVERVIEW_FILENAME_PATTERN: course-offering-{year}-{term-code}.xlsx
     ports:
       - "8086:8086"
     volumes:
