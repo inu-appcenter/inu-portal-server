@@ -45,6 +45,7 @@ public class CourseOfferingService {
     private final CourseOfferingRepository courseOfferingRepository;
     private final SemesterRepository semesterRepository;
     private final CourseMeetingRepository courseMeetingRepository;
+    private final CourseMeetingService courseMeetingService;
     private final ExcelParser excelParser;
 
     /**
@@ -97,7 +98,8 @@ public class CourseOfferingService {
 
         return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
                 courseOffering,
-                meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of()),
+                courseMeetingService.mergeContinuousMeetings(meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
+                ),
                 exposeProfessor
         ));
     }
