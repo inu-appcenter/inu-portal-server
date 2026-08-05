@@ -1,8 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.service;
 
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
+import kr.inuappcenterportal.inuportal.domain.course.service.CourseMeetingService;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
@@ -48,6 +50,7 @@ public class TimeTableService {
     private final CourseMeetingRepository courseMeetingRepository;
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
     private final FriendService friendService;
+    private final CourseMeetingService courseMeetingService;
 
 
     /**
@@ -81,9 +84,12 @@ public class TimeTableService {
                 List<CourseMeeting> meetings =
                         courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
 
+                List<CourseMeetingResponseDto> mergedMeetings =
+                        courseMeetingService.mergeContinuousMeetings(meetings);
+
                 yield TimeTableDetailItemResponseDto.ofCourse(
                         item,
-                        CourseTimeTableItemResponseDto.of(courseOffering, meetings)
+                        CourseTimeTableItemResponseDto.of(courseOffering, mergedMeetings)
                 );
             }
 
@@ -366,9 +372,12 @@ public class TimeTableService {
                 List<CourseMeeting> meetings =
                         courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
 
+                List<CourseMeetingResponseDto> mergedMeetings =
+                        courseMeetingService.mergeContinuousMeetings(meetings);
+
                 yield TimeTableDetailItemResponseDto.ofCourse(
                         item,
-                        CourseTimeTableItemResponseDto.of(courseOffering, meetings, visibility),
+                        CourseTimeTableItemResponseDto.of(courseOffering, mergedMeetings, visibility),
                         visibility
                 );
             }
