@@ -101,8 +101,8 @@ public class KeywordService {
                          .put(token.getToken(), token.getMemberId());
         }
 
-        titleToTokens.forEach((title, tokenMap) -> 
-            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, notice.getTitle(), FcmMessageType.SCHOOL_NOTICE, notice.getId())
+        titleToTokens.forEach((title, tokenMap) ->
+            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, notice.getTitle(), FcmMessageType.SCHOOL_NOTICE, notice.getId(), notice.getUrl())
         );
     }
 
@@ -150,8 +150,8 @@ public class KeywordService {
         }
 
         final String finalBody = body;
-        titleToTokens.forEach((title, tokenMap) -> 
-            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, finalBody, FcmMessageType.DEPARTMENT, departmentNotice.getId())
+        titleToTokens.forEach((title, tokenMap) ->
+            fcmAsyncService.sendAsyncKeywordNotice(tokenMap, title, finalBody, FcmMessageType.DEPARTMENT, departmentNotice.getId(), departmentNotice.getUrl())
         );
     }
 

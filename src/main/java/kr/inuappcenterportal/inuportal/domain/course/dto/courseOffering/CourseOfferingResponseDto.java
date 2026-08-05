@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 
@@ -55,13 +54,15 @@ public record CourseOfferingResponseDto(
         List<CourseMeetingResponseDto> meetings
 ) {
 
-    public static CourseOfferingResponseDto from(CourseOffering courseOffering, List<CourseMeeting> meetings) {
+    // 교수명 노출 제한을 신경 쓰지 않는 내부 코드나 테스트, 혹은 기존 호출부 호환용
+    public static CourseOfferingResponseDto from(CourseOffering courseOffering, List<CourseMeetingResponseDto> meetings) {
         return from(courseOffering, meetings, true);
     }
 
+    // 교수명 노출 여부를 제어하는 변환
     public static CourseOfferingResponseDto from(
             CourseOffering courseOffering,
-            List<CourseMeeting> meetings,
+            List<CourseMeetingResponseDto> meetings,
             boolean exposeProfessor
     ) {
         return new CourseOfferingResponseDto(
@@ -97,7 +98,7 @@ public record CourseOfferingResponseDto(
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
                 courseOffering.getNote(),
-                meetings.stream().map(CourseMeetingResponseDto::from).toList()
+                meetings
         );
     }
 }

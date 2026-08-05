@@ -184,7 +184,5 @@ build/
 .gradle-user-verify/
 
 ###  IDE 설정 파일 ###
-.idea/compiler.xml
-.idea/modules.xml
-.idea/modules/
+*.xml
 *.iml
