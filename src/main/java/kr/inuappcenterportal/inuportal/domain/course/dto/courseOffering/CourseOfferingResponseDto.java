@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 
@@ -55,13 +54,13 @@ public record CourseOfferingResponseDto(
         List<CourseMeetingResponseDto> meetings
 ) {
 
-    public static CourseOfferingResponseDto from(CourseOffering courseOffering, List<CourseMeeting> meetings) {
+    public static CourseOfferingResponseDto from(CourseOffering courseOffering, List<CourseMeetingResponseDto> meetings) {
         return from(courseOffering, meetings, true);
     }
 
     public static CourseOfferingResponseDto from(
             CourseOffering courseOffering,
-            List<CourseMeeting> meetings,
+            List<CourseMeetingResponseDto> meetings,
             boolean exposeProfessor
     ) {
         return new CourseOfferingResponseDto(
@@ -97,7 +96,7 @@ public record CourseOfferingResponseDto(
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
                 courseOffering.getNote(),
-                meetings.stream().map(CourseMeetingResponseDto::from).toList()
+                meetings
         );
     }
 }
