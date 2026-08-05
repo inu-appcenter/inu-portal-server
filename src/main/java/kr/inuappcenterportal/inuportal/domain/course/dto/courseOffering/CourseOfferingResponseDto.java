@@ -54,10 +54,12 @@ public record CourseOfferingResponseDto(
         List<CourseMeetingResponseDto> meetings
 ) {
 
+    // 교수명 노출 제한을 신경 쓰지 않는 내부 코드나 테스트, 혹은 기존 호출부 호환용
     public static CourseOfferingResponseDto from(CourseOffering courseOffering, List<CourseMeetingResponseDto> meetings) {
         return from(courseOffering, meetings, true);
     }
 
+    // 교수명 노출 여부를 제어하는 변환
     public static CourseOfferingResponseDto from(
             CourseOffering courseOffering,
             List<CourseMeetingResponseDto> meetings,

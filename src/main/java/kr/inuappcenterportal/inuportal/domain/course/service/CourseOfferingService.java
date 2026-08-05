@@ -98,8 +98,8 @@ public class CourseOfferingService {
 
         return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
                 courseOffering,
-                courseMeetingService.mergeContinuousMeetings(meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())
-                ),
+                courseMeetingService.mergeContinuousMeetings
+                        (meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())),
                 exposeProfessor
         ));
     }
