@@ -23,5 +23,4 @@ public record CourseMeetingResponseDto(
                 meeting.getEndTime()
         );
     }
-
 }

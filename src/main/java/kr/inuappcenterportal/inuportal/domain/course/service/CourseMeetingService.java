@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingGroupKey;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
@@ -17,9 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalTime;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -82,5 +83,100 @@ public class CourseMeetingService {
                         key.year(), key.termCode(), key.haksuCode(), e.getMessage());
             }
         }
+    }
+
+    /**
+     * 연강 판단 후 meetings 합치는 메서드
+     */
+    public List<CourseMeetingResponseDto> mergeContinuousMeetings(List<CourseMeeting> meetings) {
+        if (meetings == null || meetings.isEmpty()) {
+            return List.of();
+        }
+
+        // day->location->startTime 순으로 정렬
+        List<CourseMeetingResponseDto> sortedMeetings = meetings.stream()
+                .map(CourseMeetingResponseDto::from)
+                .sorted(Comparator
+                        .comparing(CourseMeetingResponseDto::day)
+                        .thenComparing(CourseMeetingResponseDto::location, Comparator.nullsFirst(String::compareTo))
+                        .thenComparing(CourseMeetingResponseDto::startTime))
+                .toList();
+
+        List<CourseMeetingResponseDto> result = new ArrayList<>();
+        CourseMeetingResponseDto current = sortedMeetings.get(0); // 정렬된 meetings의 첫번째 원소
+
+        for (int i = 1; i < sortedMeetings.size(); i++) {
+            CourseMeetingResponseDto next = sortedMeetings.get(i);
+
+            // current의 다음 원소부터 비교하면서 머지가 가능한지 확인
+            // current에 계속 중첩됨.
+            if (canMerge(current, next)) {
+                current = merge(current, next);
+            } else {
+                result.add(current);
+                current = next;
+            }
+        }
+
+        result.add(current);
+        return result;
+    }
+
+    // 합치려는 두 meeting 객체가 연강인지 판단하는 메서드
+    private boolean canMerge(CourseMeetingResponseDto current, CourseMeetingResponseDto next) {
+
+        // 1. 요일이 같은지 확인
+        if (!Objects.equals(current.day(), next.day())) {
+            return false;
+        }
+
+        // 2. 강의실 같은지 확인
+        if (!Objects.equals(current.location(), next.location())) {
+            return false;
+        }
+
+        // 3. 시간이 있는지 확인
+        if (current.endTime() == null || next.startTime() == null || next.endTime() == null) {
+            return false;
+        }
+
+        //
+        if (next.startTime().isBefore(current.endTime())) {
+            return !next.endTime().isBefore(current.endTime());
+        }
+
+        // 10분 내외일때만 연강
+        long gapMinutes = Duration.between(current.endTime(), next.startTime()).toMinutes();
+        return gapMinutes <= 10;
+    }
+
+    private CourseMeetingResponseDto merge(
+            CourseMeetingResponseDto current,
+            CourseMeetingResponseDto next
+    ) {
+        return new CourseMeetingResponseDto(
+                current.id(),
+                current.location(),
+                mergeSequence(current.sequence(), next.sequence()),
+                current.day(),
+                current.startTime(),
+                next.endTime().isAfter(current.endTime()) ? next.endTime() : current.endTime()
+        );
+    }
+
+    private String mergeSequence(String currentSequence, String nextSequence) {
+        if (currentSequence == null || currentSequence.isBlank()) {
+            return nextSequence;
+        }
+
+        if (nextSequence == null || nextSequence.isBlank()) {
+            return currentSequence;
+        }
+
+        if (currentSequence.contains(nextSequence)) {
+            return currentSequence;
+        }
+
+        return currentSequence + "," + nextSequence;
     }
 }
