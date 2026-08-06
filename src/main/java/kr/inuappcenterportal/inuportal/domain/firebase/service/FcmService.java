@@ -245,7 +245,8 @@ public class FcmService {
                 request.title(),
                 request.content(),
                 Map.copyOf(notificationTargets.tokenAndMemberId()),
-                List.copyOf(notificationTargets.targetMemberIds())
+                List.copyOf(notificationTargets.targetMemberIds()),
+                request.path()
         );
     }
 
@@ -276,7 +277,8 @@ public class FcmService {
                     dispatch.title(),
                     dispatch.content(),
                     FcmMessageType.GENERAL,
-                    null
+                    null,
+                    dispatch.path()
             );
 
             // 4. 최종 상태 업데이트
