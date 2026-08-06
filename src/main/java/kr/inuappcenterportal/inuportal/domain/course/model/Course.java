@@ -40,7 +40,7 @@ public class Course extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(length = 255)
+    @Column(name = "english_title", length = 255)
     private String englishTitle;
 
     @Enumerated(EnumType.STRING)
