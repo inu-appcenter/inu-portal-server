@@ -408,8 +408,7 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) List<Integer> credits,
 
             @Parameter(
-                    description = "강의명, 영문명, 학수번호 검색 키워드입니다.",
-                    example = "운영체제"
+                    description = "강의명, 영문명, 학수번호 검색 키워드입니다."
             )
             @RequestParam(required = false) String keyword,
 

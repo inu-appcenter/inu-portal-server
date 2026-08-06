@@ -1,11 +1,15 @@
 package kr.inuappcenterportal.inuportal.domain.course.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.HY_NAME;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_NAME;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import org.springframework.data.domain.Page;
@@ -112,11 +116,45 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
             }
         }
 
+        // 과목이 전공이면 1, 교양이면 2, 기타면 3
+        NumberExpression<Integer> categoryOrder = new CaseBuilder()
+                .when(courseOffering.isuName.in(
+                        ISU_NAME.MAJOR_ADVANCED,
+                        ISU_NAME.MAJOR_CORE,
+                        ISU_NAME.MAJOR_FOUNDATION
+                )).then(1)
+                .when(courseOffering.isuName.in(
+                        ISU_NAME.BASIC_LIBERAL_ARTS,
+                        ISU_NAME.ADVANCED_LIBERAL_ARTS,
+                        ISU_NAME.CORE_LIBERAL_ARTS,
+                        ISU_NAME.GENERAL_ELECTIVE,
+                        ISU_NAME.MILITARY_SCIENCE,
+                        ISU_NAME.TEACHING_PROFESSION
+                )).then(2)
+                .otherwise(3);
+
+        NumberExpression<Integer> hyNameOrder = new CaseBuilder()
+                .when(courseOffering.hyName.eq(HY_NAME.ALL)).then(1)
+                .when(courseOffering.hyName.eq(HY_NAME.GRADE1)).then(2)
+                .when(courseOffering.hyName.eq(HY_NAME.GRADE2)).then(3)
+                .when(courseOffering.hyName.eq(HY_NAME.GRADE3)).then(4)
+                .when(courseOffering.hyName.eq(HY_NAME.GRADE4)).then(5)
+                .otherwise(99);
+
+
+        // 위에서 만든 규칙을 SQL처럼 사용하는 곳
+        // "select * from courseOffering join course join semester where .. orderBy .. limit .. offset .." 이런 느낌의 쿼리
+        // (정렬은 offset/limit 이전에)
         List<CourseOffering> content = jpaQueryFactory
                 .selectFrom(courseOffering)
                 .join(courseOffering.course, course).fetchJoin()
                 .join(courseOffering.semester, semester).fetchJoin()
                 .where(builder)
+                .orderBy(
+                        categoryOrder.asc(),
+                        hyNameOrder.asc(),
+                        course.title.asc()
+                )
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
