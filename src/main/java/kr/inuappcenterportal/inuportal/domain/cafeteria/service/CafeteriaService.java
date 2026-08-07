@@ -1,6 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.cafeteria.service;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
@@ -12,10 +11,14 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +32,16 @@ public class CafeteriaService {
     @Value("${installPath}")
     private String installPath;
 
-    @PostConstruct
+    @Async("crawlerExecutor")
+    @EventListener(ApplicationReadyEvent.class)
     @Transactional
-    public void initCafeteria() throws InterruptedException {
-        crawlCafeteria();
+    public void initCafeteria() {
+        try {
+            crawlCafeteria();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            log.warn("서버 시작 후 식단 크롤링이 중단되었습니다.");
+        }
     }
 
     @Scheduled(cron = "0 10 0 ? * MON-SAT")
@@ -71,6 +80,7 @@ public class CafeteriaService {
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         WebDriver webDriver = new ChromeDriver(options);
+        webDriver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
 
         try {
             webDriver.get(url);

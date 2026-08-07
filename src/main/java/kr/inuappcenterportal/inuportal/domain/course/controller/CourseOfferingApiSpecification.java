@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -408,8 +409,7 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) List<Integer> credits,
 
             @Parameter(
-                    description = "강의명, 영문명, 학수번호 검색 키워드입니다.",
-                    example = "운영체제"
+                    description = "강의명, 영문명, 학수번호 검색 키워드입니다."
             )
             @RequestParam(required = false) String keyword,
 
@@ -435,6 +435,15 @@ public interface CourseOfferingApiSpecification {
                     array = @ArraySchema(schema = @Schema(type = "string"))
             )
             @RequestParam(required = false) List<String> meetings,
+
+            @Parameter(
+                    description = "정렬 방식 (DEFAULT: 전공/교양/학년/강의명 순, SAVED_COUNT_DESC: 담은인원 많은 순, SAVED_COUNT_ASC: 담은인원 적은 순)",
+                    schema = @Schema(
+                            implementation = CourseOfferingSort.class,
+                            allowableValues = {"DEFAULT", "SAVED_COUNT_DESC", "SAVED_COUNT_ASC"}
+                    )
+            )
+            @RequestParam(required = false) CourseOfferingSort sort,
 
             @Parameter(hidden = true)
             @RequestParam(defaultValue = "0") Integer page

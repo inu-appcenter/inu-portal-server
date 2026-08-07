@@ -79,4 +79,11 @@ public interface TimeTableItemRepository extends JpaRepository<TimeTableItem, Lo
             @Param("endTime") LocalTime endTime
     );
 
+    @Query("""
+            select item.courseOffering.id, count(distinct item.timeTable.member.id)
+            from TimeTableItem item
+            where item.courseOffering.id in :courseOfferingIds
+            group by item.courseOffering.id
+            """)
+    List<Object[]> countDistinctMemberByCourseOfferingIdIn(@Param("courseOfferingIds") List<Long> courseOfferingIds);
 }

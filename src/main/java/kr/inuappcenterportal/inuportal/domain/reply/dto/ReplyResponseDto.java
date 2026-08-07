@@ -29,10 +29,10 @@ public class ReplyResponseDto {
     private Boolean isAnonymous;
     @Schema(description = "수정/삭제 가능 여부")
     private Boolean hasAuthority;
-    @Schema(description = "생성일",example = "yyyy-mm-dd")
+    @Schema(description = "생성일",example = "yyyy.MM.dd HH:mm:ss")
     private String createDate;
-    @Schema(description = "수정일",example = "yyyy-mm-dd")
-    private String  modifiedDate;
+    @Schema(description = "수정일",example = "yyyy.MM.dd HH:mm:ss")
+    private String modifiedDate;
     @Schema(description = "대댓글")
     private List<ReReplyResponseDto> reReplies;
 
@@ -55,11 +55,11 @@ public class ReplyResponseDto {
         return ReplyResponseDto.builder()
                 .id(reply.getId())
                 .writer(writer)
-                .fireId(fireId)
+                .fireId(reply.getAnonymous() ? 1L : fireId)
                 .content(reply.getIsDeleted()?"삭제된 댓글입니다.":reply.getContent())
                 .like(reply.getGood())
-                .createDate(reply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(reply.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(reply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
+                .modifiedDate(reply.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
                 .reReplies(reReplyResponseDtoList)
                 .isLiked(isLiked)
                 .isAnonymous(reply.getAnonymous())

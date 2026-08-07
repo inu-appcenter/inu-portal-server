@@ -45,7 +45,7 @@ public record TimeTableDetailItemResponseDto(
         );
     }
 
-    // 강의 시간표 요소
+    // 강의 시간표 요소 (친구용)
     public static TimeTableDetailItemResponseDto ofCourse(
             TimeTableItem item,
             CourseTimeTableItemResponseDto course,
@@ -56,13 +56,14 @@ public record TimeTableDetailItemResponseDto(
         return new TimeTableDetailItemResponseDto(
                 masked ? null : item.getId(),
                 item.getType(),
-                masked ? null : item.getMemo(),
+                // memo는 본인만 보는 개인 메모이므로 공개범위와 무관하게 친구에게는 항상 비공개
+                null,
                 course,
                 null
         );
     }
 
-    // 커스텀일정 시간표 요소
+    // 커스텀일정 시간표 요소 (친구용)
     public static TimeTableDetailItemResponseDto ofCustom(
             TimeTableItem item,
             CustomTimeTableItemResponseDto customSchedule,
@@ -73,7 +74,8 @@ public record TimeTableDetailItemResponseDto(
         return new TimeTableDetailItemResponseDto(
                 masked ? null : item.getId(),
                 item.getType(),
-                masked ? null : item.getMemo(),
+                // memo는 본인만 보는 개인 메모이므로 공개범위와 무관하게 친구에게는 항상 비공개
+                null,
                 null,
                 customSchedule
         );

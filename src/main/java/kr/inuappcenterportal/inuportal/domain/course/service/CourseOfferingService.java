@@ -35,6 +35,8 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -46,6 +48,7 @@ public class CourseOfferingService {
     private final SemesterRepository semesterRepository;
     private final CourseMeetingRepository courseMeetingRepository;
     private final CourseMeetingService courseMeetingService;
+    private final TimeTableItemRepository timeTableItemRepository;
     private final ExcelParser excelParser;
 
     /**
@@ -64,6 +67,7 @@ public class CourseOfferingService {
             String keyword,
             MeetingFilterMode filterMode,
             List<String> meetings,
+            CourseOfferingSort sort,
             Pageable pageable,
             boolean exposeProfessor
     ) {
@@ -81,7 +85,8 @@ public class CourseOfferingService {
                 toCredits(credit),
                 keyword,
                 resolveMeetingFilterMode(filterMode, meetings),
-                toMeetingFilters(meetings)
+                toMeetingFilters(meetings),
+                sort == null ? CourseOfferingSort.DEFAULT : sort
         );
 
         Page<CourseOffering> courseOfferings = courseOfferingRepository.search(condition, pageable);
@@ -96,11 +101,19 @@ public class CourseOfferingService {
                                 meeting -> meeting.getCourseOffering().getId()
                         ));
 
+        Map<Long, Long> savedCountMap = courseOfferingIds.isEmpty() ? Map.of() :
+                timeTableItemRepository.countDistinctMemberByCourseOfferingIdIn(courseOfferingIds).stream()
+                        .collect(Collectors.toMap(
+                                row -> (Long) row[0],
+                                row -> (Long) row[1]
+                        ));
+
         return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
                 courseOffering,
                 courseMeetingService.mergeContinuousMeetings
                         (meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())),
-                exposeProfessor
+                exposeProfessor,
+                savedCountMap.getOrDefault(courseOffering.getId(), 0L)
         ));
     }
 
