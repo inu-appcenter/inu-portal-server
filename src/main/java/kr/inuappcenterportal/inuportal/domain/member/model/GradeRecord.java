@@ -93,4 +93,21 @@ public class GradeRecord extends BaseTimeEntity {
             String note) {
         return new GradeRecord(member, semester, courseCode, title, credit, grade, isuName, isuFldName, note);
     }
+
+    // 개별 수정을 위한 메서드
+    public void update(
+            String title,
+            Integer credit,
+            Grade grade,
+            ISU_NAME isuName,
+            ISU_FLD_NAME isuFldName,
+            String note
+    ) {
+        this.title = title;
+        this.credit = credit;
+        this.grade = grade;
+        this.isuName = isuName;
+        this.isuFldName = isuFldName;
+        this.note = note;
+    }
 }
