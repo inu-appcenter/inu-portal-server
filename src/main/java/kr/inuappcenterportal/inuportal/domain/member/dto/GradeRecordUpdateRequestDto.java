@@ -1,8 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.member.dto;
 
-public record GradeRecordRequestDto(
-        String courseCode,
-        String title,
+public record GradeRecordUpdateRequestDto(
         Integer credit,
         String grade,
         Boolean isMajor,

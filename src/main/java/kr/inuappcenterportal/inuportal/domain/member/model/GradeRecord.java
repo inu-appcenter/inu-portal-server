@@ -1,8 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.member.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_FLD_NAME;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_NAME;
+import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.member.enums.Grade;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
@@ -37,6 +36,10 @@ public class GradeRecord extends BaseTimeEntity {
     @JoinColumn(name = "semester_id", nullable = false)
     private Semester semester;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
     @Column(name = "course_code")
     private String courseCode;
 
@@ -49,65 +52,56 @@ public class GradeRecord extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private Grade grade;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "isu_name")
-    private ISU_NAME isuName;
+    private Boolean isMajor;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "isu_fld_name")
-    private ISU_FLD_NAME isuFldName;
-
-    private String note;
+    @Column(name = "course_repetition")
+    private Boolean isCourseRepetition;
 
     private GradeRecord(
             Member member,
             Semester semester,
+            Course course,
             String courseCode,
             String title,
             Integer credit,
             Grade grade,
-            ISU_NAME isuName,
-            ISU_FLD_NAME isuFldName,
-            String note
+            Boolean isMajor,
+            Boolean courseRepetition
     ) {
         this.member = member;
         this.semester = semester;
+        this.course = course;
         this.courseCode = courseCode;
         this.title = title;
         this.credit = credit;
         this.grade = grade;
-        this.isuName = isuName;
-        this.isuFldName = isuFldName;
-        this.note = note;
+        this.isMajor = isMajor;
+        this.isCourseRepetition = courseRepetition;
     }
 
     public static GradeRecord create(
             Member member,
             Semester semester,
+            Course course,
             String courseCode,
             String title,
             Integer credit,
             Grade grade,
-            ISU_NAME isuName,
-            ISU_FLD_NAME isuFldName,
-            String note) {
-        return new GradeRecord(member, semester, courseCode, title, credit, grade, isuName, isuFldName, note);
+            Boolean isMajor,
+            Boolean isCourseRepetition) {
+        return new GradeRecord(member, semester, course, courseCode, title, credit, grade, isMajor, isCourseRepetition);
     }
 
     // 개별 수정을 위한 메서드
     public void update(
-            String title,
             Integer credit,
             Grade grade,
-            ISU_NAME isuName,
-            ISU_FLD_NAME isuFldName,
-            String note
+            Boolean isMajor,
+            Boolean isCourseRepetition
     ) {
-        this.title = title;
         this.credit = credit;
         this.grade = grade;
-        this.isuName = isuName;
-        this.isuFldName = isuFldName;
-        this.note = note;
+        this.isMajor = isMajor;
+        this.isCourseRepetition = isCourseRepetition;
     }
 }
