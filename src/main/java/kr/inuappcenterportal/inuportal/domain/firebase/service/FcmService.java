@@ -11,6 +11,7 @@ import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
@@ -813,17 +814,6 @@ public class FcmService {
     private record NotificationTargets(
             Map<String, Long> tokenAndMemberId,
             List<Long> targetMemberIds
-    ) {
-    }
-
-    public record TrackedNotificationDispatch(
-            Long fcmMessageId,
-            Map<String, Long> tokenAndMemberId,
-            String title,
-            String body,
-            FcmMessageType type,
-            Long targetId,
-            String path
     ) {
     }
 }
