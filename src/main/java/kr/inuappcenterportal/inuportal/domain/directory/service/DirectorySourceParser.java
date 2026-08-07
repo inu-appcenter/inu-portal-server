@@ -3,6 +3,8 @@ package kr.inuappcenterportal.inuportal.domain.directory.service;
 import kr.inuappcenterportal.inuportal.domain.directory.enums.DirectoryCategory;
 import kr.inuappcenterportal.inuportal.domain.directory.enums.DirectorySourceTemplateType;
 import kr.inuappcenterportal.inuportal.domain.directory.model.DirectorySource;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -21,7 +23,7 @@ public final class DirectorySourceParser {
         return switch (category) {
             case UNIVERSITY -> parseUniversitySources(document, syncedAt);
             case GRADUATE_SCHOOL -> parseGraduateSchoolSources(document, syncedAt);
-            default -> throw new IllegalArgumentException("Source inventory is not supported for category: " + category.name());
+            default -> throw new MyException(MyErrorCode.INVALID_DIRECTORY_SOURCE_CATEGORY);
         };
     }
 
