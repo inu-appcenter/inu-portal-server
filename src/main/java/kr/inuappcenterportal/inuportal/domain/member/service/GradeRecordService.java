@@ -31,8 +31,19 @@ public class GradeRecordService {
     private final MemberRepository memberRepository;
     private final CourseRepository courseRepository;
 
+
     /**
-     * 네 성적 조회 메서드
+     * 내 전체 성적 조회 메서드
+     */
+    public List<GradeRecordResponseDto> getAllGradeRecord(Long memberId) {
+        List<GradeRecord> gradeRecords = gradeRecordRepository.findAllByMemberId(memberId);
+
+        return gradeRecords.stream().map(GradeRecordResponseDto::from).toList();
+    }
+
+
+    /**
+     * 특정 학기의 네 성적 조회 메서드
      */
     public List<GradeRecordResponseDto> getGradeRecord(Long memberId, int year, SemesterTerm term) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
