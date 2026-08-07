@@ -87,7 +87,7 @@ public class PostResponseDto {
                 .modifiedDate(post.getModifiedDate())
                 .category(post.getCategory())
                 .writer(writer)
-                .fireId(post.getAnonymous() ? 1L : fireId)
+                .fireId(post.getAnonymous() && post.getMember() != null ? 1L : fireId)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .like(post.getGood())
