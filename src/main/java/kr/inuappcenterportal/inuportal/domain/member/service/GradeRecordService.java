@@ -1,10 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.member.service;
 
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_FLD_NAME;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_NAME;
+import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
 import kr.inuappcenterportal.inuportal.domain.member.dto.GradeRecordResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.GradeRecordSaveRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.GradeRecordUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.Grade;
 import kr.inuappcenterportal.inuportal.domain.member.model.GradeRecord;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -23,18 +23,17 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class GradeRecordService {
 
     private final SemesterRepository semesterRepository;
-    private final CourseRepository courseRepository;
     private final GradeRecordRepository gradeRecordRepository;
     private final MemberRepository memberRepository;
+    private final CourseRepository courseRepository;
 
     /**
      * 네 성적 조회 메서드
      */
-    @Transactional(readOnly = true)
     public List<GradeRecordResponseDto> getGradeRecord(Long memberId, int year, SemesterTerm term) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
@@ -48,6 +47,7 @@ public class GradeRecordService {
     /**
      * 성적 저장 및 업데이트 메서드
      */
+    @Transactional
     public List<GradeRecordResponseDto> replaceGradeRecord(
             GradeRecordSaveRequestDto request,
             Long memberId
@@ -64,13 +64,13 @@ public class GradeRecordService {
                 map(record -> GradeRecord.create(
                         member,
                         semester,
+                        findCourse(record.courseCode()),
                         record.courseCode(),
                         record.title(),
                         record.credit(),
                         Grade.from(record.grade()),
-                        ISU_NAME.from(record.isuName()),
-                        ISU_FLD_NAME.from(record.isuFldName()),
-                        record.note()
+                        record.isMajor(),
+                        isCourseRepetition(record.isCourseRepetition())
                 )).toList();
 
         return gradeRecordRepository.saveAll(records).stream()
@@ -78,9 +78,41 @@ public class GradeRecordService {
                 .toList();
     }
 
+    private Course findCourse(String courseCode) {
+        if (courseCode == null || courseCode.isBlank()) {
+            return null;
+        }
+        return courseRepository.findByCourseCode(courseCode)
+                .orElse(null);
+    }
+
+
+    /**
+     * 성적 개별 수정 메서드
+     */
+    @Transactional
+    public GradeRecordResponseDto updateGradeRecord(Long memberId, Long gradeRecordId, GradeRecordUpdateRequestDto request) {
+        GradeRecord gradeRecord = gradeRecordRepository.findByIdAndMemberId(gradeRecordId, memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.GRADE_RECORD_NOT_FOUND));
+
+        gradeRecord.update(
+                request.credit(),
+                Grade.from(request.grade()),
+                request.isMajor(),
+                isCourseRepetition(request.isCourseRepetition())
+        );
+
+        return GradeRecordResponseDto.from(gradeRecord);
+    }
+
+    private boolean isCourseRepetition(String value) {
+        return "재수강성적취소".equals(value);
+    }
+
     /**
      * 특정 학기의 모든 성적 삭제 메서드
      */
+    @Transactional
     public void deleteAllGradeRecord(Long memberId, int year, SemesterTerm term) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
@@ -89,8 +121,9 @@ public class GradeRecordService {
     }
 
     /**
-     * 특정 학기의 성적 개별 삭제 메서드
+     * 성적 개별 삭제 메서드
      */
+    @Transactional
     public void deleteGradeRecord(Long memberId, Long gradeRecordId) {
 
         GradeRecord gradeRecord = gradeRecordRepository.findByIdAndMemberId(gradeRecordId, memberId)
