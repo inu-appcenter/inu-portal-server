@@ -35,7 +35,7 @@ public class GradeRecordService {
      * 네 성적 조회 메서드
      */
     @Transactional(readOnly = true)
-    public List<GradeRecordResponseDto> getGrade(Long memberId, int year, SemesterTerm term) {
+    public List<GradeRecordResponseDto> getGradeRecord(Long memberId, int year, SemesterTerm term) {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
 
@@ -48,7 +48,7 @@ public class GradeRecordService {
     /**
      * 성적 저장 및 업데이트 메서드
      */
-    public List<GradeRecordResponseDto> upsertGrade(
+    public List<GradeRecordResponseDto> replaceGradeRecord(
             GradeRecordSaveRequestDto request,
             Long memberId
     ) {
@@ -76,5 +76,26 @@ public class GradeRecordService {
         return gradeRecordRepository.saveAll(records).stream()
                 .map(GradeRecordResponseDto::from)
                 .toList();
+    }
+
+    /**
+     * 특정 학기의 모든 성적 삭제 메서드
+     */
+    public void deleteAllGradeRecord(Long memberId, int year, SemesterTerm term) {
+        Semester semester = semesterRepository.findByYearAndTerm(year, term)
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+
+        gradeRecordRepository.deleteAllByMemberIdAndSemesterId(memberId, semester.getId());
+    }
+
+    /**
+     * 특정 학기의 성적 개별 삭제 메서드
+     */
+    public void deleteGradeRecord(Long memberId, Long gradeRecordId) {
+
+        GradeRecord gradeRecord = gradeRecordRepository.findByIdAndMemberId(gradeRecordId, memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.GRADE_RECORD_NOT_FOUND));
+
+        gradeRecordRepository.delete(gradeRecord);
     }
 }
