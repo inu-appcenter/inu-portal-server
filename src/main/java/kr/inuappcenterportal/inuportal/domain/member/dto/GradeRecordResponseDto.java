@@ -27,7 +27,7 @@ public record GradeRecordResponseDto(
                 gradeRecord.getCredit(),
                 gradeRecord.getGrade(),
                 gradeRecord.getIsMajor(),
-                gradeRecord.getIsCourseRepetition() ? "재수강성적취소" : null
+                Boolean.TRUE.equals(gradeRecord.getIsCourseRepetition()) ? "재수강성적취소" : null
         );
     }
 }

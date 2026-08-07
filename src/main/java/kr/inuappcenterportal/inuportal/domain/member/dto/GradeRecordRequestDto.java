@@ -1,11 +1,14 @@
 package kr.inuappcenterportal.inuportal.domain.member.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public record GradeRecordRequestDto(
         String courseCode,
-        String title,
-        Integer credit,
+        @NotBlank String title,
+        @NotNull Integer credit,
         String grade,
-        Boolean isMajor,
+        @NotNull Boolean isMajor,
         String isCourseRepetition
 ) {
 }
