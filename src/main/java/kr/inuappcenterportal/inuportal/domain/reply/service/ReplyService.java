@@ -25,6 +25,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -35,6 +39,7 @@ public class ReplyService {
     private final LikeReplyRepository likeReplyRepository;
     private final RedisService redisService;
     private final BlockRepository blockRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public Long saveReply(Member member, ReplyDto replyDto, Long postId) throws NoSuchAlgorithmException {
@@ -45,6 +50,8 @@ public class ReplyService {
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
         replyRepository.save(reply);
         post.upReplyCount();
+
+        sendReplyNotification(member, post, reply);
         return reply.getId();
     }
 
@@ -60,7 +67,78 @@ public class ReplyService {
         long num = countAnonymousNumber(member,post);
         Reply reReply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).reply(reply).post(post).number(num).build();
         post.upReplyCount();
-        return replyRepository.save(reReply).getId();
+        Reply savedReReply = replyRepository.save(reReply);
+
+        sendReReplyNotification(member, post, reply, savedReReply);
+        return savedReReply.getId();
+    }
+
+    private void sendReplyNotification(Member writerMember, Post post, Reply reply) {
+        try {
+            Member postAuthor = post.getMember();
+            if (postAuthor != null && !postAuthor.getId().equals(writerMember.getId())) {
+                String title = "새로운 댓글이 달렸습니다.";
+                String body = reply.getContent();
+                String path = "/tips/detail/" + post.getId();
+
+                TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
+                        List.of(postAuthor.getId()),
+                        title,
+                        body,
+                        FcmMessageType.POST_REPLY,
+                        post.getId(),
+                        path
+                );
+                fcmService.dispatchTrackedNotification(dispatch);
+            }
+        } catch (Exception e) {
+            log.error("댓글 FCM 푸시알림 발송 실패: postId={}, replyId={}", post.getId(), reply.getId(), e);
+        }
+    }
+
+    private void sendReReplyNotification(Member writerMember, Post post, Reply parentReply, Reply reReply) {
+        try {
+            Set<Long> targetMemberIds = new HashSet<>();
+
+            // 1. 원글 작성자
+            if (post.getMember() != null) {
+                targetMemberIds.add(post.getMember().getId());
+            }
+
+            // 2. 원댓글 작성자
+            if (parentReply.getMember() != null) {
+                targetMemberIds.add(parentReply.getMember().getId());
+            }
+
+            // 3. 해당 원댓글 스레드에 답글을 달았던 참여자들
+            List<Member> reReplyMembers = replyRepository.findReReplyMembersByParentReply(parentReply);
+            for (Member m : reReplyMembers) {
+                if (m != null) {
+                    targetMemberIds.add(m.getId());
+                }
+            }
+
+            // 본인 제외
+            targetMemberIds.remove(writerMember.getId());
+
+            if (!targetMemberIds.isEmpty()) {
+                String title = "새로운 답글이 달렸습니다.";
+                String body = reReply.getContent();
+                String path = "/tips/detail/" + post.getId();
+
+                TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
+                        new ArrayList<>(targetMemberIds),
+                        title,
+                        body,
+                        FcmMessageType.POST_REPLY,
+                        post.getId(),
+                        path
+                );
+                fcmService.dispatchTrackedNotification(dispatch);
+            }
+        } catch (Exception e) {
+            log.error("답글 FCM 푸시알림 발송 실패: postId={}, reReplyId={}", post.getId(), reReply.getId(), e);
+        }
     }
 
 

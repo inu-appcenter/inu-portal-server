@@ -55,7 +55,7 @@ public class ReplyResponseDto {
         return ReplyResponseDto.builder()
                 .id(reply.getId())
                 .writer(writer)
-                .fireId(fireId)
+                .fireId(reply.getAnonymous() ? 1L : fireId)
                 .content(reply.getIsDeleted()?"삭제된 댓글입니다.":reply.getContent())
                 .like(reply.getGood())
                 .createDate(reply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
