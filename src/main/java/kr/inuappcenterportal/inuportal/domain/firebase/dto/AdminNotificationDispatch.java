@@ -8,7 +8,8 @@ public record AdminNotificationDispatch(
         String title,
         String content,
         Map<String, Long> tokenAndMemberId,
-        List<Long> targetMemberIds
+        List<Long> targetMemberIds,
+        String path
 ) {
     public boolean hasTarget() {
         return !tokenAndMemberId.isEmpty();
