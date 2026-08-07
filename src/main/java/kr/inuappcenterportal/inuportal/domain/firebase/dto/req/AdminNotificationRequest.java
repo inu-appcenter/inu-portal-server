@@ -27,7 +27,10 @@ public record AdminNotificationRequest(
 
         @Schema(description = "Notification content", example = "Please join the survey event.")
         @NotBlank(message = "Content must not be blank.")
-        String content
+        String content,
+
+        @Schema(description = "Path to navigate to when the notification is tapped. Full URL for web, relative path for in-app routes.", example = "/board/1")
+        String path
 
 ) {
     public AdminNotificationTargetType resolveTargetType() {
