@@ -150,6 +150,8 @@ public interface TimeTableApiSpecification {
                     PUBLIC이면 전체 정보를 반환하고, PROTECTED이면 요일/시작 시간/종료 시간만 반환합니다.
                     <br>
                     PRIVATE 시간표는 조회할 수 없습니다.
+                    <br>
+                    memo는 공개범위(PUBLIC/PROTECTED)와 무관하게 본인만 볼 수 있는 개인 메모이므로 친구 조회 응답에서는 항상 null로 반환됩니다.
                     """
     )
     @ApiResponses(value = {
@@ -173,7 +175,7 @@ public interface TimeTableApiSpecification {
                                                           {
                                                             "id": 10,
                                                             "type": "COURSE",
-                                                            "memo": "중간고사 중요",
+                                                            "memo": null,
                                                             "course": {
                                                               "courseOfferingId": 3,
                                                               "courseId": 12,
