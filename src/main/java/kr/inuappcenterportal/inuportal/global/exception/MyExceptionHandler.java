@@ -47,14 +47,6 @@ public class MyExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseDto.of(-1, message));
     }
 
-    // 코드 실행 중 직접 또는 내부적으로 발생한 잘못된 인자 예외를 처리
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ResponseDto<Integer>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.error("잘못된 요청 파라미터 예외 발생 msg:{}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ResponseDto.of(-1, "잘못된 입력값입니다."));
-    }
-
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ResponseDto<Integer>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
