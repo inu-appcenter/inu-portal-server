@@ -56,6 +56,25 @@ public class FcmController {
         return ResponseEntity.ok(ResponseDto.of(fcmService.findNotifications(member, page), "알림 조회 성공"));
     }
 
+    @Operation(summary = "단건 알림 읽음 처리", description = "특정 알림 항목을 읽음 상태로 처리합니다.")
+    @PatchMapping("/notifications/{memberFcmMessageId}/read")
+    public ResponseEntity<ResponseDto<Void>> readNotification(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long memberFcmMessageId
+    ) {
+        fcmService.markNotificationAsRead(member, memberFcmMessageId);
+        return ResponseEntity.ok(ResponseDto.of(null, "알림 읽음 처리 성공"));
+    }
+
+    @Operation(summary = "안 읽은 알림 존재 여부 확인", description = "회원의 안 읽은 알림이 존재하는지 확인합니다.")
+    @GetMapping("/unread-status")
+    public ResponseEntity<ResponseDto<Boolean>> checkUnreadStatus(
+            @AuthenticationPrincipal Member member
+    ) {
+        boolean hasUnread = fcmService.hasUnreadNotification(member);
+        return ResponseEntity.ok(ResponseDto.of(hasUnread, "안 읽은 알림 상태 조회 성공"));
+    }
+
     @Operation(summary = "(관리자 전용) 회원 알림 전송",
             description = "지정 회원들에게 알림을 전송합니다. <br><br>" +
                     "memberIds가 비어있으면 전체 회원에게 알림을 전송합니다.")

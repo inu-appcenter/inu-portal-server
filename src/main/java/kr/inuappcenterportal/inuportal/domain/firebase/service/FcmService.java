@@ -477,10 +477,12 @@ public class FcmService {
         return AdminNotificationResponse.of(fcmMessage);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
         Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Direction.DESC, "id"));
         Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
+
+        messages.forEach(MemberFcmMessage::incrementViewCount);
 
         Map<Long, FcmMessage> fcmMessageMap = fcmMessageRepository.findAllById(
                         messages.stream().map(MemberFcmMessage::getFcmMessageId).toList()
@@ -496,6 +498,24 @@ public class FcmService {
         }).toList();
 
         return ListResponseDto.of(messages.getTotalPages(), messages.getTotalElements(), notificationResponses);
+    }
+
+    @Transactional
+    public void markNotificationAsRead(Member member, Long memberFcmMessageId) {
+        if (member == null || memberFcmMessageId == null) {
+            return;
+        }
+        MemberFcmMessage message = memberFcmMessageRepository.findByIdAndMemberId(memberFcmMessageId, member.getId())
+                .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
+        message.markAsRead();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasUnreadNotification(Member member) {
+        if (member == null) {
+            return false;
+        }
+        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalse(member.getId());
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId) {
