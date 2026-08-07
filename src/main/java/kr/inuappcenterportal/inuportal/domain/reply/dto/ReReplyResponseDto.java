@@ -28,9 +28,9 @@ public class ReReplyResponseDto {
     private Boolean isAnonymous;
     @Schema(description = "수정/삭제 가능 여부")
     private Boolean hasAuthority;
-    @Schema(description = "생성일",example = "yyyy-mm-dd")
+    @Schema(description = "생성일",example = "yyyy.MM.dd HH:mm:ss")
     private String createDate;
-    @Schema(description = "수정일",example = "yyyy-mm-dd")
+    @Schema(description = "수정일",example = "yyyy.MM.dd HH:mm:ss")
     private String modifiedDate;
 
     @Builder
@@ -52,11 +52,11 @@ public class ReReplyResponseDto {
         return ReReplyResponseDto.builder()
                 .id(reReply.getId())
                 .writer(writer)
-                .fireId(fireId)
+                .fireId(reReply.getAnonymous() ? 1L : fireId)
                 .content(reReply.getIsDeleted()?"삭제된 댓글입니다.":reReply.getContent())
                 .like(reReply.getGood())
-                .createDate(reReply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
-                .modifiedDate(reReply.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
+                .createDate(reReply.getCreateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
+                .modifiedDate(reReply.getModifiedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")))
                 .isLiked(isLiked)
                 .hasAuthority(hasAuthority)
                 .isAnonymous(reReply.getAnonymous())

@@ -15,4 +15,8 @@ public interface SemesterRepository extends JpaRepository<Semester, Long> {
 
     // status가 주어진 목록 안에 포함되는 Semester 조회
     List<Semester> findAllByStatusIn(List<SemesterStatus> statuses);
+
+    Optional<Semester> findFirstByStatusOrderByStartDateDesc(SemesterStatus status);
+
+    List<Semester> findAllByOrderByStartDateDesc();
 }

@@ -51,6 +51,12 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
+import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
+import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -64,6 +70,7 @@ public class FcmService {
     private final FcmAsyncExecutor fcmAsyncExecutor;
     private final FirebaseMessaging firebaseMessaging;
     private final MemberRepository memberRepository;
+    private final SemesterRepository semesterRepository;
     private final JdbcTemplate jdbcTemplate;
     private final FcmTransactionService fcmTransactionService;
     private final FcmMetrics fcmMetrics;
@@ -318,6 +325,7 @@ public class FcmService {
         int batchSize = 500;
         int successCount = 0;
         int failureCount = 0;
+        int maxRetries = 3;
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
@@ -326,33 +334,59 @@ public class FcmService {
             int batchSuccess = 0;
             int batchFailure = 0;
             long startNanos = System.nanoTime();
+            boolean batchFinished = false;
 
-            try {
-                BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
-                batchSuccess = response.getSuccessCount();
-                batchFailure = response.getFailureCount();
+            for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
+                try {
+                    CompletableFuture<BatchResponse> future = CompletableFuture.supplyAsync(() -> {
+                        try {
+                            return firebaseMessaging.sendEachForMulticast(message);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
 
-                List<SendResponse> responses = response.getResponses();
-                for (int j = 0; j < responses.size(); j++) {
-                    SendResponse sendResponse = responses.get(j);
-                    if (!sendResponse.isSuccessful()) {
-                        String token = batchTokens.get(j);
-                        FirebaseMessagingException exception = sendResponse.getException();
-                        log.warn("FCM send failed: token={}, error={}", token, exception != null ? exception.getMessage() : "unknown");
+                    BatchResponse response = future.get(15, java.util.concurrent.TimeUnit.SECONDS);
+                    batchSuccess = response.getSuccessCount();
+                    batchFailure = response.getFailureCount();
+
+                    List<SendResponse> responses = response.getResponses();
+                    for (int j = 0; j < responses.size(); j++) {
+                        SendResponse sendResponse = responses.get(j);
+                        if (!sendResponse.isSuccessful()) {
+                            String token = batchTokens.get(j);
+                            FirebaseMessagingException exception = sendResponse.getException();
+                            log.warn("FCM send failed: token={}, error={}", token, exception != null ? exception.getMessage() : "unknown");
+                        }
+                    }
+                    batchFinished = true;
+                } catch (Exception e) {
+                    log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
+                            attempt, maxRetries, fcmMessageId, batchTokens.size(), e.getMessage());
+
+                    if (attempt < maxRetries) {
+                        try {
+                            Thread.sleep(attempt * 1000L);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    } else {
+                        batchFailure = batchTokens.size();
+                        log.error("FCM batch send permanently failed after {} attempts for fcmMessageId={}, batchSize={}",
+                                maxRetries, fcmMessageId, batchTokens.size());
                     }
                 }
-            } catch (Exception e) {
-                batchFailure = batchTokens.size();
-                log.error("FCM batch send failed: fcmMessageId={}, batchSize={}, message={}", fcmMessageId, batchTokens.size(), e.getMessage());
-            } finally {
-                String metricType = type != null ? type.name() : "UNKNOWN";
-                fcmMetrics.recordBatch(metricType, batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
             }
+
+            fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
 
             successCount += batchSuccess;
             failureCount += batchFailure;
-            // 각 배치마다 즉시 DB에 반영
-            fcmTransactionService.updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
+
+            if (fcmMessageId != null) {
+                fcmTransactionService.updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
+            }
         }
 
         return new DeliveryResult(successCount, failureCount);
@@ -443,10 +477,12 @@ public class FcmService {
         return AdminNotificationResponse.of(fcmMessage);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
         Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Direction.DESC, "id"));
         Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
+
+        messages.forEach(MemberFcmMessage::incrementViewCount);
 
         Map<Long, FcmMessage> fcmMessageMap = fcmMessageRepository.findAllById(
                         messages.stream().map(MemberFcmMessage::getFcmMessageId).toList()
@@ -462,6 +498,24 @@ public class FcmService {
         }).toList();
 
         return ListResponseDto.of(messages.getTotalPages(), messages.getTotalElements(), notificationResponses);
+    }
+
+    @Transactional
+    public void markNotificationAsRead(Member member, Long memberFcmMessageId) {
+        if (member == null || memberFcmMessageId == null) {
+            return;
+        }
+        MemberFcmMessage message = memberFcmMessageRepository.findByIdAndMemberId(memberFcmMessageId, member.getId())
+                .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
+        message.markAsRead();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasUnreadNotification(Member member) {
+        if (member == null) {
+            return false;
+        }
+        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalse(member.getId());
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId) {
@@ -586,22 +640,7 @@ public class FcmService {
 
     private NotificationTargets getAdminNotificationTargets(AdminNotificationRequest request) {
         AdminNotificationTargetType targetType = request.resolveTargetType();
-        List<FcmToken> fcmTokens = switch (targetType) {
-            case ALL -> fcmTokenRepository.findAllTokens();
-            case LOGGED_IN -> fcmTokenRepository.findAllByMemberIdIsNotNull();
-            case LOGGED_OUT -> fcmTokenRepository.findAllByMemberIdIsNull();
-            case MEMBERS -> getMemberTargetTokens(request.memberIds());
-            case STUDENT_IDS -> getStudentIdTargetTokens(request.studentIds());
-            case DEPARTMENTS -> getDepartmentTargetTokens(request.departments());
-        };
-
-        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
-                .collect(Collectors.toMap(
-                        FcmToken::getToken,
-                        fcmToken -> fcmToken.getMemberId() == null ? UNLINKED_MEMBER_ID : fcmToken.getMemberId(),
-                        (existing, replacement) -> existing,
-                        LinkedHashMap::new
-                ));
+        AdminNotificationSubFilter subFilter = request.resolveSubFilter();
 
         List<Long> targetMemberIds = switch (targetType) {
             case ALL -> memberRepository.findAllIds();
@@ -612,10 +651,89 @@ public class FcmService {
             case DEPARTMENTS -> getDepartmentTargetMemberIds(request.departments());
         };
 
+        if (subFilter != AdminNotificationSubFilter.NONE) {
+            List<Long> subFilterMemberIds = getSubFilterTargetMemberIds(subFilter);
+            java.util.Set<Long> subFilterSet = new java.util.HashSet<>(subFilterMemberIds);
+            targetMemberIds = targetMemberIds.stream()
+                    .filter(subFilterSet::contains)
+                    .toList();
+        }
+
+        List<Long> finalMemberIds = distinctMemberIds(targetMemberIds);
+
+        List<FcmToken> fcmTokens;
+        if (subFilter != AdminNotificationSubFilter.NONE) {
+            if (targetType == AdminNotificationTargetType.LOGGED_OUT) {
+                fcmTokens = List.of();
+            } else if (finalMemberIds.isEmpty()) {
+                fcmTokens = List.of();
+            } else {
+                fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(finalMemberIds);
+            }
+        } else {
+            fcmTokens = switch (targetType) {
+                case ALL -> fcmTokenRepository.findAllTokens();
+                case LOGGED_IN -> fcmTokenRepository.findAllByMemberIdIsNotNull();
+                case LOGGED_OUT -> fcmTokenRepository.findAllByMemberIdIsNull();
+                case MEMBERS -> getMemberTargetTokens(request.memberIds());
+                case STUDENT_IDS -> getStudentIdTargetTokens(request.studentIds());
+                case DEPARTMENTS -> getDepartmentTargetTokens(request.departments());
+            };
+        }
+
+        Map<String, Long> tokenAndMemberId = fcmTokens.stream()
+                .collect(Collectors.toMap(
+                        FcmToken::getToken,
+                        fcmToken -> fcmToken.getMemberId() == null ? UNLINKED_MEMBER_ID : fcmToken.getMemberId(),
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
+
         return new NotificationTargets(
                 tokenAndMemberId,
-                distinctMemberIds(targetMemberIds)
+                finalMemberIds
         );
+    }
+
+    private List<Long> getSubFilterTargetMemberIds(AdminNotificationSubFilter subFilter) {
+        if (subFilter == null || subFilter == AdminNotificationSubFilter.NONE) {
+            return memberRepository.findAllIds();
+        }
+
+        java.util.Optional<Semester> activeSemesterOpt = semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN);
+        Long activeSemesterId = activeSemesterOpt.map(Semester::getId).orElse(null);
+
+        return switch (subFilter) {
+            case NONE -> memberRepository.findAllIds();
+
+            case NO_TIMETABLE_CURRENT_SEMESTER -> {
+                if (activeSemesterId == null) yield List.of();
+                yield memberRepository.findIdsWithoutTimeTableForSemester(activeSemesterId);
+            }
+
+            case EMPTY_TIMETABLE -> {
+                if (activeSemesterId == null) yield List.of();
+                yield memberRepository.findIdsWithEmptyTimeTableForSemester(activeSemesterId);
+            }
+
+            case PAST_USER_NO_CURRENT_TIMETABLE -> {
+                if (activeSemesterId == null) yield List.of();
+                List<Semester> semesters = semesterRepository.findAllByOrderByStartDateDesc();
+                Long pastSemesterId = null;
+                for (int i = 0; i < semesters.size(); i++) {
+                    if (semesters.get(i).getId().equals(activeSemesterId) && i + 1 < semesters.size()) {
+                        pastSemesterId = semesters.get(i + 1).getId();
+                        break;
+                    }
+                }
+                if (pastSemesterId == null) yield List.of();
+                yield memberRepository.findIdsWithPastTimeTableButNoCurrentSemester(activeSemesterId, pastSemesterId);
+            }
+
+            case NO_FRIENDS -> memberRepository.findIdsWithNoFriends();
+
+            case NO_COMMUNITY_ACTIVITY -> memberRepository.findIdsWithNoCommunityActivity();
+        };
     }
 
     private List<FcmToken> getMemberTargetTokens(List<Long> memberIds) {
