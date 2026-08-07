@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface GradeRecordRepository extends JpaRepository<GradeRecord, Long> {
     List<GradeRecord> findAllByMemberIdAndSemesterId(Long memberId, Long semesterId);
 
+    List<GradeRecord> findAllByMemberId(Long memberId);
+
     void deleteAllByMemberIdAndSemesterId(Long memberId, Long semesterId);
 
     Optional<GradeRecord> findByIdAndMemberId(Long id, Long memberId);
