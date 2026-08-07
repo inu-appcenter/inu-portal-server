@@ -77,8 +77,8 @@ public class ReplyService {
         try {
             Member postAuthor = post.getMember();
             if (postAuthor != null && !postAuthor.getId().equals(writerMember.getId())) {
-                String title = "새로운 댓글이 달렸습니다.";
-                String body = reply.getContent();
+                String title = post.getTitle();
+                String body = "댓글이 달렸어요: " + reply.getContent();
                 String path = "/tips/detail/" + post.getId();
 
                 TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
@@ -122,8 +122,8 @@ public class ReplyService {
             targetMemberIds.remove(writerMember.getId());
 
             if (!targetMemberIds.isEmpty()) {
-                String title = "새로운 답글이 달렸습니다.";
-                String body = reReply.getContent();
+                String title = post.getTitle();
+                String body = "답글이 달렸어요: " + reReply.getContent();
                 String path = "/tips/detail/" + post.getId();
 
                 TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
