@@ -325,6 +325,7 @@ public class FcmService {
         int batchSize = 500;
         int successCount = 0;
         int failureCount = 0;
+        int maxRetries = 3;
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
@@ -333,33 +334,59 @@ public class FcmService {
             int batchSuccess = 0;
             int batchFailure = 0;
             long startNanos = System.nanoTime();
+            boolean batchFinished = false;
 
-            try {
-                BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
-                batchSuccess = response.getSuccessCount();
-                batchFailure = response.getFailureCount();
+            for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
+                try {
+                    CompletableFuture<BatchResponse> future = CompletableFuture.supplyAsync(() -> {
+                        try {
+                            return firebaseMessaging.sendEachForMulticast(message);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
 
-                List<SendResponse> responses = response.getResponses();
-                for (int j = 0; j < responses.size(); j++) {
-                    SendResponse sendResponse = responses.get(j);
-                    if (!sendResponse.isSuccessful()) {
-                        String token = batchTokens.get(j);
-                        FirebaseMessagingException exception = sendResponse.getException();
-                        log.warn("FCM send failed: token={}, error={}", token, exception != null ? exception.getMessage() : "unknown");
+                    BatchResponse response = future.get(15, java.util.concurrent.TimeUnit.SECONDS);
+                    batchSuccess = response.getSuccessCount();
+                    batchFailure = response.getFailureCount();
+
+                    List<SendResponse> responses = response.getResponses();
+                    for (int j = 0; j < responses.size(); j++) {
+                        SendResponse sendResponse = responses.get(j);
+                        if (!sendResponse.isSuccessful()) {
+                            String token = batchTokens.get(j);
+                            FirebaseMessagingException exception = sendResponse.getException();
+                            log.warn("FCM send failed: token={}, error={}", token, exception != null ? exception.getMessage() : "unknown");
+                        }
+                    }
+                    batchFinished = true;
+                } catch (Exception e) {
+                    log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
+                            attempt, maxRetries, fcmMessageId, batchTokens.size(), e.getMessage());
+
+                    if (attempt < maxRetries) {
+                        try {
+                            Thread.sleep(attempt * 1000L);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    } else {
+                        batchFailure = batchTokens.size();
+                        log.error("FCM batch send permanently failed after {} attempts for fcmMessageId={}, batchSize={}",
+                                maxRetries, fcmMessageId, batchTokens.size());
                     }
                 }
-            } catch (Exception e) {
-                batchFailure = batchTokens.size();
-                log.error("FCM batch send failed: fcmMessageId={}, batchSize={}, message={}", fcmMessageId, batchTokens.size(), e.getMessage());
-            } finally {
-                String metricType = type != null ? type.name() : "UNKNOWN";
-                fcmMetrics.recordBatch(metricType, batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
             }
+
+            fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
 
             successCount += batchSuccess;
             failureCount += batchFailure;
-            // 각 배치마다 즉시 DB에 반영
-            fcmTransactionService.updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
+
+            if (fcmMessageId != null) {
+                fcmTransactionService.updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
+            }
         }
 
         return new DeliveryResult(successCount, failureCount);
