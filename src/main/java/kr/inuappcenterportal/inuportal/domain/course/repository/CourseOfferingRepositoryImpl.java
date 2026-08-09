@@ -1,14 +1,14 @@
 package kr.inuappcenterportal.inuportal.domain.course.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import com.querydsl.core.types.Order;
-import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.jpa.JPQLQuery;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
@@ -81,6 +81,7 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
                     courseOffering.subjectNumber.containsIgnoreCase(condition.keyword())
                             .or(courseOffering.course.title.containsIgnoreCase(condition.keyword()))
                             .or(courseOffering.course.englishTitle.containsIgnoreCase(condition.keyword()))
+                            .or(courseOffering.professor.containsIgnoreCase(condition.keyword()))
             );
         }
 
