@@ -12,8 +12,9 @@ public record GradeRecordResponseDto(
         String title,
         Integer credit,
         Grade grade,
+        String grade_value,
         Boolean isMajor,
-        String isCourseRepetition
+        Boolean isCourseRepetition
 ) {
     public static GradeRecordResponseDto from(
             GradeRecord gradeRecord
@@ -26,8 +27,9 @@ public record GradeRecordResponseDto(
                 gradeRecord.getTitle(),
                 gradeRecord.getCredit(),
                 gradeRecord.getGrade(),
+                gradeRecord.getGrade() == null ? null : gradeRecord.getGrade().getValue(),
                 gradeRecord.getIsMajor(),
-                Boolean.TRUE.equals(gradeRecord.getIsCourseRepetition()) ? "재수강성적취소" : null
+                gradeRecord.getIsCourseRepetition()
         );
     }
 }

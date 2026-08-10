@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/grades")
-public class GradeController {
+public class GradeRecordController implements GradeRecordApiSpecification {
 
     private final GradeRecordService gradeRecordService;
 
@@ -63,7 +63,7 @@ public class GradeController {
     /**
      * 개별 성적 수정 컨트롤러
      */
-    @PatchMapping("/{gradeRecordId}")
+    @PutMapping("/{gradeRecordId}")
     public ResponseEntity<ResponseDto<GradeRecordResponseDto>> updateGradeRecord(
             @AuthenticationPrincipal Member member,
             @PathVariable Long gradeRecordId,
