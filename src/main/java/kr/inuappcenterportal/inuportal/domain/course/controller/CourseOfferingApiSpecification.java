@@ -227,7 +227,10 @@ public interface CourseOfferingApiSpecification {
             @RequestParam Integer year,
 
             @Parameter(
-                    description = "조회할 학기입니다.",
+                    description = """
+                            조회할 학기입니다.
+                            가능 값: FIRST, SUMMER, SECOND, WINTER
+                            """,
                     schema = @Schema(
                             implementation = SemesterTerm.class,
                             allowableValues = {"FIRST", "SUMMER", "SECOND", "WINTER"}
@@ -238,7 +241,10 @@ public interface CourseOfferingApiSpecification {
             @RequestParam SemesterTerm term,
 
             @Parameter(
-                    description = "학과명 필터",
+                    description = """
+                            학과명 필터
+                            가능 값: Global Trade & Service학부, HUSS(타대학), HUSS포용사회이니셔티브학부, IBE전공, 건설환경공학전공, 건축공학전공, 경영학부, 경제학과, 경제학과(야), 공연예술학과, 광전자공학전공(연계), 교양, 교직, 국어교육과, 국어국문학과, 군사학, 기계공학과, 나노바이오공학전공, 데이터과학과, 도시건축학부, 도시건축학전공, 도시공학과, 도시행정학과, 도시환경공학부, 독어독문학과, 동북아국제통상전공, 디자인학부, 무역학부(야), 문헌정보학과, 물류학전공(연계), 물리학과, 미디어커뮤니케이션학과, 미래교육디자인연계전공, 미래자동차연계전공, 바이오-로봇시스템공학과, 반도체융합전공, 법학부, 분자의생명전공, 불어불문학과, 사회복지학과, 산업경영공학과, 생명공학부, 생명공학전공, 생명과학부, 생명과학전공, 서양화전공, 세무회계학과, 소비자학과, 소셜데이터사이언스연계전공, 수학과, 수학교육과, 스마트물류공학전공, 스포츠과학부, 신소재공학과, 안전공학과, 에너지화학공학과, 역사교육과, 영어교육과, 영어영문학과, 운동건강학부, 유아교육과, 윤리교육과, 인문문화예술기획연계전공, 일본지역문화학과, 일선, 일어교육과, 임베디드시스템공학과, 자유전공학부, 전기공학과, 전자공학과, 전자공학부, 전자공학전공, 정보통신공학과, 정치외교학과, 조형예술학부, 중어중국학과, 지능형로봇시스템연계전공, 창의인재개발학과, 창의적디자인연계전공, 체육교육과, 컴퓨터공학부, 패션산업학과, 한국화전공, 해양학과, 행정학과, 화학과, 환경공학전공
+                            """,
                     schema = @Schema(
                             type = "string",
                             allowableValues = {
@@ -335,7 +341,10 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String deptName,
 
             @Parameter(
-                    description = "단과대명 필터",
+                    description = """
+                            단과대명 필터
+                            가능 값: 경영대학, 공과대학, 교양, 교직, 군사학, 글로벌정경대학, 기타, 단과대구분없음, 단과대구분없음(법학), 도시과학대학, 사범대학, 사회과학대학, 생명과학기술대학, 예술체육대학, 융합자유전공대학, 인문대학, 일선, 자연과학대학, 정보기술대학
+                            """,
                     schema = @Schema(
                             type = "string",
                             allowableValues = {
@@ -364,38 +373,113 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String collegeName,
 
             @Parameter(
-                    description = "대상 학년 필터",
+                    description = """
+                            대상 학년 필터
+                            가능 값: 1, 2, 3, 4, 전학년
+                            """,
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string"))
+                    array = @ArraySchema(schema = @Schema(
+                            type = "string",
+                            allowableValues = {"1", "2", "3", "4", "전학년"}
+                    ))
             )
             @RequestParam(required = false) List<String> hyNames,
 
             @Parameter(
-                    description = "이수 구분 필터",
+                    description = """
+                            이수 구분 필터
+                            가능 값: 교직, 군사학, 기초교양, 심화교양, 일반선택, 전공기초, 전공심화, 전공핵심, 핵심교양
+                            """,
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string"))
+                    array = @ArraySchema(schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "교직",
+                                    "군사학",
+                                    "기초교양",
+                                    "심화교양",
+                                    "일반선택",
+                                    "전공기초",
+                                    "전공심화",
+                                    "전공핵심",
+                                    "핵심교양"
+                            }
+                    ))
             )
             @RequestParam(required = false) List<String> isuNames,
 
             @Parameter(
-                    description = "이수 영역 필터",
+                    description = """
+                            이수 영역 필터
+                            가능 값: (핵심)INU세미나, (핵심)과학기술, (핵심)사회, (핵심)예술체육, (핵심)외국어, (핵심)인문, 과학기술, 교직, 군사학, 기초과학ㆍ공학, 사회, 예술체육, 외국어, 인문, 일반선택, 전공기초, 전공심화, 전공핵심, 학문의기초
+                            """,
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string"))
+                    array = @ArraySchema(schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "(핵심)INU세미나",
+                                    "(핵심)과학기술",
+                                    "(핵심)사회",
+                                    "(핵심)예술체육",
+                                    "(핵심)외국어",
+                                    "(핵심)인문",
+                                    "과학기술",
+                                    "교직",
+                                    "군사학",
+                                    "기초과학ㆍ공학",
+                                    "사회",
+                                    "예술체육",
+                                    "외국어",
+                                    "인문",
+                                    "일반선택",
+                                    "전공기초",
+                                    "전공심화",
+                                    "전공핵심",
+                                    "학문의기초"
+                            }
+                    ))
             )
             @RequestParam(required = false) List<String> isuFldNames,
 
             @Parameter(
-                    description = "수업 유형 필터",
+                    description = """
+                            수업 유형 필터
+                            가능 값: K-MOOC, RISE(시간표 없음), RISE(시간표 있음), e-Learning, e-Learning(HUSS), 강의(이론), 담장너머~,사회봉사(1), 미술실기, 사회봉사(2), 사회봉사(3), 실험실습, 열린사이버대학(OCU), 예술체육실기, 온라인혼합형강좌, 온라인혼합형강좌(HUSS), 이론(어학), 이론실험실습, 자기설계세미나, 체육실기, 현장형(HUSS)
+                            """,
                     in = ParameterIn.QUERY,
                     style = ParameterStyle.FORM,
                     explode = Explode.TRUE,
-                    array = @ArraySchema(schema = @Schema(type = "string"))
+                    array = @ArraySchema(schema = @Schema(
+                            type = "string",
+                            allowableValues = {
+                                    "K-MOOC",
+                                    "RISE(시간표 없음)",
+                                    "RISE(시간표 있음)",
+                                    "e-Learning",
+                                    "e-Learning(HUSS)",
+                                    "강의(이론)",
+                                    "담장너머~,사회봉사(1)",
+                                    "미술실기",
+                                    "사회봉사(2)",
+                                    "사회봉사(3)",
+                                    "실험실습",
+                                    "열린사이버대학(OCU)",
+                                    "예술체육실기",
+                                    "온라인혼합형강좌",
+                                    "온라인혼합형강좌(HUSS)",
+                                    "이론(어학)",
+                                    "이론실험실습",
+                                    "자기설계세미나",
+                                    "체육실기",
+                                    "현장형(HUSS)"
+                            }
+                    ))
             )
             @RequestParam(required = false) List<String> ssupTypeNames,
 
@@ -414,7 +498,10 @@ public interface CourseOfferingApiSpecification {
             @RequestParam(required = false) String keyword,
 
             @Parameter(
-                    description = "시간대 필터 모드",
+                    description = """
+                            시간대 필터 모드
+                            가능 값: HAS_CLASS, NO_CLASS
+                            """,
                     schema = @Schema(
                             implementation = MeetingFilterMode.class,
                             allowableValues = {"HAS_CLASS", "NO_CLASS"}
