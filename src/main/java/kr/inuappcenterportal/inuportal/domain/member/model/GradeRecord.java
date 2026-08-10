@@ -52,9 +52,10 @@ public class GradeRecord extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private Grade grade;
 
+    @Column(name = "is_major")
     private Boolean isMajor;
 
-    @Column(name = "course_repetition")
+    @Column(name = "is_course_repetition")
     private Boolean isCourseRepetition;
 
     private GradeRecord(

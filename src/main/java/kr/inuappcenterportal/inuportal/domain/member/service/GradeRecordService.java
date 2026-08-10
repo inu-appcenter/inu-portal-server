@@ -81,7 +81,7 @@ public class GradeRecordService {
                         record.credit(),
                         Grade.from(record.grade()),
                         record.isMajor(),
-                        isCourseRepetition(record.isCourseRepetition())
+                        record.isCourseRepetition()
                 )).toList();
 
         return gradeRecordRepository.saveAll(records).stream()
@@ -110,14 +110,10 @@ public class GradeRecordService {
                 request.credit(),
                 Grade.from(request.grade()),
                 request.isMajor(),
-                isCourseRepetition(request.isCourseRepetition())
+                request.isCourseRepetition()
         );
 
         return GradeRecordResponseDto.from(gradeRecord);
-    }
-
-    private boolean isCourseRepetition(String value) {
-        return "재수강성적취소".equals(value);
     }
 
     /**
