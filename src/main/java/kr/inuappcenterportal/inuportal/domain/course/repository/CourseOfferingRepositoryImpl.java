@@ -6,8 +6,12 @@ import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.jpa.JPQLQuery;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.HY_NAME;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_NAME;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
@@ -18,12 +22,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static kr.inuappcenterportal.inuportal.domain.course.model.QCourse.course;
 import static kr.inuappcenterportal.inuportal.domain.course.model.QCourseMeeting.courseMeeting;
 import static kr.inuappcenterportal.inuportal.domain.course.model.QCourseOffering.courseOffering;
 import static kr.inuappcenterportal.inuportal.domain.semester.model.QSemester.semester;
+import static kr.inuappcenterportal.inuportal.domain.timeTable.model.QTimeTableItem.timeTableItem;
 
 @Repository
 public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCustom {
@@ -141,6 +147,21 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
                 .when(courseOffering.hyName.eq(HY_NAME.GRADE4)).then(5)
                 .otherwise(99);
 
+        JPQLQuery<Long> savedCountSubquery = JPAExpressions
+                .select(timeTableItem.timeTable.member.id.countDistinct())
+                .from(timeTableItem)
+                .where(timeTableItem.courseOffering.eq(courseOffering));
+
+        List<OrderSpecifier<?>> orderSpecifiers = new ArrayList<>();
+        if (condition.sort() == CourseOfferingSort.SAVED_COUNT_DESC) {
+            orderSpecifiers.add(new OrderSpecifier<>(Order.DESC, savedCountSubquery));
+        } else if (condition.sort() == CourseOfferingSort.SAVED_COUNT_ASC) {
+            orderSpecifiers.add(new OrderSpecifier<>(Order.ASC, savedCountSubquery));
+        }
+
+        orderSpecifiers.add(categoryOrder.asc());
+        orderSpecifiers.add(hyNameOrder.asc());
+        orderSpecifiers.add(course.title.asc());
 
         // 위에서 만든 규칙을 SQL처럼 사용하는 곳
         // "select * from courseOffering join course join semester where .. orderBy .. limit .. offset .." 이런 느낌의 쿼리
@@ -150,11 +171,7 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
                 .join(courseOffering.course, course).fetchJoin()
                 .join(courseOffering.semester, semester).fetchJoin()
                 .where(builder)
-                .orderBy(
-                        categoryOrder.asc(),
-                        hyNameOrder.asc(),
-                        course.title.asc()
-                )
+                .orderBy(orderSpecifiers.toArray(new OrderSpecifier[0]))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();

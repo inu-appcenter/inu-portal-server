@@ -14,9 +14,11 @@ public class AsyncConfig {
     @Bean(name = "messageExecutor")
     public Executor messageExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(2);
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(50);
         executor.setThreadNamePrefix("FCM-MSG-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;
     }
@@ -40,6 +42,17 @@ public class AsyncConfig {
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("LOGGING-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "crawlerExecutor")
+    public Executor crawlerExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(10);
+        executor.setThreadNamePrefix("CRAWLER-");
         executor.initialize();
         return executor;
     }

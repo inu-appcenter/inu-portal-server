@@ -35,6 +35,8 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -46,6 +48,7 @@ public class CourseOfferingService {
     private final SemesterRepository semesterRepository;
     private final CourseMeetingRepository courseMeetingRepository;
     private final CourseMeetingService courseMeetingService;
+    private final TimeTableItemRepository timeTableItemRepository;
     private final ExcelParser excelParser;
 
     /**
@@ -64,6 +67,7 @@ public class CourseOfferingService {
             String keyword,
             MeetingFilterMode filterMode,
             List<String> meetings,
+            CourseOfferingSort sort,
             Pageable pageable,
             boolean exposeProfessor
     ) {
@@ -81,7 +85,8 @@ public class CourseOfferingService {
                 toCredits(credit),
                 keyword,
                 resolveMeetingFilterMode(filterMode, meetings),
-                toMeetingFilters(meetings)
+                toMeetingFilters(meetings),
+                sort == null ? CourseOfferingSort.DEFAULT : sort
         );
 
         Page<CourseOffering> courseOfferings = courseOfferingRepository.search(condition, pageable);
@@ -96,58 +101,122 @@ public class CourseOfferingService {
                                 meeting -> meeting.getCourseOffering().getId()
                         ));
 
+        Map<Long, Long> savedCountMap = courseOfferingIds.isEmpty() ? Map.of() :
+                timeTableItemRepository.countDistinctMemberByCourseOfferingIdIn(courseOfferingIds).stream()
+                        .collect(Collectors.toMap(
+                                row -> (Long) row[0],
+                                row -> (Long) row[1]
+                        ));
+
         return courseOfferings.map(courseOffering -> CourseOfferingResponseDto.from(
                 courseOffering,
                 courseMeetingService.mergeContinuousMeetings
                         (meetingsByCourseOfferingId.getOrDefault(courseOffering.getId(), List.of())),
-                exposeProfessor
+                exposeProfessor,
+                savedCountMap.getOrDefault(courseOffering.getId(), 0L)
         ));
     }
 
+    // DeptName 필터
     private DEPT_NAME toDeptName(String value) {
-        return isBlank(value) ? null : DEPT_NAME.from(value);
+        if (isBlank(value)) {
+            return null;
+        }
+
+        DEPT_NAME deptName = DEPT_NAME.from(value);
+        if (deptName == DEPT_NAME.UNKNOWN) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        return deptName;
     }
 
+    // CollegeName 필터
     private COLLEGE_NAME toCollegeName(String value) {
-        return isBlank(value) ? null : COLLEGE_NAME.from(value);
+        if (isBlank(value)) {
+            return null;
+        }
+
+        COLLEGE_NAME collegeName = COLLEGE_NAME.from(value);
+        if (collegeName == COLLEGE_NAME.UNKNOWN) {
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+        }
+
+        return collegeName;
     }
 
+    // HyNames 필터
+    // 리스트로 들어온 값을 분해하고, 각각의 HyName을 하나하나 값 검증
     private List<HY_NAME> toHyNames(List<String> values) {
         if (values == null || values.isEmpty())
             return List.of();
 
         return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(HY_NAME::from)
+                .map(value -> {
+                    HY_NAME hyName = HY_NAME.from(value);
+                    if (hyName == HY_NAME.UNKNOWN) {
+                        throw new MyException(MyErrorCode.INVALID_INPUT);
+                    }
+                    return hyName;
+                })
                 .toList();
     }
 
+    // IsuNames 필터
+    // 리스트로 들어온 값을 분해하고, 각각의 IsuName을 하나하나 값 검증
     private List<ISU_NAME> toIsuNames(List<String> values) {
         if (values == null || values.isEmpty())
             return List.of();
 
         return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(ISU_NAME::from)
+                .map(value -> {
+                    ISU_NAME isuName = ISU_NAME.from(value);
+                    if (isuName == ISU_NAME.UNKNOWN) {
+                        throw new MyException(MyErrorCode.INVALID_INPUT);
+                    }
+
+                    return isuName;
+                })
                 .toList();
     }
 
+    // IsuFldNames 필터
+    // 리스트로 들어온 값을 분해하고, 각각의 IsuFldName을 하나하나 값 검증
     private List<ISU_FLD_NAME> toIsuFldNames(List<String> values) {
         if (values == null || values.isEmpty())
             return List.of();
 
         return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(ISU_FLD_NAME::from)
+                .map(value -> {
+                    ISU_FLD_NAME isuFldName = ISU_FLD_NAME.from(value);
+                    if (isuFldName == ISU_FLD_NAME.UNKNOWN) {
+                        throw new MyException(MyErrorCode.INVALID_INPUT);
+                    }
+
+                    return isuFldName;
+                })
                 .toList();
     }
 
+    // SSUPTypeNames 필터
+    // 리스트로 들어온 값을 분해하고, 각각의 SSUPTypeName을 하나하나 검증
     private List<SSUP_TYPE_NAME> toSsupTypeNames(List<String> values) {
         if (values == null || values.isEmpty())
             return List.of();
 
         return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(SSUP_TYPE_NAME::from)
+                .map(value -> {
+                    SSUP_TYPE_NAME ssupTypeName = SSUP_TYPE_NAME.from(value);
+                    if (ssupTypeName == SSUP_TYPE_NAME.UNKNOWN) {
+                        throw new MyException(MyErrorCode.INVALID_INPUT);
+                    }
+
+                    return ssupTypeName;
+                })
                 .toList();
     }
 
+    // 학점 필터
     private List<Integer> toCredits(List<Integer> values) {
         if (values == null || values.isEmpty())
             return List.of();
@@ -155,6 +224,7 @@ public class CourseOfferingService {
         return values;
     }
 
+    // 시간 필터 모드
     private MeetingFilterMode resolveMeetingFilterMode(
             MeetingFilterMode meetingFilterMode,
             List<String> meetings
@@ -169,7 +239,8 @@ public class CourseOfferingService {
     }
 
 
-    private CourseOfferingMeetingFilter toMeetingFilter(String value) {
+    // toMeetingsFilters에서 분해된 시간 객체를 분해하는 메서드
+    private CourseOfferingMeetingFilter toMeetingTimeFilter(String value) {
         String[] parts = value.contains("|") ? value.split("\\|") : value.split(",");
 
         if (parts.length != 3) {
@@ -194,6 +265,7 @@ public class CourseOfferingService {
         return new CourseOfferingMeetingFilter(day, startTime, endTime);
     }
 
+    // 요청으로 들어온 시간 리스트를 분해하는 메서드
     private List<CourseOfferingMeetingFilter> toMeetingFilters(List<String> values) {
         if (values == null || values.isEmpty()) {
             return List.of();
@@ -214,15 +286,16 @@ public class CourseOfferingService {
 
             List<CourseOfferingMeetingFilter> meetingFilters = new ArrayList<>();
             for (int i = 0; i < filteredValues.size(); i += 3) {
-                meetingFilters.add(toMeetingFilter(String.join("|", filteredValues.subList(i, i + 3))));
+                meetingFilters.add(toMeetingTimeFilter(String.join("|", filteredValues.subList(i, i + 3))));
             }
             return meetingFilters;
         }
 
-        return filteredValues.stream().map(this::toMeetingFilter).toList();
+        return filteredValues.stream().map(this::toMeetingTimeFilter).toList();
     }
 
 
+    // 요일 필터
     private DayOfWeek toDayOfWeek(String value) {
         try {
             return DayOfWeek.valueOf(value);

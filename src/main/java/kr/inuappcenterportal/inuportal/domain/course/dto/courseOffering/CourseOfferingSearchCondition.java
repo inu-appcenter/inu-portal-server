@@ -16,6 +16,7 @@ public record CourseOfferingSearchCondition(
         List<Integer> credits,
         String keyword,
         MeetingFilterMode filterMode,
-        List<CourseOfferingMeetingFilter> meetings
+        List<CourseOfferingMeetingFilter> meetings,
+        CourseOfferingSort sort
 ) {
 }

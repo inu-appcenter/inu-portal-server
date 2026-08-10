@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingSyncService;
@@ -51,6 +52,7 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) MeetingFilterMode meetingFilterMode,
             @RequestParam(required = false) List<String> meetings,
+            @RequestParam(required = false) CourseOfferingSort sort,
             @RequestParam(defaultValue = "0") Integer page
     ) {
         Pageable pageable = PageRequest.of(page, COURSE_OFFERING_PAGE_SIZE);
@@ -70,6 +72,7 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
                                 keyword,
                                 meetingFilterMode,
                                 meetings,
+                                sort,
                                 pageable,
                                 canViewProfessor(member)
                         ),

@@ -9,6 +9,9 @@ import java.time.LocalDateTime; // LocalDate 대신 LocalDateTime 사용
 
 public record NotificationResponse(
 
+        @Schema(description = "회원 알림 이력 Id")
+        Long memberFcmMessageId,
+
         @Schema(description = "알림 Id")
         Long fcmMessageId,
 
@@ -25,14 +28,26 @@ public record NotificationResponse(
         FcmMessageType type,
 
         @Schema(description = "알림 생성 시간")
-        LocalDateTime createDate, // LocalDate 대신 LocalDateTime 사용
+        LocalDateTime createDate,
 
         @Schema(description = "이동 대상 Id (noticeId, friendId 등)")
-        Long targetId
+        Long targetId,
+
+        @Schema(description = "알림 읽음 여부")
+        boolean isRead
 
 ) {
     public static NotificationResponse from(MemberFcmMessage memberFcmMessage, FcmMessage fcmMessage) {
-        return new NotificationResponse(fcmMessage.getId(), memberFcmMessage.getMemberId(),
-                fcmMessage.getTitle(), fcmMessage.getBody(), memberFcmMessage.getFcmMessageType(), memberFcmMessage.getCreateDate(), fcmMessage.getTargetId());
+        return new NotificationResponse(
+                memberFcmMessage.getId(),
+                fcmMessage.getId(),
+                memberFcmMessage.getMemberId(),
+                fcmMessage.getTitle(),
+                fcmMessage.getBody(),
+                memberFcmMessage.getFcmMessageType(),
+                memberFcmMessage.getCreateDate(),
+                fcmMessage.getTargetId(),
+                memberFcmMessage.isRead()
+        );
     }
 }

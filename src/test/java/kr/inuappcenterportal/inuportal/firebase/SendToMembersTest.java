@@ -21,6 +21,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionSer
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,9 @@ class SendToMembersTest {
     private MemberRepository memberRepository;
 
     @MockBean
+    private SemesterRepository semesterRepository;
+
+    @MockBean
     private JdbcTemplate jdbcTemplate;
 
     @MockBean
@@ -81,7 +85,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_usesAllTokensAndAllMembersForDefaultSend() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
+                new AdminNotificationRequest(null, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
 
         FcmToken linkedToken = new FcmToken(69L, "sample_token_69", "iphone");
         FcmToken unlinkedToken = new FcmToken(null, "sample_token_guest", "android");
@@ -111,7 +115,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_carriesPathThrough() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(null, List.of(), List.of(), List.of(), "Test Title", "Test Content", "/board/1");
+                new AdminNotificationRequest(null, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", "/board/1");
 
         FcmToken linkedToken = new FcmToken(69L, "sample_token_69", "iphone");
 
@@ -131,7 +135,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_filtersLoggedInTokensAndMembers() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_IN, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
+                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_IN, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
 
         FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69", "iphone");
         FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96", "android");
@@ -155,7 +159,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_filtersLoggedOutTokensAndMembers() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_OUT, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
+                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_OUT, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
 
         FcmToken fcmToken1 = new FcmToken(null, "sample_token_guest_1", "iphone");
         FcmToken fcmToken2 = new FcmToken(null, "sample_token_guest_2", "android");
@@ -185,6 +189,7 @@ class SendToMembersTest {
         AdminNotificationRequest request =
                 new AdminNotificationRequest(
                         AdminNotificationTargetType.MEMBERS,
+                        null,
                         List.of(69L, 96L, 999L),
                         List.of(),
                         List.of(),
@@ -221,6 +226,7 @@ class SendToMembersTest {
         AdminNotificationRequest request =
                 new AdminNotificationRequest(
                         AdminNotificationTargetType.STUDENT_IDS,
+                        null,
                         List.of(),
                         List.of("201900069", "201900096", "209999999"),
                         List.of(),
@@ -256,6 +262,7 @@ class SendToMembersTest {
         AdminNotificationRequest request =
                 new AdminNotificationRequest(
                         AdminNotificationTargetType.DEPARTMENTS,
+                        null,
                         List.of(),
                         List.of(),
                         List.of(Department.COMPUTER_ENGINEERING),

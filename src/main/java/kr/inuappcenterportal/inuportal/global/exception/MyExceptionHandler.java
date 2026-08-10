@@ -14,6 +14,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -45,6 +46,12 @@ public class MyExceptionHandler {
         String message = fieldError.getDefaultMessage();
         log.error("유효성 검사 예외 발생 msg:{}", message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseDto.of(-1, message));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ResponseDto<Integer>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        log.error("요청 파라미터 타입 변환 예외 발생 parameter:{}, value:{}", ex.getName(), ex.getValue());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseDto.of(-1, "잘못된 입력값입니다."));
     }
 
 

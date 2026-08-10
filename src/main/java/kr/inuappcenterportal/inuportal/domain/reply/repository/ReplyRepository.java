@@ -29,4 +29,7 @@ public interface ReplyRepository extends JpaRepository<Reply,Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Reply r WHERE r.id =:id AND r.isDeleted = false")
     Optional<Reply> findByIdWithLock(Long id);
+
+    @Query("SELECT DISTINCT r.member FROM Reply r WHERE r.reply = :parentReply AND r.isDeleted = false AND r.member IS NOT NULL")
+    List<Member> findReReplyMembersByParentReply(@Param("parentReply") Reply parentReply);
 }

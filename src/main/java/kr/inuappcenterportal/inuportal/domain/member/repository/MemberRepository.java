@@ -40,4 +40,62 @@ public interface MemberRepository extends JpaRepository<Member,Long> {
     @Query("SELECT m.id FROM Member m WHERE m.department IN :departments")
     List<Long> findIdsByDepartmentIn(@Param("departments") List<Department> departments);
 
+    @Query("""
+            SELECT m.id
+            FROM Member m
+            WHERE m.id NOT IN (
+                SELECT DISTINCT t.member.id
+                FROM TimeTable t
+                WHERE t.semester.id = :semesterId
+            )
+            """)
+    List<Long> findIdsWithoutTimeTableForSemester(@Param("semesterId") Long semesterId);
+
+    @Query("""
+            SELECT DISTINCT t.member.id
+            FROM TimeTable t
+            WHERE t.semester.id = :semesterId
+            AND t.id NOT IN (
+                SELECT DISTINCT ti.timeTable.id
+                FROM TimeTableItem ti
+            )
+            """)
+    List<Long> findIdsWithEmptyTimeTableForSemester(@Param("semesterId") Long semesterId);
+
+    @Query("""
+            SELECT DISTINCT t.member.id
+            FROM TimeTable t
+            WHERE t.semester.id = :pastSemesterId
+            AND t.member.id NOT IN (
+                SELECT DISTINCT t2.member.id
+                FROM TimeTable t2
+                WHERE t2.semester.id = :currentSemesterId
+            )
+            """)
+    List<Long> findIdsWithPastTimeTableButNoCurrentSemester(@Param("currentSemesterId") Long currentSemesterId, @Param("pastSemesterId") Long pastSemesterId);
+
+    @Query("""
+            SELECT m.id
+            FROM Member m
+            WHERE m.id NOT IN (
+                SELECT f.requester.id FROM Friend f WHERE f.status = kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED
+            )
+            AND m.id NOT IN (
+                SELECT f.receiver.id FROM Friend f WHERE f.status = kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus.ACCEPTED
+            )
+            """)
+    List<Long> findIdsWithNoFriends();
+
+    @Query("""
+            SELECT m.id
+            FROM Member m
+            WHERE m.id NOT IN (
+                SELECT DISTINCT p.member.id FROM Post p WHERE p.member.id IS NOT NULL
+            )
+            AND m.id NOT IN (
+                SELECT DISTINCT r.member.id FROM Reply r WHERE r.member.id IS NOT NULL
+            )
+            """)
+    List<Long> findIdsWithNoCommunityActivity();
+
 }
