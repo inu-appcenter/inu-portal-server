@@ -118,6 +118,8 @@ public enum MyErrorCode {
     NOT_FOUND_FRIEND_REQUEST(HttpStatus.NOT_FOUND, "존재하지 않는 친구 요청입니다."),
     ALREADY_FRIEND_OR_REQUESTED(HttpStatus.CONFLICT, "이미 친구이거나 요청 대기 중입니다."),
     NOT_SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 요청을 보낼 수 없습니다."),
+    NOT_FOUND_FRIEND_INVITE_CODE(HttpStatus.NOT_FOUND, "유효하지 않은 친구추가 링크입니다."),
+    FAIL_CREATE_FRIEND_INVITE_CODE(HttpStatus.INTERNAL_SERVER_ERROR, "친구추가 링크 생성에 실패했습니다."),
     NOT_SELF_BLOCK(HttpStatus.BAD_REQUEST, "자기 자신을 차단할 수 없습니다."),
     NOT_SELF_CHAT(HttpStatus.BAD_REQUEST, "자기 자신과는 채팅방을 만들 수 없습니다."),
     HAS_NOT_FRIEND_AUTHORIZATION(HttpStatus.FORBIDDEN, "친구 관련 작업을 수행할 권한이 없습니다."),
