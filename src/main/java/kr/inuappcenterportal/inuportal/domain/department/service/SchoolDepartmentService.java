@@ -30,7 +30,7 @@ public class SchoolDepartmentService {
     public Department getNoticeDepartment(String code) {
         SchoolDepartment department = repository.findByCodeAndActiveTrue(code)
                 .orElseThrow(() -> new MyException(MyErrorCode.SCHOOL_DEPARTMENT_NOT_FOUND));
-        Department noticeDepartment = department.getNoticeDepartment();
+        Department noticeDepartment = department.getResolvedNoticeDepartment();
         if (noticeDepartment == null || !noticeDepartment.isServiceAvailable()) {
             throw new MyException(MyErrorCode.SCHOOL_DEPARTMENT_NOT_FOUND);
         }

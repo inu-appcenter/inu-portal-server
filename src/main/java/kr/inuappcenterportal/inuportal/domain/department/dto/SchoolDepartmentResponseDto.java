@@ -7,7 +7,8 @@ public record SchoolDepartmentResponseDto(String code, String name, boolean noti
         return new SchoolDepartmentResponseDto(
                 department.getCode(),
                 department.getName(),
-                department.getNoticeDepartment() != null && department.getNoticeDepartment().isServiceAvailable()
+                department.getResolvedNoticeDepartment() != null
+                        && department.getResolvedNoticeDepartment().isServiceAvailable()
         );
     }
 }

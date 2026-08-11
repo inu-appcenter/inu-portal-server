@@ -63,4 +63,10 @@ public class SchoolDepartment extends BaseTimeEntity {
     public void deactivate() {
         this.active = false;
     }
+
+    public Department getResolvedNoticeDepartment() {
+        return noticeDepartment != null
+                ? noticeDepartment
+                : SchoolDepartmentNoticeMapper.find(name).orElse(null);
+    }
 }
