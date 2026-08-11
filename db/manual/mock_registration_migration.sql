@@ -49,7 +49,7 @@ CREATE TABLE mock_watchlist_item (
     PRIMARY KEY (mock_watchlist_item_id),
     CONSTRAINT uk_mock_watchlist_member_semester_offering
         UNIQUE (member_id, semester_id, course_offering_id),
-    CONSTRAINT fk_mock_watchlist_member FOREIGN KEY (member_id) REFERENCES member (member_id),
+    CONSTRAINT fk_mock_watchlist_member FOREIGN KEY (member_id) REFERENCES member (id),
     CONSTRAINT fk_mock_watchlist_semester FOREIGN KEY (semester_id) REFERENCES semester (semester_id),
     CONSTRAINT fk_mock_watchlist_offering FOREIGN KEY (course_offering_id) REFERENCES course_offering (course_offering_id),
     INDEX idx_mock_watchlist_lookup (member_id, semester_id)
@@ -63,7 +63,7 @@ CREATE TABLE mock_enrollment (
     PRIMARY KEY (mock_enrollment_id),
     CONSTRAINT uk_mock_enrollment_member_semester_offering
         UNIQUE (member_id, semester_id, course_offering_id),
-    CONSTRAINT fk_mock_enrollment_member FOREIGN KEY (member_id) REFERENCES member (member_id),
+    CONSTRAINT fk_mock_enrollment_member FOREIGN KEY (member_id) REFERENCES member (id),
     CONSTRAINT fk_mock_enrollment_semester FOREIGN KEY (semester_id) REFERENCES semester (semester_id),
     CONSTRAINT fk_mock_enrollment_offering FOREIGN KEY (course_offering_id) REFERENCES course_offering (course_offering_id),
     INDEX idx_mock_enrollment_lookup (member_id, semester_id)
