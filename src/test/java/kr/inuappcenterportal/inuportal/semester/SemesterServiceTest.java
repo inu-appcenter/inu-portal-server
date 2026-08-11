@@ -242,7 +242,7 @@ public class SemesterServiceTest {
     }
 
     @Test
-    @DisplayName("학기 목록은 OPEN과 CLOSED만 최신 학기순으로 조회한다.")
+    @DisplayName("학기 목록은 모든 상태를 상태 우선순위와 최신 학기순으로 조회한다.")
     void 학기_목록_조회_정렬_테스트() {
         // Given
         Semester openFirst = createSemester(
@@ -277,8 +277,16 @@ public class SemesterServiceTest {
                 LocalDate.of(2026, 1, 13)
         );
 
-        when(semesterRepository.findAllByStatusIn(List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)))
-                .thenReturn(List.of(closedSecond, openFirst, closedWinter, openSummer));
+        Semester upcomingFirst = createSemester(
+                2027,
+                SemesterTerm.FIRST,
+                SemesterStatus.UPCOMING,
+                LocalDate.of(2027, 3, 2),
+                LocalDate.of(2027, 6, 21)
+        );
+
+        when(semesterRepository.findAll())
+                .thenReturn(List.of(closedSecond, upcomingFirst, openFirst, closedWinter, openSummer));
 
         // When
         List<SemesterResponseDto> response = semesterService.getSemesters();
@@ -290,7 +298,8 @@ public class SemesterServiceTest {
                         SemesterTerm.SUMMER,
                         SemesterTerm.FIRST,
                         SemesterTerm.WINTER,
-                        SemesterTerm.SECOND
+                        SemesterTerm.SECOND,
+                        SemesterTerm.FIRST
                 );
 
         assertThat(response)
@@ -299,10 +308,11 @@ public class SemesterServiceTest {
                         SemesterStatus.OPEN,
                         SemesterStatus.OPEN,
                         SemesterStatus.CLOSED,
-                        SemesterStatus.CLOSED
+                        SemesterStatus.CLOSED,
+                        SemesterStatus.UPCOMING
                 );
 
-        verify(semesterRepository).findAllByStatusIn(List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED));
+        verify(semesterRepository).findAll();
     }
 
 

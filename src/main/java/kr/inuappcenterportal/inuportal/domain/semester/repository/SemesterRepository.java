@@ -13,9 +13,6 @@ public interface SemesterRepository extends JpaRepository<Semester, Long> {
     // 년도와 term으로 학기 찾기
     Optional<Semester> findByYearAndTerm(Integer year, SemesterTerm term);
 
-    // status가 주어진 목록 안에 포함되는 Semester 조회
-    List<Semester> findAllByStatusIn(List<SemesterStatus> statuses);
-
     Optional<Semester> findFirstByStatusOrderByStartDateDesc(SemesterStatus status);
 
     List<Semester> findAllByOrderByStartDateDesc();
