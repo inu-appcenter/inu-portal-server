@@ -45,12 +45,14 @@ public record CourseOfferingResponseDto(
 
         String englishCode,
         String englishName,
+        String englishYn,
 
         Integer credit,
 
         Integer capacity,
         Integer enrolledCount,
         Long savedCount,
+        String hussCourseYn,
         String note,
         List<CourseMeetingResponseDto> meetings
 ) {
@@ -88,28 +90,34 @@ public record CourseOfferingResponseDto(
                 courseOffering.getSemester().getYear(),
                 courseOffering.getSemester().getTerm(),
                 courseOffering.getSemester().getTerm().getDisplayName(),
-                courseOffering.getCnctrIsuName().name(),
-                courseOffering.getCnctrIsuName().getDescription(),
-                courseOffering.getDeptName().name(),
-                courseOffering.getDeptName().getDescription(),
-                courseOffering.getCollegeName().name(),
-                courseOffering.getCollegeName().getDescription(),
-                courseOffering.getIsuFldName().name(),
-                courseOffering.getIsuFldName().getDescription(),
-                courseOffering.getIsuName().name(),
-                courseOffering.getIsuName().getDescription(),
-                courseOffering.getSsupTypeName().name(),
-                courseOffering.getSsupTypeName().getDescription(),
-                courseOffering.getHyName().name(),
-                courseOffering.getHyName().getDescription(),
-                courseOffering.getEnglishName().name(),
-                courseOffering.getEnglishName().getDescription(),
+                valueOrFallback(courseOffering.getCnctrIsuCode(), courseOffering.getCnctrIsuName().name()),
+                valueOrFallback(courseOffering.getCnctrIsuNameRaw(), courseOffering.getCnctrIsuName().getDescription()),
+                valueOrFallback(courseOffering.getDeptCode(), courseOffering.getDeptName().name()),
+                valueOrFallback(courseOffering.getDeptNameRaw(), courseOffering.getDeptName().getDescription()),
+                valueOrFallback(courseOffering.getCollegeCode(), courseOffering.getCollegeName().name()),
+                valueOrFallback(courseOffering.getCollegeNameRaw(), courseOffering.getCollegeName().getDescription()),
+                valueOrFallback(courseOffering.getIsuFldCode(), courseOffering.getIsuFldName().name()),
+                valueOrFallback(courseOffering.getIsuFldNameRaw(), courseOffering.getIsuFldName().getDescription()),
+                valueOrFallback(courseOffering.getIsuCode(), courseOffering.getIsuName().name()),
+                valueOrFallback(courseOffering.getIsuNameRaw(), courseOffering.getIsuName().getDescription()),
+                valueOrFallback(courseOffering.getSsupTypeCode(), courseOffering.getSsupTypeName().name()),
+                valueOrFallback(courseOffering.getSsupTypeNameRaw(), courseOffering.getSsupTypeName().getDescription()),
+                valueOrFallback(courseOffering.getHyCode(), courseOffering.getHyName().name()),
+                valueOrFallback(courseOffering.getHyNameRaw(), courseOffering.getHyName().getDescription()),
+                valueOrFallback(courseOffering.getEnglishCode(), courseOffering.getEnglishName().name()),
+                valueOrFallback(courseOffering.getEnglishNameRaw(), courseOffering.getEnglishName().getDescription()),
+                courseOffering.getEnglishYn(),
                 courseOffering.getCredit(),
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
                 savedCount,
+                courseOffering.getHussCourseYn(),
                 courseOffering.getNote(),
                 meetings
         );
+    }
+
+    private static String valueOrFallback(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

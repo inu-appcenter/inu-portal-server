@@ -28,6 +28,10 @@ public class MemberResponseDto {
     @Schema(description = "학과")
     private String department;
 
+    private String departmentCode;
+
+    private String studentId;
+
     @Schema(description = "약관 동의 여부", example = "false")
     private Boolean termsAgreed;
 
@@ -50,6 +54,11 @@ public class MemberResponseDto {
         this.fireId = member.getFireId();
         this.role = role;
         this.department = department == null? null : department.getDepartmentName();
+        if (member.getSchoolDepartment() != null) {
+            this.department = member.getSchoolDepartment().getName();
+            this.departmentCode = member.getSchoolDepartment().getCode();
+        }
+        this.studentId = member.getStudentId();
         this.termsAgreed = member.getTermsAgreed();
         this.joinedAt = member.getJoinedAt();
         this.profileModifiedAt = member.getProfileModifiedAt();

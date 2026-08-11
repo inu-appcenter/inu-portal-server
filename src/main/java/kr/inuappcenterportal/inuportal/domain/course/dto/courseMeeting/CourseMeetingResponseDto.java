@@ -9,6 +9,7 @@ public record CourseMeetingResponseDto(
         Long id,
         String location,
         String sequence,
+        String lectmCode,
         DayOfWeek day,
         LocalTime startTime,
         LocalTime endTime
@@ -18,6 +19,7 @@ public record CourseMeetingResponseDto(
                 meeting.getId(),
                 meeting.getLocation(),
                 meeting.getSequence(),
+                meeting.getLectmCode(),
                 meeting.getDay(),
                 meeting.getStartTime(),
                 meeting.getEndTime()

@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiIt
 import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseExcelRow;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingOptionsResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
@@ -34,6 +35,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 
@@ -43,6 +45,20 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItem
 @Transactional(readOnly = true)
 public class CourseOfferingService {
 
+    private static final List<String> ISU_ORDER = List.of(
+            "공통필수", "공통선택", "교양필수", "기초교양", "기초과학", "교양선택", "핵심교양", "심화교양",
+            "전공기초", "전공필수", "전공핵심", "전공선택", "전공심화", "전공선수", "선수", "교직선수",
+            "교직", "부전공", "복수전공", "연계전공", "군사학", "일반선택", "논문", "융합전공"
+    );
+    private static final List<String> ISU_FIELD_ORDER = List.of(
+            "기초교양", "학문의기초", "기초과학·공학", "(핵심)INU세미나", "(핵심)인문", "(핵심)사회",
+            "(핵심)과학기술", "(핵심)예술체육", "(핵심)외국어", "인문", "사회", "과학기술", "예술체육", "외국어",
+            "INU핵심리더십", "INU핵심창의융합", "INU핵심문제해결", "INU핵심의사소통", "INU핵심글로벌", "기초과학",
+            "INU인성", "언어와문학", "과학과기술", "역사와문화", "인간과사회", "예술과스포츠", "전공기초",
+            "전공필수", "전공선택", "전공핵심", "전공심화", "교직", "부전공", "복수전공", "연계전공", "군사학",
+            "일반선택", "논문", "융합전공"
+    );
+
     private final CourseRepository courseRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final SemesterRepository semesterRepository;
@@ -50,6 +66,148 @@ public class CourseOfferingService {
     private final CourseMeetingService courseMeetingService;
     private final TimeTableItemRepository timeTableItemRepository;
     private final ExcelParser excelParser;
+
+    public List<CourseOfferingResponseDto> getOpenCourseOfferings(
+            String deptCode,
+            String isuCode,
+            String isuFldCode,
+            String cnctrIsuCode,
+            Boolean hussOnly,
+            Boolean majorOnly,
+            String keyword,
+            boolean exposeProfessor
+    ) {
+        Semester semester = getOpenSemester();
+        List<CourseOffering> offerings = courseOfferingRepository.findAllBySemesterId(semester.getId()).stream()
+                .filter(item -> matches(deptCode, item.getDeptCode()))
+                .filter(item -> matches(isuCode, item.getIsuCode()))
+                .filter(item -> matches(isuFldCode, item.getIsuFldCode()))
+                .filter(item -> matches(cnctrIsuCode, item.getCnctrIsuCode()))
+                .filter(item -> !Boolean.TRUE.equals(hussOnly) || "Y".equalsIgnoreCase(item.getHussCourseYn()))
+                .filter(item -> !Boolean.TRUE.equals(majorOnly) || (item.getIsuNameRaw() != null && item.getIsuNameRaw().contains("전공")))
+                .filter(item -> matchesKeyword(item, keyword))
+                .sorted(openCourseComparator())
+                .toList();
+
+        Map<Long, List<CourseMeeting>> meetings = courseMeetingRepository
+                .findAllByCourseOfferingIdIn(offerings.stream().map(CourseOffering::getId).toList()).stream()
+                .collect(Collectors.groupingBy(item -> item.getCourseOffering().getId()));
+        return offerings.stream()
+                .map(item -> CourseOfferingResponseDto.from(
+                        item,
+                        courseMeetingService.mergeContinuousMeetings(meetings.getOrDefault(item.getId(), List.of())),
+                        exposeProfessor
+                ))
+                .toList();
+    }
+
+    public CourseOfferingOptionsResponseDto getOpenCourseOfferingOptions() {
+        Semester semester = getOpenSemester();
+        List<CourseOffering> offerings = courseOfferingRepository.findAllBySemesterId(semester.getId());
+
+        List<CourseOfferingOptionsResponseDto.CodeNameOption> departments = distinctOptions(
+                offerings, CourseOffering::getDeptCode, CourseOffering::getDeptNameRaw,
+                Comparator.comparing(CourseOfferingOptionsResponseDto.CodeNameOption::name)
+                        .thenComparing(CourseOfferingOptionsResponseDto.CodeNameOption::code));
+        List<CourseOfferingOptionsResponseDto.CodeNameOption> connectedMajors = distinctOptions(
+                offerings, CourseOffering::getCnctrIsuCode, CourseOffering::getCnctrIsuNameRaw,
+                Comparator.comparing(CourseOfferingOptionsResponseDto.CodeNameOption::name)
+                        .thenComparing(CourseOfferingOptionsResponseDto.CodeNameOption::code));
+
+        Map<String, CourseOfferingOptionsResponseDto.CodeNameOption> categories = new LinkedHashMap<>();
+        Map<String, Map<String, CourseOfferingOptionsResponseDto.CodeNameOption>> fields = new HashMap<>();
+        for (CourseOffering item : offerings) {
+            if (blank(item.getIsuCode()) || blank(item.getIsuNameRaw())) continue;
+            categories.putIfAbsent(item.getIsuCode(), new CourseOfferingOptionsResponseDto.CodeNameOption(item.getIsuCode(), item.getIsuNameRaw()));
+            if (!blank(item.getIsuFldCode()) && !blank(item.getIsuFldNameRaw())) {
+                fields.computeIfAbsent(item.getIsuCode(), ignored -> new LinkedHashMap<>())
+                        .putIfAbsent(item.getIsuFldCode(), new CourseOfferingOptionsResponseDto.CodeNameOption(item.getIsuFldCode(), normalizeFieldName(item.getIsuFldNameRaw())));
+            }
+        }
+        Comparator<CourseOfferingOptionsResponseDto.CodeNameOption> categoryComparator = optionComparator(ISU_ORDER);
+        Comparator<CourseOfferingOptionsResponseDto.CodeNameOption> fieldComparator = optionComparator(ISU_FIELD_ORDER);
+        List<CourseOfferingOptionsResponseDto.CompletionOption> completionCategories = categories.values().stream()
+                .sorted(categoryComparator)
+                .map(category -> new CourseOfferingOptionsResponseDto.CompletionOption(
+                        category.code(), category.name(),
+                        fields.getOrDefault(category.code(), Map.of()).values().stream().sorted(fieldComparator).toList()))
+                .toList();
+
+        return new CourseOfferingOptionsResponseDto(
+                new CourseOfferingOptionsResponseDto.SemesterOption(semester.getId(), semester.getYear(), semester.getTerm(), semester.getTerm().getDisplayName()),
+                departments,
+                completionCategories,
+                connectedMajors
+        );
+    }
+
+    private Semester getOpenSemester() {
+        return semesterRepository.findFirstByStatusOrderByStartDateDesc(kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus.OPEN)
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+    }
+
+    private boolean matches(String expected, String actual) {
+        return blank(expected) || Objects.equals(expected, actual);
+    }
+
+    private boolean matchesKeyword(CourseOffering offering, String keyword) {
+        if (blank(keyword)) return true;
+        String normalized = keyword.trim().toLowerCase(Locale.ROOT);
+        return contains(offering.getSubjectNumber(), normalized)
+                || contains(offering.getCourse().getCourseCode(), normalized)
+                || contains(offering.getCourse().getTitle(), normalized)
+                || contains(offering.getCourse().getEnglishTitle(), normalized);
+    }
+
+    private boolean contains(String value, String keyword) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(keyword);
+    }
+
+    private Comparator<CourseOffering> openCourseComparator() {
+        return Comparator.comparingInt((CourseOffering item) -> gradeOrder(item.getHyNameRaw()))
+                .thenComparing(item -> nullSafe(item.getIsuCode()))
+                .thenComparing(item -> nullSafe(item.getSubjectNumber()))
+                .thenComparing(CourseOffering::getId);
+    }
+
+    private int gradeOrder(String grade) {
+        if ("전학년".equals(grade)) return 0;
+        if ("1".equals(grade)) return 1;
+        if ("2".equals(grade)) return 2;
+        if ("3".equals(grade)) return 3;
+        if ("4".equals(grade)) return 4;
+        return 99;
+    }
+
+    private List<CourseOfferingOptionsResponseDto.CodeNameOption> distinctOptions(
+            List<CourseOffering> offerings,
+            Function<CourseOffering, String> code,
+            Function<CourseOffering, String> name,
+            Comparator<CourseOfferingOptionsResponseDto.CodeNameOption> comparator
+    ) {
+        Map<String, CourseOfferingOptionsResponseDto.CodeNameOption> result = new LinkedHashMap<>();
+        offerings.forEach(item -> {
+            String itemCode = code.apply(item);
+            String itemName = name.apply(item);
+            if (!blank(itemCode) && !blank(itemName)) result.putIfAbsent(itemCode, new CourseOfferingOptionsResponseDto.CodeNameOption(itemCode, itemName));
+        });
+        return result.values().stream().sorted(comparator).toList();
+    }
+
+    private Comparator<CourseOfferingOptionsResponseDto.CodeNameOption> optionComparator(List<String> order) {
+        return Comparator.comparingInt((CourseOfferingOptionsResponseDto.CodeNameOption option) -> {
+                    int index = order.indexOf(normalizeFieldName(option.name()));
+                    return index < 0 ? Integer.MAX_VALUE : index;
+                })
+                .thenComparing(CourseOfferingOptionsResponseDto.CodeNameOption::code);
+    }
+
+    private String normalizeFieldName(String name) {
+        return name == null ? null : name.replace('ㆍ', '·');
+    }
+
+    private String nullSafe(String value) { return value == null ? "" : value; }
+    private boolean blank(String value) { return value == null || value.isBlank(); }
 
     /**
      * 개설 강의 조건별 조회
@@ -330,6 +488,24 @@ public class CourseOfferingService {
                 .map(existing -> {
                     existing.updateFromApi(
                             course,
+                            request.deptCode(),
+                            request.deptName(),
+                            request.collegeCode(),
+                            request.collegeName(),
+                            request.hyCode(),
+                            request.hyName(),
+                            request.isuCode(),
+                            request.isuName(),
+                            request.isuFldCode(),
+                            request.isuFldName(),
+                            request.suupTypeCode(),
+                            request.suupTypeName(),
+                            request.cnctrIsuCode(),
+                            request.cnctrIsuName(),
+                            request.englishYn(),
+                            request.englishCode(),
+                            request.englishName(),
+                            request.hussCourseYn(),
                             CNCTR_ISU_NAME.from(request.cnctrIsuName()),
                             DEPT_NAME.from(request.deptName()),
                             COLLEGE_NAME.from(request.collegeName()),
@@ -346,6 +522,24 @@ public class CourseOfferingService {
                         CourseOffering.create(
                                 null,
                                 request.haksuCode(),
+                                request.deptCode(),
+                                request.deptName(),
+                                request.collegeCode(),
+                                request.collegeName(),
+                                request.hyCode(),
+                                request.hyName(),
+                                request.isuCode(),
+                                request.isuName(),
+                                request.isuFldCode(),
+                                request.isuFldName(),
+                                request.suupTypeCode(),
+                                request.suupTypeName(),
+                                request.cnctrIsuCode(),
+                                request.cnctrIsuName(),
+                                request.englishYn(),
+                                request.englishCode(),
+                                request.englishName(),
+                                request.hussCourseYn(),
                                 null,
                                 course,
                                 semester,

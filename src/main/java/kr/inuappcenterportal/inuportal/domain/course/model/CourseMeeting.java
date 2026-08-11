@@ -28,6 +28,9 @@ public class CourseMeeting {
     @Column(name = "meeting_sequence", nullable = false)
     private String sequence;
 
+    @Column(name = "lectm_code")
+    private String lectmCode;
+
     @Enumerated(EnumType.STRING)
     private DayOfWeek day;
 
@@ -41,6 +44,7 @@ public class CourseMeeting {
             CourseOffering courseOffering,
             String location,
             String sequence,
+            String lectmCode,
             DayOfWeek day,
             LocalTime startTime,
             LocalTime endTime
@@ -48,6 +52,7 @@ public class CourseMeeting {
         this.courseOffering = courseOffering;
         this.location = location;
         this.sequence = sequence;
+        this.lectmCode = lectmCode;
         this.day = day;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -57,10 +62,11 @@ public class CourseMeeting {
             CourseOffering courseOffering,
             String location,
             String sequence,
+            String lectmCode,
             DayOfWeek day,
             LocalTime startTime,
             LocalTime endTime
     ) {
-        return new CourseMeeting(courseOffering, location, sequence, day, startTime, endTime);
+        return new CourseMeeting(courseOffering, location, sequence, lectmCode, day, startTime, endTime);
     }
 }

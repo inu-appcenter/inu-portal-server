@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingApiIte
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingGroupKey;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
+import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class CourseOfferingSyncService {
     private final CourseOfferingService courseOfferingService;
     private final CourseMeetingService courseMeetingService;
     private final CourseOverviewProperties courseOverviewProperties;
+    private final SchoolDepartmentService schoolDepartmentService;
 
     /**
      * 전체 개설 강의 동기화 메서드
@@ -41,6 +43,8 @@ public class CourseOfferingSyncService {
     private void syncCourseOfferingsWithSchoolApi(int year, String modDate) {
         List<CourseOfferingApiItem> items =
                 courseApiClient.fetchAllCourseOfferings(year, modDate);
+
+        schoolDepartmentService.replaceFromRegularSemester(items);
 
         for (CourseOfferingApiItem item : items) {
             try {
