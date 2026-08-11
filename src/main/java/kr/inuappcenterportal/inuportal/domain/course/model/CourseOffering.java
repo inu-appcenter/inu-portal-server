@@ -33,6 +33,60 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "subject_number")
     private String subjectNumber;
 
+    @Column(name = "dept_code")
+    private String deptCode;
+
+    @Column(name = "dept_name_raw")
+    private String deptNameRaw;
+
+    @Column(name = "college_code")
+    private String collegeCode;
+
+    @Column(name = "college_name_raw")
+    private String collegeNameRaw;
+
+    @Column(name = "hy_code")
+    private String hyCode;
+
+    @Column(name = "hy_name_raw")
+    private String hyNameRaw;
+
+    @Column(name = "isu_code")
+    private String isuCode;
+
+    @Column(name = "isu_name_raw")
+    private String isuNameRaw;
+
+    @Column(name = "isu_fld_code")
+    private String isuFldCode;
+
+    @Column(name = "isu_fld_name_raw")
+    private String isuFldNameRaw;
+
+    @Column(name = "ssup_type_code")
+    private String ssupTypeCode;
+
+    @Column(name = "ssup_type_name_raw")
+    private String ssupTypeNameRaw;
+
+    @Column(name = "cnctr_isu_code")
+    private String cnctrIsuCode;
+
+    @Column(name = "cnctr_isu_name_raw")
+    private String cnctrIsuNameRaw;
+
+    @Column(name = "english_code")
+    private String englishCode;
+
+    @Column(name = "english_yn")
+    private String englishYn;
+
+    @Column(name = "english_name_raw")
+    private String englishNameRaw;
+
+    @Column(name = "huss_course_yn")
+    private String hussCourseYn;
+
     private String professor;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -89,6 +143,24 @@ public class CourseOffering extends BaseTimeEntity {
     private CourseOffering(
             String syllabus,
             String subjectNumber,
+            String deptCode,
+            String deptNameRaw,
+            String collegeCode,
+            String collegeNameRaw,
+            String hyCode,
+            String hyNameRaw,
+            String isuCode,
+            String isuNameRaw,
+            String isuFldCode,
+            String isuFldNameRaw,
+            String ssupTypeCode,
+            String ssupTypeNameRaw,
+            String cnctrIsuCode,
+            String cnctrIsuNameRaw,
+            String englishYn,
+            String englishCode,
+            String englishNameRaw,
+            String hussCourseYn,
             String professor,
             Course course,
             Semester semester,
@@ -107,6 +179,24 @@ public class CourseOffering extends BaseTimeEntity {
     ) {
         this.syllabus = syllabus;
         this.subjectNumber = subjectNumber;
+        this.deptCode = deptCode;
+        this.deptNameRaw = deptNameRaw;
+        this.collegeCode = collegeCode;
+        this.collegeNameRaw = collegeNameRaw;
+        this.hyCode = hyCode;
+        this.hyNameRaw = hyNameRaw;
+        this.isuCode = isuCode;
+        this.isuNameRaw = isuNameRaw;
+        this.isuFldCode = isuFldCode;
+        this.isuFldNameRaw = isuFldNameRaw;
+        this.ssupTypeCode = ssupTypeCode;
+        this.ssupTypeNameRaw = ssupTypeNameRaw;
+        this.cnctrIsuCode = cnctrIsuCode;
+        this.cnctrIsuNameRaw = cnctrIsuNameRaw;
+        this.englishYn = englishYn;
+        this.englishCode = englishCode;
+        this.englishNameRaw = englishNameRaw;
+        this.hussCourseYn = hussCourseYn;
         this.professor = professor;
         this.course = course;
         this.semester = semester;
@@ -128,6 +218,24 @@ public class CourseOffering extends BaseTimeEntity {
     public static CourseOffering create(
             String syllabus,
             String subjectNumber,
+            String deptCode,
+            String deptNameRaw,
+            String collegeCode,
+            String collegeNameRaw,
+            String hyCode,
+            String hyNameRaw,
+            String isuCode,
+            String isuNameRaw,
+            String isuFldCode,
+            String isuFldNameRaw,
+            String ssupTypeCode,
+            String ssupTypeNameRaw,
+            String cnctrIsuCode,
+            String cnctrIsuNameRaw,
+            String englishYn,
+            String englishCode,
+            String englishNameRaw,
+            String hussCourseYn,
             String professor,
             Course course,
             Semester semester,
@@ -147,6 +255,24 @@ public class CourseOffering extends BaseTimeEntity {
         return new CourseOffering(
                 syllabus,
                 subjectNumber,
+                deptCode,
+                deptNameRaw,
+                collegeCode,
+                collegeNameRaw,
+                hyCode,
+                hyNameRaw,
+                isuCode,
+                isuNameRaw,
+                isuFldCode,
+                isuFldNameRaw,
+                ssupTypeCode,
+                ssupTypeNameRaw,
+                cnctrIsuCode,
+                cnctrIsuNameRaw,
+                englishYn,
+                englishCode,
+                englishNameRaw,
+                hussCourseYn,
                 professor,
                 course,
                 semester,
@@ -171,6 +297,24 @@ public class CourseOffering extends BaseTimeEntity {
      */
     public void updateFromApi(
             Course course,
+            String deptCode,
+            String deptNameRaw,
+            String collegeCode,
+            String collegeNameRaw,
+            String hyCode,
+            String hyNameRaw,
+            String isuCode,
+            String isuNameRaw,
+            String isuFldCode,
+            String isuFldNameRaw,
+            String ssupTypeCode,
+            String ssupTypeNameRaw,
+            String cnctrIsuCode,
+            String cnctrIsuNameRaw,
+            String englishYn,
+            String englishCode,
+            String englishNameRaw,
+            String hussCourseYn,
             CNCTR_ISU_NAME cnctrIsuName,
             DEPT_NAME deptName,
             COLLEGE_NAME collegeName,
@@ -182,6 +326,24 @@ public class CourseOffering extends BaseTimeEntity {
             Integer credit
     ) {
         this.course = course;
+        this.deptCode = deptCode;
+        this.deptNameRaw = deptNameRaw;
+        this.collegeCode = collegeCode;
+        this.collegeNameRaw = collegeNameRaw;
+        this.hyCode = hyCode;
+        this.hyNameRaw = hyNameRaw;
+        this.isuCode = isuCode;
+        this.isuNameRaw = isuNameRaw;
+        this.isuFldCode = isuFldCode;
+        this.isuFldNameRaw = isuFldNameRaw;
+        this.ssupTypeCode = ssupTypeCode;
+        this.ssupTypeNameRaw = ssupTypeNameRaw;
+        this.cnctrIsuCode = cnctrIsuCode;
+        this.cnctrIsuNameRaw = cnctrIsuNameRaw;
+        this.englishYn = englishYn;
+        this.englishCode = englishCode;
+        this.englishNameRaw = englishNameRaw;
+        this.hussCourseYn = hussCourseYn;
         this.cnctrIsuName = cnctrIsuName;
         this.deptName = deptName;
         this.collegeName = collegeName;
