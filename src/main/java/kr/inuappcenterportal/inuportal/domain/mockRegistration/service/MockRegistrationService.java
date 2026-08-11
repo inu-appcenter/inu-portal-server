@@ -111,6 +111,9 @@ public class MockRegistrationService {
                 .orElseThrow(() -> new MyException(MyErrorCode.PRIMARY_TIMETABLE_NOT_FOUND));
         List<Long> added = new ArrayList<>();
         List<TimetableImportResponseDto.SkippedItem> skipped = new ArrayList<>();
+        // 대표 시간표를 모의 장바구니의 기준 상태로 사용한다.
+        // 기존 항목을 먼저 비워야 시간표에서 삭제한 과목도 장바구니에서 함께 제거된다.
+        watchlistRepository.deleteAll(watchlistRepository.findAllByMemberIdAndSemesterId(member.getId(), semester.getId()));
         timeTableItemRepository.findAllByTimeTableId(timetable.getId()).stream()
                 .filter(item -> item.getType() == TimeTableItemType.COURSE)
                 .forEach(item -> {
