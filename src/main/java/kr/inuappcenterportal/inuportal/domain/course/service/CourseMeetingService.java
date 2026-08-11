@@ -70,6 +70,7 @@ public class CourseMeetingService {
                                 courseOffering,
                                 item.roomName(),
                                 item.lectmName(),
+                                item.lectmCode(),
                                 DayOfWeek.mapDay(item.dayName()),
                                 LocalTime.parse(item.lectmStart()),
                                 LocalTime.parse(item.lectmEnd())
@@ -158,6 +159,7 @@ public class CourseMeetingService {
                 current.id(),
                 current.location(),
                 mergeSequence(current.sequence(), next.sequence()),
+                mergeLectmCodes(current.lectmCode(), next.lectmCode()),
                 current.day(),
                 current.startTime(),
                 next.endTime().isAfter(current.endTime()) ? next.endTime() : current.endTime()
@@ -178,5 +180,11 @@ public class CourseMeetingService {
         }
 
         return currentSequence + "," + nextSequence;
+    }
+
+    private String mergeLectmCodes(String currentCode, String nextCode) {
+        if (currentCode == null || currentCode.isBlank()) return nextCode;
+        if (nextCode == null || nextCode.isBlank() || currentCode.contains(nextCode)) return currentCode;
+        return currentCode + "," + nextCode;
     }
 }

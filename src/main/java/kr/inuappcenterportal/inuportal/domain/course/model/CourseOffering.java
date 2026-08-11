@@ -78,6 +78,9 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "english_code")
     private String englishCode;
 
+    @Column(name = "english_yn")
+    private String englishYn;
+
     @Column(name = "english_name_raw")
     private String englishNameRaw;
 
@@ -154,6 +157,7 @@ public class CourseOffering extends BaseTimeEntity {
             String ssupTypeNameRaw,
             String cnctrIsuCode,
             String cnctrIsuNameRaw,
+            String englishYn,
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
@@ -189,6 +193,7 @@ public class CourseOffering extends BaseTimeEntity {
         this.ssupTypeNameRaw = ssupTypeNameRaw;
         this.cnctrIsuCode = cnctrIsuCode;
         this.cnctrIsuNameRaw = cnctrIsuNameRaw;
+        this.englishYn = englishYn;
         this.englishCode = englishCode;
         this.englishNameRaw = englishNameRaw;
         this.hussCourseYn = hussCourseYn;
@@ -227,6 +232,7 @@ public class CourseOffering extends BaseTimeEntity {
             String ssupTypeNameRaw,
             String cnctrIsuCode,
             String cnctrIsuNameRaw,
+            String englishYn,
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
@@ -263,6 +269,7 @@ public class CourseOffering extends BaseTimeEntity {
                 ssupTypeNameRaw,
                 cnctrIsuCode,
                 cnctrIsuNameRaw,
+                englishYn,
                 englishCode,
                 englishNameRaw,
                 hussCourseYn,
@@ -304,6 +311,7 @@ public class CourseOffering extends BaseTimeEntity {
             String ssupTypeNameRaw,
             String cnctrIsuCode,
             String cnctrIsuNameRaw,
+            String englishYn,
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
@@ -332,6 +340,7 @@ public class CourseOffering extends BaseTimeEntity {
         this.ssupTypeNameRaw = ssupTypeNameRaw;
         this.cnctrIsuCode = cnctrIsuCode;
         this.cnctrIsuNameRaw = cnctrIsuNameRaw;
+        this.englishYn = englishYn;
         this.englishCode = englishCode;
         this.englishNameRaw = englishNameRaw;
         this.hussCourseYn = hussCourseYn;

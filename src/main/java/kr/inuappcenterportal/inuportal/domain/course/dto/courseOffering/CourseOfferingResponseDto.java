@@ -45,6 +45,7 @@ public record CourseOfferingResponseDto(
 
         String englishCode,
         String englishName,
+        String englishYn,
 
         Integer credit,
 
@@ -105,6 +106,7 @@ public record CourseOfferingResponseDto(
                 valueOrFallback(courseOffering.getHyNameRaw(), courseOffering.getHyName().getDescription()),
                 valueOrFallback(courseOffering.getEnglishCode(), courseOffering.getEnglishName().name()),
                 valueOrFallback(courseOffering.getEnglishNameRaw(), courseOffering.getEnglishName().getDescription()),
+                courseOffering.getEnglishYn(),
                 courseOffering.getCredit(),
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
