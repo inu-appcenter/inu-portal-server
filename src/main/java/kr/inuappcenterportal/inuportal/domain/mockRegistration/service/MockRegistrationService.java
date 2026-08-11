@@ -157,7 +157,7 @@ public class MockRegistrationService {
         Map<Long, List<CourseMeeting>> meetings = meetingRepository.findAllByCourseOfferingIdIn(sorted.stream().map(CourseOffering::getId).toList()).stream()
                 .collect(Collectors.groupingBy(item -> item.getCourseOffering().getId()));
         return sorted.stream().map(item -> CourseOfferingResponseDto.from(item,
-                meetingService.mergeContinuousMeetings(meetings.getOrDefault(item.getId(), List.of())), true)).toList();
+                meetingService.mergeContinuousMeetings(meetings.getOrDefault(item.getId(), List.of())), false)).toList();
     }
     private int gradeOrder(String value) { return "전학년".equals(value) ? 0 : "1".equals(value) ? 1 : "2".equals(value) ? 2 : "3".equals(value) ? 3 : "4".equals(value) ? 4 : 99; }
     private String nullSafe(String value) { return value == null ? "" : value; }

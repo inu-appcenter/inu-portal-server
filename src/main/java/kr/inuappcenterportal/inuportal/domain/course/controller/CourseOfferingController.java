@@ -94,7 +94,7 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
             @RequestParam(required = false) String keyword
     ) {
         return ResponseEntity.ok(ResponseDto.of(courseOfferingService.getOpenCourseOfferings(
-                deptCode, isuCode, isuFldCode, cnctrIsuCode, hussOnly, majorOnly, keyword, canViewProfessor(member)), "현재 학기 개설 강의 조회 성공"));
+                deptCode, isuCode, isuFldCode, cnctrIsuCode, hussOnly, majorOnly, keyword, false), "현재 학기 개설 강의 조회 성공"));
     }
 
     @GetMapping("/open/options")
