@@ -104,7 +104,6 @@ public enum MyErrorCode {
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
     DUPLICATE_COURSE_OFFERING(HttpStatus.CONFLICT, "중복된 개설 강의입니다."),
     INVALID_DAY_OF_WEEK(HttpStatus.CONFLICT, "허용하지 않은 요일입니다."),
-    MEETINGS_NOT_FOUND(HttpStatus.NOT_FOUND, "시간 정보가 존재하지 않습니다."),
 
 
     // Chat 관련 에러 코드 추가
