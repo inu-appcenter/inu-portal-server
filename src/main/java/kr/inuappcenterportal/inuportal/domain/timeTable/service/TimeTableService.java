@@ -217,6 +217,20 @@ public class TimeTableService {
         return TimeTableResponseDto.from(timeTable);
     }
 
+    /**
+     * 시간표 이름 변경 메서드
+     */
+    private void AutoUpdatePrimary(TimeTable deletingTimeTable) {
+        if (!deletingTimeTable.isPrimary()) {
+            return;
+        }
+
+        timeTableRepository.findAllByMemberIdAndSemesterId(deletingTimeTable.getMember().getId(), deletingTimeTable.getSemester().getId())
+                .stream()
+                .filter(timeTable -> !timeTable.getId().equals(deletingTimeTable.getId()))
+                .findFirst()
+                .ifPresent(TimeTable::markPrimary);
+    }
 
     /**
      * 시간표 이름 변경 메서드
@@ -252,6 +266,8 @@ public class TimeTableService {
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
 
         validateOwner(timeTable, memberId);
+
+        AutoUpdatePrimary(timeTable);
 
         timeTableItemService.deleteAllTimeTableItems(timeTable);
 
