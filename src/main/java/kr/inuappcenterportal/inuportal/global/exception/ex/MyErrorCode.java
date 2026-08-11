@@ -105,6 +105,12 @@ public enum MyErrorCode {
     DUPLICATE_COURSE_OFFERING(HttpStatus.CONFLICT, "중복된 개설 강의입니다."),
     INVALID_DAY_OF_WEEK(HttpStatus.CONFLICT, "허용하지 않은 요일입니다."),
     MEETINGS_NOT_FOUND(HttpStatus.NOT_FOUND, "시간 정보가 존재하지 않습니다."),
+    INVALID_DIRECTORY_SOURCE_CATEGORY(HttpStatus.BAD_REQUEST, "지원하지 않는 전화번호부 소스 카테고리입니다."),
+    DIRECTORY_SOURCE_INVENTORY_NOT_FOUND(HttpStatus.BAD_GATEWAY, "전화번호부 소스 목록을 찾을 수 없습니다."),
+    INVALID_GRADE(HttpStatus.BAD_REQUEST, "유효하지 않은 성적입니다."),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 유저입니다."),
+    GRADE_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 성적입니다."),
+    HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
 
 
     // Chat 관련 에러 코드 추가
