@@ -7,6 +7,9 @@
 application*.properties
 application*.yml
 firebase_key.json
+.env
+.venv/
+db/past_course/course.db
 
 # User-specific stuff
 .idea/**/workspace.xml
@@ -183,6 +186,6 @@ build/
 .claude/
 .gradle-user-verify/
 
-###  IDE 설정 파일 ###
+### IDE 설정 파일 ###
 *.xml
 *.iml
