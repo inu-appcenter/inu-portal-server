@@ -16,4 +16,5 @@ public interface SemesterRepository extends JpaRepository<Semester, Long> {
     Optional<Semester> findFirstByStatusOrderByStartDateDesc(SemesterStatus status);
 
     List<Semester> findAllByOrderByStartDateDesc();
+    List<Semester> findAllByStatus(SemesterStatus status);
 }

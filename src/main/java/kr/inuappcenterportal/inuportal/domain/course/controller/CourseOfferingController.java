@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingOptionsResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
@@ -79,6 +80,26 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
                         "개설 강의 목록 조회 성공"
                 )
         );
+    }
+
+    @GetMapping("/open")
+    public ResponseEntity<ResponseDto<List<CourseOfferingResponseDto>>> getOpenCourseOfferings(
+            @AuthenticationPrincipal Member member,
+            @RequestParam(required = false) String deptCode,
+            @RequestParam(required = false) String isuCode,
+            @RequestParam(required = false) String isuFldCode,
+            @RequestParam(required = false) String cnctrIsuCode,
+            @RequestParam(required = false) Boolean hussOnly,
+            @RequestParam(required = false) Boolean majorOnly,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(courseOfferingService.getOpenCourseOfferings(
+                deptCode, isuCode, isuFldCode, cnctrIsuCode, hussOnly, majorOnly, keyword, canViewProfessor(member)), "현재 학기 개설 강의 조회 성공"));
+    }
+
+    @GetMapping("/open/options")
+    public ResponseEntity<ResponseDto<CourseOfferingOptionsResponseDto>> getOpenCourseOfferingOptions() {
+        return ResponseEntity.ok(ResponseDto.of(courseOfferingService.getOpenCourseOfferingOptions(), "현재 학기 강의 검색 옵션 조회 성공"));
     }
 
     private boolean canViewProfessor(Member member) {
