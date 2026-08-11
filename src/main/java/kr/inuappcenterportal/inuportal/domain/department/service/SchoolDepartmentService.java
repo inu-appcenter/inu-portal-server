@@ -5,6 +5,9 @@ import kr.inuappcenterportal.inuportal.domain.department.dto.SchoolDepartmentRes
 import kr.inuappcenterportal.inuportal.domain.department.model.SchoolDepartment;
 import kr.inuappcenterportal.inuportal.domain.department.repository.SchoolDepartmentRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,17 @@ public class SchoolDepartmentService {
         return repository.findAllByActiveTrueOrderByNameAscCodeAsc().stream()
                 .map(SchoolDepartmentResponseDto::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Department getNoticeDepartment(String code) {
+        SchoolDepartment department = repository.findByCodeAndActiveTrue(code)
+                .orElseThrow(() -> new MyException(MyErrorCode.SCHOOL_DEPARTMENT_NOT_FOUND));
+        Department noticeDepartment = department.getNoticeDepartment();
+        if (noticeDepartment == null || !noticeDepartment.isServiceAvailable()) {
+            throw new MyException(MyErrorCode.SCHOOL_DEPARTMENT_NOT_FOUND);
+        }
+        return noticeDepartment;
     }
 
     @Transactional

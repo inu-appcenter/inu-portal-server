@@ -2,6 +2,8 @@ package kr.inuappcenterportal.inuportal.domain.department.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentNoticeMapper;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,6 +29,10 @@ public class SchoolDepartment extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean active;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "notice_department")
+    private Department noticeDepartment;
+
     @Column(name = "source_year", nullable = false)
     private Integer sourceYear;
 
@@ -37,6 +43,7 @@ public class SchoolDepartment extends BaseTimeEntity {
         this.code = code;
         this.name = name;
         this.active = true;
+        this.noticeDepartment = SchoolDepartmentNoticeMapper.find(name).orElse(null);
         this.sourceYear = sourceYear;
         this.sourceTerm = sourceTerm;
     }
@@ -50,6 +57,7 @@ public class SchoolDepartment extends BaseTimeEntity {
         this.sourceYear = sourceYear;
         this.sourceTerm = sourceTerm;
         this.active = true;
+        this.noticeDepartment = SchoolDepartmentNoticeMapper.find(name).orElse(null);
     }
 
     public void deactivate() {

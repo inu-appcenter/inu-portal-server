@@ -16,6 +16,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
+import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentService;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleListResponseDoc;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
@@ -41,6 +42,7 @@ import java.util.List;
 @RequestMapping("/api/notices")
 public class NoticeController {
     private final NoticeService noticeService;
+    private final SchoolDepartmentService schoolDepartmentService;
     private final ScheduleService scheduleService;
 
     @Operation(summary = "모든 공지사항 가져오기", description = "url 파라미터로 카테고리, 정렬기준, 페이지를 보냅니다.")
@@ -162,6 +164,19 @@ public class NoticeController {
                         "해당 학과 모든 공지사항 가져오기 성공"
                 )
         );
+    }
+
+    @GetMapping("/school-department")
+    public ResponseEntity<ResponseDto<DepartmentNoticePageResponse>> getSchoolDepartmentNotices(
+            @RequestParam String departmentCode,
+            @RequestParam(required = false, defaultValue = "date") String sort,
+            @RequestParam(required = false, defaultValue = "1") @Min(1) int page
+    ) {
+        Department department = schoolDepartmentService.getNoticeDepartment(departmentCode);
+        return ResponseEntity.ok(ResponseDto.of(
+                noticeService.getDepartmentNotices(department, sort, page),
+                "학교 학과 기준 공지사항 조회 성공"
+        ));
     }
 
     @Operation(summary = "학과 공지 연결 일정 조회", description = "학과 공지 id로 연결된 일정 목록을 조회합니다.")
