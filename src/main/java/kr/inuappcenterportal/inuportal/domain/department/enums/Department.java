@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.department.enums;
 
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -301,6 +303,6 @@ public enum Department {
             }
         }
 
-        throw new IllegalArgumentException("존재하지 않는 학과입니다: " + value);
+        throw new MyException(MyErrorCode.INVALID_INPUT);
     }
 }

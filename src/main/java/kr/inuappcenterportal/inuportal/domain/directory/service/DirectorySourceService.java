@@ -7,6 +7,8 @@ import kr.inuappcenterportal.inuportal.domain.directory.enums.DirectoryCategory;
 import kr.inuappcenterportal.inuportal.domain.directory.model.DirectorySource;
 import kr.inuappcenterportal.inuportal.domain.directory.repository.DirectorySourceRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -118,7 +120,7 @@ public class DirectorySourceService {
         };
 
         if (!isValid) {
-            throw new IllegalStateException("Directory source inventory block not found for category: " + category.name());
+            throw new MyException(MyErrorCode.DIRECTORY_SOURCE_INVENTORY_NOT_FOUND);
         }
     }
 

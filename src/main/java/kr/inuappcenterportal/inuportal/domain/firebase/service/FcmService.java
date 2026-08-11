@@ -305,15 +305,17 @@ public class FcmService {
         List<Long> distinctIds = distinctMemberIds(memberIds);
         if (distinctIds.isEmpty()) return;
 
-        String sql = "INSERT INTO member_fcm_message (fcm_message_id, member_id, fcm_message_type, create_date, modified_date) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO member_fcm_message (fcm_message_id, member_id, fcm_message_type, is_read, view_count, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
         LocalDateTime now = LocalDateTime.now();
 
         jdbcTemplate.batchUpdate(sql, distinctIds, 500, (PreparedStatement ps, Long memberId) -> {
             ps.setLong(1, fcmMessageId);
             ps.setLong(2, memberId);
             ps.setString(3, type.name());
-            ps.setObject(4, now);
-            ps.setObject(5, now);
+            ps.setBoolean(4, false);
+            ps.setInt(5, 0);
+            ps.setObject(6, now);
+            ps.setObject(7, now);
         });
     }
 
