@@ -31,6 +31,27 @@ public class ChatBlockController {
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
+    @Operation(summary = "게시글 작성자 차단",
+            description = "PostResponseDto/PostListResponseDto는 memberId를 내려주지 않아(익명 글 재식별 방지) " +
+                    "클라이언트가 대상 memberId를 알 수 없다. postId만으로 차단한다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/by-post/{postId}")
+    public ResponseEntity<ResponseDto<Void>> blockUserByPostId(@PathVariable Long postId, @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        blockService.blockUserByPostId(memberId, postId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "댓글/대댓글 작성자 차단",
+            description = "ReplyResponseDto/ReReplyResponseDto도 memberId를 내려주지 않는다. replyId만으로 차단한다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/by-reply/{replyId}")
+    public ResponseEntity<ResponseDto<Void>> blockUserByReplyId(@PathVariable Long replyId, @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        blockService.blockUserByReplyId(memberId, replyId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
     @Operation(summary = "차단 해제")
     @SecurityRequirement(name = "Auth")
     @DeleteMapping("/{targetMemberId}")
