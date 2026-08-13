@@ -78,10 +78,10 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
 
         if (StringUtils.hasText(condition.keyword())) {
             builder.and(
-                    courseOffering.subjectNumber.containsIgnoreCase(condition.keyword())
-                            .or(courseOffering.course.title.containsIgnoreCase(condition.keyword()))
-                            .or(courseOffering.course.englishTitle.containsIgnoreCase(condition.keyword()))
-                            .or(courseOffering.professor.containsIgnoreCase(condition.keyword()))
+                    courseOffering.subjectNumber.contains(condition.keyword())
+                            .or(courseOffering.course.title.contains(condition.keyword()))
+                            .or(courseOffering.course.englishTitle.contains(condition.keyword()))
+                            .or(courseOffering.professor.contains(condition.keyword()))
             );
         }
 

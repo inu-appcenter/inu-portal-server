@@ -152,15 +152,15 @@ public class CourseOfferingService {
 
     private boolean matchesKeyword(CourseOffering offering, String keyword) {
         if (blank(keyword)) return true;
-        String normalized = keyword.trim().toLowerCase(Locale.ROOT);
-        return contains(offering.getSubjectNumber(), normalized)
-                || contains(offering.getCourse().getCourseCode(), normalized)
-                || contains(offering.getCourse().getTitle(), normalized)
-                || contains(offering.getCourse().getEnglishTitle(), normalized);
+        String trimmed = keyword.trim();
+        return contains(offering.getSubjectNumber(), trimmed)
+                || contains(offering.getCourse().getCourseCode(), trimmed)
+                || contains(offering.getCourse().getTitle(), trimmed)
+                || contains(offering.getCourse().getEnglishTitle(), trimmed);
     }
 
     private boolean contains(String value, String keyword) {
-        return value != null && value.toLowerCase(Locale.ROOT).contains(keyword);
+        return value != null && value.contains(keyword);
     }
 
     private Comparator<CourseOffering> openCourseComparator() {
