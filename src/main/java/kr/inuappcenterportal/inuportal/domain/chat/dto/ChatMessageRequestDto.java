@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.chat.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.MessageType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,4 +19,8 @@ public class ChatMessageRequestDto {
     private Boolean isAnonymous;
 
     private int imageCount;
+
+    private MessageType messageType;
+
+    private String extraData;
 }

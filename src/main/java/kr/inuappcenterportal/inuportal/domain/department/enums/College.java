@@ -20,7 +20,8 @@ public enum College {
     COLLEGE_OF_LIFE_SCIENCES_AND_BIOTECHNOLOGY("생명과학기술대학"),
     COLLEGE_OF_INTERDISCIPLINARY_STUDIES("융합자유전공대학"),
     COLLEGE_OF_NULL("단과대 없음"),
-    GENERAL("교양");
+    GENERAL("교양"),
+    HUSS("HUSS");
 
     private final String collegeName;
 }

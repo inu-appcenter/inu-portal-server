@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -27,19 +28,31 @@ public class FcmAsyncService {
     }
 
     @Async("messageExecutor")
+    public void sendAsyncKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType fcmMessageType, Long targetId, String path) {
+        Long fcmMessageId = fcmService.prepareKeywordNotice(tokenAndMemberId, title, body, fcmMessageType, targetId);
+        fcmService.dispatchKeywordNotice(fcmMessageId, tokenAndMemberId, title, body, fcmMessageType, targetId, path);
+    }
+
+    @Async("messageExecutor")
     public void sendAsyncToMembers(AdminNotificationDispatch dispatch) {
         fcmService.sendToMembers(dispatch);
     }
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type) {
-        FcmService.TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, null);
+        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, null);
         fcmService.dispatchTrackedNotification(dispatch);
     }
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type, Long targetId) {
-        FcmService.TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId);
+        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId);
+        fcmService.dispatchTrackedNotification(dispatch);
+    }
+
+    @Async("messageExecutor")
+    public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type, Long targetId, String path) {
+        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId, path);
         fcmService.dispatchTrackedNotification(dispatch);
     }
 

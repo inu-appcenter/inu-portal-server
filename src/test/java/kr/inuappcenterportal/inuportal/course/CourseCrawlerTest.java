@@ -4,8 +4,8 @@ package kr.inuappcenterportal.inuportal.course;
 import kr.inuappcenterportal.inuportal.domain.course.crawler.base.CourseOverviewParser;
 import kr.inuappcenterportal.inuportal.domain.course.crawler.base.CoursePageFetcher;
 import kr.inuappcenterportal.inuportal.domain.course.crawler.base.CurriculumParser;
-import kr.inuappcenterportal.inuportal.domain.course.dto.CourseOverviewItemDto;
-import kr.inuappcenterportal.inuportal.domain.course.dto.CurriculumItemDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseOverviewItemDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CurriculumItemDto;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Disabled;
@@ -113,7 +113,7 @@ public class CourseCrawlerTest {
         assertThat(result.get(0).targetTerm()).isEqualTo("1학기");
         assertThat(result.get(0).completionDivision()).isEqualTo("전필");
         assertThat(result.get(0).title()).isEqualTo("운영체제");
-        assertThat(result.get(0).credit()).isEqualTo("3");
+        assertThat(result.get(0).credit()).isEqualTo(3);
     }
 
     @Test
@@ -160,7 +160,7 @@ public class CourseCrawlerTest {
         assertThat(result.get(0).targetTerm()).isEqualTo("1학기");
         assertThat(result.get(0).completionDivision()).isEqualTo("전공심화");
         assertThat(result.get(0).title()).isEqualTo("체조");
-        assertThat(result.get(0).credit()).isEqualTo("1");
+        assertThat(result.get(0).credit()).isEqualTo(1);
     }
 
     @Test
@@ -191,7 +191,7 @@ public class CourseCrawlerTest {
         assertThat(result.get(0).targetTerm()).isEqualTo("1학기");
         assertThat(result.get(0).completionDivision()).isEqualTo("전공기초");
         assertThat(result.get(0).title()).isEqualTo("데이터과학개론");
-        assertThat(result.get(0).credit()).isEqualTo("3");
+        assertThat(result.get(0).credit()).isEqualTo(3);
     }
 
     @Test
@@ -234,6 +234,6 @@ public class CourseCrawlerTest {
         assertThat(result.get(0).targetTerm()).isEqualTo("2학기");
         assertThat(result.get(0).completionDivision()).isEqualTo("전공심화");
         assertThat(result.get(0).title()).isEqualTo("캡스톤디자인");
-        assertThat(result.get(0).credit()).isEqualTo("3");
+        assertThat(result.get(0).credit()).isEqualTo(3);
     }
 }

@@ -32,9 +32,7 @@ public class SemesterService {
      */
     @Transactional(readOnly = true)
     public List<SemesterResponseDto> getSemesters() {
-        return semesterRepository.findAllByStatusIn(
-                        List.of(SemesterStatus.OPEN, SemesterStatus.CLOSED)
-                )
+        return semesterRepository.findAll()
                 .stream()
                 .sorted(Comparator
                         .comparingInt((Semester semester) -> statusOrder(semester.getStatus()))
@@ -73,6 +71,7 @@ public class SemesterService {
         syncSemesters(year);
         log.info("학기 동기화 성공");
     }
+
 
     /**
      * 각 학기의 시작일 동기화 메서드

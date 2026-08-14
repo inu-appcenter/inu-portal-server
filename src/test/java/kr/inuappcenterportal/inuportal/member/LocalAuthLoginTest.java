@@ -18,6 +18,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +34,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@ActiveProfiles({"test", "local"})
+@ActiveProfiles("test")
+@TestPropertySource(properties = {
+        "app.local-auth.enabled=true",
+        "app.local-auth.seed-users[0].student-id=local-user",
+        "app.local-auth.seed-users[0].password=local-user",
+        "app.local-auth.seed-users[0].roles[0]=ROLE_USER",
+        "app.local-auth.seed-users[1].student-id=local-admin",
+        "app.local-auth.seed-users[1].password=local-admin",
+        "app.local-auth.seed-users[1].roles[0]=ROLE_ADMIN"
+})
 class LocalAuthLoginTest {
 
     @MockBean

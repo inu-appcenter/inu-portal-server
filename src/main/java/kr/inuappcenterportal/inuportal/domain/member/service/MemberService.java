@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.repository.SchoolDepartmentRepository;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -33,6 +34,7 @@ public class MemberService {
     private final SchoolLoginRepository schoolLoginRepository;
     private final FriendRepository friendRepository;
     private final BlockRepository blockRepository;
+    private final SchoolDepartmentRepository schoolDepartmentRepository;
 
     private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
             "알림", "공지", "알람", "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
@@ -174,6 +176,15 @@ public class MemberService {
     public MemberResponseDto updateMemberDepartment(Long memberId, Department department) {
         Member member = findMemberById(memberId);
         member.updateDepartment(department);
+        return getMemberResponseDto(member);
+    }
+
+    @Transactional
+    public MemberResponseDto updateSchoolDepartment(Long memberId, String departmentCode) {
+        Member member = findMemberById(memberId);
+        var department = schoolDepartmentRepository.findByCodeAndActiveTrue(departmentCode)
+                .orElseThrow(() -> new MyException(MyErrorCode.SCHOOL_DEPARTMENT_NOT_FOUND));
+        member.updateSchoolDepartment(department);
         return getMemberResponseDto(member);
     }
 

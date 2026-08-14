@@ -1,8 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
-import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 
@@ -20,13 +20,13 @@ public record CourseTimeTableItemResponseDto(
         @Schema(description = "학수번호", example = "0001421001")
         String subjectNumber,
         @Schema(description = "학점", example = "3")
-        String credit,
+        Integer credit,
         @Schema(description = "강의 시간 목록")
         List<TimeTableMeetingResponseDto> meetings
 ) {
     public static CourseTimeTableItemResponseDto of(
             CourseOffering courseOffering,
-            List<CourseMeeting> meetings
+            List<CourseMeetingResponseDto> meetings
     ) {
         Course course = courseOffering.getCourse();
 
@@ -45,7 +45,7 @@ public record CourseTimeTableItemResponseDto(
 
     public static CourseTimeTableItemResponseDto of(
             CourseOffering courseOffering,
-            List<CourseMeeting> meetings,
+            List<CourseMeetingResponseDto> meetings,
             Visibility visibility
     ) {
         boolean masked = visibility == Visibility.PROTECTED;

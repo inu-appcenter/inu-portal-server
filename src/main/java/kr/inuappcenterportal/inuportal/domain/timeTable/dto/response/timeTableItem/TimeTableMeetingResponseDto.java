@@ -2,8 +2,8 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableI
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.inuappcenterportal.inuportal.domain.course.enums.DayOfWeek;
-import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 
 import java.time.LocalTime;
@@ -14,7 +14,7 @@ public record TimeTableMeetingResponseDto(
         @Schema(description = "장소", example = "07-504")
         String location,
         @Schema(description = "강의 시간 순서. 커스텀 일정은 null입니다.", example = "1", nullable = true)
-        Integer sequence,
+        String sequence,
         @Schema(description = "요일", example = "MONDAY")
         DayOfWeek day,
         @Schema(description = "시작 시간", type = "string", example = "09:00", pattern = "HH:mm")
@@ -27,14 +27,14 @@ public record TimeTableMeetingResponseDto(
 
     // 강의 시간표 요소
     // CourseMeeting을 TimeTableMeetingResponseDto으로 바꾸는 정적 팩토리 메서드
-    public static TimeTableMeetingResponseDto from(CourseMeeting meeting) {
+    public static TimeTableMeetingResponseDto from(CourseMeetingResponseDto meeting) {
         return new TimeTableMeetingResponseDto(
-                meeting.getId(),
-                meeting.getLocation(),
-                meeting.getSequence(),
-                meeting.getDay(),
-                meeting.getStartTime(),
-                meeting.getEndTime()
+                meeting.id(),
+                meeting.location(),
+                meeting.sequence(),
+                meeting.day(),
+                meeting.startTime(),
+                meeting.endTime()
         );
     }
 
@@ -50,14 +50,15 @@ public record TimeTableMeetingResponseDto(
         );
     }
 
-    public static TimeTableMeetingResponseDto from(CourseMeeting meeting, boolean masked) {
+    // 친구용
+    public static TimeTableMeetingResponseDto from(CourseMeetingResponseDto meeting, boolean masked) {
         return new TimeTableMeetingResponseDto(
-                masked ? null : meeting.getId(),
-                masked ? null : meeting.getLocation(),
-                masked ? null : meeting.getSequence(),
-                meeting.getDay(),
-                meeting.getStartTime(),
-                meeting.getEndTime()
+                masked ? null : meeting.id(),
+                masked ? null : meeting.location(),
+                masked ? null : meeting.sequence(),
+                meeting.day(),
+                meeting.startTime(),
+                meeting.endTime()
         );
     }
 

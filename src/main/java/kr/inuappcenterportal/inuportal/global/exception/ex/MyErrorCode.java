@@ -84,6 +84,7 @@ public enum MyErrorCode {
     HAS_NOT_TIMETABLE_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 시간표에 접근할 권한이 없습니다."),
     INPUT_YEAR_AND_TERM(HttpStatus.BAD_REQUEST, "년도와 학기는 함께 입력해야합니다."),
     COURSE_NOT_FOUND(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다."),
+    COURSE_OFFERING_NOT_FOUND(HttpStatus.BAD_REQUEST, "존재하지 않는 개설 강의입니다."),
     NO_MATCH_SEMESTER(HttpStatus.BAD_REQUEST, "학기가 일치하지 않습니다."),
     NO_CUSTOM_ITEM_IN_TIMETABLE(HttpStatus.BAD_REQUEST, "해당 시간표에 속한 강의가 아닙니다."),
     NO_CUSTOM_ITEM(HttpStatus.BAD_REQUEST, "해당 요소는 커스텀 일정이 아닙니다."),
@@ -97,9 +98,19 @@ public enum MyErrorCode {
     TIMETABLE_ITEM_TIME_CONFLICT(HttpStatus.CONFLICT, "시간표 요소의 시간이 중복입니다."),
     TIMETABLE_ITEM_TIME_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소를 추가할 수 없습니다."),
     TIMETABLE_ITEM_TIME_DB_CONFLICT(HttpStatus.CONFLICT, "동일한 시간의 시간표 요소가 존재합니다."),
+    DUPLICATE_TIMETABLE_COURSE_ITEM(HttpStatus.CONFLICT, "이미 시간표에 추가된 개설 강의입니다."),
     PRIVATE_TIMETABLE(HttpStatus.FORBIDDEN, "비공개된 시간표입니다."),
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
+    DUPLICATE_COURSE_OFFERING(HttpStatus.CONFLICT, "중복된 개설 강의입니다."),
+    INVALID_DAY_OF_WEEK(HttpStatus.CONFLICT, "허용하지 않은 요일입니다."),
+    MEETINGS_NOT_FOUND(HttpStatus.NOT_FOUND, "시간 정보가 존재하지 않습니다."),
+    INVALID_DIRECTORY_SOURCE_CATEGORY(HttpStatus.BAD_REQUEST, "지원하지 않는 전화번호부 소스 카테고리입니다."),
+    DIRECTORY_SOURCE_INVENTORY_NOT_FOUND(HttpStatus.BAD_GATEWAY, "전화번호부 소스 목록을 찾을 수 없습니다."),
+    INVALID_GRADE(HttpStatus.BAD_REQUEST, "유효하지 않은 성적입니다."),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 유저입니다."),
+    GRADE_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 성적입니다."),
+    HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
 
 
     // Chat 관련 에러 코드 추가
@@ -113,6 +124,8 @@ public enum MyErrorCode {
     NOT_FOUND_FRIEND_REQUEST(HttpStatus.NOT_FOUND, "존재하지 않는 친구 요청입니다."),
     ALREADY_FRIEND_OR_REQUESTED(HttpStatus.CONFLICT, "이미 친구이거나 요청 대기 중입니다."),
     NOT_SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 요청을 보낼 수 없습니다."),
+    NOT_FOUND_FRIEND_INVITE_CODE(HttpStatus.NOT_FOUND, "유효하지 않은 친구추가 링크입니다."),
+    FAIL_CREATE_FRIEND_INVITE_CODE(HttpStatus.INTERNAL_SERVER_ERROR, "친구추가 링크 생성에 실패했습니다."),
     NOT_SELF_BLOCK(HttpStatus.BAD_REQUEST, "자기 자신을 차단할 수 없습니다."),
     NOT_SELF_CHAT(HttpStatus.BAD_REQUEST, "자기 자신과는 채팅방을 만들 수 없습니다."),
     HAS_NOT_FRIEND_AUTHORIZATION(HttpStatus.FORBIDDEN, "친구 관련 작업을 수행할 권한이 없습니다."),
@@ -120,6 +133,16 @@ public enum MyErrorCode {
     INVALID_OFFICIAL_CHAT_TARGET(HttpStatus.BAD_REQUEST, "운영자 채팅은 일반 학생하고만 가능합니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 입력값입니다."),
     INVALID_NICKNAME_KEYWORD(HttpStatus.BAD_REQUEST, "사용할 수 없는 단어(알림, 운영진 등)가 포함된 닉네임입니다."),
+    MOCK_REGISTRATION_NOT_OPEN(HttpStatus.CONFLICT, "현재 모의수강신청이 가능한 학기가 아닙니다."),
+    MOCK_WATCHLIST_DUPLICATE(HttpStatus.CONFLICT, "이미 모의 장바구니에 담긴 강의입니다."),
+    MOCK_WATCHLIST_LIMIT(HttpStatus.CONFLICT, "모의 장바구니는 최대 10개 강의까지 담을 수 있습니다."),
+    MOCK_WATCHLIST_NOT_FOUND(HttpStatus.NOT_FOUND, "모의 장바구니 항목이 존재하지 않습니다."),
+    MOCK_ENROLLMENT_DUPLICATE(HttpStatus.CONFLICT, "이미 신청한 강의입니다."),
+    MOCK_ENROLLMENT_SAME_COURSE(HttpStatus.CONFLICT, "동일 교과목의 다른 분반을 이미 신청했습니다."),
+    MOCK_ENROLLMENT_CREDIT_LIMIT(HttpStatus.CONFLICT, "최대 신청 학점인 24학점을 초과합니다."),
+    MOCK_ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모의 수강신청 내역이 존재하지 않습니다."),
+    MOCK_SCHEDULE_CONFLICT(HttpStatus.CONFLICT, "시간이 겹치는 강의가 있습니다."),
+    SCHOOL_DEPARTMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "선택할 수 있는 학교 학과가 아닙니다."),
     ;
 
 

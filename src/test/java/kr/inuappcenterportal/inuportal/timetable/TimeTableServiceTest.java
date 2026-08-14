@@ -1,8 +1,11 @@
 package kr.inuappcenterportal.inuportal.timetable;
 
 
+import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
+import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.member.service.FriendService;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
@@ -10,9 +13,11 @@ import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterReposi
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableNameUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableVisibilityUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
+import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableService;
@@ -51,6 +56,12 @@ public class TimeTableServiceTest {
 
     @Mock
     private SemesterRepository semesterRepository;
+
+    @Mock
+    private FriendService friendService;
+
+    @Mock
+    private CustomScheduleMeetingRepository customScheduleMeetingRepository;
 
     @Test
     @DisplayName("학기 첫 시간표를 생성하면 대표 시간표로 생성됩니다.")
@@ -298,6 +309,49 @@ public class TimeTableServiceTest {
                 .findByMemberIdAndSemesterIdAndIsPrimaryTrue(requestMemberId, semesterId);
     }
 
+
+    @Test
+    @DisplayName("친구 시간표가 전체공개여도 개인 메모는 노출되지 않는다")
+    void 친구_시간표_전체공개여도_메모는_노출되지_않는다_테스트() {
+        // given
+        Long viewerId = 1L;
+        Long friendMemberId = 2L;
+        Long semesterId = 1L;
+        Integer year = 2026;
+        SemesterTerm term = SemesterTerm.FIRST;
+
+        Member friend = createMember(friendMemberId, "20240002");
+        Semester semester = createSemester(semesterId);
+        TimeTable timeTable = createTimeTable(1L, "친구의 시간표", true, friend, semester);
+        timeTable.updateVisibility(Visibility.PUBLIC);
+
+        CustomSchedule customSchedule = CustomSchedule.create("스터디");
+        ReflectionTestUtils.setField(customSchedule, "id", 5L);
+
+        TimeTableItem item =
+                TimeTableItem.createForCustomSchedule("친구만 보려고 적어둔 개인 메모", timeTable, customSchedule);
+        ReflectionTestUtils.setField(item, "id", 10L);
+
+        when(semesterRepository.findByYearAndTerm(year, term)).thenReturn(Optional.of(semester));
+        when(friendService.isReadableFriend(viewerId, friendMemberId)).thenReturn(true);
+        when(timeTableRepository.findByMemberIdAndSemesterIdAndIsPrimaryTrue(friendMemberId, semesterId))
+                .thenReturn(Optional.of(timeTable));
+        when(timeTableItemRepository.findAllByTimeTableId(timeTable.getId()))
+                .thenReturn(List.of(item));
+        when(customScheduleMeetingRepository.findAllByCustomScheduleId(customSchedule.getId()))
+                .thenReturn(List.of());
+
+        // when
+        TimeTableDetailResponseDto response =
+                timeTableService.getFriendPrimaryTimeTableDetailYearAndTerm(viewerId, friendMemberId, year, term);
+
+        // then
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).memo()).isNull();
+        // 전체공개이므로 memo를 제외한 나머지 정보는 그대로 노출된다
+        assertThat(response.items().get(0).id()).isEqualTo(10L);
+        assertThat(response.items().get(0).customSchedule().title()).isEqualTo("스터디");
+    }
 
     @Test
     @DisplayName("시간표를 삭제합니다")

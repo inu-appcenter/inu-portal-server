@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 
@@ -11,6 +12,9 @@ public record AdminNotificationRequest(
 
         @Schema(description = "Target type", example = "ALL")
         AdminNotificationTargetType targetType,
+
+        @Schema(description = "Sub target filter", example = "NONE")
+        AdminNotificationSubFilter subFilter,
 
         @Schema(description = "Target member ids", example = "[1, 2, 3]")
         List<Long> memberIds,
@@ -27,7 +31,10 @@ public record AdminNotificationRequest(
 
         @Schema(description = "Notification content", example = "Please join the survey event.")
         @NotBlank(message = "Content must not be blank.")
-        String content
+        String content,
+
+        @Schema(description = "Path to navigate to when the notification is tapped. Full URL for web, relative path for in-app routes.", example = "/board/1")
+        String path
 
 ) {
     public AdminNotificationTargetType resolveTargetType() {
@@ -44,5 +51,9 @@ public record AdminNotificationRequest(
             return AdminNotificationTargetType.DEPARTMENTS;
         }
         return AdminNotificationTargetType.ALL;
+    }
+
+    public AdminNotificationSubFilter resolveSubFilter() {
+        return subFilter != null ? subFilter : AdminNotificationSubFilter.NONE;
     }
 }

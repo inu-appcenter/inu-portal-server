@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -44,8 +43,8 @@ public class PostResponseDto {
     @Schema(description = "수정/삭제 가능 여부")
     private Boolean hasAuthority;
     @Schema(description = "생성일",example = "yyyy-mm-dd")
-    @DateTimeFormat(pattern = "yyyy.MM.dd")
-    private LocalDate createDate;
+    @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
+    private LocalDateTime createDate;
     @Schema(description = "수정일",example = "yyyy-mm-dd")
     @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
     private LocalDateTime modifiedDate;
@@ -58,7 +57,7 @@ public class PostResponseDto {
 
 
     @Builder
-    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, LocalDate createDate, LocalDateTime modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority,long replyCount){
+    private PostResponseDto(Long id, String title, String category, List<ReplyResponseDto> replies, List<ReReplyResponseDto> bestReplies,String writer, long fireId,String content, LocalDateTime createDate, LocalDateTime modifiedDate, long like, long scrap,boolean isLiked, boolean isScraped, long view,long imageCount,boolean hasAuthority,long replyCount){
         this.id = id;
         this.title = title;
         this.category = category;
@@ -88,7 +87,7 @@ public class PostResponseDto {
                 .modifiedDate(post.getModifiedDate())
                 .category(post.getCategory())
                 .writer(writer)
-                .fireId(fireId)
+                .fireId(post.getAnonymous() && post.getMember() != null ? 1L : fireId)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .like(post.getGood())

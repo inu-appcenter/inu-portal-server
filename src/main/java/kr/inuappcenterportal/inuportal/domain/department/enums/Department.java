@@ -1,7 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.department.enums;
 
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Map;
 
 @Getter
 @RequiredArgsConstructor
@@ -226,7 +230,25 @@ public enum Department {
             "https://law.inu.ac.kr/law/5176/subview.do"),
 
     // 교양
-    GENERAL("교양", College.GENERAL, null, null);
+    GENERAL("교양", College.GENERAL, null, null),
+
+    // 공통/특수 개설
+    GENERAL_ELECTIVE("일선", College.GENERAL, null, null),
+    TEACHING("교직", College.GENERAL, null, null),
+    MILITARY_SCIENCE("군사학", College.GENERAL, null, null),
+    HUSS_OTHER_UNIVERSITY("HUSS(타대학)", College.HUSS, null, null),
+    HUSS_INCLUSIVE_SOCIAL_INITIATIVE("HUSS포용사회이니셔티브학부", College.HUSS, null, null),
+
+    // 연계/융합 전공
+    OPTICAL_ELECTRONICS_LINKED("광전자공학전공(연계)", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    LOGISTICS_LINKED("물류학전공(연계)", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    FUTURE_EDUCATION_DESIGN_LINKED("미래교육디자인연계전공", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    FUTURE_CAR_LINKED("미래자동차연계전공", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    SEMICONDUCTOR_CONVERGENCE("반도체융합전공", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    SOCIAL_DATA_SCIENCE_LINKED("소셜데이터사이언스연계전공", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    HUMANITIES_CULTURE_ART_PLANNING_LINKED("인문문화예술기획연계전공", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    INTELLIGENT_ROBOT_SYSTEM_LINKED("지능형로봇시스템연계전공", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null),
+    CREATIVE_DESIGN_LINKED("창의적디자인연계전공", College.COLLEGE_OF_INTERDISCIPLINARY_STUDIES, null, null);
 
 
     // 계약학과
@@ -234,6 +256,29 @@ public enum Department {
     // 경영대학 테크노경영학과
     // 글로벌정경대학 글로벌무역물류학과
 
+    private static final Map<String, Department> ALIASES = Map.ofEntries(
+            Map.entry("Global Trade & Service학부", TRADE),
+            Map.entry("경제학과(야)", ECONOMICS),
+            Map.entry("무역학부(야)", TRADE),
+
+            Map.entry("건설환경공학전공", CIVIL_ENVIRONMENT_ENGINEERING),
+            Map.entry("환경공학전공", ENVIRONMENT_ENGINEERING),
+            Map.entry("도시환경공학부", CIVIL_ENVIRONMENT_ENGINEERING),
+
+            Map.entry("건축공학전공", URBAN_ARCHITECTURE_ENGINEERING),
+            Map.entry("도시건축학부", URBAN_ARCHITECTURE_ARCHITECTURE),
+            Map.entry("도시건축학전공", URBAN_ARCHITECTURE_ARCHITECTURE),
+
+            Map.entry("나노바이오공학전공", BIOENGINEERING_NANO),
+            Map.entry("분자의생명전공", LIFE_SCIENCE_MOLECULAR),
+            Map.entry("생명공학부", BIOENGINEERING),
+            Map.entry("생명공학전공", BIOENGINEERING),
+            Map.entry("생명과학부", LIFE_SCIENCE),
+            Map.entry("생명과학전공", LIFE_SCIENCE),
+
+            Map.entry("전자공학과", ELECTRONICS_ENGINEERING),
+            Map.entry("전자공학전공", ELECTRONICS_ENGINEERING)
+    );
     private final String departmentName;    // 학과명
     private final College collegeName;      // 단과대명
     private final String courseOverviewUrl; // 교과목개요 Url
@@ -246,6 +291,11 @@ public enum Department {
 
         String trimmedValue = value.trim();
 
+        Department alias = ALIASES.get(trimmedValue);
+        if (alias != null) {
+            return alias;
+        }
+
         for (Department department : values()) {
             if (department.name().equalsIgnoreCase(trimmedValue)
                     || department.departmentName.equals(trimmedValue)) {
@@ -253,6 +303,6 @@ public enum Department {
             }
         }
 
-        throw new IllegalArgumentException("존재하지 않는 학과입니다: " + value);
+        throw new MyException(MyErrorCode.INVALID_INPUT);
     }
 }
