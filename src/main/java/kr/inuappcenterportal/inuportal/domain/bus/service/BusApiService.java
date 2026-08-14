@@ -243,39 +243,53 @@ public class BusApiService {
         Document doc = builder.parse(new InputSource(new StringReader(xmlData)));
 
         NodeList items = doc.getElementsByTagName("itemList");
+        if (items.getLength() == 0) {
+            items = doc.getElementsByTagName("item");
+        }
+
         for (int i = 0; i < items.getLength(); i++) {
             Element item = (Element) items.item(i);
 
             String bstopId = getTagValue("BSTOPID", item);
+            if (bstopId.isBlank()) bstopId = getTagValue("bstopId", item);
+
             String bstopNm = getTagValue("BSTOPNM", item);
+            if (bstopNm.isBlank()) bstopNm = getTagValue("bstopNm", item);
+
             String bstopNo = getTagValue("SHORT_BSTOPID", item);
-            if (bstopNo.isBlank()) {
-                bstopNo = getTagValue("BSTOPNO", item);
-            }
+            if (bstopNo.isBlank()) bstopNo = getTagValue("BSTOPNO", item);
+            if (bstopNo.isBlank()) bstopNo = getTagValue("bstopNo", item);
+
             String adminNm = getTagValue("ADMINNM", item);
+            if (adminNm.isBlank()) adminNm = getTagValue("adminNm", item);
 
             String latStr = getTagValue("LAT", item);
             if (latStr.isBlank()) latStr = getTagValue("POSY", item);
             if (latStr.isBlank()) latStr = getTagValue("GPS_LATI", item);
+            if (latStr.isBlank()) latStr = getTagValue("lat", item);
 
             String lngStr = getTagValue("LNG", item);
             if (lngStr.isBlank()) lngStr = getTagValue("POSX", item);
             if (lngStr.isBlank()) lngStr = getTagValue("GPS_LONG", item);
+            if (lngStr.isBlank()) lngStr = getTagValue("lng", item);
 
             Double lat = latStr.isBlank() ? null : Double.parseDouble(latStr);
             Double lng = lngStr.isBlank() ? null : Double.parseDouble(lngStr);
 
-            result.add(kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto.builder()
-                    .bstopId(bstopId)
-                    .bstopName(bstopNm)
-                    .bstopNo(bstopNo)
-                    .adminNm(adminNm)
-                    .latitude(lat)
-                    .longitude(lng)
-                    .build());
+            if (!bstopId.isBlank() && !bstopNm.isBlank()) {
+                result.add(kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto.builder()
+                        .bstopId(bstopId)
+                        .bstopName(bstopNm)
+                        .bstopNo(bstopNo)
+                        .adminNm(adminNm)
+                        .latitude(lat)
+                        .longitude(lng)
+                        .build());
+            }
         }
         return result;
     }
+
 
     private String getTagValue(String tag, Element element) {
         NodeList nodeList = element.getElementsByTagName(tag);
