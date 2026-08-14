@@ -54,8 +54,9 @@ public class BusTargetRule {
         this.endBstopId = endBstopId;
         this.endBstopName = endBstopName;
         this.endStopAlias = endStopAlias;
-        this.targetKeywords = targetKeywords;
+        this.targetKeywords = targetKeywords != null ? targetKeywords : "";
     }
+
 
 
 

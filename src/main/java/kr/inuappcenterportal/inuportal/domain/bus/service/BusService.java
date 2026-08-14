@@ -308,28 +308,29 @@ public class BusService {
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000395").startStopName("인천대입구역 2번출구").startStopAlias("인입")
                             .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
-                            .build(),
+                            .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000396").startStopName("인천대입구역 1번출구").startStopAlias("인입")
                             .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
-                            .build(),
+                            .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("지정단런")
                             .startBstopId("164000403").startStopName("지식정보단지역 3번출구").startStopAlias("지정단")
                             .endBstopId("164000377").endBstopName("인천대 공과대학").endStopAlias("공대")
-                            .build(),
+                            .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("인천대 정문")
                             .startBstopId("164000385").startStopName("인천대 정문(길 건너)").startStopAlias("정문")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
-                            .build(),
+                            .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
                             .startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
-                            .build()
+                            .targetKeywords("").build()
             );
+
             busTargetRuleRepository.saveAll(defaults);
             rules = busTargetRuleRepository.findAll();
         }
