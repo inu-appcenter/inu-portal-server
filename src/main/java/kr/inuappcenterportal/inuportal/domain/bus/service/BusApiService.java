@@ -39,6 +39,8 @@ public class BusApiService {
     private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteInfoItem";
     private static final String STOP_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationNmList";
     private static final String STOP_ID_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationIdList";
+    private static final String STATION_VIA_ROUTE_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationViaRouteList";
+
 
     public List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> searchBusStops(String keyword) {
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || keyword == null || keyword.isBlank()) {
@@ -127,7 +129,57 @@ public class BusApiService {
         }
     }
 
+    public List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteInfoItemDto> fetchRoutesViaStation(String bstopId) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || bstopId == null || bstopId.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            String url = String.format("%s?serviceKey=%s&bstopId=%s&pageNo=1&numOfRows=100",
+                    STATION_VIA_ROUTE_API_URL, busApiKey, bstopId.trim());
+
+            String xmlResponse = webClient.get()
+                    .uri(URI.create(url))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            if (xmlResponse == null || xmlResponse.isBlank()) {
+                return List.of();
+            }
+
+            List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteInfoItemDto> routes = new ArrayList<>();
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(xmlResponse)));
+
+            NodeList items = doc.getElementsByTagName("itemList");
+            if (items.getLength() == 0) items = doc.getElementsByTagName("item");
+
+            for (int i = 0; i < items.getLength(); i++) {
+                Element item = (Element) items.item(i);
+                String routeId = getTagValue("ROUTEID", item);
+                if (routeId.isBlank()) routeId = getTagValue("routeId", item);
+
+                String routeNo = getTagValue("ROUTENO", item);
+                if (routeNo.isBlank()) routeNo = getTagValue("routeNo", item);
+
+                if (!routeId.isBlank()) {
+                    routes.add(kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteInfoItemDto.builder()
+                            .routeId(routeId)
+                            .routeNo(routeNo)
+                            .build());
+                }
+            }
+            return routes;
+        } catch (Exception e) {
+            log.error("정류소 경유 노선 API 호출 실패 (bstopId: {})", bstopId, e);
+            return List.of();
+        }
+    }
+
     public String fetchAllocGap(String routeId) {
+
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || routeId == null) {
             return null;
         }

@@ -409,12 +409,27 @@ public class BusService {
                         .build());
             }
 
-            // 정류소에 도착하는 모든 노선 목록 탐색
-            List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(startBstopId);
+            // 정류소를 경유하는 모든 인가 노선 목록 탐색 (실시간 운행 여부와 무관하게 24시간 항상 탐색 가능)
+            Map<String, String> candidateRoutes = new HashMap<>(); // routeId -> routeNo
 
+            List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteInfoItemDto> viaRoutes = busApiService.fetchRoutesViaStation(startBstopId);
+            for (kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteInfoItemDto vr : viaRoutes) {
+                if (vr.getRouteId() != null && !vr.getRouteId().isBlank()) {
+                    candidateRoutes.put(vr.getRouteId(), vr.getRouteNo());
+                }
+            }
+
+            // 실시간 도착 API에서도 추가 보완
+            List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(startBstopId);
             for (BusArrivalItemDto arrival : arrivals) {
-                String routeId = arrival.getRouteId();
-                String routeNo = arrival.getRouteNo();
+                if (arrival.getRouteId() != null && !arrival.getRouteId().isBlank()) {
+                    candidateRoutes.putIfAbsent(arrival.getRouteId(), arrival.getRouteNo());
+                }
+            }
+
+            for (Map.Entry<String, String> entry : candidateRoutes.entrySet()) {
+                String routeId = entry.getKey();
+                String routeNo = entry.getValue();
 
                 if (routeId == null || routeId.isBlank() || routeNo == null) {
                     continue;
@@ -424,6 +439,7 @@ public class BusService {
                 if (allStops.isEmpty()) {
                     continue;
                 }
+
 
                 // 1. 시작 정류장 인덱스 찾기
                 int startIdx = -1;
