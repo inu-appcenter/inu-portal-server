@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.crawler.excel;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseExcelRow;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseOverviewExcelRow;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import org.apache.poi.ss.usermodel.*;
@@ -13,7 +13,7 @@ import java.util.*;
 
 @Component
 public class ExcelParser {
-    public List<CourseExcelRow> parse(MultipartFile file) {
+    public List<CourseOverviewExcelRow> parse(MultipartFile file) {
         try {
             return parse(file.getInputStream());
         } catch (IOException e) {
@@ -21,7 +21,7 @@ public class ExcelParser {
         }
     }
 
-    public List<CourseExcelRow> parse(InputStream inputStream) {
+    public List<CourseOverviewExcelRow> parse(InputStream inputStream) {
         try (Workbook workbook = WorkbookFactory.create(inputStream)) {
             return parseWorkbook(workbook);
         } catch (IOException e) {
@@ -29,7 +29,7 @@ public class ExcelParser {
         }
     }
 
-    private List<CourseExcelRow> parseWorkbook(Workbook workbook) {
+    private List<CourseOverviewExcelRow> parseWorkbook(Workbook workbook) {
         Sheet sheet = workbook.getSheetAt(0);
 
         Row headerRow = sheet.getRow(1);
@@ -39,7 +39,7 @@ public class ExcelParser {
 
         Map<String, Integer> headerIndex = readHeaderIndex(headerRow);
 
-        List<CourseExcelRow> rows = new ArrayList<>();
+        List<CourseOverviewExcelRow> rows = new ArrayList<>();
 
         for (int rowIndex = 2; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
@@ -52,7 +52,7 @@ public class ExcelParser {
                 continue;
             }
 
-            rows.add(new CourseExcelRow(
+            rows.add(new CourseOverviewExcelRow(
                     getString(row, headerIndex, "대학(원)"),
                     getString(row, headerIndex, "학과(부)"),
                     getString(row, headerIndex, "학년"),
@@ -71,6 +71,7 @@ public class ExcelParser {
                     getString(row, headerIndex, "수업유형"),
                     getString(row, headerIndex, "집중이수제"),
                     getString(row, headerIndex, "성적평가"),
+                    getInteger(row, headerIndex, "정원"),
                     getString(row, headerIndex, "원어강의구분")
             ));
         }
