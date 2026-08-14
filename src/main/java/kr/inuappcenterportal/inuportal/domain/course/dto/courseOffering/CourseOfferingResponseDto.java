@@ -47,11 +47,16 @@ public record CourseOfferingResponseDto(
         String englishName,
         String englishYn,
 
+        String gradeEvaluationCode,
+        String gradeEvaluationName,
+
         Integer credit,
 
         Integer capacity,
+
         Integer enrolledCount,
         Long savedCount,
+
         String hussCourseYn,
         String note,
         List<CourseMeetingResponseDto> meetings
@@ -90,6 +95,7 @@ public record CourseOfferingResponseDto(
                 courseOffering.getSemester().getYear(),
                 courseOffering.getSemester().getTerm(),
                 courseOffering.getSemester().getTerm().getDisplayName(),
+
                 valueOrFallback(courseOffering.getCnctrIsuCode(), courseOffering.getCnctrIsuName().name()),
                 valueOrFallback(courseOffering.getCnctrIsuNameRaw(), courseOffering.getCnctrIsuName().getDescription()),
                 valueOrFallback(courseOffering.getDeptCode(), courseOffering.getDeptName().name()),
@@ -107,6 +113,9 @@ public record CourseOfferingResponseDto(
                 valueOrFallback(courseOffering.getEnglishCode(), courseOffering.getEnglishName().name()),
                 valueOrFallback(courseOffering.getEnglishNameRaw(), courseOffering.getEnglishName().getDescription()),
                 courseOffering.getEnglishYn(),
+                courseOffering.getGradeEvaluation() == null ? null : courseOffering.getGradeEvaluation().name(),
+                valueOrFallback(courseOffering.getGradeEvaluationRaw(), courseOffering.getGradeEvaluation() == null ? null : courseOffering.getGradeEvaluation().getDescription()),
+
                 courseOffering.getCredit(),
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
