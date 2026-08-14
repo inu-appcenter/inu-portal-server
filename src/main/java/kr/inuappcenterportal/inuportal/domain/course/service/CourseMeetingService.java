@@ -148,7 +148,7 @@ public class CourseMeetingService {
 
         // 10분 내외일때만 연강
         long gapMinutes = Duration.between(current.endTime(), next.startTime()).toMinutes();
-        return gapMinutes <= 10;
+        return gapMinutes <= 15;
     }
 
     private CourseMeetingResponseDto merge(

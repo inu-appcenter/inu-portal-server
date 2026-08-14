@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem;
 
-public record CourseExcelRow(
+public record CourseOverviewExcelRow(
         String collegeName,
         String deptName,
         String hyName,
@@ -19,6 +19,7 @@ public record CourseExcelRow(
         String ssupTypeName,
         String cnctrIsuName,
         String gradeEvaluation,
+        Integer capacity,
         String englishName
 ) {
 }

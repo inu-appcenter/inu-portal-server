@@ -137,6 +137,10 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "enrolled_count")
     private Integer enrolledCount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade_evaluation")
+    private GradeEvaluation gradeEvaluation;
+
     private String note;
 
     // 생성자
@@ -360,11 +364,21 @@ public class CourseOffering extends BaseTimeEntity {
      * 엑셀 파일에서 파싱한 교수명 업데이트 메서드
      * (public void updateFromExcel(...)) 나중에 이런 식으로 확장
      */
-    public void updateProfessor(String professor) {
-        if (professor == null || professor.isBlank()) {
-            return;
+    public void updateFromExcel(
+            String professor,
+            Integer capacity,
+            GradeEvaluation gradeEvaluation
+    ) {
+        if (professor != null && !professor.isBlank()) {
+            this.professor = professor.trim();
         }
 
-        this.professor = professor.trim();
+        if (capacity != null) {
+            this.capacity = capacity;
+        }
+
+        if (gradeEvaluation != null) {
+            this.gradeEvaluation = gradeEvaluation;
+        }
     }
 }

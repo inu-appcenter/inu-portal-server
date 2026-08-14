@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -47,9 +48,17 @@ public record CourseOfferingResponseDto(
         String englishName,
         String englishYn,
 
+        @Schema(description = "성적 평가 방식 코드", example = "RELATIVE", nullable = true)
+        String gradeEvaluationCode,
+
+        @Schema(description = "성적 평가 방식 이름", example = "상대평가", nullable = true)
+        String gradeEvaluationName,
+
         Integer credit,
 
+        @Schema(description = "정원", example = "35", nullable = true)
         Integer capacity,
+
         Integer enrolledCount,
         Long savedCount,
         String hussCourseYn,
@@ -90,6 +99,7 @@ public record CourseOfferingResponseDto(
                 courseOffering.getSemester().getYear(),
                 courseOffering.getSemester().getTerm(),
                 courseOffering.getSemester().getTerm().getDisplayName(),
+
                 valueOrFallback(courseOffering.getCnctrIsuCode(), courseOffering.getCnctrIsuName().name()),
                 valueOrFallback(courseOffering.getCnctrIsuNameRaw(), courseOffering.getCnctrIsuName().getDescription()),
                 valueOrFallback(courseOffering.getDeptCode(), courseOffering.getDeptName().name()),
@@ -106,7 +116,10 @@ public record CourseOfferingResponseDto(
                 valueOrFallback(courseOffering.getHyNameRaw(), courseOffering.getHyName().getDescription()),
                 valueOrFallback(courseOffering.getEnglishCode(), courseOffering.getEnglishName().name()),
                 valueOrFallback(courseOffering.getEnglishNameRaw(), courseOffering.getEnglishName().getDescription()),
+                valueOrFallback(courseOffering.getGradeEvaluationCode(), courseOffering.getGradeEvaluation().name()),
+                valueOrFallback(courseOffering.getGradeEvaluationNameRaw(), courseOffering.getGradeEvaluation().getDescription()),
                 courseOffering.getEnglishYn(),
+
                 courseOffering.getCredit(),
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),

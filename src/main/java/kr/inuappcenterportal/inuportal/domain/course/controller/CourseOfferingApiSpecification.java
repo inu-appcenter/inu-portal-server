@@ -177,8 +177,10 @@ public interface CourseOfferingApiSpecification {
                                                     "hyName": "2",
                                                     "englishCode": "UN_TARGET",
                                                     "englishName": "비대상",
+                                                    "gradeEvaluationCode": "RELATIVE",
+                                                    "gradeEvaluationName": "상대평가",
                                                     "credit": 3,
-                                                    "capacity": null,
+                                                    "capacity": 35,
                                                     "enrolledCount": null,
                                                     "note": null,
                                                     "meetings": [
