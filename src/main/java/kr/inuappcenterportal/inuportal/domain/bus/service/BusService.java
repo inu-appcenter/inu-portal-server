@@ -35,17 +35,43 @@ public class BusService {
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusStopAliasRepository busStopAliasRepository;
 
     public List<BusStopSearchDto> searchBusStops(String keyword) {
-        List<BusStopSearchDto> searched = busApiService.searchBusStops(keyword);
-        if (searched.isEmpty()) {
+        if (keyword == null || keyword.isBlank()) {
             return List.of();
         }
 
-        // 등록된 별칭이 있으면 매핑
-        return searched.stream()
+        String trimmed = keyword.trim();
+        List<BusStopSearchDto> results = new ArrayList<>();
+
+        // 1. 공공데이터 API 검색 결과
+        List<BusStopSearchDto> searched = busApiService.searchBusStops(trimmed);
+        results.addAll(searched);
+
+        // 2. 로컬 별칭 사전 및 기등록 정류소에서 단축번호/ID/명칭/별칭 매칭
+        List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias> aliases = busStopAliasRepository.findAll();
+        for (kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias a : aliases) {
+            boolean matches = (a.getBstopId() != null && a.getBstopId().contains(trimmed)) ||
+                    (a.getBstopName() != null && a.getBstopName().contains(trimmed)) ||
+                    (a.getStopAlias() != null && a.getStopAlias().contains(trimmed));
+
+            if (matches) {
+                boolean alreadyExists = results.stream().anyMatch(r -> r.getBstopId().equals(a.getBstopId()));
+                if (!alreadyExists) {
+                    results.add(0, BusStopSearchDto.builder()
+                            .bstopId(a.getBstopId())
+                            .bstopName(a.getBstopName())
+                            .stopAlias(a.getStopAlias())
+                            .build());
+                }
+            }
+        }
+
+        // 별칭 매핑 보완 및 중복 제거
+        return results.stream()
+                .filter(distinctByKey(BusStopSearchDto::getBstopId))
                 .map(s -> {
                     String alias = busStopAliasRepository.findByBstopId(s.getBstopId())
                             .map(kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias::getStopAlias)
-                            .orElse(null);
+                            .orElse(s.getStopAlias());
                     return BusStopSearchDto.builder()
                             .bstopId(s.getBstopId())
                             .bstopName(s.getBstopName())
@@ -58,6 +84,12 @@ public class BusService {
                 })
                 .collect(Collectors.toList());
     }
+
+    private static <T> java.util.function.Predicate<T> distinctByKey(java.util.function.Function<? super T, ?> keyExtractor) {
+        java.util.Set<Object> seen = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
+
 
     @Transactional
     public List<BusStopAliasDto> getStopAliases() {

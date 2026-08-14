@@ -62,7 +62,7 @@ public class BusApiService {
                 try {
                     String idUrl = String.format("%s?serviceKey=%s&bstopId=%s&pageNo=1&numOfRows=30",
                             STOP_ID_SEARCH_API_URL, busApiKey, trimmed);
-                    String xmlResp = webClient.get().uri(URI.create(idUrl)).retrieve().bodyToMono(String.class).block();
+                    String xmlResp = executeGetXml(idUrl);
                     if (xmlResp != null && !xmlResp.isBlank()) {
                         results.addAll(parseBusStopXml(xmlResp));
                     }
@@ -76,18 +76,14 @@ public class BusApiService {
             String nameUrl = String.format("%s?serviceKey=%s&bstopNm=%s&pageNo=1&numOfRows=50",
                     STOP_SEARCH_API_URL, busApiKey, encodedKeyword);
 
-            String xmlResponse = webClient.get()
-                    .uri(URI.create(nameUrl))
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
+            String xmlResponse = executeGetXml(nameUrl);
             if (xmlResponse != null && !xmlResponse.isBlank()) {
                 if (xmlResponse.contains("<cmmMsgHeader>") || xmlResponse.contains("<returnAuthMsg>")) {
                     log.warn("공공데이터포털 API 에러 응답 수신 (keyword: {}): {}", keyword, xmlResponse.replaceAll("\\s+", " "));
                 }
                 results.addAll(parseBusStopXml(xmlResponse));
             }
+
 
             // 중복 bstopId 제거
             return results.stream()

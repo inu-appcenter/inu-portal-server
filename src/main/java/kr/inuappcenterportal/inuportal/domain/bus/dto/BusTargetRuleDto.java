@@ -38,9 +38,11 @@ public class BusTargetRuleDto {
     @Schema(description = "목표 도착 정류소 ID", example = "164000378")
     private String endBstopId;
 
+    @com.fasterxml.jackson.annotation.JsonAlias({"endStopName", "endBstopName"})
     @Schema(description = "목표 도착 정류장명", example = "인천대학교 자연과학대학")
     private String endBstopName;
 
+    @com.fasterxml.jackson.annotation.JsonAlias({"endStopAlias", "endBstopAlias"})
     @Schema(description = "도착 정류장 축약명/별칭", example = "자연대")
     private String endStopAlias;
 
