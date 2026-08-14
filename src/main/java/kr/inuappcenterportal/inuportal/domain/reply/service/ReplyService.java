@@ -79,7 +79,7 @@ public class ReplyService {
             if (postAuthor != null && !postAuthor.getId().equals(writerMember.getId())) {
                 String title = post.getTitle();
                 String body = "댓글이 달렸어요: " + reply.getContent();
-                String path = "/tips/detail/" + post.getId();
+                String path = "/home/tips/" + post.getId();
 
                 TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
                         List.of(postAuthor.getId()),
@@ -124,7 +124,7 @@ public class ReplyService {
             if (!targetMemberIds.isEmpty()) {
                 String title = post.getTitle();
                 String body = "답글이 달렸어요: " + reReply.getContent();
-                String path = "/tips/detail/" + post.getId();
+                String path = "/home/tips/" + post.getId();
 
                 TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
                         new ArrayList<>(targetMemberIds),
