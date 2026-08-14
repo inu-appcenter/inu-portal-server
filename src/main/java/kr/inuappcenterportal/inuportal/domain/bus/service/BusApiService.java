@@ -28,8 +28,9 @@ public class BusApiService {
 
     private final WebClient webClient;
 
-    @Value("${busApiKey:}")
+    @Value("${weatherKey:${busApiKey:}}")
     private String busApiKey;
+
 
 
 
