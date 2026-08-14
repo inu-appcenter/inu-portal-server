@@ -59,9 +59,11 @@ public class BusService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public List<BusStopAliasDto> getStopAliases() {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias> list = busStopAliasRepository.findAll();
         if (list.isEmpty()) {
+
             // 기본 주요 정류장 별칭 및 안내 문구(stopNotice) 초기화
             List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias> defaults = List.of(
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
@@ -297,6 +299,8 @@ public class BusService {
     @Transactional
     public List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> getTargetRules() {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> rules = busTargetRuleRepository.findAll();
+
+
         if (rules.isEmpty()) {
             // 기본 룰 자동 등록 (시종점 페어 기반)
             List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> defaults = List.of(
