@@ -32,7 +32,9 @@ public class CourseMeeting {
     private String lectmCode;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "`day`")
     private DayOfWeek day;
+
 
     @Column(name = "start_time")
     private LocalTime startTime;

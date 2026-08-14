@@ -29,8 +29,9 @@ public class CustomScheduleMeeting {
     String location;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "`day`", nullable = false)
     DayOfWeek day;
+
 
     @Column(nullable = false)
     LocalTime startTime;
