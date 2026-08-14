@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
@@ -46,9 +47,17 @@ public record CourseOfferingResponseDto(
         String englishCode,
         String englishName,
 
+        @Schema(description = "성적 평가 방식 코드", example = "RELATIVE", nullable = true)
+        String gradeEvaluationCode,
+
+        @Schema(description = "성적 평가 방식 이름", example = "상대평가", nullable = true)
+        String gradeEvaluationName,
+
         Integer credit,
 
+        @Schema(description = "정원", example = "35", nullable = true)
         Integer capacity,
+
         Integer enrolledCount,
         Long savedCount,
         String note,
@@ -104,6 +113,8 @@ public record CourseOfferingResponseDto(
                 courseOffering.getHyName().getDescription(),
                 courseOffering.getEnglishName().name(),
                 courseOffering.getEnglishName().getDescription(),
+                courseOffering.getGradeEvaluation() == null ? null : courseOffering.getGradeEvaluation().name(),
+                courseOffering.getGradeEvaluation() == null ? null : courseOffering.getGradeEvaluation().getDescription(),
                 courseOffering.getCredit(),
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
