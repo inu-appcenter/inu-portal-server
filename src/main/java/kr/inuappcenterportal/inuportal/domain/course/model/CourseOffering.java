@@ -84,6 +84,9 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "english_name_raw")
     private String englishNameRaw;
 
+    @Column(name = "grade_evaluation_raw")
+    private String gradeEvaluationRaw;
+
     @Column(name = "huss_course_yn")
     private String hussCourseYn;
 
@@ -165,6 +168,7 @@ public class CourseOffering extends BaseTimeEntity {
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
+            String gradeEvaluationRaw,
             String professor,
             Course course,
             Semester semester,
@@ -176,6 +180,7 @@ public class CourseOffering extends BaseTimeEntity {
             SSUP_TYPE_NAME ssupTypeName,
             HY_NAME hyName,
             ENGLISH_NAME englishName,
+            GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
             Integer enrolledCount,
@@ -201,6 +206,7 @@ public class CourseOffering extends BaseTimeEntity {
         this.englishCode = englishCode;
         this.englishNameRaw = englishNameRaw;
         this.hussCourseYn = hussCourseYn;
+        this.gradeEvaluationRaw = gradeEvaluationRaw;
         this.professor = professor;
         this.course = course;
         this.semester = semester;
@@ -212,6 +218,7 @@ public class CourseOffering extends BaseTimeEntity {
         this.ssupTypeName = ssupTypeName;
         this.hyName = hyName;
         this.englishName = englishName;
+        this.gradeEvaluation = gradeEvaluation;
         this.credit = credit;
         this.capacity = capacity;
         this.enrolledCount = enrolledCount;
@@ -240,6 +247,7 @@ public class CourseOffering extends BaseTimeEntity {
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
+            String gradeEvaluationRaw,
             String professor,
             Course course,
             Semester semester,
@@ -251,6 +259,7 @@ public class CourseOffering extends BaseTimeEntity {
             SSUP_TYPE_NAME ssupTypeName,
             HY_NAME hyName,
             ENGLISH_NAME englishName,
+            GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
             Integer enrolledCount,
@@ -277,6 +286,7 @@ public class CourseOffering extends BaseTimeEntity {
                 englishCode,
                 englishNameRaw,
                 hussCourseYn,
+                gradeEvaluationRaw,
                 professor,
                 course,
                 semester,
@@ -288,6 +298,7 @@ public class CourseOffering extends BaseTimeEntity {
                 ssupTypeName,
                 hyName,
                 englishName,
+                gradeEvaluation,
                 credit,
                 capacity,
                 enrolledCount,
@@ -367,6 +378,7 @@ public class CourseOffering extends BaseTimeEntity {
     public void updateFromExcel(
             String professor,
             Integer capacity,
+            String gradeEvaluationRaw,
             GradeEvaluation gradeEvaluation
     ) {
         if (professor != null && !professor.isBlank()) {
@@ -379,6 +391,10 @@ public class CourseOffering extends BaseTimeEntity {
 
         if (gradeEvaluation != null) {
             this.gradeEvaluation = gradeEvaluation;
+        }
+
+        if (gradeEvaluationRaw != null && !gradeEvaluationRaw.isBlank()) {
+            this.gradeEvaluationRaw = gradeEvaluationRaw.trim();
         }
     }
 }

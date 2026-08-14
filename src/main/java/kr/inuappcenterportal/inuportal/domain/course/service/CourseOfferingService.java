@@ -5,8 +5,8 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
 import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseOverviewExcelRow;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
-import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingOptionsResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
@@ -35,8 +35,8 @@ import java.io.InputStream;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -188,7 +188,8 @@ public class CourseOfferingService {
         offerings.forEach(item -> {
             String itemCode = code.apply(item);
             String itemName = name.apply(item);
-            if (!blank(itemCode) && !blank(itemName)) result.putIfAbsent(itemCode, new CourseOfferingOptionsResponseDto.CodeNameOption(itemCode, itemName));
+            if (!blank(itemCode) && !blank(itemName))
+                result.putIfAbsent(itemCode, new CourseOfferingOptionsResponseDto.CodeNameOption(itemCode, itemName));
         });
         return result.values().stream().sorted(comparator).toList();
     }
@@ -205,8 +206,13 @@ public class CourseOfferingService {
         return name == null ? null : name.replace('ㆍ', '·');
     }
 
-    private String nullSafe(String value) { return value == null ? "" : value; }
-    private boolean blank(String value) { return value == null || value.isBlank(); }
+    private String nullSafe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
 
     /**
      * 개설 강의 조건별 조회
@@ -468,6 +474,7 @@ public class CourseOfferingService {
 
     /**
      * 개설 강의 생성
+     * (학교 API에서 받은 개설강의 기본값을 먼저 DB에 생성/앱데이트 하는 메서드)
      */
     @Transactional
     public CourseOfferingResponseDto upsertCourseOfferings(CourseOfferingApiItem request) {
@@ -540,6 +547,7 @@ public class CourseOfferingService {
                                 request.englishName(),
                                 request.hussCourseYn(),
                                 null,
+                                null,
                                 course,
                                 semester,
                                 CNCTR_ISU_NAME.from(request.cnctrIsuName()),
@@ -550,6 +558,7 @@ public class CourseOfferingService {
                                 SSUP_TYPE_NAME.from(request.suupTypeName()),
                                 HY_NAME.from(request.hyName()),
                                 ENGLISH_NAME.from(request.englishName()),
+                                null,
                                 request.credit(),
                                 null,
                                 null,
@@ -671,6 +680,7 @@ public class CourseOfferingService {
                 courseOffering.get().updateFromExcel(
                         row.professor(),
                         row.capacity(),
+                        row.gradeEvaluation(),
                         parseGradeEvaluation(row.gradeEvaluation())
                 );
                 updatedCount++;

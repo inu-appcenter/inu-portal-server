@@ -17,6 +17,8 @@ ALTER TABLE course_offering
     ADD COLUMN cnctr_isu_name_raw VARCHAR(255) NULL,
     ADD COLUMN english_code VARCHAR(255) NULL,
     ADD COLUMN english_name_raw VARCHAR(255) NULL,
+    ADD COLUMN grade_evaluation VARCHAR(50) NULL,
+    ADD COLUMN grade_evaluation_raw VARCHAR(255) NULL,
     ADD COLUMN huss_course_yn VARCHAR(10) NULL,
     ADD INDEX idx_course_offering_open_sort (semester_id, hy_code, isu_code, subject_number),
     ADD INDEX idx_course_offering_department (semester_id, dept_code),
