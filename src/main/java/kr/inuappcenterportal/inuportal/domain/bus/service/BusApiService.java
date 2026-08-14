@@ -36,8 +36,10 @@ public class BusApiService {
 
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
-    private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteInfoItem";
+    private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteId";
+    private static final String ROUTE_NO_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteNo";
     private static final String STOP_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationNmList";
+
     private static final String STOP_ID_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationIdList";
     private static final String STATION_VIA_ROUTE_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationViaRouteList";
 
@@ -179,16 +181,13 @@ public class BusApiService {
     }
 
     public String fetchAllocGap(String routeId) {
-
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || routeId == null) {
             return null;
         }
 
-
         try {
-
             String url = String.format("%s?serviceKey=%s&routeId=%s&pageNo=1&numOfRows=10",
-                    ROUTE_INFO_API_URL, busApiKey, routeId);
+                    ROUTE_INFO_API_URL, busApiKey, routeId.trim());
 
             String xmlResponse = webClient.get()
                     .uri(URI.create(url))
@@ -205,21 +204,47 @@ public class BusApiService {
             Document doc = builder.parse(new InputSource(new StringReader(xmlResponse)));
 
             NodeList items = doc.getElementsByTagName("itemList");
+            if (items.getLength() == 0) items = doc.getElementsByTagName("item");
+
             if (items.getLength() > 0) {
                 Element item = (Element) items.item(0);
-                String minGap = getTagValue("MIN_ALLOC_GAP", item);
-                String maxGap = getTagValue("MAX_ALLOC_GAP", item);
+                String minGap = getTagValue("MIN_ALLOCGAP", item);
+                if (minGap.isBlank()) minGap = getTagValue("MIN_ALLOC_GAP", item);
+
+                String maxGap = getTagValue("MAX_ALLOCGAP", item);
+                if (maxGap.isBlank()) maxGap = getTagValue("MAX_ALLOC_GAP", item);
+
+                String fbus = getTagValue("FBUS_DEPHMS", item);
+                String lbus = getTagValue("LBUS_DEPHMS", item);
+
+                String timeNotice = null;
+                if (!fbus.isBlank() && fbus.length() >= 4 && !lbus.isBlank() && lbus.length() >= 4) {
+                    timeNotice = String.format("운행시간 | %s:%s ~ %s:%s",
+                            fbus.substring(0, 2), fbus.substring(2, 4),
+                            lbus.substring(0, 2), lbus.substring(2, 4));
+                }
+
+                String gapNotice = null;
                 if (!minGap.isBlank() && !maxGap.isBlank()) {
-                    return String.format("배차간격 | %s ~ %s분", minGap, maxGap);
+                    gapNotice = String.format("배차간격 | %s ~ %s분", minGap, maxGap);
                 } else if (!minGap.isBlank()) {
-                    return String.format("배차간격 | %s분", minGap);
+                    gapNotice = String.format("배차간격 | %s분", minGap);
+                }
+
+                if (timeNotice != null && gapNotice != null) {
+                    return timeNotice + "\n" + gapNotice;
+                } else if (timeNotice != null) {
+                    return timeNotice;
+                } else if (gapNotice != null) {
+                    return gapNotice;
                 }
             }
         } catch (Exception e) {
-            log.error("버스 노선 배차간격 API 호출 실패 (routeId: {})", routeId, e);
+            log.error("버스 노선 배차간격/운행시간 API 호출 실패 (routeId: {})", routeId, e);
         }
         return null;
     }
+
 
     public List<BusRouteStopDto> fetchRouteStops(String routeId) {
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank()) {
