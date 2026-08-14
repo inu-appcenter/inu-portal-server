@@ -27,7 +27,12 @@ jobs:
           cache: 'gradle'
 
       - name: Create application.yml
-        run: echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
+        env:
+          APPLICATION_YML: ${{ secrets.APPLICATION_YML }}
+        run: |
+          set -f
+          printf "%s\n" "$APPLICATION_YML" > ./src/main/resources/application.yml
+
 
       - name: Create firebase_key.json
         id: create-json
