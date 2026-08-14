@@ -3,7 +3,7 @@ name: "[Prod] CI & CD"
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: {}
+  workflow_dispatch: { }
 
 permissions:
   contents: read
@@ -26,8 +26,8 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Create application.properties
-        run: echo "${{ secrets.APPLICATION_PROPERTIES }}" > ./src/main/resources/application.properties
+      - name: Create application.yml
+        run: echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
 
       - name: Create firebase_key.json
         id: create-json
@@ -41,7 +41,7 @@ jobs:
         with:
           name: app-configs
           path: |
-            ./src/main/resources/application.properties
+            ./src/main/resources/application.yml
             ./src/main/resources/firebase_key.json
 
       - name: Grant execute permission for gradlew
