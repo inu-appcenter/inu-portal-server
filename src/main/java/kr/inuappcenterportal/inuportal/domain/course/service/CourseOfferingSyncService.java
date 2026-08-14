@@ -31,7 +31,7 @@ public class CourseOfferingSyncService {
      */
     public void syncCourseWithSchoolApi(int year, String modDate) {
         syncCourseOfferingsWithSchoolApi(year, modDate);
-        syncCourseOfferingProfessorsFromExcel(year);
+        syncCourseOfferingFieldsFromExcel(year);
         syncCourseMeetingWithSchoolApi(year, modDate);
     }
 
@@ -53,22 +53,22 @@ public class CourseOfferingSyncService {
     }
 
     /**
-     * 서버에 저장된 편람 엑셀 파일에서 교수명을 동기화한다.
+     * 서버에 저장된 편람 엑셀 파일에서 개설 강의 필드를 동기화한다.
      */
-    private void syncCourseOfferingProfessorsFromExcel(int year) {
+    private void syncCourseOfferingFieldsFromExcel(int year) {
         for (SemesterTerm term : SemesterTerm.values()) {
             Path path = courseOverviewProperties.resolvePath(year, term);
             if (!Files.isRegularFile(path)) {
-                log.info("교수명 엑셀 파일 없음. year={}, term={}, path={}", year, term, path);
+                log.info("편람 엑셀 파일 없음. year={}, term={}, path={}", year, term, path);
                 continue;
             }
 
             try (InputStream inputStream = Files.newInputStream(path)) {
-                courseOfferingService.updateProfessorsFromExcel(year, term, inputStream);
+                courseOfferingService.updateFieldFromExcel(year, term, inputStream);
 
-                log.info("교수명 엑셀 동기화 완료. year={}, term={}, path={}", year, term, path);
+                log.info("편람 엑셀 동기화 완료. year={}, term={}, path={}", year, term, path);
             } catch (Exception e) {
-                log.warn("교수명 엑셀 동기화 실패. year={}, term={}, path={}", year, term, path, e);
+                log.warn("편람 엑셀 동기화 실패. year={}, term={}, path={}", year, term, path, e);
             }
         }
     }
