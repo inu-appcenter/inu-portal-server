@@ -118,7 +118,8 @@ public class ExcelParser {
         }
 
         try {
-            return Integer.parseInt(value.replace(".0", "").trim());
+            String normalized = value.replace(",", "").replace(".0", "").trim();
+            return Integer.parseInt(normalized);
         } catch (NumberFormatException e) {
             throw new MyException(MyErrorCode.INVALID_INPUT);
         }
