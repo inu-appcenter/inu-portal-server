@@ -37,7 +37,7 @@ public class BusApiService {
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
     private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteInfoItem";
-    private static final String STOP_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStopService/getBusStopList";
+    private static final String STOP_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationNmList";
 
     public List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> searchBusStops(String keyword) {
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || keyword == null || keyword.isBlank()) {
@@ -65,6 +65,7 @@ public class BusApiService {
             return List.of();
         }
     }
+
 
     public List<BusArrivalItemDto> fetchBusArrivals(String bstopId) {
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank()) {
