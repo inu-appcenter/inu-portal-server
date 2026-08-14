@@ -6,7 +6,10 @@
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 application*.properties
 application*.yml
+!src/test/resources/application*.yml
+!src/test/resources/application*.properties
 firebase_key.json
+
 .env
 .venv/
 db/past_course/course.db
