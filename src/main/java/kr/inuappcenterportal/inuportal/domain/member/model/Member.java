@@ -11,10 +11,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import kr.inuappcenterportal.inuportal.domain.folder.model.Folder;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.model.SchoolDepartment;
 import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.domain.postLike.model.PostLike;
 import kr.inuappcenterportal.inuportal.domain.reply.model.Reply;
@@ -51,6 +54,10 @@ public class Member implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Department department;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_department_id")
+    private SchoolDepartment schoolDepartment;
 
     @Column(name = "fire_id")
     private Long fireId;
@@ -112,6 +119,11 @@ public class Member implements UserDetails {
 
     public void updateDepartment(Department department) {
         this.department = department;
+        touchProfileModifiedAt();
+    }
+
+    public void updateSchoolDepartment(SchoolDepartment schoolDepartment) {
+        this.schoolDepartment = schoolDepartment;
         touchProfileModifiedAt();
     }
 

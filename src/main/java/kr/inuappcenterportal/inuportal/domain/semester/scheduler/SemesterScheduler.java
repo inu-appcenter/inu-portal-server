@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.semester.scheduler;
 
 import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
+import kr.inuappcenterportal.inuportal.domain.mockRegistration.service.MockRegistrationCleanupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class SemesterScheduler {
 
     private final SemesterService semesterService;
+    private final MockRegistrationCleanupService mockRegistrationCleanupService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void syncSemesterOnStartup() {
@@ -37,6 +39,7 @@ public class SemesterScheduler {
     )
     public void updateSemesterStatuses() {
         semesterService.updateSemesterStatus();
+        mockRegistrationCleanupService.deleteClosedSemesterRecords();
     }
 
     /**
