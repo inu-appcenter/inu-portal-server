@@ -136,14 +136,9 @@ public class BusService {
 
         // 수집 대상 정류소(BusTargetStop)에도 별칭 동기화
         busTargetStopRepository.findByBstopId(dto.getBstopId()).ifPresent(targetStop -> {
-            busTargetStopRepository.save(BusTargetStop.builder()
-                    .bstopId(targetStop.getBstopId())
-                    .bstopName(targetStop.getBstopName())
-                    .stopAlias(dto.getStopAlias())
-                    .category(targetStop.getCategory())
-                    .isActive(targetStop.getIsActive())
-                    .build());
+            targetStop.updateStopAlias(dto.getStopAlias());
         });
+
 
         return BusStopAliasDto.builder()
                 .id(saved.getId())

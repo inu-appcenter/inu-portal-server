@@ -47,4 +47,15 @@ public class BusTargetStop extends BaseTimeEntity {
     public void updateActive(boolean isActive) {
         this.isActive = isActive;
     }
+
+    public void updateStopAlias(String stopAlias) {
+        this.stopAlias = stopAlias;
+    }
+
+    public void updateInfo(String bstopName, String stopAlias, String category) {
+        if (bstopName != null) this.bstopName = bstopName;
+        if (stopAlias != null) this.stopAlias = stopAlias;
+        if (category != null) this.category = category;
+    }
 }
+
