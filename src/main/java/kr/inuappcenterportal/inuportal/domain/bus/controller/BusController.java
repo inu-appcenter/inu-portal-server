@@ -61,4 +61,12 @@ public class BusController {
         List<BusRouteSectionResponseDto> sections = busService.getRouteSections(category);
         return ResponseEntity.ok(ResponseDto.of(sections, "동적 노선 구간 조회 성공"));
     }
+
+    @Operation(summary = "정류소 별칭 및 안내 문구 목록 조회", description = "정류소별 짧은 별칭 및 실시간 혼잡도/이용 팁 안내 문구를 제공합니다.")
+    @GetMapping("/stop-aliases")
+    public ResponseEntity<ResponseDto<List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopAliasDto>>> getStopAliases() {
+        List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopAliasDto> aliases = busService.getStopAliases();
+        return ResponseEntity.ok(ResponseDto.of(aliases, "정류소 별칭 및 안내 문구 목록 조회 성공"));
+    }
 }
+

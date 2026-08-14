@@ -60,12 +60,58 @@ public class BusService {
     }
 
     public List<BusStopAliasDto> getStopAliases() {
-        return busStopAliasRepository.findAll().stream()
+        List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias> list = busStopAliasRepository.findAll();
+        if (list.isEmpty()) {
+            // 기본 주요 정류장 별칭 및 안내 문구(stopNotice) 초기화
+            List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias> defaults = List.of(
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000395").bstopName("인천대입구역 2번출구").stopAlias("인입")
+                            .stopNotice("※ 8시 ~ 10시에는 매우 혼잡해요. 계단에서 줄서기를 꼭 지켜주세요.")
+                            .memo("인입런 메인 출발 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000396").bstopName("인천대입구역 1번출구").stopAlias("인입")
+                            .stopNotice("※ 에스컬레이터가 있어 이동하기 편리합니다.")
+                            .memo("인입런 1번출구 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000648").bstopName("인천대입구역.롯데몰").stopAlias("인입")
+                            .stopNotice("※ 청라에서 오셨나요? 이 정류장에서 환승도 좋은 선택지에요.")
+                            .memo("인입런 롯데몰 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000403").bstopName("지식정보단지역 3번출구").stopAlias("지정단")
+                            .stopNotice("※ 엘리베이터를 타면 정류장을 쉽게 찾을 수 있어요.")
+                            .memo("지정단런 출발 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000385").bstopName("인천대 정문(길 건너)").stopAlias("정문")
+                            .stopNotice("※ 인문대 학생들이 이용하기 좋아요.")
+                            .memo("하교 정문 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000386").bstopName("인천대 정문(앞)").stopAlias("정문")
+                            .stopNotice("※ 정류장 위치를 꼭 확인해주세요!")
+                            .memo("하교 정문앞 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000377").bstopName("인천대 공과대학").stopAlias("공대")
+                            .stopNotice("※ 이 곳은 출발지라 도착 정보가 표시되지 않습니다.\n자연대 정류장을 참고해주세요.")
+                            .memo("하교 공과대 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000378").bstopName("인천대 자연과학대학").stopAlias("자연대")
+                            .stopNotice("※ 오후 4~6시에는 사람이 몰려 버스가 정차하지 않을 수 있어요. 공과대학 정류장 이용을 추천해요.")
+                            .memo("하교 자연대 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000751").bstopName("인천대 송도캠퍼스(기숙사)").stopAlias("기숙사")
+                            .stopNotice("※ 암벽장 앞, 기숙사 근처에 위치해 있어요.\n※ 버스가 오지 않을 때는 공과대 정류장을 이용해보세요!")
+                            .memo("하교 기숙사 정류소").build()
+            );
+            busStopAliasRepository.saveAll(defaults);
+            list = busStopAliasRepository.findAll();
+        }
+
+        return list.stream()
                 .map(a -> BusStopAliasDto.builder()
                         .id(a.getId())
                         .bstopId(a.getBstopId())
                         .bstopName(a.getBstopName())
                         .stopAlias(a.getStopAlias())
+                        .stopNotice(a.getStopNotice())
                         .memo(a.getMemo())
                         .build())
                 .collect(Collectors.toList());
@@ -75,13 +121,14 @@ public class BusService {
     public BusStopAliasDto saveStopAlias(BusStopAliasDto dto) {
         kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias alias = busStopAliasRepository.findByBstopId(dto.getBstopId())
                 .map(existing -> {
-                    existing.update(dto.getBstopName(), dto.getStopAlias(), dto.getMemo());
+                    existing.update(dto.getBstopName(), dto.getStopAlias(), dto.getStopNotice(), dto.getMemo());
                     return existing;
                 })
                 .orElseGet(() -> kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
                         .bstopId(dto.getBstopId())
                         .bstopName(dto.getBstopName())
                         .stopAlias(dto.getStopAlias())
+                        .stopNotice(dto.getStopNotice())
                         .memo(dto.getMemo())
                         .build());
 
@@ -103,9 +150,11 @@ public class BusService {
                 .bstopId(saved.getBstopId())
                 .bstopName(saved.getBstopName())
                 .stopAlias(saved.getStopAlias())
+                .stopNotice(saved.getStopNotice())
                 .memo(saved.getMemo())
                 .build();
     }
+
 
     @Transactional
     public void deleteStopAlias(Long id) {

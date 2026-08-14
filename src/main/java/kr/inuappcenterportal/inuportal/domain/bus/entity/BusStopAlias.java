@@ -26,20 +26,26 @@ public class BusStopAlias extends BaseTimeEntity {
     @Column(name = "stop_alias", nullable = false)
     private String stopAlias; // 축약명/별칭 (예: 인입, 지정단, 정문, 공대, 자연대)
 
+    @Column(name = "stop_notice", length = 500)
+    private String stopNotice; // 정류장 상단 안내 문구 (예: "※ 8시 ~ 10시에는 매우 혼잡해요...")
+
     @Column(name = "memo")
     private String memo; // 관리자 메모
 
     @Builder
-    public BusStopAlias(String bstopId, String bstopName, String stopAlias, String memo) {
+    public BusStopAlias(String bstopId, String bstopName, String stopAlias, String stopNotice, String memo) {
         this.bstopId = bstopId;
         this.bstopName = bstopName;
         this.stopAlias = stopAlias;
+        this.stopNotice = stopNotice;
         this.memo = memo;
     }
 
-    public void update(String bstopName, String stopAlias, String memo) {
+    public void update(String bstopName, String stopAlias, String stopNotice, String memo) {
         if (bstopName != null) this.bstopName = bstopName;
         if (stopAlias != null) this.stopAlias = stopAlias;
+        if (stopNotice != null) this.stopNotice = stopNotice;
         if (memo != null) this.memo = memo;
     }
 }
+
