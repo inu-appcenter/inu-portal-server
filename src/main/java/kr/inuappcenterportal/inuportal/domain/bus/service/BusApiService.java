@@ -38,33 +38,64 @@ public class BusApiService {
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
     private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteInfoItem";
     private static final String STOP_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationNmList";
+    private static final String STOP_ID_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStationService/getBusStationIdList";
 
     public List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> searchBusStops(String keyword) {
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || keyword == null || keyword.isBlank()) {
             return List.of();
         }
 
+        String trimmed = keyword.trim();
+        List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> results = new ArrayList<>();
+        boolean isNumeric = trimmed.matches("^[0-9]+$");
+
         try {
-            String encodedKeyword = URLEncoder.encode(keyword.trim(), StandardCharsets.UTF_8);
-            String url = String.format("%s?serviceKey=%s&bstopNm=%s&pageNo=1&numOfRows=50",
+            // 1. 숫자인 경우 정류소 ID/번호 조회 (getBusStationIdList)
+            if (isNumeric) {
+                try {
+                    String idUrl = String.format("%s?serviceKey=%s&bstopId=%s&pageNo=1&numOfRows=30",
+                            STOP_ID_SEARCH_API_URL, busApiKey, trimmed);
+                    String xmlResp = webClient.get().uri(URI.create(idUrl)).retrieve().bodyToMono(String.class).block();
+                    if (xmlResp != null && !xmlResp.isBlank()) {
+                        results.addAll(parseBusStopXml(xmlResp));
+                    }
+                } catch (Exception ex) {
+                    log.debug("정류소 ID 검색 실패, 명칭 검색으로 진행: {}", ex.getMessage());
+                }
+            }
+
+            // 2. 정류소명 검색 (getBusStationNmList)
+            String encodedKeyword = URLEncoder.encode(trimmed, StandardCharsets.UTF_8);
+            String nameUrl = String.format("%s?serviceKey=%s&bstopNm=%s&pageNo=1&numOfRows=50",
                     STOP_SEARCH_API_URL, busApiKey, encodedKeyword);
 
             String xmlResponse = webClient.get()
-                    .uri(URI.create(url))
+                    .uri(URI.create(nameUrl))
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
 
-            if (xmlResponse == null || xmlResponse.isBlank()) {
-                return List.of();
+            if (xmlResponse != null && !xmlResponse.isBlank()) {
+                results.addAll(parseBusStopXml(xmlResponse));
             }
 
-            return parseBusStopXml(xmlResponse);
+            // 중복 bstopId 제거
+            return results.stream()
+                    .filter(distinctByKey(kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto::getBstopId))
+                    .toList();
         } catch (Exception e) {
             log.error("정류소 검색 API 호출 실패 (keyword: {})", keyword, e);
-            return List.of();
+            return results.stream()
+                    .filter(distinctByKey(kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto::getBstopId))
+                    .toList();
         }
     }
+
+    private static <T> java.util.function.Predicate<T> distinctByKey(java.util.function.Function<? super T, ?> keyExtractor) {
+        java.util.Set<Object> seen = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
+
 
 
     public List<BusArrivalItemDto> fetchBusArrivals(String bstopId) {
