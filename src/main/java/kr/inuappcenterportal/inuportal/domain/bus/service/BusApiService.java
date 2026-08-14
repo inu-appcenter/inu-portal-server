@@ -311,38 +311,44 @@ public class BusApiService {
         Document doc = builder.parse(new InputSource(new StringReader(xmlData)));
 
         NodeList items = doc.getElementsByTagName("itemList");
+        if (items.getLength() == 0) items = doc.getElementsByTagName("item");
+
         for (int i = 0; i < items.getLength(); i++) {
             Element item = (Element) items.item(i);
 
-            String seqStr = getTagValue("PATHSEQ", item);
-            if (seqStr.isBlank()) {
-                seqStr = getTagValue("SEQ", item);
-            }
+            String seqStr = getTagValue("BSTOPSEQ", item);
+            if (seqStr.isBlank()) seqStr = getTagValue("PATHSEQ", item);
+            if (seqStr.isBlank()) seqStr = getTagValue("SEQ", item);
 
             String latStr = getTagValue("LAT", item);
-            if (latStr.isBlank()) {
-                latStr = getTagValue("Y", item);
-            }
+            if (latStr.isBlank()) latStr = getTagValue("POSY", item);
+            if (latStr.isBlank()) latStr = getTagValue("Y", item);
 
             String lngStr = getTagValue("LNG", item);
-            if (lngStr.isBlank()) {
-                lngStr = getTagValue("X", item);
-            }
+            if (lngStr.isBlank()) lngStr = getTagValue("POSX", item);
+            if (lngStr.isBlank()) lngStr = getTagValue("X", item);
 
             Integer seq = seqStr.isBlank() ? i + 1 : Integer.parseInt(seqStr);
             Double lat = latStr.isBlank() ? null : Double.parseDouble(latStr);
             Double lng = lngStr.isBlank() ? null : Double.parseDouble(lngStr);
 
+            String bstopId = getTagValue("BSTOPID", item);
+            if (bstopId.isBlank()) bstopId = getTagValue("bstopId", item);
+
+            String bstopNm = getTagValue("BSTOPNM", item);
+            if (bstopNm.isBlank()) bstopNm = getTagValue("bstopNm", item);
+
             result.add(BusRouteStopDto.builder()
                     .seq(seq)
-                    .bstopId(getTagValue("BSTOPID", item))
-                    .bstopName(getTagValue("BSTOPNM", item))
+                    .bstopId(bstopId)
+                    .bstopName(bstopNm)
                     .latitude(lat)
                     .longitude(lng)
                     .build());
         }
         return result;
     }
+
 
     private List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> parseBusStopXml(String xmlData) throws Exception {
         List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> result = new ArrayList<>();
