@@ -27,7 +27,10 @@ jobs:
           cache: 'gradle'
 
       - name: Create application.yml
-        run: echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
+        run: |
+          cat > ./src/main/resources/application.yml <<'EOF'
+          ${{ secrets.APPLICATION_YML }}
+          EOF
 
       - name: Create firebase_key.json
         id: create-json

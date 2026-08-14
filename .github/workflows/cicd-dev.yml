@@ -36,7 +36,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Create application.yml
-        run: echo "${{ secrets.APPLICATION_YML_DEV }}" > ./src/main/resources/application.yml
+        run: |
+          cat > ./src/main/resources/application.yml <<'EOF'
+          ${{ secrets.APPLICATION_YML_DEV }}
+          EOF
 
       - name: Create firebase_key.json
         id: create-json
