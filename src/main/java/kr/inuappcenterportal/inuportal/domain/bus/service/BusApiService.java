@@ -28,8 +28,10 @@ public class BusApiService {
 
     private final WebClient webClient;
 
-    @Value("${busApiKey}")
+    @Value("${busApiKey:}")
     private String busApiKey;
+
+
 
     // API 키 만료 시 false로 변경하여 공공데이터포털 연동 일시 중단 가능
     private static final boolean IS_API_ENABLED = true;
