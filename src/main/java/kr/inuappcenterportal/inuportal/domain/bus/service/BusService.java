@@ -482,10 +482,18 @@ public class BusService {
                     continue;
                 }
 
+                // 공공데이터포털 초당 요청 수(QPS) 제한 초과 방지
+                try {
+                    Thread.sleep(120);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+
                 List<BusRouteStopDto> allStops = busApiService.fetchRouteStops(routeId);
                 if (allStops.isEmpty()) {
                     continue;
                 }
+
 
 
                 // 1. 시작 정류장 인덱스 찾기

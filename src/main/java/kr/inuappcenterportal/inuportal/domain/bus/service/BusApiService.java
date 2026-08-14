@@ -138,6 +138,39 @@ public class BusApiService {
         }
     }
 
+    private String executeGetXml(String url) {
+        int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                String response = webClient.get()
+                        .uri(URI.create(url))
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+
+                if (response != null && !response.isBlank()) {
+                    return response;
+                }
+            } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+                if (e.getStatusCode().value() == 429 && attempt < maxRetries) {
+                    log.warn("공공데이터 API 429 Rate Limit 감지. {}ms 후 재시도합니다 (시도: {}/{})", attempt * 300, attempt, maxRetries);
+                    try {
+                        Thread.sleep(attempt * 300L);
+                    } catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                    }
+                    continue;
+                }
+                log.error("API 요청 HTTP 오류 (status: {}, url: {})", e.getStatusCode(), url, e);
+                break;
+            } catch (Exception e) {
+                log.error("API 요청 중 오류 발생 (url: {})", url, e);
+                break;
+            }
+        }
+        return null;
+    }
+
     public List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteInfoItemDto> fetchRoutesViaStation(String bstopId) {
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || bstopId == null || bstopId.isBlank()) {
             return List.of();
@@ -147,12 +180,7 @@ public class BusApiService {
             String url = String.format("%s?serviceKey=%s&bstopId=%s&pageNo=1&numOfRows=100",
                     STATION_VIA_ROUTE_API_URL, busApiKey, bstopId.trim());
 
-            String xmlResponse = webClient.get()
-                    .uri(URI.create(url))
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
+            String xmlResponse = executeGetXml(url);
             if (xmlResponse == null || xmlResponse.isBlank()) {
                 return List.of();
             }
@@ -196,12 +224,7 @@ public class BusApiService {
             String url = String.format("%s?serviceKey=%s&routeId=%s&pageNo=1&numOfRows=10",
                     ROUTE_INFO_API_URL, busApiKey, routeId.trim());
 
-            String xmlResponse = webClient.get()
-                    .uri(URI.create(url))
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
+            String xmlResponse = executeGetXml(url);
             if (xmlResponse == null || xmlResponse.isBlank()) {
                 return null;
             }
@@ -258,18 +281,11 @@ public class BusApiService {
             return List.of();
         }
 
-
-
         try {
             String url = String.format("%s?serviceKey=%s&routeId=%s&pageNo=1&numOfRows=200",
                     ROUTE_SECTION_API_URL, busApiKey, routeId);
 
-            String xmlResponse = webClient.get()
-                    .uri(URI.create(url))
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
+            String xmlResponse = executeGetXml(url);
             if (xmlResponse == null || xmlResponse.isBlank()) {
                 return List.of();
             }
@@ -280,6 +296,7 @@ public class BusApiService {
             return List.of();
         }
     }
+
 
     private List<BusArrivalItemDto> parseArrivalXml(String xmlData) throws Exception {
         List<BusArrivalItemDto> result = new ArrayList<>();
