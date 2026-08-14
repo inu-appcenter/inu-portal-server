@@ -80,6 +80,9 @@ public class BusApiService {
                     .block();
 
             if (xmlResponse != null && !xmlResponse.isBlank()) {
+                if (xmlResponse.contains("<cmmMsgHeader>") || xmlResponse.contains("<returnAuthMsg>")) {
+                    log.warn("공공데이터포털 API 에러 응답 수신 (keyword: {}): {}", keyword, xmlResponse.replaceAll("\\s+", " "));
+                }
                 results.addAll(parseBusStopXml(xmlResponse));
             }
 
@@ -87,6 +90,7 @@ public class BusApiService {
             return results.stream()
                     .filter(distinctByKey(kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto::getBstopId))
                     .toList();
+
         } catch (Exception e) {
             log.error("정류소 검색 API 호출 실패 (keyword: {})", keyword, e);
             return results.stream()
