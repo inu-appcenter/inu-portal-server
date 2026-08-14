@@ -37,12 +37,40 @@ public class BusApiService {
     private static final String ARRIVAL_API_URL = "https://apis.data.go.kr/6280000/busArrivalService/getAllRouteBusArrivalList";
     private static final String ROUTE_SECTION_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteSectionList";
     private static final String ROUTE_INFO_API_URL = "https://apis.data.go.kr/6280000/busRouteService/getBusRouteInfoItem";
+    private static final String STOP_SEARCH_API_URL = "https://apis.data.go.kr/6280000/busStopService/getBusStopList";
 
+    public List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> searchBusStops(String keyword) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || keyword == null || keyword.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            String encodedKeyword = URLEncoder.encode(keyword.trim(), StandardCharsets.UTF_8);
+            String url = String.format("%s?serviceKey=%s&bstopNm=%s&pageNo=1&numOfRows=50",
+                    STOP_SEARCH_API_URL, busApiKey, encodedKeyword);
+
+            String xmlResponse = webClient.get()
+                    .uri(URI.create(url))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            if (xmlResponse == null || xmlResponse.isBlank()) {
+                return List.of();
+            }
+
+            return parseBusStopXml(xmlResponse);
+        } catch (Exception e) {
+            log.error("정류소 검색 API 호출 실패 (keyword: {})", keyword, e);
+            return List.of();
+        }
+    }
 
     public List<BusArrivalItemDto> fetchBusArrivals(String bstopId) {
         if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank()) {
             return List.of();
         }
+
 
 
         try {
@@ -207,6 +235,47 @@ public class BusApiService {
         return result;
     }
 
+    private List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> parseBusStopXml(String xmlData) throws Exception {
+        List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> result = new ArrayList<>();
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(new InputSource(new StringReader(xmlData)));
+
+        NodeList items = doc.getElementsByTagName("itemList");
+        for (int i = 0; i < items.getLength(); i++) {
+            Element item = (Element) items.item(i);
+
+            String bstopId = getTagValue("BSTOPID", item);
+            String bstopNm = getTagValue("BSTOPNM", item);
+            String bstopNo = getTagValue("SHORT_BSTOPID", item);
+            if (bstopNo.isBlank()) {
+                bstopNo = getTagValue("BSTOPNO", item);
+            }
+            String adminNm = getTagValue("ADMINNM", item);
+
+            String latStr = getTagValue("LAT", item);
+            if (latStr.isBlank()) latStr = getTagValue("POSY", item);
+            if (latStr.isBlank()) latStr = getTagValue("GPS_LATI", item);
+
+            String lngStr = getTagValue("LNG", item);
+            if (lngStr.isBlank()) lngStr = getTagValue("POSX", item);
+            if (lngStr.isBlank()) lngStr = getTagValue("GPS_LONG", item);
+
+            Double lat = latStr.isBlank() ? null : Double.parseDouble(latStr);
+            Double lng = lngStr.isBlank() ? null : Double.parseDouble(lngStr);
+
+            result.add(kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto.builder()
+                    .bstopId(bstopId)
+                    .bstopName(bstopNm)
+                    .bstopNo(bstopNo)
+                    .adminNm(adminNm)
+                    .latitude(lat)
+                    .longitude(lng)
+                    .build());
+        }
+        return result;
+    }
+
     private String getTagValue(String tag, Element element) {
         NodeList nodeList = element.getElementsByTagName(tag);
         if (nodeList.getLength() > 0 && nodeList.item(0) != null) {
@@ -215,3 +284,4 @@ public class BusApiService {
         return "";
     }
 }
+

@@ -76,6 +76,14 @@ public class BusRouteSection extends BaseTimeEntity {
     }
 
 
+    public void updateSectionInfo(String sectionName, String category, String tabName, String busNotice, String routeNotice) {
+        if (sectionName != null) this.sectionName = sectionName;
+        if (category != null) this.category = category;
+        if (tabName != null) this.tabName = tabName;
+        if (busNotice != null) this.busNotice = busNotice;
+        if (routeNotice != null) this.routeNotice = routeNotice;
+    }
+
     public void updateStops(List<BusRouteStop> newStops) {
         this.stops.clear();
         if (newStops != null) {
@@ -86,3 +94,4 @@ public class BusRouteSection extends BaseTimeEntity {
         }
     }
 }
+

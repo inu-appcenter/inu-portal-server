@@ -59,6 +59,15 @@ public class AdminBusController {
         return ResponseEntity.ok(ResponseDto.of(result, "등록된 노선 구간 목록 조회 성공"));
     }
 
+    @Operation(summary = "등록된 동적 노선 구간 정보 직접 수정", description = "어드민이 노선의 구간명, 탭명, 카테고리, 운행안내, 한 줄 팁을 직접 수정합니다.")
+    @PutMapping("/routes/{id}")
+    public ResponseEntity<ResponseDto<BusRouteSectionResponseDto>> updateRouteSection(
+            @PathVariable Long id,
+            @Valid @RequestBody kr.inuappcenterportal.inuportal.domain.bus.dto.RouteSectionUpdateRequest request) {
+        BusRouteSectionResponseDto result = busService.updateRouteSection(id, request);
+        return ResponseEntity.ok(ResponseDto.of(result, "노선 구간 정보가 수정되었습니다."));
+    }
+
     @Operation(summary = "동적 노선 구간 삭제", description = "등록된 노선 구간을 삭제합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "삭제 성공")
@@ -69,8 +78,37 @@ public class AdminBusController {
         return ResponseEntity.ok(ResponseDto.of(null, "노선 구간 삭제 성공"));
     }
 
-    @Operation(summary = "30초 폴링 수집 대상 정류장 추가", description = "30초 간격으로 실시간 도착 정보를 수집할 기점/출발 정류장을 추가합니다.")
+    @Operation(summary = "공공데이터 정류소 실시간 검색", description = "키워드로 인천 버스 정류소를 검색하고 등록된 별칭 정보와 함께 반환합니다.")
+    @GetMapping("/stops/search")
+    public ResponseEntity<ResponseDto<List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto>>> searchBusStops(
+            @RequestParam String keyword) {
+        List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto> result = busService.searchBusStops(keyword);
+        return ResponseEntity.ok(ResponseDto.of(result, "정류소 검색 성공"));
+    }
 
+    @Operation(summary = "정류소 별칭 목록 조회", description = "등록된 모든 정류소 별칭 사전을 조회합니다.")
+    @GetMapping("/stop-aliases")
+    public ResponseEntity<ResponseDto<List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopAliasDto>>> getStopAliases() {
+        List<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopAliasDto> result = busService.getStopAliases();
+        return ResponseEntity.ok(ResponseDto.of(result, "정류소 별칭 목록 조회 성공"));
+    }
+
+    @Operation(summary = "정류소 별칭 등록 및 수정", description = "정류소 ID에 대한 축약명/별칭을 등록하거나 수정합니다.")
+    @PostMapping("/stop-aliases")
+    public ResponseEntity<ResponseDto<kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopAliasDto>> saveStopAlias(
+            @Valid @RequestBody kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopAliasDto request) {
+        kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopAliasDto result = busService.saveStopAlias(request);
+        return ResponseEntity.ok(ResponseDto.of(result, "정류소 별칭 저장 성공"));
+    }
+
+    @Operation(summary = "정류소 별칭 삭제", description = "등록된 정류소 별칭을 삭제합니다.")
+    @DeleteMapping("/stop-aliases/{id}")
+    public ResponseEntity<ResponseDto<Void>> deleteStopAlias(@PathVariable Long id) {
+        busService.deleteStopAlias(id);
+        return ResponseEntity.ok(ResponseDto.of(null, "정류소 별칭 삭제 성공"));
+    }
+
+    @Operation(summary = "30초 폴링 수집 대상 정류장 추가", description = "30초 간격으로 실시간 도착 정보를 수집할 기점/출발 정류장을 추가합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "추가 성공")
     })
@@ -113,4 +151,5 @@ public class AdminBusController {
         return ResponseEntity.ok(ResponseDto.of(null, "타겟 규칙 삭제 성공"));
     }
 }
+
 
