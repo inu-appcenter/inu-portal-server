@@ -144,6 +144,15 @@ public class AdminBusController {
         return ResponseEntity.ok(ResponseDto.of(result, "타겟 규칙 추가 성공"));
     }
 
+    @Operation(summary = "자동 탐색 타겟 규칙 수정", description = "기존 등록된 탐색 규칙을 수정합니다.")
+    @PutMapping("/target-rules/{id}")
+    public ResponseEntity<ResponseDto<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule>> updateTargetRule(
+            @PathVariable Long id,
+            @Valid @RequestBody kr.inuappcenterportal.inuportal.domain.bus.dto.BusTargetRuleDto request) {
+        kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule result = busService.updateTargetRule(id, request);
+        return ResponseEntity.ok(ResponseDto.of(result, "타겟 규칙 수정 성공"));
+    }
+
     @Operation(summary = "자동 탐색 타겟 규칙 삭제", description = "등록된 탐색 규칙을 삭제합니다.")
     @DeleteMapping("/target-rules/{id}")
     public ResponseEntity<ResponseDto<Void>> deleteTargetRule(@PathVariable Long id) {
@@ -151,5 +160,6 @@ public class AdminBusController {
         return ResponseEntity.ok(ResponseDto.of(null, "타겟 규칙 삭제 성공"));
     }
 }
+
 
 

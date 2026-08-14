@@ -383,9 +383,56 @@ public class BusService {
     }
 
     @Transactional
+    public kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule updateTargetRule(Long id, BusTargetRuleDto dto) {
+        kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule rule = busTargetRuleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 규칙 ID입니다: " + id));
+
+        rule.update(
+                dto.getCategory(),
+                dto.getTabName(),
+                dto.getStartBstopId(),
+                dto.getStartStopName(),
+                dto.getStartStopAlias(),
+                dto.getEndBstopId(),
+                dto.getEndBstopName(),
+                dto.getEndStopAlias(),
+                dto.getTargetKeywords()
+        );
+
+        // 정류소 및 별칭 동기화
+        if (dto.getStartBstopId() != null && !busTargetStopRepository.existsByBstopId(dto.getStartBstopId())) {
+            addTargetStop(TargetStopRequestDto.builder()
+                    .bstopId(dto.getStartBstopId())
+                    .bstopName(dto.getStartStopName())
+                    .stopAlias(dto.getStartStopAlias())
+                    .category(dto.getTabName())
+                    .build());
+        }
+        if (dto.getStartBstopId() != null && dto.getStartStopAlias() != null && !dto.getStartStopAlias().isBlank()) {
+            saveStopAlias(BusStopAliasDto.builder()
+                    .bstopId(dto.getStartBstopId())
+                    .bstopName(dto.getStartStopName())
+                    .stopAlias(dto.getStartStopAlias())
+                    .memo(dto.getTabName() + " 출발 정류장")
+                    .build());
+        }
+        if (dto.getEndBstopId() != null && dto.getEndStopAlias() != null && !dto.getEndStopAlias().isBlank()) {
+            saveStopAlias(BusStopAliasDto.builder()
+                    .bstopId(dto.getEndBstopId())
+                    .bstopName(dto.getEndBstopName())
+                    .stopAlias(dto.getEndStopAlias())
+                    .memo(dto.getTabName() + " 도착 정류장")
+                    .build());
+        }
+
+        return rule;
+    }
+
+    @Transactional
     public void deleteTargetRule(Long id) {
         busTargetRuleRepository.deleteById(id);
     }
+
 
     @Transactional
     public List<BusRouteSectionResponseDto> autoSyncRoutes() {

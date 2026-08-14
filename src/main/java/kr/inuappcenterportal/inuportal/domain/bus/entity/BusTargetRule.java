@@ -57,7 +57,18 @@ public class BusTargetRule {
         this.targetKeywords = targetKeywords != null ? targetKeywords : "";
     }
 
-
-
-
+    public void update(String category, String tabName, String startBstopId, String startStopName, String startStopAlias,
+                       String endBstopId, String endBstopName, String endStopAlias, String targetKeywords) {
+        if (category != null) this.category = category;
+        if (tabName != null) this.tabName = tabName;
+        if (startBstopId != null) this.startBstopId = startBstopId;
+        if (startStopName != null) this.startStopName = startStopName;
+        if (startStopAlias != null) this.startStopAlias = startStopAlias;
+        if (endBstopId != null) this.endBstopId = endBstopId;
+        if (endBstopName != null) this.endBstopName = endBstopName;
+        if (endStopAlias != null) this.endStopAlias = endStopAlias;
+        this.targetKeywords = targetKeywords != null ? targetKeywords : "";
+    }
 }
+
+
