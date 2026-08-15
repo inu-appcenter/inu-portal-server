@@ -244,14 +244,98 @@ public class BusService {
 
 
     public List<BusArrivalItemDto> getRealtimeArrivals(String bstopId) {
-        List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(bstopId);
+        List<BusArrivalItemDto> arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
 
-        if (arrivals.isEmpty()) {
-            // 실시간 정보가 없는 경우 통계 기반 추정치 추가
-            return calculateEstimatedArrivals(bstopId);
+        if (bstopId == null || bstopId.isBlank()) {
+            return arrivals;
+        }
+
+        // 해당 정류소를 출발/경유하는 등록된 노선 목록
+        List<BusRouteSection> targetSections = busRouteSectionRepository.findByStartBstopId(bstopId);
+        if (targetSections.isEmpty()) {
+            targetSections = busRouteSectionRepository.findAll().stream()
+                    .filter(s -> s.getStartBstopId() != null && s.getStartBstopId().equals(bstopId))
+                    .collect(Collectors.toList());
+        }
+
+        Set<String> liveRouteIds = arrivals.stream()
+                .map(BusArrivalItemDto::getRouteId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 공공데이터 응답에 누락된(도착정보 없음) 노선들에 대해 4주 실측 시간표 기반 통계 추정치 보강
+        for (BusRouteSection section : targetSections) {
+            String routeId = section.getRouteId();
+            if (routeId != null && !liveRouteIds.contains(routeId)) {
+                BusArrivalItemDto estimatedItem = calculateEstimatedArrivalForRoute(bstopId, routeId, section.getRouteNo());
+                if (estimatedItem != null) {
+                    arrivals.add(estimatedItem);
+                }
+            }
         }
 
         return arrivals;
+    }
+
+    private BusArrivalItemDto calculateEstimatedArrivalForRoute(String bstopId, String routeId, String routeNo) {
+        if (bstopId == null || routeId == null) {
+            return null;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalTime currentTime = now.toLocalTime();
+        List<Integer> remainingSecondsList = new ArrayList<>();
+
+        // 최근 4주간 동일 요일의 실측 도착 시간 중 현재 시간 이후 가장 가까운 도착 시각과의 차이 계산
+        for (int i = 1; i <= 4; i++) {
+            LocalDate pastDate = now.toLocalDate().minusWeeks(i);
+            LocalDateTime startWindow = pastDate.atTime(currentTime);
+            LocalDateTime endWindow = pastDate.atTime(currentTime.plusMinutes(45));
+
+            List<BusArrivalHistory> pastLogs = busArrivalHistoryRepository
+                    .findByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(bstopId, routeId, startWindow, endWindow);
+
+            if (!pastLogs.isEmpty()) {
+                LocalTime nextArrivalTime = pastLogs.get(0).getCreateDate().toLocalTime();
+                long diff = java.time.Duration.between(currentTime, nextArrivalTime).getSeconds();
+                if (diff > 0 && diff <= 45 * 60) {
+                    remainingSecondsList.add((int) diff);
+                }
+            }
+        }
+
+        if (remainingSecondsList.isEmpty()) {
+            // 과거 평균 배차 간격의 1/2을 기본 대기 추정치로 사용
+            Integer avgInterval = calculateAverageIntervalForDayOfWeek(bstopId, now.getDayOfWeek());
+            if (avgInterval != null && avgInterval > 0) {
+                int estimatedSec = Math.max(300, avgInterval / 2);
+                return BusArrivalItemDto.builder()
+                        .bstopId(bstopId)
+                        .routeId(routeId)
+                        .routeNo(routeNo)
+                        .arrivalEstimateTime(String.valueOf(estimatedSec))
+                        .estimatedArrivalSeconds(estimatedSec)
+                        .latestStopName("시간표 기반")
+                        .estimationNotice("시간표 기반")
+                        .congestion("2")
+                        .build();
+            }
+            return null;
+        }
+
+        Collections.sort(remainingSecondsList);
+        int medianSeconds = remainingSecondsList.get(remainingSecondsList.size() / 2);
+
+        return BusArrivalItemDto.builder()
+                .bstopId(bstopId)
+                .routeId(routeId)
+                .routeNo(routeNo)
+                .arrivalEstimateTime(String.valueOf(medianSeconds))
+                .estimatedArrivalSeconds(medianSeconds)
+                .latestStopName("시간표 기반")
+                .estimationNotice("시간표 기반")
+                .congestion("2")
+                .build();
     }
 
     private static final java.util.Map<String, String> ROUTE_NO_FALLBACK = java.util.Map.ofEntries(
