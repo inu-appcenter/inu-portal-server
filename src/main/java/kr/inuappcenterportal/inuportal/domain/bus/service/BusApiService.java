@@ -349,8 +349,18 @@ public class BusApiService {
             if (lngStr.isBlank()) lngStr = getTagValue("X", item);
 
             Integer seq = seqStr.isBlank() ? i + 1 : Integer.parseInt(seqStr);
-            Double lat = latStr.isBlank() ? null : Double.parseDouble(latStr);
-            Double lng = lngStr.isBlank() ? null : Double.parseDouble(lngStr);
+            Double rawLat = latStr.isBlank() ? null : Double.parseDouble(latStr);
+            Double rawLng = lngStr.isBlank() ? null : Double.parseDouble(lngStr);
+
+            Double lat = rawLat;
+            Double lng = rawLng;
+
+            if (rawLat != null && rawLng != null) {
+                // POSX(rawLng), POSY(rawLat) 형태의 TM 좌표를 WGS84 위경도로 변환
+                double[] converted = kr.inuappcenterportal.inuportal.domain.bus.util.GeoCoordinateConverter.tmToWgs84(rawLng, rawLat);
+                lat = converted[0];
+                lng = converted[1];
+            }
 
             String bstopId = getTagValue("BSTOPID", item);
             if (bstopId.isBlank()) bstopId = getTagValue("bstopId", item);
@@ -407,8 +417,17 @@ public class BusApiService {
             if (lngStr.isBlank()) lngStr = getTagValue("GPS_LONG", item);
             if (lngStr.isBlank()) lngStr = getTagValue("lng", item);
 
-            Double lat = latStr.isBlank() ? null : Double.parseDouble(latStr);
-            Double lng = lngStr.isBlank() ? null : Double.parseDouble(lngStr);
+            Double rawLat = latStr.isBlank() ? null : Double.parseDouble(latStr);
+            Double rawLng = lngStr.isBlank() ? null : Double.parseDouble(lngStr);
+
+            Double lat = rawLat;
+            Double lng = rawLng;
+
+            if (rawLat != null && rawLng != null) {
+                double[] converted = kr.inuappcenterportal.inuportal.domain.bus.util.GeoCoordinateConverter.tmToWgs84(rawLng, rawLat);
+                lat = converted[0];
+                lng = converted[1];
+            }
 
             if (!bstopId.isBlank() && !bstopNm.isBlank()) {
                 result.add(kr.inuappcenterportal.inuportal.domain.bus.dto.BusStopSearchDto.builder()
