@@ -95,7 +95,6 @@ public class BusService {
     public List<BusStopAliasDto> getStopAliases() {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias> list = busStopAliasRepository.findAll();
         if (list.isEmpty()) {
-
             // 기본 주요 정류장 별칭 및 안내 문구(stopNotice) 초기화
             List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias> defaults = List.of(
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
@@ -115,6 +114,10 @@ public class BusService {
                             .stopNotice("※ 엘리베이터를 타면 정류장을 쉽게 찾을 수 있어요.")
                             .memo("지정단런 출발 정류소").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000404").bstopName("지식정보단지역 2번출구").stopAlias("지정단")
+                            .stopNotice("※ 6-1번 하교 정류소")
+                            .memo("지정단런 하교 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
                             .bstopId("164000385").bstopName("인천대 정문(길 건너)").stopAlias("정문")
                             .stopNotice("※ 인문대 학생들이 이용하기 좋아요.")
                             .memo("하교 정문 정류소").build(),
@@ -125,15 +128,39 @@ public class BusService {
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
                             .bstopId("164000377").bstopName("인천대 공과대학").stopAlias("공대")
                             .stopNotice("※ 이 곳은 출발지라 도착 정보가 표시되지 않습니다.\n자연대 정류장을 참고해주세요.")
-                            .memo("하교 공과대 정류소").build(),
+                            .memo("하교 공과대 출발 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000499").bstopName("인천대 공과대학").stopAlias("공대")
+                            .stopNotice("※ 공과대학 종점 하차 정류소")
+                            .memo("8번/46번 등교 공과대 종점").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000376").bstopName("인천대 공과대학").stopAlias("공대")
+                            .stopNotice("※ 6-1번 공과대학 종점")
+                            .memo("6-1번 등교 공과대 종점").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
                             .bstopId("164000378").bstopName("인천대 자연과학대학").stopAlias("자연대")
                             .stopNotice("※ 오후 4~6시에는 사람이 몰려 버스가 정차하지 않을 수 있어요. 공과대학 정류장 이용을 추천해요.")
                             .memo("하교 자연대 정류소").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000375").bstopName("인천대 자연과학대학").stopAlias("자연대")
+                            .stopNotice("※ 자연과학대학 하차 정류소")
+                            .memo("등교 자연대 종점방면 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
                             .bstopId("164000751").bstopName("인천대 송도캠퍼스(기숙사)").stopAlias("기숙사")
                             .stopNotice("※ 암벽장 앞, 기숙사 근처에 위치해 있어요.\n※ 버스가 오지 않을 때는 공과대 정류장을 이용해보세요!")
-                            .memo("하교 기숙사 정류소").build()
+                            .memo("하교 기숙사 정류소").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000763").bstopName("인천대 송도캠퍼스(기숙사)").stopAlias("기숙사")
+                            .stopNotice("※ 순환41번 기숙사 종점 하차 정류소")
+                            .memo("41번 등교 기숙사 종점").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000752").bstopName("인천대북문").stopAlias("북문")
+                            .stopNotice("※ 북문 정류소")
+                            .memo("북문 하교 방면").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusStopAlias.builder()
+                            .bstopId("164000762").bstopName("인천대북문").stopAlias("북문")
+                            .stopNotice("※ 북문 정류소")
+                            .memo("41번 등교 북문 방면").build()
             );
             busStopAliasRepository.saveAll(defaults);
             list = busStopAliasRepository.findAll();
@@ -248,36 +275,34 @@ public class BusService {
 
             // 실제 도착(0~1정류장 전 또는 90초 이내)한 기록만 인정
             boolean isArriving = (restStops != null && restStops <= 1)
-                    || (estimateTime != null && estimateTime <= 90);
+                    || (estimateTime != null && estimateTime > 0 && estimateTime <= 90);
 
             if (!isArriving) {
                 continue;
             }
 
-            String routeNo = h.getRouteNo();
+            String vehicleKey = (h.getBusNumPlate() != null && !h.getBusNumPlate().isBlank())
+                    ? h.getBusNumPlate()
+                    : (h.getRouteId() + "_" + h.getCreateDate().getMinute());
+
+            LocalDateTime lastTime = lastArrivalSeen.get(vehicleKey);
+            if (lastTime != null && h.getCreateDate().isBefore(lastTime.plusMinutes(7))) {
+                continue; // 7분 이내 동일 차량 중복 무시
+            }
+            lastArrivalSeen.put(vehicleKey, h.getCreateDate());
+
+            String routeNo = sectionRouteMap.get(h.getRouteId());
             if (routeNo == null || routeNo.isBlank()) {
-                routeNo = sectionRouteMap.getOrDefault(h.getRouteId(),
-                        ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), ""));
+                routeNo = ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), "");
             }
-
-            // 동일 차량 중복 제거 (7분 윈도우)
-            String key = (h.getBusNumPlate() != null && !h.getBusNumPlate().isBlank())
-                    ? (h.getRouteId() + "_" + h.getBusNumPlate())
-                    : (h.getRouteId() + "_" + h.getCreateDate().getHour() + ":" + (h.getCreateDate().getMinute() / 5));
-
-            LocalDateTime lastSeen = lastArrivalSeen.get(key);
-            if (lastSeen != null && h.getCreateDate().isBefore(lastSeen.plusMinutes(7))) {
-                continue;
-            }
-            lastArrivalSeen.put(key, h.getCreateDate());
 
             records.add(BusHistoryResponseDto.HistoryRecord.builder()
                     .id(h.getId())
                     .routeId(h.getRouteId())
                     .routeNo(routeNo)
                     .busNumPlate(h.getBusNumPlate())
-                    .arrivalEstimateTime(h.getArrivalEstimateTime())
                     .restStopCount(h.getRestStopCount())
+                    .arrivalEstimateTime(h.getArrivalEstimateTime())
                     .arrivalTime(h.getCreateDate())
                     .build());
         }
@@ -395,24 +420,29 @@ public class BusService {
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000395").startStopName("인천대입구역 2번출구").startStopAlias("인입")
                             .endBstopId("164000375, 164000499, 164000386, 164000763")
-                            .endBstopName("인천대학교 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 송도캠퍼스(기숙사)").endStopAlias("자연대")
-                            .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
+                            .endBstopName("인천대 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 인천대 송도캠퍼스(기숙사)")
+                            .endStopAlias("자연대, 공대, 정문, 기숙사")
+                            .targetKeywords("자연대,공대,정문,기숙사,송도캠퍼스,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000648").startStopName("인천대입구역.롯데몰").startStopAlias("인입")
-                            .endBstopId("164000375, 164000499, 164000386, 164000763")
-                            .endBstopName("인천대학교 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 송도캠퍼스(기숙사)").endStopAlias("자연대")
-                            .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
+                            .endBstopId("164000375, 164000499, 164000386, 164000751")
+                            .endBstopName("인천대 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 인천대 송도캠퍼스(기숙사)")
+                            .endStopAlias("자연대, 공대, 정문, 기숙사")
+                            .targetKeywords("자연대,공대,정문,기숙사,송도캠퍼스,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000396").startStopName("인천대입구역 1번출구").startStopAlias("인입")
-                            .endBstopId("164000375, 164000499, 164000386, 164000763")
-                            .endBstopName("인천대학교 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 송도캠퍼스(기숙사)").endStopAlias("자연대")
-                            .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
+                            .endBstopId("164000375, 164000499, 164000386, 164000751")
+                            .endBstopName("인천대 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 인천대 송도캠퍼스(기숙사)")
+                            .endStopAlias("자연대, 공대, 정문, 기숙사")
+                            .targetKeywords("자연대,공대,정문,기숙사,송도캠퍼스,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("지정단런")
                             .startBstopId("164000403").startStopName("지식정보단지역 3번출구").startStopAlias("지정단")
-                            .endBstopId("164000376, 164000375").endBstopName("인천대 공과대학, 인천대학교 자연과학대학").endStopAlias("공대")
+                            .endBstopId("164000376, 164000375")
+                            .endBstopName("인천대 공과대학, 인천대 자연과학대학")
+                            .endStopAlias("공대, 자연대")
                             .targetKeywords("공대,자연대,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("인천대 정문")
@@ -427,17 +457,23 @@ public class BusService {
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
                             .startBstopId("164000378").startStopName("인천대 자연과학대학").startStopAlias("자연대")
-                            .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
+                            .endBstopId("164000396, 164000404, 164000380, 164000349")
+                            .endBstopName("인천대입구역 1번출구, 지식정보단지역 2번출구, 지식정보단지역, 금호아파트")
+                            .endStopAlias("인입, 지정단, 지정단, 금호아파트")
                             .targetKeywords("인입,지정단,지식정보단지,풍림,금호").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
-                            .startBstopId("164000377").startStopName("인천대 공과대학").endStopAlias("공대")
-                            .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
+                            .startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대")
+                            .endBstopId("164000396, 164000404, 164000380, 164000034")
+                            .endBstopName("인천대입구역 1번출구, 지식정보단지역 2번출구, 지식정보단지역, 송도풍림아이원2단지")
+                            .endStopAlias("인입, 지정단, 지정단, 풍림2단지")
                             .targetKeywords("인입,지정단,지식정보단지,풍림,금호").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("기숙사 앞")
                             .startBstopId("164000751").startStopName("인천대 송도캠퍼스(기숙사)").startStopAlias("기숙사")
-                            .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
+                            .endBstopId("164000396, 164000395")
+                            .endBstopName("인천대입구역 1번출구, 인천대입구역 2번출구")
+                            .endStopAlias("인입, 인입")
                             .targetKeywords("인입,인천대입구역").build()
             );
 
