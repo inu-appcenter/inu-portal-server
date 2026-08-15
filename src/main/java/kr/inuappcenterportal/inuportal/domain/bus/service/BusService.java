@@ -459,24 +459,34 @@ public class BusService {
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
                             .startBstopId("164000378").startStopName("인천대 자연과학대학").startStopAlias("자연대")
-                            .endBstopId("164000396, 164000404, 164000380, 164000349")
-                            .endBstopName("인천대입구역 1번출구, 지식정보단지역 2번출구, 지식정보단지역, 금호아파트")
-                            .endStopAlias("인입, 지정단, 지정단, 금호아파트")
-                            .targetKeywords("인입,지정단,지식정보단지,풍림,금호").build(),
+                            .endBstopId("164000396, 164000404, 164000380")
+                            .endBstopName("인천대입구역 1번출구, 지식정보단지역 2번출구, 지식정보단지역")
+                            .endStopAlias("인입, 지정단, 지정단")
+                            .targetKeywords("인입,지정단,지식정보단지,인천대입구역").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
                             .startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대")
-                            .endBstopId("164000396, 164000404, 164000380, 164000034")
-                            .endBstopName("인천대입구역 1번출구, 지식정보단지역 2번출구, 지식정보단지역, 송도풍림아이원2단지")
-                            .endStopAlias("인입, 지정단, 지정단, 풍림2단지")
-                            .targetKeywords("인입,지정단,지식정보단지,풍림,금호").build(),
+                            .endBstopId("164000396, 164000404, 164000380")
+                            .endBstopName("인천대입구역 1번출구, 지식정보단지역 2번출구, 지식정보단지역")
+                            .endStopAlias("인입, 지정단, 지정단")
+                            .targetKeywords("인입,지정단,지식정보단지,인천대입구역").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("기숙사 앞")
                             .startBstopId("164000751").startStopName("인천대 송도캠퍼스(기숙사)").startStopAlias("기숙사")
                             .endBstopId("164000396, 164000395")
                             .endBstopName("인천대입구역 1번출구, 인천대입구역 2번출구")
                             .endStopAlias("인입, 인입")
-                            .targetKeywords("인입,인천대입구역").build()
+                            .targetKeywords("인입,인천대입구역").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
+                            .category("go-home").tabName("1301번")
+                            .startBstopId("164000378").startStopName("인천대 자연과학대학").startStopAlias("자연대")
+                            .endBstopId("164000349").endBstopName("송도풍림아이원1단지(금호아파트)").endStopAlias("금호아파트")
+                            .targetKeywords("금호,풍림,홍대").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
+                            .category("go-home").tabName("1301번")
+                            .startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대")
+                            .endBstopId("164000034").endBstopName("송도풍림아이원2단지").endStopAlias("풍림2단지")
+                            .targetKeywords("금호,풍림,홍대").build()
             );
 
             busTargetRuleRepository.saveAll(defaults);
