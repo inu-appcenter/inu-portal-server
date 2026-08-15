@@ -13,9 +13,9 @@ public class GeoCoordinateConverter {
     private static final double e2_b = (a_b * a_b - b_b * b_b) / (a_b * a_b);
     private static final double ePrime2_b = (a_b * a_b - b_b * b_b) / (b_b * b_b);
 
-    // EPSG:5181 (Daum / 인천 BIS TM 중부원점)
+    // EPSG:5174 (한국 Bessel 1841 TM 중부원점: 127도 00분 10.405초)
     private static final double lat0 = Math.toRadians(38.0);
-    private static final double lng0 = Math.toRadians(127.0);
+    private static final double lng0 = Math.toRadians(127.0 + 10.405 / 3600.0); // 127.0028902777778
     private static final double k0 = 1.0;
     private static final double falseE = 200000.0;
     private static final double falseN = 500000.0;
