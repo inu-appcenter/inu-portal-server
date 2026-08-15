@@ -137,7 +137,7 @@ public class FriendService {
         }
 
         if (friend.getStatus() == FriendStatus.PENDING && friend.getReceiver().getId().equals(memberId)) {
-            fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 요청 결과", "친구 요청이 거절되었습니다.", FcmMessageType.FRIEND, friend.getId(), "/chat/list?category=친구");
+            fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 요청 결과", friend.getReceiver().getNickname() + "님이 친구 요청을 거절했습니다.", FcmMessageType.FRIEND, friend.getId(), "/chat/list?category=친구");
         }
 
         friendRepository.delete(friend);
