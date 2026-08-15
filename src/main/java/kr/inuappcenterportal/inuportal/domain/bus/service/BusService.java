@@ -334,7 +334,7 @@ public class BusService {
 
 
         if (rules.isEmpty()) {
-            // 기본 룰 자동 등록 (시종점 페어 기반)
+            // 기본 룰 자동 등록 (시종점 페어 기반 - 웹 서비스 시절 100% 동일 정류소 완벽 복원)
             List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> defaults = List.of(
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
@@ -344,6 +344,11 @@ public class BusService {
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000648").startStopName("인천대입구역.롯데몰").startStopAlias("인입")
+                            .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
+                            .targetKeywords("").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
+                            .category("go-school").tabName("인입런")
+                            .startBstopId("164000396").startStopName("인천대입구역 1번출구").startStopAlias("인입")
                             .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
                             .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
@@ -357,8 +362,18 @@ public class BusService {
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
                             .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
+                            .category("go-home").tabName("인천대 정문")
+                            .startBstopId("164000386").startStopName("인천대 정문(앞)").startStopAlias("정문")
+                            .endBstopId("164000395").endBstopName("인천대입구역 2번출구").endStopAlias("인입")
+                            .targetKeywords("").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
                             .startBstopId("164000378").startStopName("인천대 자연과학대학").startStopAlias("자연대")
+                            .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
+                            .targetKeywords("").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
+                            .category("go-home").tabName("공대/자연대")
+                            .startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
                             .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
@@ -632,6 +647,19 @@ public class BusService {
                         if (allocGap != null) busNotice = allocGap;
                     }
 
+                    // 과거 웹 서비스 꿀팁 문구 기본 복원
+                    if (routeNotice == null || routeNotice.isBlank()) {
+                        if ("8".equals(routeNo) && "go-home".equals(category)) {
+                            routeNotice = "공대 → 자연대 → 정문 → 인입";
+                        } else if ("6-1".equals(routeNo) && "go-home".equals(category)) {
+                            routeNotice = "공대 → 자연대 → 지정단 2번출구";
+                        } else if ("6".equals(routeNo) && "go-home".equals(category)) {
+                            routeNotice = "많이 돌아가는 노선이니 주의하세요!";
+                        } else if ("1301".equals(routeNo) && "go-home".equals(category)) {
+                            routeNotice = "공대/자연대 → 인천논현 → 부천시청 → 홍대입구";
+                        }
+                    }
+
                     final String finalEndStopName = matchedEndStopName;
                     final String finalBusNotice = busNotice;
                     final String finalRouteNotice = routeNotice;
@@ -649,6 +677,9 @@ public class BusService {
                             .busNotice(finalBusNotice)
                             .routeNotice(finalRouteNotice)
                             .build());
+
+                    section.updateSectionInfo(sectionName, category, tabName, finalBusNotice, finalRouteNotice);
+
 
 
                     List<BusRouteStop> routeStops = new ArrayList<>();
