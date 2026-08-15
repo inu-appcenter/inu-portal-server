@@ -137,7 +137,7 @@ public class BusApiService {
     }
 
     private String executeGetXml(String url) {
-        int maxRetries = 2;
+        int maxRetries = 3;
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 String response = webClient.get()
@@ -151,7 +151,15 @@ public class BusApiService {
                 }
             } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
                 if (e.getStatusCode().value() == 429) {
-                    log.warn("공공데이터 API 429 Rate Limit 감지 (url: {})", url);
+                    log.warn("공공데이터 API 429 Rate Limit 감지. {}ms 대기 후 재시도합니다 (시도: {}/{})", attempt * 1000, attempt, maxRetries);
+                    if (attempt < maxRetries) {
+                        try {
+                            Thread.sleep(attempt * 1000L);
+                        } catch (InterruptedException ignored) {
+                            Thread.currentThread().interrupt();
+                        }
+                        continue;
+                    }
                     return null;
                 }
                 log.warn("API 요청 HTTP 오류 (status: {}, url: {})", e.getStatusCode(), url);

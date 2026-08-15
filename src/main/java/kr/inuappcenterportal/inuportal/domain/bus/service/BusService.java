@@ -653,9 +653,9 @@ public class BusService {
                     continue;
                 }
 
-                // 공공데이터포털 초당 요청 수(QPS) 제한 초과 방지
+                // 공공데이터포털 초당 요청 수(QPS) 제한 초과 방지 및 안정적인 동기화를 위한 충분한 딜레이 (400ms)
                 try {
-                    Thread.sleep(120);
+                    Thread.sleep(400);
                 } catch (InterruptedException ignored) {
                     Thread.currentThread().interrupt();
                 }
