@@ -561,7 +561,6 @@ public class CourseOfferingService {
                                 null,
                                 request.credit(),
                                 null,
-                                null,
                                 null
                         )
                 ));
