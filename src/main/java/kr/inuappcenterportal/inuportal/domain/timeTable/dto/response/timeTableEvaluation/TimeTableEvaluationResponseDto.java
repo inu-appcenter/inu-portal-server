@@ -14,15 +14,25 @@ public record TimeTableEvaluationResponseDto(
         String timetableHash,
         @Schema(description = "캐시된 결과 여부 (true: 기존 캐시, false: 신규 생성)", example = "true")
         boolean isCached,
+        @Schema(description = "동일 시간표 상태에서의 다시 생성 횟수 (최대 3회)", example = "1")
+        int regenerateCount,
+        @Schema(description = "남은 다시 생성 가능 횟수", example = "2")
+        int remainingCount,
         @Schema(description = "평가 생성/수정 일시")
         LocalDateTime updatedAt
 ) {
+    public static final int MAX_REGENERATE_COUNT = 3;
+
     public static TimeTableEvaluationResponseDto of(TimeTableEvaluation evaluation, boolean isCached) {
+        int regCount = evaluation.getRegenerateCount();
+        int remaining = Math.max(0, MAX_REGENERATE_COUNT - regCount);
         return new TimeTableEvaluationResponseDto(
                 evaluation.getTimeTable().getId(),
                 evaluation.getContent(),
                 evaluation.getTimetableHash(),
                 isCached,
+                regCount,
+                remaining,
                 evaluation.getModifiedDate() != null ? evaluation.getModifiedDate() : evaluation.getCreateDate()
         );
     }

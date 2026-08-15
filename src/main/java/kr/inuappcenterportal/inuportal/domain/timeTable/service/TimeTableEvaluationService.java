@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TimeTableEvaluationService {
 
+    public static final int MAX_REGENERATE_COUNT = 3;
+
     private final TimeTableRepository timeTableRepository;
     private final TimeTableEvaluationRepository timeTableEvaluationRepository;
     private final TimeTableService timeTableService;
@@ -83,15 +85,49 @@ public class TimeTableEvaluationService {
         });
         emitter.onError(e -> log.debug("SSE error for timetable {}: {}", timeTableId, e.getMessage()));
 
-        // 캐시 확인 (강제 새로고침이 아니고, 해시가 일치하는 경우)
+        // 1. 강제 새로고침(forceRefresh) 시 재생성 횟수 제한 검증
+        if (forceRefresh && existingEvaluationOpt.isPresent()) {
+            TimeTableEvaluation existing = existingEvaluationOpt.get();
+            boolean isHashSame = Objects.equals(existing.getTimetableHash(), currentHash);
+            // 동일한 시간표 해시 상태에서 3회를 이미 초과한 경우
+            if (isHashSame && existing.getRegenerateCount() >= MAX_REGENERATE_COUNT) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        sendSseEvent(emitter, "error", Map.of(
+                                "message", "동일한 시간표에서는 최대 3회까지만 다시 생성할 수 있습니다. 시간표를 수정하면 새롭게 평가받을 수 있어요!",
+                                "code", "TIMETABLE_EVALUATION_LIMIT_EXCEEDED",
+                                "regenerateCount", existing.getRegenerateCount(),
+                                "remainingCount", 0
+                        ));
+                    } finally {
+                        emitter.complete();
+                    }
+                });
+                return emitter;
+            }
+        }
+
+        // 2. 캐시 확인 (강제 새로고침이 아니고, 해시가 일치하는 경우)
         if (!forceRefresh && existingEvaluationOpt.isPresent()) {
             TimeTableEvaluation existing = existingEvaluationOpt.get();
             if (Objects.equals(existing.getTimetableHash(), currentHash)) {
+                int regCount = existing.getRegenerateCount();
+                int remaining = Math.max(0, MAX_REGENERATE_COUNT - regCount);
                 CompletableFuture.runAsync(() -> {
                     try {
-                        sendSseEvent(emitter, "start", Map.of("isCached", true, "timetableHash", currentHash));
+                        sendSseEvent(emitter, "start", Map.of(
+                                "isCached", true,
+                                "timetableHash", currentHash,
+                                "regenerateCount", regCount,
+                                "remainingCount", remaining
+                        ));
                         sendSseEvent(emitter, "delta", Map.of("content", existing.getContent()));
-                        sendSseEvent(emitter, "done", Map.of("status", "SUCCESS", "isCached", true));
+                        sendSseEvent(emitter, "done", Map.of(
+                                "status", "SUCCESS",
+                                "isCached", true,
+                                "regenerateCount", regCount,
+                                "remainingCount", remaining
+                        ));
                         emitter.complete();
                     } catch (Exception e) {
                         log.debug("Error sending cached SSE: {}", e.getMessage());
@@ -102,7 +138,7 @@ public class TimeTableEvaluationService {
             }
         }
 
-        // 과목 개설 정보(전공/교양/이러닝) 조회
+        // 3. 과목 개설 정보(전공/교양/이러닝) 조회
         List<Long> offeringIds = detail.items().stream()
                 .filter(item -> item.course() != null && item.course().courseOfferingId() != null)
                 .map(item -> item.course().courseOfferingId())
@@ -111,7 +147,7 @@ public class TimeTableEvaluationService {
         Map<Long, CourseOffering> offeringMap = courseOfferingRepository.findAllById(offeringIds).stream()
                 .collect(Collectors.toMap(CourseOffering::getId, o -> o));
 
-        // 시간표 메트릭 분석 및 프롬프트 생성
+        // 4. 시간표 메트릭 분석 및 프롬프트 생성
         TimeTableAnalysisUtils.TimetableSummary summary = TimeTableAnalysisUtils.analyzeTimetable(detail.items(), offeringMap);
         List<VllmChatMessageDto> messages = buildPromptMessages(timeTable.getTimeTableName(), summary);
 
@@ -120,7 +156,26 @@ public class TimeTableEvaluationService {
 
         StringBuilder fullContentAccumulator = new StringBuilder();
 
-        sendSseEvent(emitter, "start", Map.of("isCached", false, "timetableHash", currentHash));
+        // 새로 생성할 때의 예상 재생성 카운트 계산
+        int currentRegCount = 0;
+        if (existingEvaluationOpt.isPresent()) {
+            TimeTableEvaluation existing = existingEvaluationOpt.get();
+            boolean isHashSame = Objects.equals(existing.getTimetableHash(), currentHash);
+            if (isHashSame && forceRefresh) {
+                currentRegCount = existing.getRegenerateCount() + 1;
+            }
+        }
+        int remainingCount = Math.max(0, MAX_REGENERATE_COUNT - currentRegCount);
+
+        sendSseEvent(emitter, "start", Map.of(
+                "isCached", false,
+                "timetableHash", currentHash,
+                "regenerateCount", currentRegCount,
+                "remainingCount", remainingCount
+        ));
+
+        int finalCurrentRegCount = currentRegCount;
+        int finalRemainingCount = remainingCount;
 
         vllmService.streamChat(
                 chatRequest,
@@ -133,7 +188,12 @@ public class TimeTableEvaluationService {
                     if (!fullContent.isEmpty()) {
                         saveOrUpdateEvaluation(timeTableId, fullContent, currentHash);
                     }
-                    sendSseEvent(emitter, "done", Map.of("status", "SUCCESS", "isCached", false));
+                    sendSseEvent(emitter, "done", Map.of(
+                            "status", "SUCCESS",
+                            "isCached", false,
+                            "regenerateCount", finalCurrentRegCount,
+                            "remainingCount", finalRemainingCount
+                    ));
                     emitter.complete();
                 },
                 error -> {
@@ -162,7 +222,8 @@ public class TimeTableEvaluationService {
         Optional<TimeTableEvaluation> evalOpt = timeTableEvaluationRepository.findByTimeTableId(timeTableId);
         if (evalOpt.isPresent()) {
             TimeTableEvaluation eval = evalOpt.get();
-            eval.updateContent(content, hash);
+            boolean isHashChanged = !Objects.equals(eval.getTimetableHash(), hash);
+            eval.updateContent(content, hash, isHashChanged);
             timeTableEvaluationRepository.save(eval);
         } else {
             TimeTableEvaluation newEval = TimeTableEvaluation.create(timeTable, content, hash);
