@@ -10,4 +10,5 @@ public interface BusRouteSectionRepository extends JpaRepository<BusRouteSection
     List<BusRouteSection> findByCategory(String category);
     List<BusRouteSection> findByCategoryAndTabName(String category, String tabName);
     Optional<BusRouteSection> findByRouteNoAndCategoryAndTabName(String routeNo, String category, String tabName);
+    Optional<BusRouteSection> findByRouteNoAndCategoryAndTabNameAndStartBstopId(String routeNo, String category, String tabName, String startBstopId);
 }

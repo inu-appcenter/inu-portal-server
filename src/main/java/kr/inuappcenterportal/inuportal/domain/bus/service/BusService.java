@@ -759,9 +759,9 @@ public class BusService {
                     String sectionName = String.format("%s - %s번", tabName, routeNo);
                     List<BusRouteStopDto> slicedDto = allStops.subList(startIdx, endIdx + 1);
 
-                    // 기존 등록된 구간이 있는지 확인 (있으면 코멘트 보존)
+                    // 기존 등록된 구간이 있는지 확인 (출발 정류소 ID까지 포함하여 복합 식별)
                     Optional<BusRouteSection> existingOpt = busRouteSectionRepository
-                            .findByRouteNoAndCategoryAndTabName(routeNo, category, tabName);
+                            .findByRouteNoAndCategoryAndTabNameAndStartBstopId(routeNo, category, tabName, startBstopId);
 
                     String busNotice = existingOpt.map(BusRouteSection::getBusNotice).orElse(null);
                     String routeNotice = existingOpt.map(BusRouteSection::getRouteNotice).orElse(null);
