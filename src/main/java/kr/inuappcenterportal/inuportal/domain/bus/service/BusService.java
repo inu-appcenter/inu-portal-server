@@ -315,7 +315,10 @@ public class BusService {
             }
             lastArrivalSeen.put(vehicleKey, h.getCreateDate());
 
-            String routeNo = sectionRouteMap.get(h.getRouteId());
+            String routeNo = h.getRouteNo();
+            if (routeNo == null || routeNo.isBlank()) {
+                routeNo = sectionRouteMap.get(h.getRouteId());
+            }
             if (routeNo == null || routeNo.isBlank()) {
                 routeNo = ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), "");
             }
