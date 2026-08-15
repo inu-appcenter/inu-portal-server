@@ -57,12 +57,17 @@ public record CourseOfferingResponseDto(
         @Schema(description = "공식 정원. 편람/정원 엑셀에서 파싱된 값이며, 원천 데이터가 없으면 null입니다.")
         Integer capacity,
 
-        @Schema(description = "실제 수강 인원. 햔재 제공하지 않는 데이터입니다.")
+        @Schema(description = "실제 수강 인원. 현재 제공하지 않는 데이터입니다.")
         Integer enrolledCount,
 
         @Schema(description = "포털 앱 내 시간표에 해당 강의를 담은 회원 수입니다.")
         Long savedCount,
 
+        @Schema(description = """
+                공식 정원이 null인 사유입니다. capacity 값이 있으면 null입니다.
+                - PARSE_FAILED: 교양 과목이지만 정원 정보 파싱에 실패했습니다.
+                - CAPACITY_NOT_AVAILABLE: 교양 외 과목이라 정원 데이터를 제공하지 않습니다.
+                """)
         String capacityNullReason,
 
         String hussCourseYn,
