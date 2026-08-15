@@ -620,6 +620,16 @@ public class BusService {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> rules = getTargetRules();
         List<BusRouteSectionResponseDto> syncedResults = new ArrayList<>();
 
+        // 1. 기존 등록된 노선들의 커스텀 안내 문구(busNotice, routeNotice) 임시 백업
+        Map<String, String[]> noticeBackup = new HashMap<>(); // key -> [busNotice, routeNotice]
+        for (BusRouteSection sec : busRouteSectionRepository.findAll()) {
+            String key = sec.getCategory() + ":" + sec.getTabName() + ":" + sec.getRouteNo() + ":" + (sec.getStartBstopId() != null ? sec.getStartBstopId() : "");
+            noticeBackup.put(key, new String[]{sec.getBusNotice(), sec.getRouteNotice()});
+        }
+
+        // 2. 과거 잘못 생성되었거나 불필요한 노선 찌꺼기를 완전히 정리하기 위해 기존 노선 구간 전체 초기화 (Clean Overwrite)
+        busRouteSectionRepository.deleteAll();
+
         for (kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule rule : rules) {
             String category = rule.getCategory();
             String tabName = rule.getTabName();
@@ -759,12 +769,12 @@ public class BusService {
                     String sectionName = String.format("%s - %s번", tabName, routeNo);
                     List<BusRouteStopDto> slicedDto = allStops.subList(startIdx, endIdx + 1);
 
-                    // 기존 등록된 구간이 있는지 확인 (출발 정류소 ID까지 포함하여 복합 식별)
-                    Optional<BusRouteSection> existingOpt = busRouteSectionRepository
-                            .findByRouteNoAndCategoryAndTabNameAndStartBstopId(routeNo, category, tabName, startBstopId);
+                    // 기존 백업된 공지/팁 문구 복원
+                    String key = category + ":" + tabName + ":" + routeNo + ":" + (startBstopId != null ? startBstopId : "");
+                    String[] backedNotices = noticeBackup.get(key);
+                    String busNotice = backedNotices != null ? backedNotices[0] : null;
+                    String routeNotice = backedNotices != null ? backedNotices[1] : null;
 
-                    String busNotice = existingOpt.map(BusRouteSection::getBusNotice).orElse(null);
-                    String routeNotice = existingOpt.map(BusRouteSection::getRouteNotice).orElse(null);
                     if (busNotice == null || busNotice.isBlank()) {
                         String allocGap = busApiService.fetchAllocGap(routeId);
                         if (allocGap != null) busNotice = allocGap;
@@ -787,7 +797,7 @@ public class BusService {
                     final String finalBusNotice = busNotice;
                     final String finalRouteNotice = routeNotice;
 
-                    BusRouteSection section = existingOpt.orElseGet(() -> BusRouteSection.builder()
+                    BusRouteSection section = BusRouteSection.builder()
                             .sectionName(sectionName)
                             .category(category)
                             .tabName(tabName)
@@ -799,11 +809,7 @@ public class BusService {
                             .endBstopName(finalEndStopName)
                             .busNotice(finalBusNotice)
                             .routeNotice(finalRouteNotice)
-                            .build());
-
-                    section.updateSectionInfo(sectionName, category, tabName, finalBusNotice, finalRouteNotice);
-
-
+                            .build();
 
                     List<BusRouteStop> routeStops = new ArrayList<>();
                     int seq = 1;
