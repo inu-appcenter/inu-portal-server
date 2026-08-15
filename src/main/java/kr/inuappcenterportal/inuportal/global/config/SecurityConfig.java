@@ -38,6 +38,8 @@ public class SecurityConfig {
 
         httpSecurity
                 .authorizeHttpRequests(auth -> auth
+                        // SSE 및 비동기/에러 디스패처 허용
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.ERROR).permitAll()
                         // 최우선 허용 설정
                         .requestMatchers(HttpMethod.GET, "/api/chat-rooms/*/messages/public").permitAll()
                         // 친구추가 링크는 비로그인 상태에서도 "누구의 링크인지" 미리보기가 가능해야 한다.
