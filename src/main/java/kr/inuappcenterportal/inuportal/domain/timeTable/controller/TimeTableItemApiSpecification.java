@@ -116,8 +116,7 @@ public interface TimeTableItemApiSpecification {
             @Parameter(
                     name = "timeTableId",
                     description = "강의 요소를 추가할 시간표 id",
-                    in = ParameterIn.PATH,
-                    example = "1"
+                    in = ParameterIn.PATH
             )
             @PathVariable Long timeTableId,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -217,8 +216,7 @@ public interface TimeTableItemApiSpecification {
             @Parameter(
                     name = "timeTableId",
                     description = "커스텀 일정 요소를 추가할 시간표 id",
-                    in = ParameterIn.PATH,
-                    example = "1"
+                    in = ParameterIn.PATH
             )
             @PathVariable Long timeTableId,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -330,15 +328,13 @@ public interface TimeTableItemApiSpecification {
             @Parameter(
                     name = "timeTableId",
                     description = "수정할 커스텀 일정 요소가 속한 시간표 id",
-                    in = ParameterIn.PATH,
-                    example = "1"
+                    in = ParameterIn.PATH
             )
             @PathVariable Long timeTableId,
             @Parameter(
                     name = "customScheduleId",
                     description = "수정할 커스텀 일정 id",
-                    in = ParameterIn.PATH,
-                    example = "7"
+                    in = ParameterIn.PATH
             )
             @PathVariable Long customScheduleId,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -422,15 +418,13 @@ public interface TimeTableItemApiSpecification {
             @Parameter(
                     name = "timeTableId",
                     description = "메모를 수정할 요소가 속한 시간표 id",
-                    in = ParameterIn.PATH,
-                    example = "1"
+                    in = ParameterIn.PATH
             )
             @PathVariable Long timeTableId,
             @Parameter(
                     name = "timeTableItemId",
                     description = "메모를 수정할 시간표 요소 id",
-                    in = ParameterIn.PATH,
-                    example = "37"
+                    in = ParameterIn.PATH
             )
             @PathVariable Long timeTableItemId,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
