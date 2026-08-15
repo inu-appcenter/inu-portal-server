@@ -159,6 +159,14 @@ public class AdminBusController {
         busService.deleteTargetRule(id);
         return ResponseEntity.ok(ResponseDto.of(null, "타겟 규칙 삭제 성공"));
     }
+
+    @Operation(summary = "오래된 버스 도착 기록 수동 정리", description = "기본 4주(28일) 또는 지정한 주(weeks) 이전의 과거 버스 도착 기록을 즉시 삭제합니다.")
+    @PostMapping("/history/cleanup")
+    public ResponseEntity<ResponseDto<Integer>> cleanupHistory(
+            @RequestParam(defaultValue = "4") int weeks) {
+        int deleted = busService.cleanupOldArrivalHistory(weeks);
+        return ResponseEntity.ok(ResponseDto.of(deleted, String.format("%d주 이전 버스 도착 기록 %d건이 정리되었습니다.", weeks, deleted)));
+    }
 }
 
 

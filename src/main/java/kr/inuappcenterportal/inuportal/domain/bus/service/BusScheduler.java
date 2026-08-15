@@ -110,7 +110,7 @@ public class BusScheduler {
     }
 
     /**
-     * 매일 새벽 4시, 30일 경과한 과거 버스 도착 기록 정리
+     * 매일 새벽 4시, 4주(28일) 경과한 과거 버스 도착 기록 정리
      */
     @Scheduled(cron = "0 0 4 * * *")
     @SchedulerLock(
@@ -120,9 +120,9 @@ public class BusScheduler {
     )
     @Transactional
     public void cleanupOldArrivalHistory() {
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
+        LocalDateTime cutoffDate = LocalDateTime.now().minusWeeks(4);
         int deletedCount = busArrivalHistoryRepository.deleteByCreateDateBefore(cutoffDate);
-        log.info("30일 초과 과거 버스 도착 기록 {}건 삭제 완료", deletedCount);
+        log.info("4주(28일) 초과 과거 버스 도착 기록 {}건 삭제 완료", deletedCount);
     }
 
     private Integer parseIntegerSafe(String val) {

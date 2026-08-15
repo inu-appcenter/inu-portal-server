@@ -887,6 +887,12 @@ public class BusService {
     }
 
     @Transactional
+    public int cleanupOldArrivalHistory(int weeks) {
+        LocalDateTime cutoffDate = LocalDateTime.now().minusWeeks(weeks > 0 ? weeks : 4);
+        return busArrivalHistoryRepository.deleteByCreateDateBefore(cutoffDate);
+    }
+
+    @Transactional
     public BusTargetStop addTargetStop(TargetStopRequestDto request) {
         BusTargetStop targetStop = busTargetStopRepository.findByBstopId(request.getBstopId())
                 .orElseGet(() -> BusTargetStop.builder()
