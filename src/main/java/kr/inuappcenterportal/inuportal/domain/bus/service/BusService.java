@@ -394,22 +394,25 @@ public class BusService {
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000395").startStopName("인천대입구역 2번출구").startStopAlias("인입")
-                            .endBstopId("164000375").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
+                            .endBstopId("164000375, 164000499, 164000386, 164000763")
+                            .endBstopName("인천대학교 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 송도캠퍼스(기숙사)").endStopAlias("자연대")
                             .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000648").startStopName("인천대입구역.롯데몰").startStopAlias("인입")
-                            .endBstopId("164000375").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
+                            .endBstopId("164000375, 164000499, 164000386, 164000763")
+                            .endBstopName("인천대학교 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 송도캠퍼스(기숙사)").endStopAlias("자연대")
                             .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000396").startStopName("인천대입구역 1번출구").startStopAlias("인입")
-                            .endBstopId("164000375").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
+                            .endBstopId("164000375, 164000499, 164000386, 164000763")
+                            .endBstopName("인천대학교 자연과학대학, 인천대 공과대학, 인천대 정문(앞), 송도캠퍼스(기숙사)").endStopAlias("자연대")
                             .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("지정단런")
                             .startBstopId("164000403").startStopName("지식정보단지역 3번출구").startStopAlias("지정단")
-                            .endBstopId("164000376").endBstopName("인천대 공과대학").endStopAlias("공대")
+                            .endBstopId("164000376, 164000375").endBstopName("인천대 공과대학, 인천대학교 자연과학대학").endStopAlias("공대")
                             .targetKeywords("공대,자연대,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("인천대 정문")
@@ -646,21 +649,36 @@ public class BusService {
                     continue;
                 }
 
-                // 2. 목표 도착 정류장 후보 인덱스 찾기
+                // 2. 목표 도착 정류장 후보 인덱스 찾기 (단일 또는 쉼표 구분 다중 목표 정류장 지원)
                 Map<Integer, String> endCandidates = new HashMap<>(); // index -> bstopName
                 if (endBstopId != null && !endBstopId.isBlank()) {
+                    List<String> targetIds = Arrays.stream(endBstopId.split(","))
+                            .map(String::trim)
+                            .filter(id -> !id.isBlank())
+                            .collect(Collectors.toList());
+
                     for (int i = 0; i < allStops.size(); i++) {
                         BusRouteStopDto s = allStops.get(i);
-                        if (endBstopId.equals(s.getBstopId())) {
+                        if (s.getBstopId() != null && targetIds.contains(s.getBstopId())) {
                             endCandidates.put(i, s.getBstopName());
                         }
                     }
                 }
                 if (endStopName != null && !endStopName.isBlank()) {
+                    List<String> targetNames = Arrays.stream(endStopName.split(","))
+                            .map(String::trim)
+                            .filter(n -> !n.isBlank())
+                            .collect(Collectors.toList());
+
                     for (int i = 0; i < allStops.size(); i++) {
                         BusRouteStopDto s = allStops.get(i);
-                        if (s.getBstopName() != null && s.getBstopName().contains(endStopName)) {
-                            endCandidates.put(i, s.getBstopName());
+                        if (s.getBstopName() != null) {
+                            for (String tn : targetNames) {
+                                if (s.getBstopName().contains(tn)) {
+                                    endCandidates.put(i, s.getBstopName());
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
