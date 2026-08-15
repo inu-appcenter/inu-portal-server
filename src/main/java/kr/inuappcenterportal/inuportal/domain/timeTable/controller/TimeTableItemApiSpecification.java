@@ -12,7 +12,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCourseItemRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemMemoUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableItemResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.http.ResponseEntity;
@@ -223,7 +225,7 @@ public interface TimeTableItemApiSpecification {
                     required = true,
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = TimeTableCustomItemRequestDto.class),
+                            schema = @Schema(implementation = TimeTableCustomItemCreateRequestDto.class),
                             examples = @ExampleObject(
                                     name = "커스텀 일정 생성 요청 예시",
                                     value = """
@@ -249,7 +251,7 @@ public interface TimeTableItemApiSpecification {
                             )
                     )
             )
-            @RequestBody @Valid TimeTableCustomItemRequestDto request
+            @RequestBody @Valid TimeTableCustomItemCreateRequestDto request
     );
 
     @Operation(
@@ -257,7 +259,8 @@ public interface TimeTableItemApiSpecification {
             description = """
                     로그인한 사용자가 소유한 시간표에 포함된 커스텀 일정 시간표 요소를 수정합니다.
                     <br><br>
-                    커스텀 일정 제목, 메모, 시간 목록을 요청값으로 교체합니다.
+                    커스텀 일정 제목과 시간 목록을 요청값으로 교체합니다.
+                    메모는 시간표 요소 메모 수정 API에서 별도로 수정합니다.
                     startTime, endTime은 HH:mm 문자열 형식으로 전달합니다. 예: "09:00"
                     <br>
                     같은 요청 안의 시간끼리 겹치거나, 수정 대상 자신을 제외한 기존 시간표 요소와 시간이 겹치면 수정할 수 없습니다.
@@ -278,7 +281,7 @@ public interface TimeTableItemApiSpecification {
                                                 "id": 37,
                                                 "type": "CUSTOM",
                                                 "title": "알고리즘 스터디",
-                                                "memo": "장소 변경됨"
+                                                "memo": "스터디룸 예약"
                                               },
                                               "msg": "커스텀 일정 수정 성공"
                                             }
@@ -342,12 +345,11 @@ public interface TimeTableItemApiSpecification {
                     required = true,
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = TimeTableCustomItemRequestDto.class),
+                            schema = @Schema(implementation = TimeTableItemUpdateRequestDto.class),
                             examples = @ExampleObject(
                                     name = "커스텀 일정 수정 요청 예시",
                                     value = """
                                             {
-                                              "memo": "장소 변경됨",
                                               "title": "알고리즘 스터디",
                                               "meetings": [
                                                 {
@@ -362,7 +364,91 @@ public interface TimeTableItemApiSpecification {
                             )
                     )
             )
-            @RequestBody @Valid TimeTableCustomItemRequestDto request
+            @RequestBody @Valid TimeTableItemUpdateRequestDto request
+    );
+
+    @Operation(
+            summary = "시간표 요소 메모 수정",
+            description = """
+                    로그인한 사용자가 소유한 시간표에 포함된 시간표 요소의 개인 메모를 수정합니다.
+                    <br><br>
+                    메모는 강의 기반 요소와 커스텀 일정 기반 요소 모두에서 수정할 수 있습니다.
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "시간표 요소 메모 수정 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "시간표 요소 메모 수정 응답 예시",
+                                    value = """
+                                            {
+                                              "data": {
+                                                "id": 37,
+                                                "type": "CUSTOM",
+                                                "title": "알고리즘 스터디",
+                                                "memo": "스터디룸 예약"
+                                              },
+                                              "msg": "시간표 요소 메모 수정 성공"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "요청값이 올바르지 않거나, 존재하지 않는 시간표/시간표 요소이거나, 해당 시간표에 속한 요소가 아니거나, 접근 권한이 없습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "시간표 요소 메모 수정 실패 응답 예시",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "해당 시간표의 요소가 아닙니다."
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ResponseEntity<ResponseDto<TimeTableItemResponseDto>> updateTimeTableItemMemo(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Member member,
+            @Parameter(
+                    name = "timeTableId",
+                    description = "메모를 수정할 요소가 속한 시간표 id",
+                    in = ParameterIn.PATH,
+                    example = "1"
+            )
+            @PathVariable Long timeTableId,
+            @Parameter(
+                    name = "timeTableItemId",
+                    description = "메모를 수정할 시간표 요소 id",
+                    in = ParameterIn.PATH,
+                    example = "37"
+            )
+            @PathVariable Long timeTableItemId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = TimeTableItemMemoUpdateRequestDto.class),
+                            examples = @ExampleObject(
+                                    name = "시간표 요소 메모 수정 요청 예시",
+                                    value = """
+                                            {
+                                              "memo": "스터디룸 예약"
+                                            }
+                                            """
+                            )
+                    )
+            )
+            @RequestBody @Valid TimeTableItemMemoUpdateRequestDto request
     );
 
     @Operation(
