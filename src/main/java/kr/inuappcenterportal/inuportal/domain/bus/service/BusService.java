@@ -384,10 +384,14 @@ public class BusService {
         return String.format("해당 정류소 실측 첫/막차 | %s ~ %s", earliest.format(fmt), latest.format(fmt));
     }
 
+    private static final Set<String> INU_CAMPUS_STOP_IDS = Set.of(
+            "164000375", "164000376", "164000377", "164000378", "164000499",
+            "164000385", "164000386", "164000751", "164000752", "164000762", "164000763"
+    );
+
     @Transactional
     public List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> getTargetRules() {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> rules = busTargetRuleRepository.findAll();
-
 
         if (rules.isEmpty()) {
             // 기본 룰 자동 등록 (시종점 페어 기반 - 웹 서비스 시절 100% 동일 정류소 완벽 복원)
@@ -395,48 +399,48 @@ public class BusService {
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000395").startStopName("인천대입구역 2번출구").startStopAlias("인입")
-                            .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
-                            .targetKeywords("").build(),
+                            .endBstopId("164000375").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
+                            .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000648").startStopName("인천대입구역.롯데몰").startStopAlias("인입")
-                            .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
-                            .targetKeywords("").build(),
+                            .endBstopId("164000375").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
+                            .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
                             .startBstopId("164000396").startStopName("인천대입구역 1번출구").startStopAlias("인입")
-                            .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
-                            .targetKeywords("").build(),
+                            .endBstopId("164000375").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
+                            .targetKeywords("자연대,공대,정문,기숙사,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("지정단런")
                             .startBstopId("164000403").startStopName("지식정보단지역 3번출구").startStopAlias("지정단")
-                            .endBstopId("164000377").endBstopName("인천대 공과대학").endStopAlias("공대")
-                            .targetKeywords("").build(),
+                            .endBstopId("164000376").endBstopName("인천대 공과대학").endStopAlias("공대")
+                            .targetKeywords("공대,자연대,인천대").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("인천대 정문")
                             .startBstopId("164000385").startStopName("인천대 정문(길 건너)").startStopAlias("정문")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
-                            .targetKeywords("").build(),
+                            .targetKeywords("인입,인천대입구역").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("인천대 정문")
                             .startBstopId("164000386").startStopName("인천대 정문(앞)").startStopAlias("정문")
                             .endBstopId("164000395").endBstopName("인천대입구역 2번출구").endStopAlias("인입")
-                            .targetKeywords("").build(),
+                            .targetKeywords("인입,인천대입구역").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
                             .startBstopId("164000378").startStopName("인천대 자연과학대학").startStopAlias("자연대")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
-                            .targetKeywords("").build(),
+                            .targetKeywords("인입,지정단,지식정보단지,풍림,금호").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
-                            .startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대")
+                            .startBstopId("164000377").startStopName("인천대 공과대학").endStopAlias("공대")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
-                            .targetKeywords("").build(),
+                            .targetKeywords("인입,지정단,지식정보단지,풍림,금호").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("기숙사 앞")
                             .startBstopId("164000751").startStopName("인천대 송도캠퍼스(기숙사)").startStopAlias("기숙사")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
-                            .targetKeywords("").build()
+                            .targetKeywords("인입,인천대입구역").build()
             );
 
             busTargetRuleRepository.saveAll(defaults);
@@ -446,20 +450,38 @@ public class BusService {
     }
 
     @Transactional
-    public kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule addTargetRule(BusTargetRuleDto dto) {
-        kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule rule = kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
-                .category(dto.getCategory())
-                .tabName(dto.getTabName())
-                .startBstopId(dto.getStartBstopId())
-                .startStopName(dto.getStartStopName())
-                .startStopAlias(dto.getStartStopAlias())
-                .endBstopId(dto.getEndBstopId())
-                .endBstopName(dto.getEndBstopName())
-                .endStopAlias(dto.getEndStopAlias())
-                .targetKeywords(dto.getTargetKeywords())
-                .build();
+    public kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule saveTargetRule(BusTargetRuleDto dto) {
+        kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule rule;
+        if (dto.getId() != null) {
+            rule = busTargetRuleRepository.findById(dto.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 룰입니다. ID=" + dto.getId()));
+            rule.update(
+                    dto.getCategory(),
+                    dto.getTabName(),
+                    dto.getStartBstopId(),
+                    dto.getStartStopName(),
+                    dto.getStartStopAlias(),
+                    dto.getEndBstopId(),
+                    dto.getEndBstopName(),
+                    dto.getEndStopAlias(),
+                    dto.getTargetKeywords()
+            );
+        } else {
+            rule = kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
+                    .category(dto.getCategory())
+                    .tabName(dto.getTabName())
+                    .startBstopId(dto.getStartBstopId())
+                    .startStopName(dto.getStartStopName())
+                    .startStopAlias(dto.getStartStopAlias())
+                    .endBstopId(dto.getEndBstopId())
+                    .endBstopName(dto.getEndBstopName())
+                    .endStopAlias(dto.getEndStopAlias())
+                    .targetKeywords(dto.getTargetKeywords())
+                    .build();
+            rule = busTargetRuleRepository.save(rule);
+        }
 
-        // 출발 정류장 수집 대상 정류장 자동 보장
+        // 정류소 및 별칭 동기화
         if (dto.getStartBstopId() != null && !busTargetStopRepository.existsByBstopId(dto.getStartBstopId())) {
             addTargetStop(TargetStopRequestDto.builder()
                     .bstopId(dto.getStartBstopId())
@@ -487,7 +509,7 @@ public class BusService {
                     .build());
         }
 
-        return busTargetRuleRepository.save(rule);
+        return rule;
     }
 
     @Transactional
@@ -541,6 +563,11 @@ public class BusService {
         busTargetRuleRepository.deleteById(id);
     }
 
+
+    @Transactional
+    public kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule addTargetRule(BusTargetRuleDto dto) {
+        return saveTargetRule(dto);
+    }
 
     @Transactional
     public List<BusRouteSectionResponseDto> autoSyncRoutes() {
@@ -602,8 +629,6 @@ public class BusService {
                     continue;
                 }
 
-
-
                 // 1. 시작 정류장 후보 인덱스 찾기 (bstopId 정확 일치 우선)
                 List<Integer> startCandidates = new ArrayList<>();
                 for (int i = 0; i < allStops.size(); i++) {
@@ -636,7 +661,7 @@ public class BusService {
                         }
                     }
                 }
-                if (endCandidates.isEmpty() && endStopName != null && !endStopName.isBlank()) {
+                if (endStopName != null && !endStopName.isBlank()) {
                     for (int i = 0; i < allStops.size(); i++) {
                         BusRouteStopDto s = allStops.get(i);
                         if (s.getBstopName() != null && s.getBstopName().contains(endStopName)) {
@@ -644,10 +669,11 @@ public class BusService {
                         }
                     }
                 }
-                if (endCandidates.isEmpty() && rule.getTargetKeywords() != null && !rule.getTargetKeywords().isBlank()) {
+                // 2-1. 타겟 키워드 매칭
+                if (rule.getTargetKeywords() != null && !rule.getTargetKeywords().isBlank()) {
                     List<String> targetKeywords = Arrays.stream(rule.getTargetKeywords().split(","))
                             .map(String::trim)
-                            .filter(s -> !s.isBlank())
+                            .filter(kw -> !kw.isBlank())
                             .collect(Collectors.toList());
 
                     for (int i = 0; i < allStops.size(); i++) {
@@ -664,10 +690,20 @@ public class BusService {
                     }
                 }
 
-                // 3. 최단 정방향 유효 구간(startIdx < endIdx, 최소 정류장 수) 선택
+                // 2-2. 등교(go-school) 룰인 경우 인천대 캠퍼스 정류소들을 모두 도착 후보군으로 보강
+                if ("go-school".equals(category)) {
+                    for (int i = 0; i < allStops.size(); i++) {
+                        BusRouteStopDto s = allStops.get(i);
+                        if (s.getBstopId() != null && INU_CAMPUS_STOP_IDS.contains(s.getBstopId())) {
+                            endCandidates.put(i, s.getBstopName());
+                        }
+                    }
+                }
+
+                // 3. 최적 정방향 유효 구간(startIdx < endIdx, 15정거장 이내) 선택
                 int bestStartIdx = -1;
                 int bestEndIdx = -1;
-                int minDistance = Integer.MAX_VALUE;
+                int bestDistance = Integer.MAX_VALUE;
                 String matchedEndStopName = endStopName;
 
                 for (int sIdx : startCandidates) {
@@ -675,11 +711,24 @@ public class BusService {
                         int eIdx = eEntry.getKey();
                         if (eIdx > sIdx) {
                             int dist = eIdx - sIdx;
-                            if (dist < minDistance) {
-                                minDistance = dist;
-                                bestStartIdx = sIdx;
-                                bestEndIdx = eIdx;
-                                matchedEndStopName = eEntry.getValue();
+                            // 등교/하교 전용 구간 (1~15 정거장 이내)
+                            if (dist <= 15) {
+                                if ("go-school".equals(category)) {
+                                    // 등교 노선은 캠퍼스 진입 후 가장 안쪽 정류장(최종 종점)까지 커버하도록 선택
+                                    if (bestStartIdx == -1 || dist > (bestEndIdx - bestStartIdx)) {
+                                        bestStartIdx = sIdx;
+                                        bestEndIdx = eIdx;
+                                        matchedEndStopName = eEntry.getValue();
+                                    }
+                                } else {
+                                    // 하교 노선은 가장 가까운 목적지 정류소(인입/지정단 등)를 선택
+                                    if (dist < bestDistance) {
+                                        bestDistance = dist;
+                                        bestStartIdx = sIdx;
+                                        bestEndIdx = eIdx;
+                                        matchedEndStopName = eEntry.getValue();
+                                    }
+                                }
                             }
                         }
                     }
