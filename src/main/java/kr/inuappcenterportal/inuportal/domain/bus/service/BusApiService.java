@@ -294,6 +294,21 @@ public class BusApiService {
     }
 
 
+    private static final java.util.Map<String, String> KNOWN_ROUTE_NO_MAP = java.util.Map.ofEntries(
+            java.util.Map.entry("165000012", "8"),
+            java.util.Map.entry("165000020", "16"),
+            java.util.Map.entry("165000514", "41"),
+            java.util.Map.entry("164000004", "46"),
+            java.util.Map.entry("165000008", "6-1"),
+            java.util.Map.entry("165000007", "6"),
+            java.util.Map.entry("165000150", "1301"),
+            java.util.Map.entry("161000007", "9"),
+            java.util.Map.entry("161000027", "순환43"),
+            java.util.Map.entry("161000038", "순환42"),
+            java.util.Map.entry("165000201", "순환47"),
+            java.util.Map.entry("213000019", "3002")
+    );
+
     private List<BusArrivalItemDto> parseArrivalXml(String xmlData) throws Exception {
         List<BusArrivalItemDto> result = new ArrayList<>();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -303,6 +318,12 @@ public class BusApiService {
         NodeList items = doc.getElementsByTagName("itemList");
         for (int i = 0; i < items.getLength(); i++) {
             Element item = (Element) items.item(i);
+
+            String routeId = getTagValue("ROUTEID", item);
+            String routeNo = getTagValue("ROUTENO", item);
+            if (routeNo.isBlank() && !routeId.isBlank()) {
+                routeNo = KNOWN_ROUTE_NO_MAP.getOrDefault(routeId, "");
+            }
 
             result.add(BusArrivalItemDto.builder()
                     .arrivalEstimateTime(getTagValue("ARRIVALESTIMATETIME", item))
@@ -317,8 +338,8 @@ public class BusApiService {
                     .lowTpCd(getTagValue("LOW_TP_CD", item))
                     .remaindSeat(getTagValue("REMAIND_SEAT", item))
                     .restStopCount(getTagValue("REST_STOP_COUNT", item))
-                    .routeId(getTagValue("ROUTEID", item))
-                    .routeNo(getTagValue("ROUTENO", item))
+                    .routeId(routeId)
+                    .routeNo(routeNo)
                     .build());
         }
         return result;

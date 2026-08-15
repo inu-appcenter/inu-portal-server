@@ -62,17 +62,40 @@ public class BusScheduler {
         for (BusTargetStop stop : activeStops) {
             try {
                 List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(stop.getBstopId());
+                LocalDateTime sevenMinutesAgo = LocalDateTime.now().minusMinutes(7);
+
                 for (BusArrivalItemDto arrival : arrivals) {
                     Integer estimateTime = parseIntegerSafe(arrival.getArrivalEstimateTime());
                     Integer restStops = parseIntegerSafe(arrival.getRestStopCount());
 
+                    // 실제 해당 정류소에 "도착(도착 임박/1정거장 전 이하)"한 이벤트만 수집
+                    boolean isArriving = (restStops != null && restStops <= 1)
+                            || (estimateTime != null && estimateTime <= 90);
+
+                    if (!isArriving) {
+                        continue;
+                    }
+
+                    String busNumPlate = arrival.getBusNumPlate();
+                    String routeId = arrival.getRouteId();
+
+                    // 최근 7분 이내에 동일 정류장/노선/차량의 도착 기록이 이미 있으면 중복 저장 방지
+                    if (busNumPlate != null && !busNumPlate.isBlank()) {
+                        boolean existsRecent = busArrivalHistoryRepository
+                                .existsByBstopIdAndRouteIdAndBusNumPlateAndCreateDateAfter(
+                                        stop.getBstopId(), routeId, busNumPlate, sevenMinutesAgo);
+                        if (existsRecent) {
+                            continue;
+                        }
+                    }
+
                     BusArrivalHistory history = BusArrivalHistory.builder()
                             .bstopId(stop.getBstopId())
                             .bstopName(stop.getBstopName())
-                            .routeId(arrival.getRouteId())
+                            .routeId(routeId)
                             .routeNo(arrival.getRouteNo())
                             .busId(arrival.getBusId())
-                            .busNumPlate(arrival.getBusNumPlate())
+                            .busNumPlate(busNumPlate)
                             .arrivalEstimateTime(estimateTime)
                             .restStopCount(restStops)
                             .congestion(arrival.getCongestion())

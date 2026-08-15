@@ -203,6 +203,21 @@ public class BusService {
         return arrivals;
     }
 
+    private static final java.util.Map<String, String> ROUTE_NO_FALLBACK = java.util.Map.ofEntries(
+            java.util.Map.entry("165000012", "8"),
+            java.util.Map.entry("165000020", "16"),
+            java.util.Map.entry("165000514", "41"),
+            java.util.Map.entry("164000004", "46"),
+            java.util.Map.entry("165000008", "6-1"),
+            java.util.Map.entry("165000007", "6"),
+            java.util.Map.entry("165000150", "1301"),
+            java.util.Map.entry("161000007", "9"),
+            java.util.Map.entry("161000027", "순환43"),
+            java.util.Map.entry("161000038", "순환42"),
+            java.util.Map.entry("165000201", "순환47"),
+            java.util.Map.entry("213000019", "3002")
+    );
+
     public BusHistoryResponseDto getHistory(String bstopId, String targetDateStr) {
         LocalDate targetDate = (targetDateStr != null && !targetDateStr.isBlank())
                 ? LocalDate.parse(targetDateStr, DateTimeFormatter.ISO_LOCAL_DATE)
@@ -214,17 +229,58 @@ public class BusService {
         List<BusArrivalHistory> historyList = busArrivalHistoryRepository
                 .findByBstopIdAndCreateDateBetweenOrderByCreateDateAsc(bstopId, startOfDay, endOfDay);
 
-        List<BusHistoryResponseDto.HistoryRecord> records = historyList.stream()
-                .map(h -> BusHistoryResponseDto.HistoryRecord.builder()
-                        .id(h.getId())
-                        .routeId(h.getRouteId())
-                        .routeNo(h.getRouteNo())
-                        .busNumPlate(h.getBusNumPlate())
-                        .arrivalEstimateTime(h.getArrivalEstimateTime())
-                        .restStopCount(h.getRestStopCount())
-                        .arrivalTime(h.getCreateDate())
-                        .build())
-                .collect(Collectors.toList());
+        // 1. 등록된 노선 정보에서 routeId -> routeNo 맵 구성
+        java.util.Map<String, String> sectionRouteMap = busRouteSectionRepository.findAll().stream()
+                .filter(s -> s.getRouteId() != null && s.getRouteNo() != null)
+                .collect(Collectors.toMap(
+                        BusRouteSection::getRouteId,
+                        BusRouteSection::getRouteNo,
+                        (existing, replacement) -> existing
+                ));
+
+        // 2. 실제 해당 정류소에 접근/도착한 기록만 필터링 및 7분 이내 동일 차량 중복 제거
+        List<BusHistoryResponseDto.HistoryRecord> records = new ArrayList<>();
+        java.util.Map<String, LocalDateTime> lastArrivalSeen = new java.util.HashMap<>();
+
+        for (BusArrivalHistory h : historyList) {
+            Integer restStops = h.getRestStopCount();
+            Integer estimateTime = h.getArrivalEstimateTime();
+
+            // 실제 도착(0~1정류장 전 또는 90초 이내)한 기록만 인정
+            boolean isArriving = (restStops != null && restStops <= 1)
+                    || (estimateTime != null && estimateTime <= 90);
+
+            if (!isArriving) {
+                continue;
+            }
+
+            String routeNo = h.getRouteNo();
+            if (routeNo == null || routeNo.isBlank()) {
+                routeNo = sectionRouteMap.getOrDefault(h.getRouteId(),
+                        ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), ""));
+            }
+
+            // 동일 차량 중복 제거 (7분 윈도우)
+            String key = (h.getBusNumPlate() != null && !h.getBusNumPlate().isBlank())
+                    ? (h.getRouteId() + "_" + h.getBusNumPlate())
+                    : (h.getRouteId() + "_" + h.getCreateDate().getHour() + ":" + (h.getCreateDate().getMinute() / 5));
+
+            LocalDateTime lastSeen = lastArrivalSeen.get(key);
+            if (lastSeen != null && h.getCreateDate().isBefore(lastSeen.plusMinutes(7))) {
+                continue;
+            }
+            lastArrivalSeen.put(key, h.getCreateDate());
+
+            records.add(BusHistoryResponseDto.HistoryRecord.builder()
+                    .id(h.getId())
+                    .routeId(h.getRouteId())
+                    .routeNo(routeNo)
+                    .busNumPlate(h.getBusNumPlate())
+                    .arrivalEstimateTime(h.getArrivalEstimateTime())
+                    .restStopCount(h.getRestStopCount())
+                    .arrivalTime(h.getCreateDate())
+                    .build());
+        }
 
         // 동일 요일 최근 4주 평균 간격/소요시간 계산
         Integer averageInterval = calculateAverageIntervalForDayOfWeek(bstopId, targetDate.getDayOfWeek());
