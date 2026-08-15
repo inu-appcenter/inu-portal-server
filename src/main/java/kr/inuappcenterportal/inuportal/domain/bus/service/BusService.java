@@ -683,8 +683,8 @@ public class BusService {
                         startCandidates.add(i);
                     }
                 }
-                // bstopId 매칭이 없으면 명칭 일치로 fallback
-                if (startCandidates.isEmpty() && startStopName != null && !startStopName.isBlank()) {
+                // bstopId가 입력되지 않은 경우에만 명칭 일치로 fallback
+                if (startCandidates.isEmpty() && (startBstopId == null || startBstopId.isBlank()) && startStopName != null && !startStopName.isBlank()) {
                     for (int i = 0; i < allStops.size(); i++) {
                         BusRouteStopDto s = allStops.get(i);
                         if (s.getBstopName() != null && s.getBstopName().contains(startStopName)) {
@@ -697,7 +697,7 @@ public class BusService {
                     continue;
                 }
 
-                // 2. 목표 도착 정류장 후보 인덱스 찾기 (단일 또는 쉼표 구분 다중 목표 정류장 지원)
+                // 2. 목표 도착 정류장 후보 인덱스 찾기 (ID가 등록된 경우 ID로만 엄격 매칭)
                 Map<Integer, String> endCandidates = new HashMap<>(); // index -> bstopName
                 if (endBstopId != null && !endBstopId.isBlank()) {
                     List<String> targetIds = Arrays.stream(endBstopId.split(","))
@@ -711,8 +711,7 @@ public class BusService {
                             endCandidates.put(i, s.getBstopName());
                         }
                     }
-                }
-                if (endStopName != null && !endStopName.isBlank()) {
+                } else if (endStopName != null && !endStopName.isBlank()) {
                     List<String> targetNames = Arrays.stream(endStopName.split(","))
                             .map(String::trim)
                             .filter(n -> !n.isBlank())
@@ -724,26 +723,6 @@ public class BusService {
                             for (String tn : targetNames) {
                                 if (s.getBstopName().contains(tn)) {
                                     endCandidates.put(i, s.getBstopName());
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                // 2-1. 타겟 키워드 매칭
-                if (rule.getTargetKeywords() != null && !rule.getTargetKeywords().isBlank()) {
-                    List<String> targetKeywords = Arrays.stream(rule.getTargetKeywords().split(","))
-                            .map(String::trim)
-                            .filter(kw -> !kw.isBlank())
-                            .collect(Collectors.toList());
-
-                    for (int i = 0; i < allStops.size(); i++) {
-                        BusRouteStopDto s = allStops.get(i);
-                        String name = s.getBstopName();
-                        if (name != null) {
-                            for (String kw : targetKeywords) {
-                                if (name.contains(kw)) {
-                                    endCandidates.put(i, name);
                                     break;
                                 }
                             }
