@@ -11,7 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 @Service
@@ -31,23 +30,16 @@ public class VllmService {
     }
 
     /**
-     * 용도별 모델명 조회 (예: "timetable", "chat", "vision" 등. 없으면 defaultModel 반환)
+     * 기본 설정된 vLLM 모델명 조회
      */
-    public String getModel(String purpose) {
-        return vllmProperties.getModelOrDefault(purpose);
-    }
-
-    /**
-     * 기본 모델명 조회
-     */
-    public String getDefaultModel() {
-        return vllmProperties.getDefaultModel();
+    public String getModel() {
+        return vllmProperties.getModel();
     }
 
     /**
      * 범용 실시간 SSE 스트리밍 채팅 완성
      *
-     * @param requestDto 요청 DTO
+     * @param requestDto 요청 DTO (model이 null이면 기본 설정 모델 사용)
      * @param onToken 토큰이 생성될 때마다 호출되는 콜백
      * @param onComplete 스트림이 정상 종료되었을 때 호출되는 콜백
      * @param onError 에러 발생 시 호출되는 콜백
@@ -60,7 +52,7 @@ public class VllmService {
     ) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : vllmProperties.getDefaultModel();
+                : vllmProperties.getModel();
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)
@@ -94,7 +86,7 @@ public class VllmService {
     public String chat(VllmChatRequestDto requestDto) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : vllmProperties.getDefaultModel();
+                : vllmProperties.getModel();
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)

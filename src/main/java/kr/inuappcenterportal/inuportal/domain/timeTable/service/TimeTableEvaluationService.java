@@ -108,7 +108,7 @@ public class TimeTableEvaluationService {
         TimeTableAnalysisUtils.TimetableSummary summary = TimeTableAnalysisUtils.analyzeTimetable(detail.items(), offeringMap);
         List<VllmChatMessageDto> messages = buildPromptMessages(timeTable.getTimeTableName(), summary);
 
-        String model = vllmService.getModel("timetable");
+        String model = vllmService.getModel();
         VllmChatRequestDto chatRequest = VllmChatRequestDto.of(model, messages, true);
 
         StringBuilder fullContentAccumulator = new StringBuilder();
