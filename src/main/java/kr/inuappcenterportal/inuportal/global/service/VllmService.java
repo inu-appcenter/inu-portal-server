@@ -6,8 +6,10 @@ import kr.inuappcenterportal.inuportal.global.config.VllmProperties;
 import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatMessageDto;
 import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatRequestDto;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -52,7 +54,7 @@ public class VllmService {
     ) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : vllmProperties.model();
+                : (vllmProperties.model() != null ? vllmProperties.model() : "vllm-prod");
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)
@@ -62,21 +64,47 @@ public class VllmService {
                 .stream(true)
                 .build();
 
+        String endpointUrl = resolveChatCompletionUrl();
+        log.info("vLLM streaming request to: {}, model: {}", endpointUrl, targetModel);
+
         webClient.post()
-                .uri(vllmProperties.url() + "/chat/completions")
+                .uri(endpointUrl)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.apiKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(actualRequest)
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
-                .bodyToFlux(String.class)
+                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
                 .subscribe(
-                        chunk -> parseAndProcessChunk(chunk, onToken),
+                        event -> {
+                            String data = event.data();
+                            if (data == null || data.isBlank() || "[DONE]".equals(data.trim())) {
+                                return;
+                            }
+                            try {
+                                JsonNode node = objectMapper.readTree(data);
+                                JsonNode choices = node.path("choices");
+                                if (choices.isArray() && !choices.isEmpty()) {
+                                    JsonNode delta = choices.get(0).path("delta");
+                                    if (delta.has("content")) {
+                                        String token = delta.get("content").asText();
+                                        if (token != null && !token.isEmpty()) {
+                                            onToken.accept(token);
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                log.debug("vLLM SSE parse error for line: {}", data, e);
+                            }
+                        },
                         err -> {
                             log.error("vLLM streaming error: ", err);
                             onError.accept(err);
                         },
-                        onComplete
+                        () -> {
+                            log.info("vLLM streaming completed for model: {}", targetModel);
+                            onComplete.run();
+                        }
                 );
     }
 
@@ -86,7 +114,7 @@ public class VllmService {
     public String chat(VllmChatRequestDto requestDto) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : vllmProperties.model();
+                : (vllmProperties.model() != null ? vllmProperties.model() : "vllm-prod");
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)
@@ -96,9 +124,11 @@ public class VllmService {
                 .stream(false)
                 .build();
 
+        String endpointUrl = resolveChatCompletionUrl();
+
         try {
             String responseBody = webClient.post()
-                    .uri(vllmProperties.url() + "/chat/completions")
+                    .uri(endpointUrl)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(actualRequest)
@@ -120,31 +150,15 @@ public class VllmService {
         return "";
     }
 
-    private void parseAndProcessChunk(String rawChunk, Consumer<String> onToken) {
-        String[] lines = rawChunk.split("\n");
-        for (String line : lines) {
-            String trimmed = line.trim();
-            if (trimmed.startsWith("data:")) {
-                String jsonData = trimmed.substring(5).trim();
-                if ("[DONE]".equals(jsonData)) {
-                    return;
-                }
-                try {
-                    JsonNode node = objectMapper.readTree(jsonData);
-                    JsonNode choices = node.path("choices");
-                    if (choices.isArray() && !choices.isEmpty()) {
-                        JsonNode delta = choices.get(0).path("delta");
-                        if (delta.has("content")) {
-                            String token = delta.get("content").asText();
-                            if (token != null && !token.isEmpty()) {
-                                onToken.accept(token);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.debug("JSON parse skipped for line: {}", trimmed);
-                }
-            }
+    private String resolveChatCompletionUrl() {
+        String base = vllmProperties.url();
+        if (base == null || base.isBlank()) {
+            base = "https://vllm-api.inuappcenter.kr/v1";
         }
+        base = base.trim().replaceAll("/+$", "");
+        if (!base.endsWith("/v1")) {
+            base += "/v1";
+        }
+        return base + "/chat/completions";
     }
 }
