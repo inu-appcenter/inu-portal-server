@@ -76,6 +76,12 @@ public class TimeTableEvaluationService {
 
         // SSE Emitter 생성 (타임아웃 2분)
         SseEmitter emitter = new SseEmitter(120_000L);
+        emitter.onCompletion(() -> log.debug("SSE completed for timetable {}", timeTableId));
+        emitter.onTimeout(() -> {
+            log.warn("SSE timeout for timetable {}", timeTableId);
+            emitter.complete();
+        });
+        emitter.onError(e -> log.debug("SSE error for timetable {}: {}", timeTableId, e.getMessage()));
 
         // 캐시 확인 (강제 새로고침이 아니고, 해시가 일치하는 경우)
         if (!forceRefresh && existingEvaluationOpt.isPresent()) {
@@ -88,7 +94,8 @@ public class TimeTableEvaluationService {
                         sendSseEvent(emitter, "done", Map.of("status", "SUCCESS", "isCached", true));
                         emitter.complete();
                     } catch (Exception e) {
-                        emitter.completeWithError(e);
+                        log.debug("Error sending cached SSE: {}", e.getMessage());
+                        emitter.complete();
                     }
                 });
                 return emitter;
@@ -132,7 +139,7 @@ public class TimeTableEvaluationService {
                 error -> {
                     log.error("vLLM streaming error for timetable {}", timeTableId, error);
                     sendSseEvent(emitter, "error", Map.of("message", "AI 평가 생성 중 오류가 발생했습니다."));
-                    emitter.completeWithError(error);
+                    emitter.complete();
                 }
         );
 
