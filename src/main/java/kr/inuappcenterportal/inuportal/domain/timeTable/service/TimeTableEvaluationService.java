@@ -1,26 +1,22 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
-import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableEvaluation.TimeTableEvaluationResponseDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableDetailItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableEvaluation;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableEvaluationRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
+import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatMessageDto;
+import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatRequestDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.global.service.VllmService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -29,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class TimeTableEvaluationService {
 
@@ -36,34 +33,7 @@ public class TimeTableEvaluationService {
     private final TimeTableEvaluationRepository timeTableEvaluationRepository;
     private final TimeTableService timeTableService;
     private final CourseOfferingRepository courseOfferingRepository;
-    private final WebClient webClient;
-    private final ObjectMapper objectMapper;
-
-    @Value("${vllm.timetable.url:https://vllm-api.inuappcenter.kr/v1}")
-    private String vllmUrl;
-
-    @Value("${vllm.timetable.api-key:aismswjdakfWkddldi!!}")
-    private String vllmApiKey;
-
-    @Value("${vllm.timetable.model:google/gemma-4-26B-A4B-it}")
-    private String vllmModel;
-
-    public TimeTableEvaluationService(
-            TimeTableRepository timeTableRepository,
-            TimeTableEvaluationRepository timeTableEvaluationRepository,
-            TimeTableService timeTableService,
-            CourseOfferingRepository courseOfferingRepository,
-            ObjectMapper objectMapper
-    ) {
-        this.timeTableRepository = timeTableRepository;
-        this.timeTableEvaluationRepository = timeTableEvaluationRepository;
-        this.timeTableService = timeTableService;
-        this.courseOfferingRepository = courseOfferingRepository;
-        this.objectMapper = objectMapper;
-        this.webClient = WebClient.builder()
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
-                .build();
-    }
+    private final VllmService vllmService;
 
     /**
      * 캐시된 평가가 있는지 조회 (캐시가 유효하면 반환, 없거나 변경되었으면 null 반환)
@@ -136,80 +106,37 @@ public class TimeTableEvaluationService {
 
         // 시간표 메트릭 분석 및 프롬프트 생성
         TimeTableAnalysisUtils.TimetableSummary summary = TimeTableAnalysisUtils.analyzeTimetable(detail.items(), offeringMap);
-        List<Map<String, String>> messages = buildPromptMessages(timeTable.getTimeTableName(), summary);
+        List<VllmChatMessageDto> messages = buildPromptMessages(timeTable.getTimeTableName(), summary);
 
-        Map<String, Object> requestBody = Map.of(
-                "model", vllmModel,
-                "messages", messages,
-                "temperature", 0.7,
-                "max_tokens", 800,
-                "stream", true
-        );
+        String model = vllmService.getModel("timetable");
+        VllmChatRequestDto chatRequest = VllmChatRequestDto.of(model, messages, true);
 
         StringBuilder fullContentAccumulator = new StringBuilder();
 
         sendSseEvent(emitter, "start", Map.of("isCached", false, "timetableHash", currentHash));
 
-        webClient.post()
-                .uri(vllmUrl + "/chat/completions")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmApiKey)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
-                .accept(MediaType.TEXT_EVENT_STREAM)
-                .retrieve()
-                .bodyToFlux(String.class)
-                .subscribe(
-                        chunk -> {
-                            handleStreamChunk(chunk, emitter, fullContentAccumulator);
-                        },
-                        error -> {
-                            log.error("vLLM streaming error for timetable {}", timeTableId, error);
-                            sendSseEvent(emitter, "error", Map.of("message", "AI 평가 생성 중 오류가 발생했습니다."));
-                            emitter.completeWithError(error);
-                        },
-                        () -> {
-                            String fullContent = fullContentAccumulator.toString().trim();
-                            if (!fullContent.isEmpty()) {
-                                saveOrUpdateEvaluation(timeTableId, fullContent, currentHash);
-                            }
-                            sendSseEvent(emitter, "done", Map.of("status", "SUCCESS", "isCached", false));
-                            emitter.complete();
-                        }
-                );
+        vllmService.streamChat(
+                chatRequest,
+                token -> {
+                    fullContentAccumulator.append(token);
+                    sendSseEvent(emitter, "delta", Map.of("content", token));
+                },
+                () -> {
+                    String fullContent = fullContentAccumulator.toString().trim();
+                    if (!fullContent.isEmpty()) {
+                        saveOrUpdateEvaluation(timeTableId, fullContent, currentHash);
+                    }
+                    sendSseEvent(emitter, "done", Map.of("status", "SUCCESS", "isCached", false));
+                    emitter.complete();
+                },
+                error -> {
+                    log.error("vLLM streaming error for timetable {}", timeTableId, error);
+                    sendSseEvent(emitter, "error", Map.of("message", "AI 평가 생성 중 오류가 발생했습니다."));
+                    emitter.completeWithError(error);
+                }
+        );
 
         return emitter;
-    }
-
-    /**
-     * 스트림 청크 파싱 및 SSE 클라이언트로 전송
-     */
-    private void handleStreamChunk(String rawChunk, SseEmitter emitter, StringBuilder accumulator) {
-        String[] lines = rawChunk.split("\n");
-        for (String line : lines) {
-            String trimmed = line.trim();
-            if (trimmed.startsWith("data:")) {
-                String jsonData = trimmed.substring(5).trim();
-                if ("[DONE]".equals(jsonData)) {
-                    return;
-                }
-                try {
-                    JsonNode node = objectMapper.readTree(jsonData);
-                    JsonNode choices = node.path("choices");
-                    if (choices.isArray() && !choices.isEmpty()) {
-                        JsonNode delta = choices.get(0).path("delta");
-                        if (delta.has("content")) {
-                            String token = delta.get("content").asText();
-                            if (token != null && !token.isEmpty()) {
-                                accumulator.append(token);
-                                sendSseEvent(emitter, "delta", Map.of("content", token));
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.debug("JSON parse skipped for line: {}", trimmed);
-                }
-            }
-        }
     }
 
     private void sendSseEvent(SseEmitter emitter, String eventName, Object data) {
@@ -236,7 +163,7 @@ public class TimeTableEvaluationService {
         }
     }
 
-    private List<Map<String, String>> buildPromptMessages(String tableName, TimeTableAnalysisUtils.TimetableSummary summary) {
+    private List<VllmChatMessageDto> buildPromptMessages(String tableName, TimeTableAnalysisUtils.TimetableSummary summary) {
         String systemPrompt = """
                 너는 인천대학교의 활기차고 센스 넘치는 마스코트 캐릭터 '횃불이'야!
                 인천대학교 학생의 이번 학기 시간표를 꼼꼼히 살펴보고 현실감 넘치면서도 재미있게 코칭/평가해주는 역할을 맡았어.
@@ -275,8 +202,8 @@ public class TimeTableEvaluationService {
         userPrompt.append("\n위 시간표를 분석해서 횃불이의 개성 넘치고 솔직한 평가를 들려줘!");
 
         return List.of(
-                Map.of("role", "system", "content", systemPrompt),
-                Map.of("role", "user", "content", userPrompt.toString())
+                VllmChatMessageDto.system(systemPrompt),
+                VllmChatMessageDto.user(userPrompt.toString())
         );
     }
 }
