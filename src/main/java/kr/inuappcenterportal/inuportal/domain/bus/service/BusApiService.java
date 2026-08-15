@@ -34,6 +34,8 @@ public class BusApiService {
 
 
 
+    private static final java.util.Map<String, String> ALLOC_GAP_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
     // API 키 만료 시 false로 변경하여 공공데이터포털 연동 일시 중단 가능
     private static final boolean IS_API_ENABLED = true;
 
@@ -135,7 +137,7 @@ public class BusApiService {
     }
 
     private String executeGetXml(String url) {
-        int maxRetries = 3;
+        int maxRetries = 2;
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 String response = webClient.get()
@@ -148,20 +150,15 @@ public class BusApiService {
                     return response;
                 }
             } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
-                if (e.getStatusCode().value() == 429 && attempt < maxRetries) {
-                    log.warn("공공데이터 API 429 Rate Limit 감지. {}ms 후 재시도합니다 (시도: {}/{})", attempt * 300, attempt, maxRetries);
-                    try {
-                        Thread.sleep(attempt * 300L);
-                    } catch (InterruptedException ignored) {
-                        Thread.currentThread().interrupt();
-                    }
-                    continue;
+                if (e.getStatusCode().value() == 429) {
+                    log.warn("공공데이터 API 429 Rate Limit 감지 (url: {})", url);
+                    return null;
                 }
-                log.error("API 요청 HTTP 오류 (status: {}, url: {})", e.getStatusCode(), url, e);
-                break;
+                log.warn("API 요청 HTTP 오류 (status: {}, url: {})", e.getStatusCode(), url);
+                return null;
             } catch (Exception e) {
-                log.error("API 요청 중 오류 발생 (url: {})", url, e);
-                break;
+                log.warn("API 요청 중 오류 발생 (url: {}): {}", url, e.getMessage());
+                return null;
             }
         }
         return null;
@@ -212,8 +209,13 @@ public class BusApiService {
     }
 
     public String fetchAllocGap(String routeId) {
-        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || routeId == null) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || routeId == null || routeId.isBlank()) {
             return null;
+        }
+
+        String cached = ALLOC_GAP_CACHE.get(routeId);
+        if (cached != null) {
+            return cached.isEmpty() ? null : cached;
         }
 
         try {
@@ -222,6 +224,7 @@ public class BusApiService {
 
             String xmlResponse = executeGetXml(url);
             if (xmlResponse == null || xmlResponse.isBlank()) {
+                ALLOC_GAP_CACHE.put(routeId, "");
                 return null;
             }
 
@@ -250,23 +253,31 @@ public class BusApiService {
                             lbus.substring(0, 2), lbus.substring(2, 4));
                 }
 
-                String gapNotice = null;
+                String allocNotice = null;
                 if (!minGap.isBlank() && !maxGap.isBlank()) {
-                    gapNotice = String.format("배차간격 | %s ~ %s분", minGap, maxGap);
-                } else if (!minGap.isBlank()) {
-                    gapNotice = String.format("배차간격 | %s분", minGap);
+                    if (minGap.equals(maxGap)) {
+                        allocNotice = String.format("배차간격 | %s분", minGap);
+                    } else {
+                        allocNotice = String.format("배차간격 | %s ~ %s분", minGap, maxGap);
+                    }
                 }
 
-                if (timeNotice != null && gapNotice != null) {
-                    return timeNotice + "\n" + gapNotice;
+                String result = null;
+                if (timeNotice != null && allocNotice != null) {
+                    result = timeNotice + "\n" + allocNotice;
                 } else if (timeNotice != null) {
-                    return timeNotice;
-                } else if (gapNotice != null) {
-                    return gapNotice;
+                    result = timeNotice;
+                } else if (allocNotice != null) {
+                    result = allocNotice;
                 }
+
+                ALLOC_GAP_CACHE.put(routeId, result != null ? result : "");
+                return result;
             }
+            ALLOC_GAP_CACHE.put(routeId, "");
         } catch (Exception e) {
-            log.error("버스 노선 배차간격/운행시간 API 호출 실패 (routeId: {})", routeId, e);
+            log.warn("버스 노선 배차간격/운행시간 API 호출 실패 (routeId: {}): {}", routeId, e.getMessage());
+            ALLOC_GAP_CACHE.put(routeId, "");
         }
         return null;
     }

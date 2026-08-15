@@ -327,17 +327,19 @@ public class BusService {
         return sections.stream()
                 .map(section -> {
                     BusRouteSectionResponseDto dto = BusRouteSectionResponseDto.from(section);
-                    // DB 실측 데이터 기반 첫차/막차 시각 계산 시도
-                    String dbFirstLastTime = calculateStopFirstLastTime(section.getStartBstopId(), section.getRouteId());
-                    String allocGap = busApiService.fetchAllocGap(section.getRouteId());
-
                     String combinedNotice = dto.getBusNotice();
-                    if (dbFirstLastTime != null && allocGap != null) {
-                        combinedNotice = dbFirstLastTime + "\n" + allocGap;
-                    } else if (dbFirstLastTime != null) {
-                        combinedNotice = dbFirstLastTime;
-                    } else if (allocGap != null && (combinedNotice == null || combinedNotice.isBlank())) {
-                        combinedNotice = allocGap;
+
+                    if (combinedNotice == null || combinedNotice.isBlank()) {
+                        String dbFirstLastTime = calculateStopFirstLastTime(section.getStartBstopId(), section.getRouteId());
+                        String allocGap = busApiService.fetchAllocGap(section.getRouteId());
+
+                        if (dbFirstLastTime != null && allocGap != null) {
+                            combinedNotice = dbFirstLastTime + "\n" + allocGap;
+                        } else if (dbFirstLastTime != null) {
+                            combinedNotice = dbFirstLastTime;
+                        } else if (allocGap != null) {
+                            combinedNotice = allocGap;
+                        }
                     }
 
                     String alias = busStopAliasRepository.findByBstopId(section.getStartBstopId())
