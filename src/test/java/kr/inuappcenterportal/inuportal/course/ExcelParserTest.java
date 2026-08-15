@@ -33,7 +33,7 @@ public class ExcelParserTest {
         row.createCell(1).setCellValue("김정경");
         row.createCell(2).setCellValue("RISE");
         row.createCell(3).setCellValue("상대평가");
-        row.createCell(4).setCellValue(35);
+        row.createCell(4).setCellValue("2,500");
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);
@@ -55,6 +55,6 @@ public class ExcelParserTest {
         assertThat(rows.get(0).professor()).isEqualTo("김정경");
         assertThat(rows.get(0).courseTitle()).isEqualTo("RISE");
         assertThat(rows.get(0).gradeEvaluation()).isEqualTo("상대평가");
-        assertThat(rows.get(0).capacity()).isEqualTo(35);
+        assertThat(rows.get(0).capacity()).isEqualTo(2500);
     }
 }
