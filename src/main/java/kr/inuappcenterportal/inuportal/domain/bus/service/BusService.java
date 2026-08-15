@@ -33,6 +33,30 @@ public class BusService {
     private final BusTargetStopRepository busTargetStopRepository;
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusTargetRuleRepository busTargetRuleRepository;
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusStopAliasRepository busStopAliasRepository;
+    private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusServiceConfigRepository busServiceConfigRepository;
+
+    private static final String SERVICE_STATUS_CONFIG_KEY = "BUS_SERVICE_STATUS";
+
+    public boolean isBusServiceEnabled() {
+        return busServiceConfigRepository.findByConfigKey(SERVICE_STATUS_CONFIG_KEY)
+                .map(kr.inuappcenterportal.inuportal.domain.bus.entity.BusServiceConfig::isBooleanTrue)
+                .orElse(true);
+    }
+
+    @Transactional
+    public boolean updateBusServiceStatus(boolean enabled) {
+        kr.inuappcenterportal.inuportal.domain.bus.entity.BusServiceConfig config = busServiceConfigRepository
+                .findByConfigKey(SERVICE_STATUS_CONFIG_KEY)
+                .orElseGet(() -> kr.inuappcenterportal.inuportal.domain.bus.entity.BusServiceConfig.builder()
+                        .configKey(SERVICE_STATUS_CONFIG_KEY)
+                        .configValue(String.valueOf(enabled))
+                        .description("실시간 버스 도착 정보 수집 및 서비스 동작 여부")
+                        .build());
+
+        config.updateValue(String.valueOf(enabled));
+        busServiceConfigRepository.save(config);
+        return enabled;
+    }
 
     public List<BusStopSearchDto> searchBusStops(String keyword) {
         if (keyword == null || keyword.isBlank()) {

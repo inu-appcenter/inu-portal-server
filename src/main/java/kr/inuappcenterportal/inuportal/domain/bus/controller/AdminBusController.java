@@ -167,6 +167,21 @@ public class AdminBusController {
         int deleted = busService.cleanupOldArrivalHistory(weeks);
         return ResponseEntity.ok(ResponseDto.of(deleted, String.format("%d주 이전 버스 도착 기록 %d건이 정리되었습니다.", weeks, deleted)));
     }
+
+    @Operation(summary = "버스 실시간 수집 및 서비스 동작 상태 조회", description = "DB에 영구 저장된 버스 서비스 및 30초 실시간 도착 정보 수집 활성화 여부를 조회합니다.")
+    @GetMapping("/service-status")
+    public ResponseEntity<ResponseDto<Boolean>> getServiceStatus() {
+        boolean enabled = busService.isBusServiceEnabled();
+        return ResponseEntity.ok(ResponseDto.of(enabled, "버스 서비스 상태 조회 성공"));
+    }
+
+    @Operation(summary = "버스 실시간 수집 및 서비스 동작 상태 변경 (ON/OFF)", description = "DB에 버스 서비스 활성화/비활성화 상태를 저장하여 서버 재기동 시에도 영구 유지합니다.")
+    @PostMapping("/service-status")
+    public ResponseEntity<ResponseDto<Boolean>> updateServiceStatus(@RequestParam boolean enabled) {
+        boolean result = busService.updateBusServiceStatus(enabled);
+        String msg = result ? "버스 실시간 수집 서비스가 활성화(ON)되었습니다." : "버스 실시간 수집 서비스가 비활성화(OFF)되었습니다.";
+        return ResponseEntity.ok(ResponseDto.of(result, msg));
+    }
 }
 
 
