@@ -740,10 +740,10 @@ public class BusService {
                     }
                 }
 
-                // 3. 최적 정방향 유효 구간(startIdx < endIdx, 15정거장 이내) 선택
+                // 3. 최적 정방향 유효 구간(startIdx < endIdx, 25정거장 이내) 중 가장 먼 목표 정류장을 최종 종점으로 선택
                 int bestStartIdx = -1;
                 int bestEndIdx = -1;
-                int minDistance = Integer.MAX_VALUE;
+                int maxDistance = -1;
                 String matchedEndStopName = endStopName;
 
                 for (int sIdx : startCandidates) {
@@ -751,9 +751,9 @@ public class BusService {
                         int eIdx = eEntry.getKey();
                         if (eIdx > sIdx) {
                             int dist = eIdx - sIdx;
-                            // 관리자가 지정한 목적지 중 정방향 최단 유효 경로 선택 (1~15 정거장 이내)
-                            if (dist <= 15 && dist < minDistance) {
-                                minDistance = dist;
+                            // 관리자가 지정한 목적지 후보 중 가장 멀리 가는 최장 종점 선택 (1~25 정거장 이내)
+                            if (dist <= 25 && dist > maxDistance) {
+                                maxDistance = dist;
                                 bestStartIdx = sIdx;
                                 bestEndIdx = eIdx;
                                 matchedEndStopName = eEntry.getValue();
@@ -1031,14 +1031,14 @@ public class BusService {
 
         int bestStart = 0;
         int bestEnd = allStops.size() - 1;
-        int minDistance = Integer.MAX_VALUE;
+        int maxDistance = -1;
 
         for (int sIdx : startCandidates) {
             for (int eIdx : endCandidates) {
                 if (eIdx > sIdx) {
                     int dist = eIdx - sIdx;
-                    if (dist < minDistance) {
-                        minDistance = dist;
+                    if (dist > maxDistance) {
+                        maxDistance = dist;
                         bestStart = sIdx;
                         bestEnd = eIdx;
                     }
