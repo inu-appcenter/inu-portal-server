@@ -71,7 +71,6 @@ public record CourseOfferingResponseDto(
         String capacityNullReason,
 
         String hussCourseYn,
-        String note,
         List<CourseMeetingResponseDto> meetings
 ) {
 
@@ -138,7 +137,6 @@ public record CourseOfferingResponseDto(
                 savedCount,
                 resolveCapacityNullReason(courseOffering),
                 courseOffering.getHussCourseYn(),
-                courseOffering.getNote(),
                 meetings
         );
     }
