@@ -33,7 +33,7 @@ public class VllmService {
      * 기본 설정된 vLLM 모델명 조회
      */
     public String getModel() {
-        return vllmProperties.getModel();
+        return vllmProperties.model();
     }
 
     /**
@@ -52,7 +52,7 @@ public class VllmService {
     ) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : vllmProperties.getModel();
+                : vllmProperties.model();
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)
@@ -63,8 +63,8 @@ public class VllmService {
                 .build();
 
         webClient.post()
-                .uri(vllmProperties.getUrl() + "/chat/completions")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.getApiKey())
+                .uri(vllmProperties.url() + "/chat/completions")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.apiKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(actualRequest)
                 .accept(MediaType.TEXT_EVENT_STREAM)
@@ -86,7 +86,7 @@ public class VllmService {
     public String chat(VllmChatRequestDto requestDto) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : vllmProperties.getModel();
+                : vllmProperties.model();
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)
@@ -98,8 +98,8 @@ public class VllmService {
 
         try {
             String responseBody = webClient.post()
-                    .uri(vllmProperties.getUrl() + "/chat/completions")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.getApiKey())
+                    .uri(vllmProperties.url() + "/chat/completions")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(actualRequest)
                     .retrieve()
