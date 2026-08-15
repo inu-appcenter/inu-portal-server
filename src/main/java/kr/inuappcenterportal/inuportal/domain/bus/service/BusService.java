@@ -384,11 +384,6 @@ public class BusService {
         return String.format("해당 정류소 실측 첫/막차 | %s ~ %s", earliest.format(fmt), latest.format(fmt));
     }
 
-    private static final Set<String> INU_CAMPUS_STOP_IDS = Set.of(
-            "164000375", "164000376", "164000377", "164000378", "164000499",
-            "164000385", "164000386", "164000751", "164000752", "164000762", "164000763"
-    );
-
     @Transactional
     public List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> getTargetRules() {
         List<kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule> rules = busTargetRuleRepository.findAll();
@@ -690,20 +685,10 @@ public class BusService {
                     }
                 }
 
-                // 2-2. 등교(go-school) 룰인 경우 인천대 캠퍼스 정류소들을 모두 도착 후보군으로 보강
-                if ("go-school".equals(category)) {
-                    for (int i = 0; i < allStops.size(); i++) {
-                        BusRouteStopDto s = allStops.get(i);
-                        if (s.getBstopId() != null && INU_CAMPUS_STOP_IDS.contains(s.getBstopId())) {
-                            endCandidates.put(i, s.getBstopName());
-                        }
-                    }
-                }
-
                 // 3. 최적 정방향 유효 구간(startIdx < endIdx, 15정거장 이내) 선택
                 int bestStartIdx = -1;
                 int bestEndIdx = -1;
-                int bestDistance = Integer.MAX_VALUE;
+                int minDistance = Integer.MAX_VALUE;
                 String matchedEndStopName = endStopName;
 
                 for (int sIdx : startCandidates) {
@@ -711,24 +696,12 @@ public class BusService {
                         int eIdx = eEntry.getKey();
                         if (eIdx > sIdx) {
                             int dist = eIdx - sIdx;
-                            // 등교/하교 전용 구간 (1~15 정거장 이내)
-                            if (dist <= 15) {
-                                if ("go-school".equals(category)) {
-                                    // 등교 노선은 캠퍼스 진입 후 가장 안쪽 정류장(최종 종점)까지 커버하도록 선택
-                                    if (bestStartIdx == -1 || dist > (bestEndIdx - bestStartIdx)) {
-                                        bestStartIdx = sIdx;
-                                        bestEndIdx = eIdx;
-                                        matchedEndStopName = eEntry.getValue();
-                                    }
-                                } else {
-                                    // 하교 노선은 가장 가까운 목적지 정류소(인입/지정단 등)를 선택
-                                    if (dist < bestDistance) {
-                                        bestDistance = dist;
-                                        bestStartIdx = sIdx;
-                                        bestEndIdx = eIdx;
-                                        matchedEndStopName = eEntry.getValue();
-                                    }
-                                }
+                            // 관리자가 지정한 목적지 중 정방향 최단 유효 경로 선택 (1~15 정거장 이내)
+                            if (dist <= 15 && dist < minDistance) {
+                                minDistance = dist;
+                                bestStartIdx = sIdx;
+                                bestEndIdx = eIdx;
+                                matchedEndStopName = eEntry.getValue();
                             }
                         }
                     }
