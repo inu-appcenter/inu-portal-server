@@ -343,7 +343,7 @@ public class BusService {
                             .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-school").tabName("인입런")
-                            .startBstopId("164000396").startStopName("인천대입구역 1번출구").startStopAlias("인입")
+                            .startBstopId("164000648").startStopName("인천대입구역.롯데몰").startStopAlias("인입")
                             .endBstopId("164000378").endBstopName("인천대학교 자연과학대학").endStopAlias("자연대")
                             .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
@@ -358,7 +358,12 @@ public class BusService {
                             .targetKeywords("").build(),
                     kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
                             .category("go-home").tabName("공대/자연대")
-                            .startBstopId("164000377").startStopName("인천대 공과대학").startStopAlias("공대")
+                            .startBstopId("164000378").startStopName("인천대 자연과학대학").startStopAlias("자연대")
+                            .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
+                            .targetKeywords("").build(),
+                    kr.inuappcenterportal.inuportal.domain.bus.entity.BusTargetRule.builder()
+                            .category("go-home").tabName("기숙사 앞")
+                            .startBstopId("164000751").startStopName("인천대 송도캠퍼스(기숙사)").startStopAlias("기숙사")
                             .endBstopId("164000396").endBstopName("인천대입구역 1번출구").endStopAlias("인입")
                             .targetKeywords("").build()
             );
@@ -528,49 +533,59 @@ public class BusService {
 
 
 
-                // 1. 시작 정류장 인덱스 찾기
-                int startIdx = -1;
+                // 1. 시작 정류장 후보 인덱스 찾기 (bstopId 정확 일치 우선)
+                List<Integer> startCandidates = new ArrayList<>();
                 for (int i = 0; i < allStops.size(); i++) {
                     BusRouteStopDto s = allStops.get(i);
-                    if (startBstopId.equals(s.getBstopId()) || (s.getBstopName() != null && s.getBstopName().contains(startStopName))) {
-                        startIdx = i;
-                        break;
+                    if (startBstopId != null && !startBstopId.isBlank() && startBstopId.equals(s.getBstopId())) {
+                        startCandidates.add(i);
+                    }
+                }
+                // bstopId 매칭이 없으면 명칭 일치로 fallback
+                if (startCandidates.isEmpty() && startStopName != null && !startStopName.isBlank()) {
+                    for (int i = 0; i < allStops.size(); i++) {
+                        BusRouteStopDto s = allStops.get(i);
+                        if (s.getBstopName() != null && s.getBstopName().contains(startStopName)) {
+                            startCandidates.add(i);
+                        }
                     }
                 }
 
-                if (startIdx == -1) {
+                if (startCandidates.isEmpty()) {
                     continue;
                 }
 
-                // 2. 목표 도착 정류장 인덱스 찾기
-                int endIdx = -1;
-                String matchedEndStopName = endStopName;
-
+                // 2. 목표 도착 정류장 후보 인덱스 찾기
+                Map<Integer, String> endCandidates = new HashMap<>(); // index -> bstopName
                 if (endBstopId != null && !endBstopId.isBlank()) {
-                    // endBstopId가 지정된 경우 정확히 ID로 매칭
-                    for (int i = startIdx + 1; i < allStops.size(); i++) {
+                    for (int i = 0; i < allStops.size(); i++) {
                         BusRouteStopDto s = allStops.get(i);
-                        if (endBstopId.equals(s.getBstopId()) || (endStopName != null && s.getBstopName() != null && s.getBstopName().contains(endStopName))) {
-                            endIdx = i;
-                            matchedEndStopName = s.getBstopName();
-                            break;
+                        if (endBstopId.equals(s.getBstopId())) {
+                            endCandidates.put(i, s.getBstopName());
                         }
                     }
-                } else if (rule.getTargetKeywords() != null && !rule.getTargetKeywords().isBlank()) {
-                    // 레거시 키워드 매칭 fallback
+                }
+                if (endCandidates.isEmpty() && endStopName != null && !endStopName.isBlank()) {
+                    for (int i = 0; i < allStops.size(); i++) {
+                        BusRouteStopDto s = allStops.get(i);
+                        if (s.getBstopName() != null && s.getBstopName().contains(endStopName)) {
+                            endCandidates.put(i, s.getBstopName());
+                        }
+                    }
+                }
+                if (endCandidates.isEmpty() && rule.getTargetKeywords() != null && !rule.getTargetKeywords().isBlank()) {
                     List<String> targetKeywords = Arrays.stream(rule.getTargetKeywords().split(","))
                             .map(String::trim)
                             .filter(s -> !s.isBlank())
                             .collect(Collectors.toList());
 
-                    for (int i = startIdx + 1; i < allStops.size(); i++) {
+                    for (int i = 0; i < allStops.size(); i++) {
                         BusRouteStopDto s = allStops.get(i);
                         String name = s.getBstopName();
                         if (name != null) {
                             for (String kw : targetKeywords) {
                                 if (name.contains(kw)) {
-                                    endIdx = i;
-                                    matchedEndStopName = name;
+                                    endCandidates.put(i, name);
                                     break;
                                 }
                             }
@@ -578,7 +593,30 @@ public class BusService {
                     }
                 }
 
-                // 정방향(startIdx -> endIdx)으로 통과하는 노선만 등록
+                // 3. 최단 정방향 유효 구간(startIdx < endIdx, 최소 정류장 수) 선택
+                int bestStartIdx = -1;
+                int bestEndIdx = -1;
+                int minDistance = Integer.MAX_VALUE;
+                String matchedEndStopName = endStopName;
+
+                for (int sIdx : startCandidates) {
+                    for (Map.Entry<Integer, String> eEntry : endCandidates.entrySet()) {
+                        int eIdx = eEntry.getKey();
+                        if (eIdx > sIdx) {
+                            int dist = eIdx - sIdx;
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                bestStartIdx = sIdx;
+                                bestEndIdx = eIdx;
+                                matchedEndStopName = eEntry.getValue();
+                            }
+                        }
+                    }
+                }
+
+                // 정방향으로 유효한 구간을 찾은 경우에만 등록
+                int startIdx = bestStartIdx;
+                int endIdx = bestEndIdx;
                 if (endIdx != -1 && endIdx > startIdx) {
                     String sectionName = String.format("%s - %s번", tabName, routeNo);
                     List<BusRouteStopDto> slicedDto = allStops.subList(startIdx, endIdx + 1);
@@ -785,32 +823,66 @@ public class BusService {
             return List.of();
         }
 
-        int startIndex = 0;
-        int endIndex = allStops.size() - 1;
-
+        List<Integer> startCandidates = new ArrayList<>();
         if (startStop != null && !startStop.isBlank()) {
             for (int i = 0; i < allStops.size(); i++) {
                 BusRouteStopDto stop = allStops.get(i);
-                if (stop.getBstopId().equals(startStop) || stop.getBstopName().contains(startStop)) {
-                    startIndex = i;
-                    break;
+                if (stop.getBstopId() != null && stop.getBstopId().equals(startStop)) {
+                    startCandidates.add(i);
                 }
             }
+            if (startCandidates.isEmpty()) {
+                for (int i = 0; i < allStops.size(); i++) {
+                    BusRouteStopDto stop = allStops.get(i);
+                    if (stop.getBstopName() != null && stop.getBstopName().contains(startStop)) {
+                        startCandidates.add(i);
+                    }
+                }
+            }
+        } else {
+            startCandidates.add(0);
         }
 
+        List<Integer> endCandidates = new ArrayList<>();
         if (endStop != null && !endStop.isBlank()) {
-            for (int i = startIndex; i < allStops.size(); i++) {
+            for (int i = 0; i < allStops.size(); i++) {
                 BusRouteStopDto stop = allStops.get(i);
-                if (stop.getBstopId().equals(endStop) || stop.getBstopName().contains(endStop)) {
-                    endIndex = i;
-                    break;
+                if (stop.getBstopId() != null && stop.getBstopId().equals(endStop)) {
+                    endCandidates.add(i);
+                }
+            }
+            if (endCandidates.isEmpty()) {
+                for (int i = 0; i < allStops.size(); i++) {
+                    BusRouteStopDto stop = allStops.get(i);
+                    if (stop.getBstopName() != null && stop.getBstopName().contains(endStop)) {
+                        endCandidates.add(i);
+                    }
+                }
+            }
+        } else {
+            endCandidates.add(allStops.size() - 1);
+        }
+
+        int bestStart = 0;
+        int bestEnd = allStops.size() - 1;
+        int minDistance = Integer.MAX_VALUE;
+
+        for (int sIdx : startCandidates) {
+            for (int eIdx : endCandidates) {
+                if (eIdx > sIdx) {
+                    int dist = eIdx - sIdx;
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        bestStart = sIdx;
+                        bestEnd = eIdx;
+                    }
                 }
             }
         }
 
         List<BusRouteStop> sliced = new ArrayList<>();
         int seq = 1;
-        for (int i = startIndex; i <= endIndex && i < allStops.size(); i++) {
+        for (int i = bestStart; i <= bestEnd && i < allStops.size(); i++) {
             BusRouteStopDto dto = allStops.get(i);
             sliced.add(BusRouteStop.builder()
                     .seq(seq++)
