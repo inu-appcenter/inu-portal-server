@@ -3,7 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.controller;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCourseItemRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemMemoUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableItemResponseDto;
@@ -49,7 +49,7 @@ public class TimeTableItemController implements TimeTableItemApiSpecification {
     public ResponseEntity<ResponseDto<TimeTableItemResponseDto>> createTimeTableItemForCustom(
             @AuthenticationPrincipal Member member,
             @PathVariable Long timeTableId,
-            @Valid @RequestBody TimeTableCustomItemRequestDto request
+            @Valid @RequestBody TimeTableCustomItemCreateRequestDto request
     ) {
 
         TimeTableItemResponseDto response =
