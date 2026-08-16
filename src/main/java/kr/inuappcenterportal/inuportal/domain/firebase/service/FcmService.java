@@ -482,7 +482,7 @@ public class FcmService {
 
     @Transactional
     public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
-        Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Direction.DESC, "id"));
+        Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Order.asc("isRead"), Sort.Order.desc("id")));
         Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
 
         messages.forEach(MemberFcmMessage::incrementViewCount);
