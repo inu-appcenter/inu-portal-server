@@ -38,8 +38,11 @@ public class TimeTableAnalysisUtils {
             int totalCredits,
             int totalClasses,
             int majorCourseCount,
+            int majorCredits,
             int generalCourseCount,
+            int generalCredits,
             int onlineCourseCount,
+            int onlineCredits,
             int otherCourseCount,
             List<String> freeDays,
             List<DayScheduleSummary> daySummaries,
@@ -109,14 +112,18 @@ public class TimeTableAnalysisUtils {
         int totalCredits = 0;
         int totalClasses = 0;
         int majorCourseCount = 0;
+        int majorCredits = 0;
         int generalCourseCount = 0;
+        int generalCredits = 0;
         int onlineCourseCount = 0;
+        int onlineCredits = 0;
         int otherCourseCount = 0;
 
         for (TimeTableDetailItemResponseDto item : items) {
             if (item.course() != null) {
                 CourseTimeTableItemResponseDto c = item.course();
-                totalCredits += (c.credit() != null ? c.credit() : 0);
+                int credit = (c.credit() != null ? c.credit() : 0);
+                totalCredits += credit;
                 totalClasses++;
 
                 // 전공/교양/이러닝 판별
@@ -140,6 +147,7 @@ public class TimeTableAnalysisUtils {
                     }
                     if (isOnline) {
                         onlineCourseCount++;
+                        onlineCredits += credit;
                     }
 
                     // 전공/교양 구분
@@ -158,9 +166,15 @@ public class TimeTableAnalysisUtils {
                         else if (offering.getIsuNameRaw().contains("교양")) isGeneral = true;
                     }
 
-                    if (isMajor) majorCourseCount++;
-                    else if (isGeneral) generalCourseCount++;
-                    else otherCourseCount++;
+                    if (isMajor) {
+                        majorCourseCount++;
+                        majorCredits += credit;
+                    } else if (isGeneral) {
+                        generalCourseCount++;
+                        generalCredits += credit;
+                    } else {
+                        otherCourseCount++;
+                    }
                 } else {
                     otherCourseCount++;
                 }
@@ -248,8 +262,11 @@ public class TimeTableAnalysisUtils {
                 totalCredits,
                 totalClasses,
                 majorCourseCount,
+                majorCredits,
                 generalCourseCount,
+                generalCredits,
                 onlineCourseCount,
+                onlineCredits,
                 otherCourseCount,
                 freeDays,
                 daySummaries,
