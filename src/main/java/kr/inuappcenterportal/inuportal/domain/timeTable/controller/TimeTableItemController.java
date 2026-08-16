@@ -3,7 +3,9 @@ package kr.inuappcenterportal.inuportal.domain.timeTable.controller;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCourseItemRequestDto;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemMemoUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableItemService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -47,7 +49,7 @@ public class TimeTableItemController implements TimeTableItemApiSpecification {
     public ResponseEntity<ResponseDto<TimeTableItemResponseDto>> createTimeTableItemForCustom(
             @AuthenticationPrincipal Member member,
             @PathVariable Long timeTableId,
-            @Valid @RequestBody TimeTableCustomItemRequestDto request
+            @Valid @RequestBody TimeTableCustomItemCreateRequestDto request
     ) {
 
         TimeTableItemResponseDto response =
@@ -69,7 +71,7 @@ public class TimeTableItemController implements TimeTableItemApiSpecification {
             @AuthenticationPrincipal Member member,
             @PathVariable Long timeTableId,
             @PathVariable Long customScheduleId,
-            @Valid @RequestBody TimeTableCustomItemRequestDto request
+            @Valid @RequestBody TimeTableItemUpdateRequestDto request
     ) {
         TimeTableItemResponseDto response =
                 timeTableItemService.updateTimeTableItemForCustom(
@@ -78,6 +80,24 @@ public class TimeTableItemController implements TimeTableItemApiSpecification {
 
         return ResponseEntity.ok(
                 ResponseDto.of(response, "커스텀 일정 수정 성공")
+        );
+    }
+
+
+    /**
+     * 시간표 요소 메모 수정 컨트롤러
+     */
+    @PatchMapping("/{timeTableId}/timeTableItem/{timeTableItemId}")
+    public ResponseEntity<ResponseDto<TimeTableItemResponseDto>> updateTimeTableItemMemo(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long timeTableId,
+            @PathVariable Long timeTableItemId,
+            @Valid @RequestBody TimeTableItemMemoUpdateRequestDto request
+    ) {
+        TimeTableItemResponseDto response = timeTableItemService.updateTimeTableItemMemo(member.getId(), timeTableId, timeTableItemId, request);
+
+        return ResponseEntity.ok(
+                ResponseDto.of(response, "시간표 요소 메모 수정 성공")
         );
     }
 

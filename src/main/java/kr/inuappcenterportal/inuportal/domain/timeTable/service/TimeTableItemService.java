@@ -8,7 +8,10 @@ import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRe
 import kr.inuappcenterportal.inuportal.domain.customSchedule.dto.CustomScheduleMeetingCommand;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.service.CustomScheduleService;
-import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomMeetingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemMemoUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableItemUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
@@ -72,7 +75,7 @@ public class TimeTableItemService {
         // 생성용
         List<CourseMeeting> meetings = courseMeetingRepository.findAllByCourseOfferingId(courseOffering.getId());
         if (!meetings.isEmpty()) {
-            List<TimeSlot> timeSlots = toTimeSlots(meetings);
+            List<TimeSlot> timeSlots = toCourseTimeSlots(meetings);
 
             validateNoRequestTimeConflict(timeSlots);
             validateNoDBTimeConflict(timeTableId, timeSlots);
@@ -93,7 +96,7 @@ public class TimeTableItemService {
     public TimeTableItemResponseDto createTimeTableItemForCustom(
             Long memberId,
             Long timeTableId,
-            TimeTableCustomItemRequestDto request
+            TimeTableCustomItemCreateRequestDto request
     ) {
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
@@ -102,9 +105,9 @@ public class TimeTableItemService {
         validateOwner(memberId, timeTable);
 
         // 생성용
-        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request);
+        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request.meetings());
         // 검증용
-        List<TimeSlot> timeSlots = toTimeSlots(request);
+        List<TimeSlot> timeSlots = toCustomTimeSlots(request.meetings());
 
         // 중복 일정 검증
         validateNoRequestTimeConflict(timeSlots);
@@ -130,7 +133,7 @@ public class TimeTableItemService {
             Long memberId,
             Long timeTableId,
             Long customScheduleId,
-            TimeTableCustomItemRequestDto request
+            TimeTableItemUpdateRequestDto request
     ) {
         // 시간표 가져오기
         TimeTable timeTable = timeTableRepository.findById(timeTableId)
@@ -140,29 +143,29 @@ public class TimeTableItemService {
         validateOwner(memberId, timeTable);
 
         // 수정할 시간표 요소 가져오기
-        TimeTableItem updatetimeTableItem = timeTableItemRepository.findByCustomScheduleId(customScheduleId)
+        TimeTableItem updateTimeTableItem = timeTableItemRepository.findByCustomScheduleId(customScheduleId)
                 .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_ITEM_NOT_FOUND));
 
         // 위에서 찾은 시간표 요소가 해당 시간표에 속하는지 검증
-        if (!updatetimeTableItem.getTimeTable().getId().equals(timeTableId)) {
+        if (!updateTimeTableItem.getTimeTable().getId().equals(timeTableId)) {
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM_IN_TIMETABLE);
         }
 
         // 수정하려는 시간표 요소가 커스텀인지 아닌지 검증
-        if (updatetimeTableItem.getType() != TimeTableItemType.CUSTOM)
+        if (updateTimeTableItem.getType() != TimeTableItemType.CUSTOM)
             throw new MyException(MyErrorCode.NO_CUSTOM_ITEM);
 
         // 가져온 시간표 요소에서 커스텀 일정 정보 추출
-        CustomSchedule customSchedule = updatetimeTableItem.getCustomSchedule();
+        CustomSchedule customSchedule = updateTimeTableItem.getCustomSchedule();
 
         // 생성용
-        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request);
+        List<CustomScheduleMeetingCommand> meetings = toCustomCommands(request.meetings());
         // 검증용
-        List<TimeSlot> timeSlots = toTimeSlots(request);
+        List<TimeSlot> timeSlots = toCustomTimeSlots(request.meetings());
 
         // 중복 일정 검증
         validateNoRequestTimeConflict(timeSlots);
-        validateNoDBTimeConflict(timeTableId, timeSlots, updatetimeTableItem.getId());
+        validateNoDBTimeConflict(timeTableId, timeSlots, updateTimeTableItem.getId());
 
         customScheduleService.updateCustomSchedule(
                 customSchedule,
@@ -170,12 +173,43 @@ public class TimeTableItemService {
                 meetings
         );
 
-        return TimeTableItemResponseDto.from(updatetimeTableItem);
+        return TimeTableItemResponseDto.from(updateTimeTableItem);
+    }
+
+    /**
+     * 시간표 요소 메모 수정 메서드
+     */
+    @Transactional
+    public TimeTableItemResponseDto updateTimeTableItemMemo(
+            Long memberId,
+            Long timeTableId,
+            Long timeTableItemId,
+            TimeTableItemMemoUpdateRequestDto request
+    ) {
+        // 시간표 가져오기
+        TimeTable timeTable = timeTableRepository.findById(timeTableId)
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_NOT_FOUND));
+
+        // 본인 시간표인지 검증
+        validateOwner(memberId, timeTable);
+
+        // 수정할 시간표 요소
+        TimeTableItem timeTableItem = timeTableItemRepository.findById(timeTableItemId)
+                .orElseThrow(() -> new MyException(MyErrorCode.TIMETABLE_ITEM_NOT_FOUND));
+
+        // 위에서 찾은 시간표 요소가 해당 시간표에 속하는지 검증
+        if (!timeTableItem.getTimeTable().getId().equals(timeTableId)) {
+            throw new MyException(MyErrorCode.NO_ITEM_IN_TIMETABLE);
+        }
+
+        timeTableItem.updateMemo(request.memo());
+
+        return TimeTableItemResponseDto.from(timeTableItem);
     }
 
     // 중복 변환 로직 분리
-    private List<CustomScheduleMeetingCommand> toCustomCommands(TimeTableCustomItemRequestDto request) {
-        return request.meetings().stream()
+    private List<CustomScheduleMeetingCommand> toCustomCommands(List<TimeTableCustomMeetingRequestDto> meetings) {
+        return meetings.stream()
                 .map(meeting -> new CustomScheduleMeetingCommand(
                         meeting.location(),
                         meeting.day(),
@@ -186,8 +220,8 @@ public class TimeTableItemService {
     }
 
     // 커스텀 일정용
-    private List<TimeSlot> toTimeSlots(TimeTableCustomItemRequestDto request) {
-        return request.meetings().stream()
+    private List<TimeSlot> toCustomTimeSlots(List<TimeTableCustomMeetingRequestDto> meetings) {
+        return meetings.stream()
                 .map(meeting -> new TimeSlot(
                         meeting.day(),
                         meeting.startTime(),
@@ -197,7 +231,7 @@ public class TimeTableItemService {
     }
 
     // 개설 강의용
-    private List<TimeSlot> toTimeSlots(List<CourseMeeting> meetings) {
+    private List<TimeSlot> toCourseTimeSlots(List<CourseMeeting> meetings) {
         return meetings.stream()
                 .map(meeting -> new TimeSlot(
                         meeting.getDay(),

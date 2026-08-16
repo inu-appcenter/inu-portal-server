@@ -362,8 +362,11 @@ public class BusApiService {
 
             String routeId = getTagValue("ROUTEID", item);
             String routeNo = getTagValue("ROUTENO", item);
-            if (routeNo.isBlank() && !routeId.isBlank()) {
-                routeNo = fetchRouteNoDynamically(routeId);
+            if ((routeNo.isBlank() || routeNo.matches("^[0-9]+$")) && !routeId.isBlank()) {
+                String dynamicNo = fetchRouteNoDynamically(routeId);
+                if (!dynamicNo.isBlank()) {
+                    routeNo = dynamicNo;
+                }
             }
 
             result.add(BusArrivalItemDto.builder()

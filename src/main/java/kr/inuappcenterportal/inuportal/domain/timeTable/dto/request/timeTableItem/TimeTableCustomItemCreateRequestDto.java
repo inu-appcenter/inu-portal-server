@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotEmpty;
 
 import java.util.List;
 
-public record TimeTableCustomItemRequestDto(
+public record TimeTableCustomItemCreateRequestDto(
         @Schema(description = "커스텀 일정 제목", example = "알고리즘 스터디")
         @NotBlank String title,
         @Schema(description = "시간표 요소 메모", example = "스터디룸 예약")

@@ -388,9 +388,20 @@ public class BusService {
             if (routeNo == null || routeNo.isBlank()) {
                 routeNo = sectionRouteMap.get(h.getRouteId());
             }
-            if (routeNo == null || routeNo.isBlank()) {
-                routeNo = busApiService.fetchRouteNoDynamically(h.getRouteId());
+            if (routeNo == null || routeNo.isBlank() || routeNo.matches("^[0-9]+$")) {
+                String dynamicNo = busApiService.fetchRouteNoDynamically(h.getRouteId());
+                if (!dynamicNo.isBlank()) {
+                    routeNo = dynamicNo;
+                }
             }
+
+            // 순환 노선 통일 보정 ("41" -> "순환41", "46" -> "순환46" 등)
+            if ("41".equals(routeNo) || "165000514".equals(h.getRouteId())) routeNo = "순환41";
+            else if ("46".equals(routeNo) || "164000004".equals(h.getRouteId())) routeNo = "순환46";
+            else if ("42".equals(routeNo) || "161000038".equals(h.getRouteId())) routeNo = "순환42";
+            else if ("43".equals(routeNo) || "161000027".equals(h.getRouteId())) routeNo = "순환43";
+            else if ("47".equals(routeNo) || "165000201".equals(h.getRouteId())) routeNo = "순환47";
+            else if ("165000515".equals(h.getRouteId())) routeNo = "58";
 
             records.add(BusHistoryResponseDto.HistoryRecord.builder()
                     .id(h.getId())

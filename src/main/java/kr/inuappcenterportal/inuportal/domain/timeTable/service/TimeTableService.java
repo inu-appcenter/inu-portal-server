@@ -25,6 +25,7 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.Ti
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
+import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableEvaluationRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -51,6 +52,7 @@ public class TimeTableService {
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
     private final FriendService friendService;
     private final CourseMeetingService courseMeetingService;
+    private final TimeTableEvaluationRepository timeTableEvaluationRepository;
 
 
     /**
@@ -270,6 +272,8 @@ public class TimeTableService {
         AutoUpdatePrimary(timeTable);
 
         timeTableItemService.deleteAllTimeTableItems(timeTable);
+
+        timeTableEvaluationRepository.deleteByTimeTableId(timeTableId);
 
         timeTableRepository.delete(timeTable);
     }

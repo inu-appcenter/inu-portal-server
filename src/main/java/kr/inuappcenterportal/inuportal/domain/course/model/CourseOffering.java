@@ -144,8 +144,6 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "grade_evaluation")
     private GradeEvaluation gradeEvaluation;
 
-    private String note;
-
     // 생성자
     private CourseOffering(
             String syllabus,
@@ -183,8 +181,7 @@ public class CourseOffering extends BaseTimeEntity {
             GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
-            Integer enrolledCount,
-            String note
+            Integer enrolledCount
     ) {
         this.syllabus = syllabus;
         this.subjectNumber = subjectNumber;
@@ -222,7 +219,6 @@ public class CourseOffering extends BaseTimeEntity {
         this.credit = credit;
         this.capacity = capacity;
         this.enrolledCount = enrolledCount;
-        this.note = note;
     }
 
     // 정적 팩토리 메서드
@@ -262,8 +258,7 @@ public class CourseOffering extends BaseTimeEntity {
             GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
-            Integer enrolledCount,
-            String note
+            Integer enrolledCount
     ) {
         return new CourseOffering(
                 syllabus,
@@ -301,8 +296,7 @@ public class CourseOffering extends BaseTimeEntity {
                 gradeEvaluation,
                 credit,
                 capacity,
-                enrolledCount,
-                note
+                enrolledCount
         );
     }
 

@@ -185,7 +185,6 @@ public interface CourseOfferingApiSpecification {
                                                     "enrolledCount": null,
                                                     "savedCount": 0,
                                                     "hussCourseYn": "N",
-                                                    "note": null,
                                                     "meetings": [
                                                       {
                                                         "id": 101,

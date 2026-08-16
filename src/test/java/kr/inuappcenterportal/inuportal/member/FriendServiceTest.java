@@ -131,7 +131,7 @@ class FriendServiceTest {
         verify(fcmAsyncService).sendAsyncTrackedNotification(
                 eq(List.of(1L)),
                 eq("친구 요청 결과"),
-                eq("친구 요청이 거절되었습니다."),
+                eq("receiver님이 친구 요청을 거절했습니다."),
                 eq(FcmMessageType.FRIEND),
                 eq(100L),
                 eq("/chat/list?category=친구")

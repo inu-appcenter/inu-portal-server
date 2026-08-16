@@ -79,6 +79,7 @@ public enum MyErrorCode {
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 공지사항입니다."),
     TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 시간표입니다."),
     TIMETABLE_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 시간표 요소입니다."),
+    TIMETABLE_EVALUATION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "동일한 시간표에서는 최대 3회까지만 다시 생성할 수 있습니다. 시간표를 수정하면 새롭게 평가받을 수 있어요!"),
     SEMESTER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 학기입니다."),
     DUPLICATE_TIMETABLE_NAME(HttpStatus.BAD_REQUEST, "같은 이름의 시간표가 존재합니다."),
     HAS_NOT_TIMETABLE_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 시간표에 접근할 권한이 없습니다."),
