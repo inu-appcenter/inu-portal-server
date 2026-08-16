@@ -74,8 +74,8 @@ class FcmNotificationSortTest {
     MemberFcmMessageRepository memberFcmMessageRepository;
 
     @Test
-    @DisplayName("알림 조회 시 안 읽은 알림이 최신순으로 상단에 배치되고, 그 후 읽은 알림이 최신순으로 배치된다.")
-    void notificationSortOrderTest() {
+    @DisplayName("알림 조회 시 모든 알림이 최신순(id DESC)으로 정렬되어 반환된다.")
+    void notificationLatestSortTest() {
         Member member = memberRepository.save(Member.builder()
                 .studentId("202000001")
                 .roles(Collections.singletonList("ROLE_USER"))
@@ -87,24 +87,11 @@ class FcmNotificationSortTest {
         FcmMessage msg3 = fcmMessageRepository.save(FcmMessage.builder().title("알림 3").body("본문 3").build());
         FcmMessage msg4 = fcmMessageRepository.save(FcmMessage.builder().title("알림 4").body("본문 4").build());
 
-        // memberFcmMessage 생성
-        // msg1: 읽음 상태
-        MemberFcmMessage m1 = MemberFcmMessage.of(msg1.getId(), member.getId(), FcmMessageType.GENERAL);
-        m1.markAsRead();
-        m1 = memberFcmMessageRepository.save(m1);
-
-        // msg2: 안 읽은 상태 (오래된 안 읽은 알림)
-        MemberFcmMessage m2 = MemberFcmMessage.of(msg2.getId(), member.getId(), FcmMessageType.GENERAL);
-        m2 = memberFcmMessageRepository.save(m2);
-
-        // msg3: 읽음 상태 (최신 읽은 알림)
-        MemberFcmMessage m3 = MemberFcmMessage.of(msg3.getId(), member.getId(), FcmMessageType.GENERAL);
-        m3.markAsRead();
-        m3 = memberFcmMessageRepository.save(m3);
-
-        // msg4: 안 읽은 상태 (최신 안 읽은 알림)
-        MemberFcmMessage m4 = MemberFcmMessage.of(msg4.getId(), member.getId(), FcmMessageType.GENERAL);
-        m4 = memberFcmMessageRepository.save(m4);
+        // memberFcmMessage 생성 (순차적으로 생성)
+        MemberFcmMessage m1 = memberFcmMessageRepository.save(MemberFcmMessage.of(msg1.getId(), member.getId(), FcmMessageType.GENERAL));
+        MemberFcmMessage m2 = memberFcmMessageRepository.save(MemberFcmMessage.of(msg2.getId(), member.getId(), FcmMessageType.GENERAL));
+        MemberFcmMessage m3 = memberFcmMessageRepository.save(MemberFcmMessage.of(msg3.getId(), member.getId(), FcmMessageType.GENERAL));
+        MemberFcmMessage m4 = memberFcmMessageRepository.save(MemberFcmMessage.of(msg4.getId(), member.getId(), FcmMessageType.GENERAL));
 
         // 조회 실행
         ListResponseDto<NotificationResponse> result = fcmService.findNotifications(member, 1);
@@ -112,22 +99,11 @@ class FcmNotificationSortTest {
 
         assertEquals(4, contents.size());
 
-        // 순서 검증:
-        // 1등: m4 (안 읽음, 최신)
-        // 2등: m2 (안 읽음, 이전)
-        // 3등: m3 (읽음, 최신)
-        // 4등: m1 (읽음, 이전)
+        // 순수 최신순(id DESC) 정렬 검증: m4 -> m3 -> m2 -> m1
         assertEquals(m4.getId(), contents.get(0).memberFcmMessageId());
-        assertFalse(contents.get(0).isRead());
-
-        assertEquals(m2.getId(), contents.get(1).memberFcmMessageId());
-        assertFalse(contents.get(1).isRead());
-
-        assertEquals(m3.getId(), contents.get(2).memberFcmMessageId());
-        assertTrue(contents.get(2).isRead());
-
+        assertEquals(m3.getId(), contents.get(1).memberFcmMessageId());
+        assertEquals(m2.getId(), contents.get(2).memberFcmMessageId());
         assertEquals(m1.getId(), contents.get(3).memberFcmMessageId());
-        assertTrue(contents.get(3).isRead());
     }
 
     @Test
@@ -147,13 +123,13 @@ class FcmNotificationSortTest {
             ));
         }
 
-        // [1번째 방문]: 1페이지(1~10번)만 조회하고 나감
+        // [1번째 방문]: 1페이지(최신 10개)만 조회하고 나감
         ListResponseDto<NotificationResponse> visit1 = fcmService.findNotifications(member, 1);
         assertEquals(10, visit1.getContents().size());
         assertFalse(visit1.getContents().get(0).isRead());
         assertTrue(fcmService.hasUnreadNotification(member));
 
-        // 1페이지에 있던 알림뿐만 아니라 2페이지에 있던 알림(11~15번)도 모두 viewCount = 1
+        // 1페이지에 있던 알림뿐만 아니라 2페이지에 있던 알림(오래된 5개)도 모두 viewCount = 1
         for (MemberFcmMessage msg : messages) {
             MemberFcmMessage loaded = memberFcmMessageRepository.findById(msg.getId()).orElseThrow();
             assertEquals(1, loaded.getViewCount());
@@ -182,7 +158,7 @@ class FcmNotificationSortTest {
     }
 
     @Test
-    @DisplayName("인피니티 스크롤 시(1p -> 2p) 정렬 순서가 흔들리지 않고 순차적으로 깨끗하게 조회된다.")
+    @DisplayName("인피니티 스크롤 시(1p -> 2p) 정렬 순서가 흔들리지 않고 순차적으로 깨끗하게 최신순으로 조회된다.")
     void infiniteScrollConsistencyTest() {
         Member member = memberRepository.save(Member.builder()
                 .studentId("202000003")
@@ -197,11 +173,11 @@ class FcmNotificationSortTest {
             );
         }
 
-        // 1페이지 조회 (10개)
+        // 1페이지 조회 (최신 10개)
         ListResponseDto<NotificationResponse> page1 = fcmService.findNotifications(member, 1);
         assertEquals(10, page1.getContents().size());
 
-        // 2페이지 조회 (5개)
+        // 2페이지 조회 (그 다음 5개)
         ListResponseDto<NotificationResponse> page2 = fcmService.findNotifications(member, 2);
         assertEquals(5, page2.getContents().size());
 

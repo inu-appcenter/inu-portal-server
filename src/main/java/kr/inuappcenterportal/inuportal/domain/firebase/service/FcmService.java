@@ -491,7 +491,7 @@ public class FcmService {
             memberFcmMessageRepository.incrementViewCountForAllUnread(member.getId());
         }
 
-        Pageable pageable = PageRequest.of(pageIndex, 10, Sort.by(Sort.Order.asc("isRead"), Sort.Order.desc("id")));
+        Pageable pageable = PageRequest.of(pageIndex, 10, Sort.by(Sort.Direction.DESC, "id"));
         Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
 
         Map<Long, FcmMessage> fcmMessageMap = fcmMessageRepository.findAllById(
