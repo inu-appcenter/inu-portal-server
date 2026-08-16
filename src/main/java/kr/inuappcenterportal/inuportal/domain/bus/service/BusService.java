@@ -341,8 +341,9 @@ public class BusService {
     private static final java.util.Map<String, String> ROUTE_NO_FALLBACK = java.util.Map.ofEntries(
             java.util.Map.entry("165000012", "8"),
             java.util.Map.entry("165000020", "16"),
-            java.util.Map.entry("165000514", "41"),
-            java.util.Map.entry("164000004", "46"),
+            java.util.Map.entry("165000515", "58"),
+            java.util.Map.entry("165000514", "순환41"),
+            java.util.Map.entry("164000004", "순환46"),
             java.util.Map.entry("165000008", "6-1"),
             java.util.Map.entry("165000007", "6"),
             java.util.Map.entry("165000150", "1301"),
@@ -350,7 +351,12 @@ public class BusService {
             java.util.Map.entry("161000027", "순환43"),
             java.util.Map.entry("161000038", "순환42"),
             java.util.Map.entry("165000201", "순환47"),
-            java.util.Map.entry("213000019", "3002")
+            java.util.Map.entry("213000019", "3002"),
+            java.util.Map.entry("165000148", "6405"),
+            java.util.Map.entry("165000282", "M6405"),
+            java.util.Map.entry("165000381", "M6464"),
+            java.util.Map.entry("165000516", "6724"),
+            java.util.Map.entry("165000517", "6777")
     );
 
     public BusHistoryResponseDto getHistory(String bstopId, String targetDateStr) {
@@ -400,12 +406,23 @@ public class BusService {
             lastArrivalSeen.put(vehicleKey, h.getCreateDate());
 
             String routeNo = h.getRouteNo();
+            if (routeNo == null || routeNo.isBlank() || routeNo.matches("^[0-9]+$") && ROUTE_NO_FALLBACK.containsKey(h.getRouteId())) {
+                routeNo = ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), routeNo);
+            }
             if (routeNo == null || routeNo.isBlank()) {
                 routeNo = sectionRouteMap.get(h.getRouteId());
             }
             if (routeNo == null || routeNo.isBlank()) {
                 routeNo = ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), "");
             }
+
+            // 순환 노선 통일 보정 ("41" -> "순환41", "46" -> "순환46" 등)
+            if ("41".equals(routeNo) || "165000514".equals(h.getRouteId())) routeNo = "순환41";
+            else if ("46".equals(routeNo) || "164000004".equals(h.getRouteId())) routeNo = "순환46";
+            else if ("42".equals(routeNo) || "161000038".equals(h.getRouteId())) routeNo = "순환42";
+            else if ("43".equals(routeNo) || "161000027".equals(h.getRouteId())) routeNo = "순환43";
+            else if ("47".equals(routeNo) || "165000201".equals(h.getRouteId())) routeNo = "순환47";
+            else if ("165000515".equals(h.getRouteId())) routeNo = "58";
 
             records.add(BusHistoryResponseDto.HistoryRecord.builder()
                     .id(h.getId())

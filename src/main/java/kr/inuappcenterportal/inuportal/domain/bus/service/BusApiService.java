@@ -316,8 +316,9 @@ public class BusApiService {
     private static final java.util.Map<String, String> KNOWN_ROUTE_NO_MAP = java.util.Map.ofEntries(
             java.util.Map.entry("165000012", "8"),
             java.util.Map.entry("165000020", "16"),
-            java.util.Map.entry("165000514", "41"),
-            java.util.Map.entry("164000004", "46"),
+            java.util.Map.entry("165000515", "58"),
+            java.util.Map.entry("165000514", "순환41"),
+            java.util.Map.entry("164000004", "순환46"),
             java.util.Map.entry("165000008", "6-1"),
             java.util.Map.entry("165000007", "6"),
             java.util.Map.entry("165000150", "1301"),
@@ -325,7 +326,12 @@ public class BusApiService {
             java.util.Map.entry("161000027", "순환43"),
             java.util.Map.entry("161000038", "순환42"),
             java.util.Map.entry("165000201", "순환47"),
-            java.util.Map.entry("213000019", "3002")
+            java.util.Map.entry("213000019", "3002"),
+            java.util.Map.entry("165000148", "6405"),
+            java.util.Map.entry("165000282", "M6405"),
+            java.util.Map.entry("165000381", "M6464"),
+            java.util.Map.entry("165000516", "6724"),
+            java.util.Map.entry("165000517", "6777")
     );
 
     private List<BusArrivalItemDto> parseArrivalXml(String xmlData) throws Exception {
@@ -340,8 +346,8 @@ public class BusApiService {
 
             String routeId = getTagValue("ROUTEID", item);
             String routeNo = getTagValue("ROUTENO", item);
-            if (routeNo.isBlank() && !routeId.isBlank()) {
-                routeNo = KNOWN_ROUTE_NO_MAP.getOrDefault(routeId, "");
+            if ((routeNo.isBlank() || routeNo.matches("^[0-9]+$") && KNOWN_ROUTE_NO_MAP.containsKey(routeId)) && !routeId.isBlank()) {
+                routeNo = KNOWN_ROUTE_NO_MAP.getOrDefault(routeId, routeNo);
             }
 
             result.add(BusArrivalItemDto.builder()
