@@ -347,6 +347,7 @@ public class BusApiService {
             log.warn("노선 정보 API로부터 routeNo 동적 조회 실패 (routeId: {})", routeId, e);
         }
 
+        DYNAMIC_ROUTE_NO_CACHE.put(routeId, "");
         return "";
     }
 
