@@ -338,21 +338,6 @@ public class BusService {
                 .build();
     }
 
-    private static final java.util.Map<String, String> ROUTE_NO_FALLBACK = java.util.Map.ofEntries(
-            java.util.Map.entry("165000012", "8"),
-            java.util.Map.entry("165000020", "16"),
-            java.util.Map.entry("165000514", "41"),
-            java.util.Map.entry("164000004", "46"),
-            java.util.Map.entry("165000008", "6-1"),
-            java.util.Map.entry("165000007", "6"),
-            java.util.Map.entry("165000150", "1301"),
-            java.util.Map.entry("161000007", "9"),
-            java.util.Map.entry("161000027", "순환43"),
-            java.util.Map.entry("161000038", "순환42"),
-            java.util.Map.entry("165000201", "순환47"),
-            java.util.Map.entry("213000019", "3002")
-    );
-
     public BusHistoryResponseDto getHistory(String bstopId, String targetDateStr) {
         LocalDate targetDate = (targetDateStr != null && !targetDateStr.isBlank())
                 ? LocalDate.parse(targetDateStr, DateTimeFormatter.ISO_LOCAL_DATE)
@@ -404,7 +389,7 @@ public class BusService {
                 routeNo = sectionRouteMap.get(h.getRouteId());
             }
             if (routeNo == null || routeNo.isBlank()) {
-                routeNo = ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), "");
+                routeNo = busApiService.fetchRouteNoDynamically(h.getRouteId());
             }
 
             records.add(BusHistoryResponseDto.HistoryRecord.builder()
