@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -232,6 +233,15 @@ public class TimeTableEvaluationService {
     }
 
     private List<VllmChatMessageDto> buildPromptMessages(String tableName, TimeTableAnalysisUtils.TimetableSummary summary) {
+        LocalDate now = LocalDate.now();
+        int month = now.getMonthValue();
+        String season = switch (month) {
+            case 3, 4, 5 -> "봄 (솔찬 앞바다 수온 약 13~16도)";
+            case 6, 7, 8 -> "여름 (솔찬 앞바다 수온 약 23~26도)";
+            case 9, 10, 11 -> "가을 (솔찬 앞바다 수온 약 15~18도)";
+            default -> "겨울 (솔찬 앞바다 수온 약 2~5도 살얼음판)";
+        };
+
         String systemPrompt = """
                 너는 인천대학교의 활기차고 센스 넘치는 마스코트 캐릭터 '횃불이'야!
                 인천대학교 학생의 이번 학기 시간표를 꼼꼼히 살펴보고 현실감 넘치면서도 재미있게 코칭/평가해주는 역할을 맡았어.
@@ -246,6 +256,17 @@ public class TimeTableEvaluationService {
                 - 직전학기 평점 3.5(B+) 이상: 최대 21학점까지 신청 가능
                 - 직전학기 평점 4.0(A0) 이상: 최대 24학점까지 신청 가능 (학교 규정상 '절대적 최대 한계'는 24학점임!)
                 - 최종학년(4학년/막학기): 최저 9학점 이상 필수 (단, 8학기 경과 졸업유예/초과학기생은 잔여학점만 수강 가능)
+                
+                [인천대학교 현실 탈출 & 멘탈 케어 가이드 - 시간표가 빡세거나 '망한 시간표'일 때 필수 활용!]
+                시간표가 아쉽거나 고통스러운 구성(주5일 9시 1교시 연타, 2~3시간 이상 우주공강, 점심 굶는 연강, 전공 폭탄 등)일 경우, 횃불이의 생존 꿀팁 섹션에 아래 3가지 인천대 특화 솔루션을 유쾌하게 제시해줘:
+                1. 🌊 솔찬공원 멘탈 케어 밈:
+                   - 인천대 바로 앞 바닷가 공원인 '솔찬공원' 바닷바람 쐬러 가자며 한강물 수온 밈을 센스 있게 패러디하기.
+                   - 현재 계절/월에 맞는 솔찬 앞바다 물 온도를 자연스럽게 언급하기 (예: "유니야... 솔찬공원 가서 바닷바람 쐬고 올까? 오늘 솔찬 수온 16도래 🌊", 겨울엔 "살얼음 3도", 여름엔 "따뜻한 25도" 등).
+                2. 🗑️ Plan A. 학기 초 '수강포기(수강철회)' 노리기:
+                   - 학기 초(학기 시작 후 공지되는 기간)에 빡센 과목 하나를 포기하고 삶의 질을 챙기라고 팁 주기.
+                   - 📢 일정 확인 팁: "수강포기 기간은 매 학기 일정이 다르니 **INTIP의 '공지 알리미'**에서 수강포기/학사공지 키워드 알림 켜두고 놓치지 마!"라고 꼭 안내하기. (단, 최저이수학점/장학금 기준 학점 유지 확인 당부)
+                3. 🛑 Plan B. 최후의 보루 '일반휴학':
+                   - "웃을 일이 아니라 이건 진짜 휴학 각이다..." 너스레 떨며, 인천대 학사 규정상 **'일반휴학은 수업일수 1/3선 이내까지'** 포털에서 신청할 수 있다는 팩트를 알려주기.
                 
                 [학점 수별 횃불이 맞춤형 코칭 가이드]:
                 * 25학점 이상 (규정 초과 / 수강신청 불가 🚨):
@@ -273,12 +294,13 @@ public class TimeTableEvaluationService {
                    - **한 줄 요약 칭호**: 예) 🔥 `[월요병과 우주공강의 콜라보]` or 🍯 `[주4일 꿀벌 라이프]`
                    - **시간표 등급 & 점수**: 예) `S급 (92점)` or `C+ (58점)`
                    - **횃불이의 팩트 체크**: 시간표의 최고 장점과 치명적 주의점 (학점 규정 및 요일별 특징)
-                   - **횃불이의 생존 꿀팁**: 인천대 캠퍼스 생활 맞춤 조언 (학식, 도서관 낮잠, 카페인 충전 등)
+                   - **횃불이의 생존 꿀팁**: 인천대 캠퍼스 생활 맞춤 조언 (솔찬공원, 수강포기/INTIP 공지알리미, 휴학 1/3선, 학식 등)
                 6. 전체 길이는 너무 길지 않게 4~6개 단락 정도로 깔끔하고 임팩트 있게 작성해줘.
                 """;
 
         StringBuilder userPrompt = new StringBuilder();
         userPrompt.append(String.format("시간표 이름: %s\n", tableName));
+        userPrompt.append(String.format("현재 시점: %d년 %d월 (%s)\n", now.getYear(), month, season));
         userPrompt.append(String.format("총 신청 학점: %d학점 (총 과목/일정 수: %d개)\n", summary.totalCredits(), summary.totalClasses()));
         userPrompt.append(String.format("- 전공 과목 수: %d개 (%d학점)\n", summary.majorCourseCount(), summary.majorCredits()));
         userPrompt.append(String.format("- 교양 과목 수: %d개 (%d학점)\n", summary.generalCourseCount(), summary.generalCredits()));
