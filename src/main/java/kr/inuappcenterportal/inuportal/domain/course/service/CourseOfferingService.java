@@ -3,10 +3,10 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 import kr.inuappcenterportal.inuportal.domain.course.crawler.excel.ExcelParser;
 import kr.inuappcenterportal.inuportal.domain.course.dto.CourseCommand;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
-import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseExcelRow;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseOverviewExcelRow;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
-import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingOptionsResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
@@ -21,6 +21,7 @@ import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -34,10 +35,8 @@ import java.io.InputStream;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.function.Function;
-
-import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -189,7 +188,8 @@ public class CourseOfferingService {
         offerings.forEach(item -> {
             String itemCode = code.apply(item);
             String itemName = name.apply(item);
-            if (!blank(itemCode) && !blank(itemName)) result.putIfAbsent(itemCode, new CourseOfferingOptionsResponseDto.CodeNameOption(itemCode, itemName));
+            if (!blank(itemCode) && !blank(itemName))
+                result.putIfAbsent(itemCode, new CourseOfferingOptionsResponseDto.CodeNameOption(itemCode, itemName));
         });
         return result.values().stream().sorted(comparator).toList();
     }
@@ -206,8 +206,13 @@ public class CourseOfferingService {
         return name == null ? null : name.replace('ㆍ', '·');
     }
 
-    private String nullSafe(String value) { return value == null ? "" : value; }
-    private boolean blank(String value) { return value == null || value.isBlank(); }
+    private String nullSafe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
 
     /**
      * 개설 강의 조건별 조회
@@ -469,6 +474,7 @@ public class CourseOfferingService {
 
     /**
      * 개설 강의 생성
+     * (학교 API에서 받은 개설강의 기본값을 먼저 DB에 생성/앱데이트 하는 메서드)
      */
     @Transactional
     public CourseOfferingResponseDto upsertCourseOfferings(CourseOfferingApiItem request) {
@@ -541,6 +547,7 @@ public class CourseOfferingService {
                                 request.englishName(),
                                 request.hussCourseYn(),
                                 null,
+                                null,
                                 course,
                                 semester,
                                 CNCTR_ISU_NAME.from(request.cnctrIsuName()),
@@ -551,8 +558,8 @@ public class CourseOfferingService {
                                 SSUP_TYPE_NAME.from(request.suupTypeName()),
                                 HY_NAME.from(request.hyName()),
                                 ENGLISH_NAME.from(request.englishName()),
-                                request.credit(),
                                 null,
+                                request.credit(),
                                 null,
                                 null
                         )
@@ -635,10 +642,10 @@ public class CourseOfferingService {
 
 
     /**
-     * Excel 편람 파일에서 가져온 교수명 업데이트
+     * Excel 편람 파일에서 필드 업데이트
      */
     @Transactional
-    public void updateProfessorsFromExcel(
+    public void updateFieldFromExcel(
             Integer year,
             SemesterTerm term,
             InputStream inputStream
@@ -646,41 +653,58 @@ public class CourseOfferingService {
         Semester semester = semesterRepository.findByYearAndTerm(year, term)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
 
-        List<CourseExcelRow> rows = excelParser.parse(inputStream);
-        Map<String, String> professorBySubjectNumber = rows.stream()
+        List<CourseOverviewExcelRow> rows = excelParser.parse(inputStream);
+
+        Map<String, CourseOverviewExcelRow> rowBySubjectNumber = rows.stream()
                 .filter(row -> row.subjectNumber() != null && !row.subjectNumber().isBlank())
-                .filter(row -> row.professor() != null && !row.professor().isBlank())
                 .collect(Collectors.toMap(
                         row -> row.subjectNumber().trim(),
-                        row -> row.professor().trim(),
+                        row -> row,
                         (first, ignored) -> first,
                         LinkedHashMap::new
                 ));
 
         int updatedCount = 0;
-        int skippedCount = rows.size() - professorBySubjectNumber.size();
+        int skippedCount = rows.size() - rowBySubjectNumber.size();
 
-        for (Map.Entry<String, String> entry : professorBySubjectNumber.entrySet()) {
+        for (Map.Entry<String, CourseOverviewExcelRow> entry : rowBySubjectNumber.entrySet()) {
+
+            String subjectNumber = entry.getKey();
+            CourseOverviewExcelRow row = entry.getValue();
+
             Optional<CourseOffering> courseOffering =
-                    courseOfferingRepository.findBySemesterIdAndSubjectNumber(semester.getId(), entry.getKey());
+                    courseOfferingRepository.findBySemesterIdAndSubjectNumber(semester.getId(), subjectNumber);
 
             if (courseOffering.isPresent()) {
-                courseOffering.get().updateProfessor(entry.getValue());
+                courseOffering.get().updateFromExcel(
+                        row.professor(),
+                        row.capacity(),
+                        row.gradeEvaluation(),
+                        parseGradeEvaluation(row.gradeEvaluation())
+                );
                 updatedCount++;
             } else {
                 skippedCount++;
-                log.warn("교수명 업데이트 대상 강의를 찾을 수 없습니다. year={}, term={}, subjectNumber={}",
-                        year, term, entry.getKey());
+                log.warn("엑셀 업데이트 대상 강의를 찾을 수 없습니다. year={}, term={}, subjectNumber={}",
+                        year, term, subjectNumber);
             }
         }
 
-        log.info("교수명 엑셀 반영 완료. year={}, term={}, total={}, updated={}, skipped={}",
+        log.info("편람 엑셀 반영 완료. year={}, term={}, total={}, updated={}, skipped={}",
                 year,
                 term,
                 rows.size(),
                 updatedCount,
                 skippedCount
         );
+    }
+
+    private GradeEvaluation parseGradeEvaluation(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return GradeEvaluation.from(value.trim());
     }
 
     /**

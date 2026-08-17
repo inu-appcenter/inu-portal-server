@@ -14,14 +14,12 @@ import kr.inuappcenterportal.inuportal.domain.replylike.model.ReplyLike;
 import kr.inuappcenterportal.inuportal.domain.replylike.repository.LikeReplyRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
-import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,15 +35,12 @@ public class ReplyService {
     private final ReplyRepository replyRepository;
     private final PostRepository postRepository;
     private final LikeReplyRepository likeReplyRepository;
-    private final RedisService redisService;
     private final BlockRepository blockRepository;
     private final FcmService fcmService;
 
     @Transactional
-    public Long saveReply(Member member, ReplyDto replyDto, Long postId) throws NoSuchAlgorithmException {
+    public Long saveReply(Member member, ReplyDto replyDto, Long postId) {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-        String hash = member.getId() + replyDto.getContent();
-        redisService.blockRepeat(hash);
         long num = countAnonymousNumber(member,post);
         Reply reply = Reply.builder().content(replyDto.getContent()).anonymous(replyDto.getAnonymous()).member(member).post(post).number(num).build();
         replyRepository.save(reply);
@@ -56,10 +51,8 @@ public class ReplyService {
     }
 
     @Transactional
-    public Long saveReReply(Member member, ReplyDto replyDto, Long replyId) throws NoSuchAlgorithmException {
+    public Long saveReReply(Member member, ReplyDto replyDto, Long replyId) {
         Reply reply = replyRepository.findByIdAndIsDeletedFalse(replyId).orElseThrow(()->new MyException(MyErrorCode.REPLY_NOT_FOUND));
-        String hash = member.getId() + replyDto.getContent();
-        redisService.blockRepeat(hash);
         if(reply.getReply()!=null){
             throw new MyException(MyErrorCode.NOT_REPLY_ON_REREPLY);
         }
@@ -79,7 +72,7 @@ public class ReplyService {
             if (postAuthor != null && !postAuthor.getId().equals(writerMember.getId())) {
                 String title = post.getTitle();
                 String body = "댓글이 달렸어요: " + reply.getContent();
-                String path = "/tips/detail/" + post.getId();
+                String path = "/home/tips/" + post.getId();
 
                 TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
                         List.of(postAuthor.getId()),
@@ -124,7 +117,7 @@ public class ReplyService {
             if (!targetMemberIds.isEmpty()) {
                 String title = post.getTitle();
                 String body = "답글이 달렸어요: " + reReply.getContent();
-                String path = "/tips/detail/" + post.getId();
+                String path = "/home/tips/" + post.getId();
 
                 TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
                         new ArrayList<>(targetMemberIds),

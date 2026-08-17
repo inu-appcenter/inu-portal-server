@@ -84,6 +84,9 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "english_name_raw")
     private String englishNameRaw;
 
+    @Column(name = "grade_evaluation_raw")
+    private String gradeEvaluationRaw;
+
     @Column(name = "huss_course_yn")
     private String hussCourseYn;
 
@@ -137,7 +140,9 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "enrolled_count")
     private Integer enrolledCount;
 
-    private String note;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade_evaluation")
+    private GradeEvaluation gradeEvaluation;
 
     // 생성자
     private CourseOffering(
@@ -161,6 +166,7 @@ public class CourseOffering extends BaseTimeEntity {
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
+            String gradeEvaluationRaw,
             String professor,
             Course course,
             Semester semester,
@@ -172,10 +178,10 @@ public class CourseOffering extends BaseTimeEntity {
             SSUP_TYPE_NAME ssupTypeName,
             HY_NAME hyName,
             ENGLISH_NAME englishName,
+            GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
-            Integer enrolledCount,
-            String note
+            Integer enrolledCount
     ) {
         this.syllabus = syllabus;
         this.subjectNumber = subjectNumber;
@@ -197,6 +203,7 @@ public class CourseOffering extends BaseTimeEntity {
         this.englishCode = englishCode;
         this.englishNameRaw = englishNameRaw;
         this.hussCourseYn = hussCourseYn;
+        this.gradeEvaluationRaw = gradeEvaluationRaw;
         this.professor = professor;
         this.course = course;
         this.semester = semester;
@@ -208,10 +215,10 @@ public class CourseOffering extends BaseTimeEntity {
         this.ssupTypeName = ssupTypeName;
         this.hyName = hyName;
         this.englishName = englishName;
+        this.gradeEvaluation = gradeEvaluation;
         this.credit = credit;
         this.capacity = capacity;
         this.enrolledCount = enrolledCount;
-        this.note = note;
     }
 
     // 정적 팩토리 메서드
@@ -236,6 +243,7 @@ public class CourseOffering extends BaseTimeEntity {
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
+            String gradeEvaluationRaw,
             String professor,
             Course course,
             Semester semester,
@@ -247,10 +255,10 @@ public class CourseOffering extends BaseTimeEntity {
             SSUP_TYPE_NAME ssupTypeName,
             HY_NAME hyName,
             ENGLISH_NAME englishName,
+            GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
-            Integer enrolledCount,
-            String note
+            Integer enrolledCount
     ) {
         return new CourseOffering(
                 syllabus,
@@ -273,6 +281,7 @@ public class CourseOffering extends BaseTimeEntity {
                 englishCode,
                 englishNameRaw,
                 hussCourseYn,
+                gradeEvaluationRaw,
                 professor,
                 course,
                 semester,
@@ -284,10 +293,10 @@ public class CourseOffering extends BaseTimeEntity {
                 ssupTypeName,
                 hyName,
                 englishName,
+                gradeEvaluation,
                 credit,
                 capacity,
-                enrolledCount,
-                note
+                enrolledCount
         );
     }
 
@@ -360,11 +369,26 @@ public class CourseOffering extends BaseTimeEntity {
      * 엑셀 파일에서 파싱한 교수명 업데이트 메서드
      * (public void updateFromExcel(...)) 나중에 이런 식으로 확장
      */
-    public void updateProfessor(String professor) {
-        if (professor == null || professor.isBlank()) {
-            return;
+    public void updateFromExcel(
+            String professor,
+            Integer capacity,
+            String gradeEvaluationRaw,
+            GradeEvaluation gradeEvaluation
+    ) {
+        if (professor != null && !professor.isBlank()) {
+            this.professor = professor.trim();
         }
 
-        this.professor = professor.trim();
+        if (capacity != null) {
+            this.capacity = capacity;
+        }
+
+        if (gradeEvaluation != null) {
+            this.gradeEvaluation = gradeEvaluation;
+        }
+
+        if (gradeEvaluationRaw != null && !gradeEvaluationRaw.isBlank()) {
+            this.gradeEvaluationRaw = gradeEvaluationRaw.trim();
+        }
     }
 }

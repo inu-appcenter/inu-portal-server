@@ -35,8 +35,11 @@ jobs:
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Create application.properties
-        run: echo "${{ secrets.APPLICATION_PROPERTIES_DEV }}" > ./src/main/resources/application.properties
+      - name: Create application.yml
+        run: |
+          cat > ./src/main/resources/application.yml <<'EOF'
+          ${{ secrets.APPLICATION_YML_DEV }}
+          EOF
 
       - name: Create firebase_key.json
         id: create-json
@@ -50,7 +53,7 @@ jobs:
         with:
           name: app-configs
           path: |
-            ./src/main/resources/application.properties
+            ./src/main/resources/application.yml
             ./src/main/resources/firebase_key.json
 
       - name: Grant execute permission for gradlew
@@ -111,6 +114,7 @@ jobs:
               -e TZ=Asia/Seoul \
               -e COURSE_OVERVIEW_DIRECTORY=/intip/overviews \
               -e COURSE_OVERVIEW_FILENAME_PATTERN='course-offering-{year}-{term-code}.xlsx' \
+              -e COURSE_OVERVIEW_CAPACITY_FILENAME_PATTERN='course-offering-capacity-{year}-{term-code}.xlsx' \
               -e SCHOOL_API_BASE_URL="${{ secrets.SCHOOL_API_BASE_URL }}" \
               -e SCHOOL_API_AUTH_KEY="${{ secrets.SCHOOL_API_AUTH_KEY }}" \
               -e SCHOOL_API_COURSE_INFO_PATH="${{ secrets.SCHOOL_API_COURSE_INFO_PATH }}" \
