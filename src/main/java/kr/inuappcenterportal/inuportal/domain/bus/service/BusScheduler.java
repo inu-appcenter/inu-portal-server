@@ -25,6 +25,8 @@ public class BusScheduler {
     private final BusApiService busApiService;
     private final BusTargetStopRepository busTargetStopRepository;
     private final BusArrivalHistoryRepository busArrivalHistoryRepository;
+    private final kr.inuappcenterportal.inuportal.global.service.RedisService redisService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final BusService busService;
 
     /**
@@ -59,7 +61,23 @@ public class BusScheduler {
 
         for (BusTargetStop stop : activeStops) {
             try {
+                // 공공데이터포털 초당 트래픽(TPS) 제한 초과 방지를 위한 짧은 딜레이 (300ms)
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+
                 List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(stop.getBstopId());
+                
+                // 조회된 실시간 데이터를 Redis에 캐싱 (스케줄러 주기가 30초이므로 여유있게 40초 TTL 설정)
+                try {
+                    String json = objectMapper.writeValueAsString(arrivals);
+                    redisService.storeValueWithExpire("bus_realtime:" + stop.getBstopId(), json, 40, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (Exception ex) {
+                    log.error("Redis 캐싱 실패 - bstopId: {}", stop.getBstopId(), ex);
+                }
+
                 LocalDateTime sevenMinutesAgo = LocalDateTime.now().minusMinutes(7);
 
                 for (BusArrivalItemDto arrival : arrivals) {
