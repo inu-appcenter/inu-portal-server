@@ -36,6 +36,14 @@ public class BusApiService {
 
     private static final java.util.Map<String, String> ALLOC_GAP_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
+    private static final com.github.benmanes.caffeine.cache.Cache<String, List<BusArrivalItemDto>> ARRIVAL_CACHE = 
+            com.github.benmanes.caffeine.cache.Caffeine.newBuilder()
+                    .expireAfterWrite(20, java.util.concurrent.TimeUnit.SECONDS)
+                    .maximumSize(1000)
+                    .build();
+
+    private static final java.util.Map<String, List<BusArrivalItemDto>> ARRIVAL_FALLBACK_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
     // API 키 만료 시 false로 변경하여 공공데이터포털 연동 일시 중단 가능
     private static final boolean IS_API_ENABLED = true;
 
@@ -112,7 +120,10 @@ public class BusApiService {
             return List.of();
         }
 
-
+        List<BusArrivalItemDto> cached = ARRIVAL_CACHE.getIfPresent(bstopId);
+        if (cached != null) {
+            return cached;
+        }
 
         try {
             String encodedKey = URLEncoder.encode(busApiKey, StandardCharsets.UTF_8);
@@ -123,16 +134,28 @@ public class BusApiService {
                     .uri(URI.create(url))
                     .retrieve()
                     .bodyToMono(String.class)
+                    .onErrorResume(org.springframework.web.reactive.function.client.WebClientResponseException.class, e -> {
+                        if (e.getStatusCode().value() == 429) {
+                            log.warn("공공데이터 API 호출 한도 초과 (429) - bstopId: {}", bstopId);
+                            return reactor.core.publisher.Mono.empty(); // Fallback 처리를 위해 빈 Mono 반환
+                        }
+                        return reactor.core.publisher.Mono.error(e);
+                    })
                     .block();
 
             if (xmlResponse == null || xmlResponse.isBlank()) {
-                return List.of();
+                return ARRIVAL_FALLBACK_CACHE.getOrDefault(bstopId, List.of());
             }
 
-            return parseArrivalXml(xmlResponse);
+            List<BusArrivalItemDto> result = parseArrivalXml(xmlResponse);
+            if (!result.isEmpty()) {
+                ARRIVAL_CACHE.put(bstopId, result);
+                ARRIVAL_FALLBACK_CACHE.put(bstopId, result);
+            }
+            return result;
         } catch (Exception e) {
             log.error("버스 도착 정보 API 호출 실패 (bstopId: {})", bstopId, e);
-            return List.of();
+            return ARRIVAL_FALLBACK_CACHE.getOrDefault(bstopId, List.of());
         }
     }
 
