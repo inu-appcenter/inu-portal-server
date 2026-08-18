@@ -251,6 +251,21 @@ public class BusService {
             return new ArrayList<>();
         }
 
+        // 콤마(,)로 여러 정류소 ID가 들어온 경우(예: "164000375, 164000499, ...") 각 정류소별로 분할 조회하여 병합
+        if (bstopId.contains(",")) {
+            String[] ids = bstopId.split(",");
+            List<BusArrivalItemDto> combined = new ArrayList<>();
+            for (String id : ids) {
+                String trimmedId = id.trim();
+                if (!trimmedId.isBlank()) {
+                    combined.addAll(getRealtimeArrivals(trimmedId));
+                }
+            }
+            return combined.stream()
+                    .filter(distinctByKey(item -> (item.getRouteId() != null ? item.getRouteId() : "") + "_" + (item.getBusId() != null ? item.getBusId() : "") + "_" + (item.getBstopId() != null ? item.getBstopId() : "")))
+                    .collect(Collectors.toList());
+        }
+
         List<BusArrivalItemDto> arrivals = new ArrayList<>();
         String redisKey = "bus_realtime:" + bstopId;
         String cachedJson = redisService.getValue(redisKey);
