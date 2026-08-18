@@ -126,9 +126,11 @@ public class BusApiService {
         }
 
         try {
+            String trimmedStopId = bstopId.trim();
             String encodedKey = URLEncoder.encode(busApiKey, StandardCharsets.UTF_8);
+            String encodedBstopId = URLEncoder.encode(trimmedStopId, StandardCharsets.UTF_8);
             String url = String.format("%s?serviceKey=%s&bstopId=%s&pageNo=1&numOfRows=30",
-                    ARRIVAL_API_URL, busApiKey, bstopId);
+                    ARRIVAL_API_URL, encodedKey, encodedBstopId);
 
             String xmlResponse = webClient.get()
                     .uri(URI.create(url))
