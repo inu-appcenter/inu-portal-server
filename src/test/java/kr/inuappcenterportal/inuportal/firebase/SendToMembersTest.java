@@ -329,7 +329,7 @@ class SendToMembersTest {
         when(failedResponse.isSuccessful()).thenReturn(false);
         when(failedResponse.getException()).thenReturn(firebaseMessagingException);
         when(firebaseMessagingException.getMessage()).thenReturn("registration-token-not-registered");
-        when(firebaseMessaging.sendEachForMulticast(any())).thenReturn(batchResponse);
+        when(firebaseMessaging.sendEachForMulticastAsync(any())).thenReturn(com.google.api.core.ApiFutures.immediateFuture(batchResponse));
 
         fcmService.sendToMembers(dispatch);
 
@@ -359,7 +359,7 @@ class SendToMembersTest {
 
         FirebaseMessagingException firebaseMessagingException = mock(FirebaseMessagingException.class);
 
-        when(firebaseMessaging.sendEachForMulticast(any())).thenThrow(firebaseMessagingException);
+        when(firebaseMessaging.sendEachForMulticastAsync(any())).thenReturn(com.google.api.core.ApiFutures.immediateFailedFuture(firebaseMessagingException));
 
         fcmService.sendToMembers(dispatch);
 
