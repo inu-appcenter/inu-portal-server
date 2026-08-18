@@ -34,6 +34,9 @@ public class BusService {
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusTargetRuleRepository busTargetRuleRepository;
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusStopAliasRepository busStopAliasRepository;
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusServiceConfigRepository busServiceConfigRepository;
+    
+    private final kr.inuappcenterportal.inuportal.global.service.RedisService redisService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     private static final String SERVICE_STATUS_CONFIG_KEY = "BUS_SERVICE_STATUS";
 
@@ -244,10 +247,33 @@ public class BusService {
 
 
     public List<BusArrivalItemDto> getRealtimeArrivals(String bstopId) {
-        List<BusArrivalItemDto> arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
-
         if (bstopId == null || bstopId.isBlank()) {
-            return arrivals;
+            return new ArrayList<>();
+        }
+
+        List<BusArrivalItemDto> arrivals = new ArrayList<>();
+        String redisKey = "bus_realtime:" + bstopId;
+        String cachedJson = redisService.getValue(redisKey);
+
+        if (cachedJson != null && !cachedJson.isBlank()) {
+            try {
+                // Redis에서 캐시된 데이터 파싱
+                BusArrivalItemDto[] arr = objectMapper.readValue(cachedJson, BusArrivalItemDto[].class);
+                arrivals = new ArrayList<>(Arrays.asList(arr));
+            } catch (Exception e) {
+                log.error("Redis에서 버스 도착 정보 파싱 실패 - bstopId: {}", bstopId, e);
+            }
+        }
+
+        // 캐시가 없으면(스케줄러 대상이 아니거나 최초 요청 시) 직접 API 호출 후 30초 캐싱
+        if (arrivals.isEmpty() && (cachedJson == null || cachedJson.isBlank())) {
+            arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
+            try {
+                String json = objectMapper.writeValueAsString(arrivals);
+                redisService.storeValueWithExpire(redisKey, json, 30, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ex) {
+                log.error("Redis 캐싱 실패 - bstopId: {}", bstopId, ex);
+            }
         }
 
         // 해당 정류소를 출발/경유하는 등록된 노선 목록

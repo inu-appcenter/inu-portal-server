@@ -128,6 +128,10 @@ public class RedisService {
         redisTemplate.opsForValue().set(key, value);
     }
 
+    public void storeValueWithExpire(String key, String value, long timeout, TimeUnit unit) {
+        redisTemplate.opsForValue().set(key, value, timeout, unit);
+    }
+
     public String getValue(String key) {
         return redisTemplate.opsForValue().get(key);
     }
