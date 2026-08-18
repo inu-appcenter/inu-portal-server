@@ -340,16 +340,11 @@ public class FcmService {
             boolean batchFinished = false;
 
             for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
+                com.google.api.core.ApiFuture<BatchResponse> future = null;
                 try {
-                    CompletableFuture<BatchResponse> future = CompletableFuture.supplyAsync(() -> {
-                        try {
-                            return firebaseMessaging.sendEachForMulticast(message);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-
-                    BatchResponse response = future.get(15, java.util.concurrent.TimeUnit.SECONDS);
+                    future = firebaseMessaging.sendEachForMulticastAsync(message);
+                    BatchResponse response = future.get(60, java.util.concurrent.TimeUnit.SECONDS);
+                    
                     batchSuccess = response.getSuccessCount();
                     batchFailure = response.getFailureCount();
 
@@ -364,6 +359,9 @@ public class FcmService {
                     }
                     batchFinished = true;
                 } catch (Exception e) {
+                    if (future != null && !future.isDone()) {
+                        future.cancel(true);
+                    }
                     log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
                             attempt, maxRetries, fcmMessageId, batchTokens.size(), e.getMessage());
 
