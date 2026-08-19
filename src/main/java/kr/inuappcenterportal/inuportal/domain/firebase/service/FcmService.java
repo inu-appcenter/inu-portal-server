@@ -40,6 +40,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
@@ -424,13 +425,20 @@ public class FcmService {
 
     /**
      * DB에 이력을 남기면서(알림함 노출) 푸시 알림을 보냅니다.
+     * REQUIRES_NEW: 이 메서드는 댓글/게시글 저장 같은 상위 트랜잭션 도중 "부가 기능"으로
+     * 호출되는 경우가 많다(예: ReplyService.saveReply). 알림 이력 저장에서 예외가 나면
+     * (예: fcm_message_type 컬럼 불일치) 호출부가 그 예외를 잡아 로그만 남기고 넘어가더라도,
+     * 같은 트랜잭션에 참여한 상태였다면 Spring이 이미 상위 트랜잭션을 rollback-only로
+     * 마킹해버려서 상위 메서드가 정상 반환해도 커밋 시점에 UnexpectedRollbackException이
+     * 터진다. REQUIRES_NEW로 별도 트랜잭션을 태워서 알림 이력 저장 실패가 상위(댓글/게시글
+     * 저장 등) 트랜잭션에 영향을 주지 않도록 격리한다.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public TrackedNotificationDispatch prepareTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type, Long targetId) {
         return prepareTrackedNotification(memberIds, title, body, type, targetId, null);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public TrackedNotificationDispatch prepareTrackedNotification(List<Long> memberIds, String title, String body, FcmMessageType type, Long targetId, String path) {
         if (memberIds == null || memberIds.isEmpty()) {
             return null;
