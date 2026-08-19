@@ -1,10 +1,10 @@
 package kr.inuappcenterportal.inuportal.suggestion;
 
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionAnswerRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionListResponse;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionResponse;
+import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionStatusRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionCategory;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionStatus;
 import kr.inuappcenterportal.inuportal.domain.suggestion.model.Suggestion;
@@ -51,14 +51,14 @@ public class SuggestionServiceTest {
         SuggestionRequest suggestionRequest = SuggestionRequest.builder()
                 .content("이미지 업로드가 안 돼요")
                 .cheerMessage("항상 감사합니다")
-                .category("BUG")
+                .category("BUG_REPORT")
                 .appVersion("1.0.0")
                 .osType("IOS")
                 .osVersion("17.4")
                 .deviceModel("iPhone15,3")
                 .build();
 
-        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.save(any(Suggestion.class))).thenReturn(suggestion);
@@ -76,7 +76,7 @@ public class SuggestionServiceTest {
         when(member.getId()).thenReturn(1L);
         when(member.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -100,7 +100,7 @@ public class SuggestionServiceTest {
         when(other.getId()).thenReturn(2L);
         when(other.getRoles()).thenReturn(List.of("ROLE_USER"));
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdWithMember(1L)).thenReturn(Optional.of(suggestion));
@@ -132,7 +132,7 @@ public class SuggestionServiceTest {
         when(writer.getId()).thenReturn(1L);
         when(writer.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -157,7 +157,7 @@ public class SuggestionServiceTest {
         when(member.getId()).thenReturn(1L);
         when(member.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -180,7 +180,7 @@ public class SuggestionServiceTest {
         Member member = mock(Member.class);
         when(member.getId()).thenReturn(1L);
 
-        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
@@ -201,7 +201,7 @@ public class SuggestionServiceTest {
         when(admin.getId()).thenReturn(2L);
         when(admin.getRoles()).thenReturn(List.of("ROLE_ADMIN"));
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
@@ -222,7 +222,7 @@ public class SuggestionServiceTest {
         when(other.getId()).thenReturn(2L);
         when(other.getRoles()).thenReturn(List.of("ROLE_USER"));
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
@@ -235,47 +235,43 @@ public class SuggestionServiceTest {
     }
 
     @Test
-    @DisplayName("건의사항 답변등록 성공 테스트")
-    public void answerSuggestion_success() {
+    @DisplayName("건의사항 처리 상태 변경 성공 테스트")
+    public void changeSuggestionStatus_success() {
         Member writer = mock(Member.class);
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
-        SuggestionAnswerRequest suggestionAnswerRequest = SuggestionAnswerRequest.builder()
+        SuggestionStatusRequest suggestionStatusRequest = SuggestionStatusRequest.builder()
                 .status("COMPLETED")
-                .answerContent("다음 업데이트에 반영했습니다.")
                 .build();
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
 
-        Long answeredId = suggestionService.answerSuggestion(1L, suggestionAnswerRequest);
+        Long changedId = suggestionService.changeSuggestionStatus(1L, suggestionStatusRequest);
 
-        Assertions.assertThat(answeredId).isEqualTo(1L);
+        Assertions.assertThat(changedId).isEqualTo(1L);
         Assertions.assertThat(suggestion.getStatus()).isEqualTo(SuggestionStatus.COMPLETED);
-        Assertions.assertThat(suggestion.getAnswerContent()).isEqualTo("다음 업데이트에 반영했습니다.");
-        Assertions.assertThat(suggestion.getAnswerDate()).isNotNull();
     }
 
     @Test
-    @DisplayName("건의사항 답변등록 실패 테스트 (잘못된 상태값)")
-    public void answerSuggestion_fail_wrongStatus() {
+    @DisplayName("건의사항 처리 상태 변경 실패 테스트 (잘못된 상태값)")
+    public void changeSuggestionStatus_fail_wrongStatus() {
         Member writer = mock(Member.class);
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
-        SuggestionAnswerRequest suggestionAnswerRequest = SuggestionAnswerRequest.builder()
+        SuggestionStatusRequest suggestionStatusRequest = SuggestionStatusRequest.builder()
                 .status("NOT_A_REAL_STATUS")
-                .answerContent("다음 업데이트에 반영했습니다.")
                 .build();
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
 
-        Assertions.assertThatThrownBy(() -> suggestionService.answerSuggestion(1L, suggestionAnswerRequest))
+        Assertions.assertThatThrownBy(() -> suggestionService.changeSuggestionStatus(1L, suggestionStatusRequest))
                 .isInstanceOf(MyException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.WRONG_SUGGESTION_STATUS);
 
-        Assertions.assertThat(suggestion.getAnswerContent()).isNull();
+        Assertions.assertThat(suggestion.getStatus()).isEqualTo(SuggestionStatus.RECEIVED);
     }
 }

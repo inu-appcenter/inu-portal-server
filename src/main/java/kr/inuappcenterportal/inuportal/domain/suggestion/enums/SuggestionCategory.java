@@ -4,7 +4,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 
 public enum SuggestionCategory {
-    BUG, FEATURE_REQUEST, ETC;
+    BUG_REPORT, FEATURE_SUGGESTION, SCHOOL_INFO_ERROR, ETC, CHEER;
 
     public static SuggestionCategory from(String name) {
         try {

@@ -11,10 +11,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionAnswerRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionListResponse;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionResponse;
+import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionStatusRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.service.SuggestionService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -72,14 +72,14 @@ public class SuggestionController {
         return ResponseEntity.ok(ResponseDto.of(suggestionService.deleteSuggestion(suggestionId, member), "건의사항 삭제 성공"));
     }
 
-    @Operation(summary = "건의사항 답변/상태변경 (관리자 전용)", description = "url 파라미터에 건의사항의 id, 바디에 처리 상태(status), 운영진 답변 내용(answerContent, 선택)을 보내주세요. 관리자 권한이 있는 사용자만 호출할 수 있습니다.")
+    @Operation(summary = "건의사항 처리 상태 변경 (관리자 전용)", description = "url 파라미터에 건의사항의 id, 바디에 처리 상태(status)를 보내주세요. 처리 상태는 개발/운영팀의 내부 진행 상황이며 상담 진행 상태를 의미하지 않습니다. 관리자 권한이 있는 사용자만 호출할 수 있습니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "건의사항 답변/상태변경 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "200", description = "건의사항 처리 상태 변경 성공", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             , @ApiResponse(responseCode = "400", description = "잘못된 형식의 건의사항 상태를 요청했습니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
             , @ApiResponse(responseCode = "404", description = "존재하지 않는 건의사항입니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
-    @PatchMapping("/{suggestionId}/answer")
-    public ResponseEntity<ResponseDto<Long>> answerSuggestion(@Parameter(name = "suggestionId", description = "건의사항의 id", in = ParameterIn.PATH) @PathVariable Long suggestionId, @Valid @RequestBody SuggestionAnswerRequest suggestionAnswerRequest) {
-        return ResponseEntity.ok(ResponseDto.of(suggestionService.answerSuggestion(suggestionId, suggestionAnswerRequest), "건의사항 답변/상태변경 성공"));
+    @PatchMapping("/{suggestionId}/status")
+    public ResponseEntity<ResponseDto<Long>> changeSuggestionStatus(@Parameter(name = "suggestionId", description = "건의사항의 id", in = ParameterIn.PATH) @PathVariable Long suggestionId, @Valid @RequestBody SuggestionStatusRequest suggestionStatusRequest) {
+        return ResponseEntity.ok(ResponseDto.of(suggestionService.changeSuggestionStatus(suggestionId, suggestionStatusRequest), "건의사항 처리 상태 변경 성공"));
     }
 }

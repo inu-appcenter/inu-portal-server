@@ -1,10 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.suggestion.service;
 
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionAnswerRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionListResponse;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionResponse;
+import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionStatusRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionCategory;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionStatus;
 import kr.inuappcenterportal.inuportal.domain.suggestion.model.Suggestion;
@@ -64,10 +64,10 @@ public class SuggestionService {
     }
 
     @Transactional
-    public Long answerSuggestion(Long suggestionId, SuggestionAnswerRequest suggestionAnswerRequest) {
+    public Long changeSuggestionStatus(Long suggestionId, SuggestionStatusRequest suggestionStatusRequest) {
         Suggestion suggestion = suggestionRepository.findByIdAndIsDeletedFalse(suggestionId)
                 .orElseThrow(() -> new MyException(MyErrorCode.SUGGESTION_NOT_FOUND));
-        suggestion.registerAnswer(suggestionAnswerRequest.getAnswerContent(), SuggestionStatus.from(suggestionAnswerRequest.getStatus()));
+        suggestion.changeStatus(SuggestionStatus.from(suggestionStatusRequest.getStatus()));
         return suggestionId;
     }
 

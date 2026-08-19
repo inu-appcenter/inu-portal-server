@@ -31,15 +31,11 @@ public class SuggestionResponse {
     private String osVersion;
     @Schema(description = "기기 모델명")
     private String deviceModel;
-    @Schema(description = "처리 상태")
+    @Schema(description = "처리 상태 (개발/운영팀의 내부 진행 상황이며, 상담 진행 상태를 의미하지 않습니다)")
     private String status;
-    @Schema(description = "운영진 답변 내용")
-    private String answerContent;
-    @Schema(description = "답변 일시")
-    private String answerDate;
     @Schema(description = "작성일시")
     private String createDate;
-    @Schema(description = "수정일시 (답변 포함)")
+    @Schema(description = "수정일시")
     private String modifiedDate;
     @Schema(description = "작성자 id")
     private Long memberId;
@@ -49,7 +45,7 @@ public class SuggestionResponse {
     @Builder
     private SuggestionResponse(Long id, String content, String cheerMessage, String category, String appVersion,
                                    String osType, String osVersion, String deviceModel, String status,
-                                   String answerContent, String answerDate, String createDate, String modifiedDate,
+                                   String createDate, String modifiedDate,
                                    Long memberId, String memberNickname) {
         this.id = id;
         this.content = content;
@@ -60,8 +56,6 @@ public class SuggestionResponse {
         this.osVersion = osVersion;
         this.deviceModel = deviceModel;
         this.status = status;
-        this.answerContent = answerContent;
-        this.answerDate = answerDate;
         this.createDate = createDate;
         this.modifiedDate = modifiedDate;
         this.memberId = memberId;
@@ -79,8 +73,6 @@ public class SuggestionResponse {
                 .osVersion(suggestion.getOsVersion())
                 .deviceModel(suggestion.getDeviceModel())
                 .status(suggestion.getStatus().name())
-                .answerContent(suggestion.getAnswerContent())
-                .answerDate(suggestion.getAnswerDate() == null ? null : suggestion.getAnswerDate().format(DATE_TIME_FORMATTER))
                 .createDate(suggestion.getCreateDate().format(DATE_TIME_FORMATTER))
                 .modifiedDate(suggestion.getModifiedDate().format(DATE_TIME_FORMATTER))
                 .memberId(suggestion.getMember().getId())

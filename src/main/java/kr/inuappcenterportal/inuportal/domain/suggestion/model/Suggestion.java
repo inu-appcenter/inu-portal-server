@@ -9,8 +9,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -51,12 +49,6 @@ public class Suggestion extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private SuggestionStatus status;
 
-    @Column(name = "answer_content", length = 2000)
-    private String answerContent;
-
-    @Column(name = "answer_date")
-    private LocalDateTime answerDate;
-
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
 
@@ -81,14 +73,6 @@ public class Suggestion extends BaseTimeEntity {
 
     public void changeStatus(SuggestionStatus status) {
         this.status = status;
-    }
-
-    public void registerAnswer(String answerContent, SuggestionStatus status) {
-        changeStatus(status);
-        if (answerContent != null) {
-            this.answerContent = answerContent;
-            this.answerDate = LocalDateTime.now();
-        }
     }
 
     public void deleteSuggestion() {
