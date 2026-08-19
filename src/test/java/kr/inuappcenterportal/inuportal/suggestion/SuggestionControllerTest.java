@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.suggestion.controller.SuggestionController;
-import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionAnswerRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionListResponse;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionResponse;
+import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionStatusRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionCategory;
 import kr.inuappcenterportal.inuportal.domain.suggestion.model.Suggestion;
 import kr.inuappcenterportal.inuportal.domain.suggestion.service.SuggestionService;
@@ -80,7 +80,7 @@ public class SuggestionControllerTest {
 
         SuggestionRequest suggestionRequest = SuggestionRequest.builder()
                 .content("이미지 업로드가 안 돼요")
-                .category("BUG")
+                .category("BUG_REPORT")
                 .build();
         when(suggestionService.saveSuggestion(any(SuggestionRequest.class), any(Member.class))).thenReturn(1L);
 
@@ -108,7 +108,7 @@ public class SuggestionControllerTest {
         when(writer.getId()).thenReturn(1L);
         when(writer.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -142,7 +142,7 @@ public class SuggestionControllerTest {
         when(writer.getId()).thenReturn(1L);
         when(writer.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -216,8 +216,8 @@ public class SuggestionControllerTest {
     }
 
     @Test
-    @DisplayName("건의사항 답변등록 테스트 (관리자)")
-    public void answerSuggestion_admin() throws Exception {
+    @DisplayName("건의사항 처리 상태 변경 테스트 (관리자)")
+    public void changeSuggestionStatus_admin() throws Exception {
         Member authMember = mock(Member.class);
         String token = "adminToken";
         when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
@@ -225,24 +225,23 @@ public class SuggestionControllerTest {
         when(tokenProvider.getAuthentication(token))
                 .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
 
-        SuggestionAnswerRequest suggestionAnswerRequest = SuggestionAnswerRequest.builder()
+        SuggestionStatusRequest suggestionStatusRequest = SuggestionStatusRequest.builder()
                 .status("COMPLETED")
-                .answerContent("다음 업데이트에 반영했습니다.")
                 .build();
-        when(suggestionService.answerSuggestion(eq(1L), any(SuggestionAnswerRequest.class))).thenReturn(1L);
+        when(suggestionService.changeSuggestionStatus(eq(1L), any(SuggestionStatusRequest.class))).thenReturn(1L);
 
-        String body = objectMapper.writeValueAsString(suggestionAnswerRequest);
-        mockMvc.perform(patch("/api/suggestions/1/answer").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
+        String body = objectMapper.writeValueAsString(suggestionStatusRequest);
+        mockMvc.perform(patch("/api/suggestions/1/status").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.msg").value("건의사항 답변/상태변경 성공"))
+                .andExpect(jsonPath("$.msg").value("건의사항 처리 상태 변경 성공"))
                 .andExpect(jsonPath("$.data").value(1L))
                 .andDo(print());
-        verify(suggestionService).answerSuggestion(eq(1L), any(SuggestionAnswerRequest.class));
+        verify(suggestionService).changeSuggestionStatus(eq(1L), any(SuggestionStatusRequest.class));
     }
 
     @Test
-    @DisplayName("건의사항 답변등록 실패 테스트 (USER 권한 - SecurityConfig 차단)")
-    public void answerSuggestion_fail_forbiddenForUser() throws Exception {
+    @DisplayName("건의사항 처리 상태 변경 실패 테스트 (USER 권한 - SecurityConfig 차단)")
+    public void changeSuggestionStatus_fail_forbiddenForUser() throws Exception {
         Member authMember = mock(Member.class);
         String token = "userToken";
         when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
@@ -250,16 +249,15 @@ public class SuggestionControllerTest {
         when(tokenProvider.getAuthentication(token))
                 .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
-        SuggestionAnswerRequest suggestionAnswerRequest = SuggestionAnswerRequest.builder()
+        SuggestionStatusRequest suggestionStatusRequest = SuggestionStatusRequest.builder()
                 .status("COMPLETED")
-                .answerContent("다음 업데이트에 반영했습니다.")
                 .build();
 
-        String body = objectMapper.writeValueAsString(suggestionAnswerRequest);
-        mockMvc.perform(patch("/api/suggestions/1/answer").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
+        String body = objectMapper.writeValueAsString(suggestionStatusRequest);
+        mockMvc.perform(patch("/api/suggestions/1/status").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.msg").value("접근 권한이 없는 사용자입니다."))
                 .andDo(print());
-        verify(suggestionService, never()).answerSuggestion(any(), any());
+        verify(suggestionService, never()).changeSuggestionStatus(any(), any());
     }
 }
