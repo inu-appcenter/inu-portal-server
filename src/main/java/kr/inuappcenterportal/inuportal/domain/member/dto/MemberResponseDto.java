@@ -30,6 +30,9 @@ public class MemberResponseDto {
 
     private String departmentCode;
 
+    @Schema(description = "학과 enum 코드. 매핑을 못 찾으면 null (issue #400)", example = "COMPUTER_ENGINEERING")
+    private String departmentEnum;
+
     private String studentId;
 
     @Schema(description = "약관 동의 여부", example = "false")
@@ -54,9 +57,16 @@ public class MemberResponseDto {
         this.fireId = member.getFireId();
         this.role = role;
         this.department = department == null? null : department.getDepartmentName();
+        this.departmentEnum = department == null ? null : department.name();
         if (member.getSchoolDepartment() != null) {
             this.department = member.getSchoolDepartment().getName();
             this.departmentCode = member.getSchoolDepartment().getCode();
+            // 학사 학과명 -> Department enum 매핑(SchoolDepartmentNoticeMapper)이 있으면
+            // 그 enum이 실제 학과와 더 가까우니 우선한다. 못 찾으면 위에서 넣은 값을 유지.
+            Department resolved = member.getSchoolDepartment().getResolvedNoticeDepartment();
+            if (resolved != null) {
+                this.departmentEnum = resolved.name();
+            }
         }
         this.studentId = member.getStudentId();
         this.termsAgreed = member.getTermsAgreed();
