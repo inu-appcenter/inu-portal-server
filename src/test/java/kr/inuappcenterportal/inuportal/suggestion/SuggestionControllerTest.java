@@ -108,11 +108,7 @@ public class SuggestionControllerTest {
         when(writer.getId()).thenReturn(1L);
         when(writer.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -146,11 +142,7 @@ public class SuggestionControllerTest {
         when(writer.getId()).thenReturn(1L);
         when(writer.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());

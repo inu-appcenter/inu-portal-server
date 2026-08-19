@@ -4,11 +4,8 @@ import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionCategory;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionStatus;
-import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
-import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -63,9 +60,8 @@ public class Suggestion extends BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
 
-    @Builder
-    public Suggestion(String content, String cheerMessage, Member member, SuggestionCategory category,
-                       String appVersion, String osType, String osVersion, String deviceModel) {
+    private Suggestion(String content, String cheerMessage, Member member, SuggestionCategory category,
+                        String appVersion, String osType, String osVersion, String deviceModel) {
         this.content = content;
         this.cheerMessage = cheerMessage;
         this.member = member;
@@ -78,15 +74,16 @@ public class Suggestion extends BaseTimeEntity {
         this.isDeleted = false;
     }
 
-    public void changeStatus(String status) {
-        try {
-            this.status = SuggestionStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw new MyException(MyErrorCode.WRONG_SUGGESTION_STATUS);
-        }
+    public static Suggestion create(String content, String cheerMessage, Member member, SuggestionCategory category,
+                                     String appVersion, String osType, String osVersion, String deviceModel) {
+        return new Suggestion(content, cheerMessage, member, category, appVersion, osType, osVersion, deviceModel);
     }
 
-    public void registerAnswer(String answerContent, String status) {
+    public void changeStatus(SuggestionStatus status) {
+        this.status = status;
+    }
+
+    public void registerAnswer(String answerContent, SuggestionStatus status) {
         changeStatus(status);
         if (answerContent != null) {
             this.answerContent = answerContent;

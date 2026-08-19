@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionListRespo
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionRequest;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionResponse;
 import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionCategory;
+import kr.inuappcenterportal.inuportal.domain.suggestion.enums.SuggestionStatus;
 import kr.inuappcenterportal.inuportal.domain.suggestion.model.Suggestion;
 import kr.inuappcenterportal.inuportal.domain.suggestion.repository.SuggestionRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -25,16 +26,16 @@ public class SuggestionService {
 
     @Transactional
     public Long saveSuggestion(SuggestionRequest suggestionRequest, Member member) {
-        Suggestion suggestion = Suggestion.builder()
-                .content(suggestionRequest.getContent())
-                .cheerMessage(suggestionRequest.getCheerMessage())
-                .member(member)
-                .category(SuggestionCategory.from(suggestionRequest.getCategory()))
-                .appVersion(suggestionRequest.getAppVersion())
-                .osType(suggestionRequest.getOsType())
-                .osVersion(suggestionRequest.getOsVersion())
-                .deviceModel(suggestionRequest.getDeviceModel())
-                .build();
+        Suggestion suggestion = Suggestion.create(
+                suggestionRequest.getContent(),
+                suggestionRequest.getCheerMessage(),
+                member,
+                SuggestionCategory.from(suggestionRequest.getCategory()),
+                suggestionRequest.getAppVersion(),
+                suggestionRequest.getOsType(),
+                suggestionRequest.getOsVersion(),
+                suggestionRequest.getDeviceModel()
+        );
         return suggestionRepository.save(suggestion).getId();
     }
 
@@ -66,7 +67,7 @@ public class SuggestionService {
     public Long answerSuggestion(Long suggestionId, SuggestionAnswerRequest suggestionAnswerRequest) {
         Suggestion suggestion = suggestionRepository.findByIdAndIsDeletedFalse(suggestionId)
                 .orElseThrow(() -> new MyException(MyErrorCode.SUGGESTION_NOT_FOUND));
-        suggestion.registerAnswer(suggestionAnswerRequest.getAnswerContent(), suggestionAnswerRequest.getStatus());
+        suggestion.registerAnswer(suggestionAnswerRequest.getAnswerContent(), SuggestionStatus.from(suggestionAnswerRequest.getStatus()));
         return suggestionId;
     }
 

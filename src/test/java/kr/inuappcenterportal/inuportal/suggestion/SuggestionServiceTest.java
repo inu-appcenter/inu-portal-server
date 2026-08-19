@@ -58,7 +58,7 @@ public class SuggestionServiceTest {
                 .deviceModel("iPhone15,3")
                 .build();
 
-        Suggestion suggestion = Suggestion.builder().build();
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.save(any(Suggestion.class))).thenReturn(suggestion);
@@ -76,11 +76,7 @@ public class SuggestionServiceTest {
         when(member.getId()).thenReturn(1L);
         when(member.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(member)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -104,11 +100,7 @@ public class SuggestionServiceTest {
         when(other.getId()).thenReturn(2L);
         when(other.getRoles()).thenReturn(List.of("ROLE_USER"));
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdWithMember(1L)).thenReturn(Optional.of(suggestion));
@@ -140,11 +132,7 @@ public class SuggestionServiceTest {
         when(writer.getId()).thenReturn(1L);
         when(writer.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -169,11 +157,7 @@ public class SuggestionServiceTest {
         when(member.getId()).thenReturn(1L);
         when(member.getNickname()).thenReturn("nickname");
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(member)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
         ReflectionTestUtils.setField(suggestion, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(suggestion, "modifiedDate", LocalDateTime.now());
@@ -196,11 +180,7 @@ public class SuggestionServiceTest {
         Member member = mock(Member.class);
         when(member.getId()).thenReturn(1L);
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(member)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
@@ -221,11 +201,7 @@ public class SuggestionServiceTest {
         when(admin.getId()).thenReturn(2L);
         when(admin.getRoles()).thenReturn(List.of("ROLE_ADMIN"));
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
@@ -246,11 +222,7 @@ public class SuggestionServiceTest {
         when(other.getId()).thenReturn(2L);
         when(other.getRoles()).thenReturn(List.of("ROLE_USER"));
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         when(suggestionRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(suggestion));
@@ -267,11 +239,7 @@ public class SuggestionServiceTest {
     public void answerSuggestion_success() {
         Member writer = mock(Member.class);
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         SuggestionAnswerRequest suggestionAnswerRequest = SuggestionAnswerRequest.builder()
@@ -294,11 +262,7 @@ public class SuggestionServiceTest {
     public void answerSuggestion_fail_wrongStatus() {
         Member writer = mock(Member.class);
 
-        Suggestion suggestion = Suggestion.builder()
-                .content("내용")
-                .category(SuggestionCategory.BUG)
-                .member(writer)
-                .build();
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG, null, null, null, null);
         ReflectionTestUtils.setField(suggestion, "id", 1L);
 
         SuggestionAnswerRequest suggestionAnswerRequest = SuggestionAnswerRequest.builder()
