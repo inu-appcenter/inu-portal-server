@@ -15,7 +15,6 @@ import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -122,8 +121,6 @@ class CourseOfferingServiceTest {
         );
 
         when(courseOfferingRepository.findAllByCourseCourseCodeIn(List.of("C001"))).thenReturn(List.of(offering));
-        when(courseMeetingRepository.findAllByCourseOfferingIdIn(ArgumentMatchers.anyList())).thenReturn(List.of());
-        when(courseMeetingService.mergeContinuousMeetings(ArgumentMatchers.anyList())).thenReturn(List.of());
 
         List<kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto> result =
                 service.getCourseOfferingsByCourseCodes(List.of("C001"), false);
@@ -131,7 +128,8 @@ class CourseOfferingServiceTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("C001", result.get(0).courseCode());
-        // exposeProfessor=false면 교수명은 응답에 안 실린다.
+        // 학점 계산에 필요 없는 필드는 일부러 뺀다.
         assertNull(result.get(0).professor());
+        assertTrue(result.get(0).meetings().isEmpty());
     }
 }
