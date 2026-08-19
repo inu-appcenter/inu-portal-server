@@ -140,6 +140,29 @@ public class CourseOfferingService {
         );
     }
 
+    /**
+     * 학수번호(Course.courseCode) 목록으로 개설강의를 한 번에 조회한다.
+     * 클라이언트가 여러 강의를 학수번호로 아는 경우(예: 학점계산기 성적 붙여넣기 매칭,
+     * 시간표 불러오기) N번 순차 조회 대신 이 한 번으로 대체할 수 있다.
+     */
+    public List<CourseOfferingResponseDto> getCourseOfferingsByCourseCodes(List<String> courseCodes, boolean exposeProfessor) {
+        if (courseCodes == null || courseCodes.isEmpty()) return List.of();
+
+        List<CourseOffering> offerings = courseOfferingRepository.findAllByCourseCourseCodeIn(courseCodes);
+
+        Map<Long, List<CourseMeeting>> meetings = courseMeetingRepository
+                .findAllByCourseOfferingIdIn(offerings.stream().map(CourseOffering::getId).toList()).stream()
+                .collect(Collectors.groupingBy(item -> item.getCourseOffering().getId()));
+
+        return offerings.stream()
+                .map(item -> CourseOfferingResponseDto.from(
+                        item,
+                        courseMeetingService.mergeContinuousMeetings(meetings.getOrDefault(item.getId(), List.of())),
+                        exposeProfessor
+                ))
+                .toList();
+    }
+
     private Semester getOpenSemester() {
         return semesterRepository.findFirstByStatusOrderByStartDateDesc(kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus.OPEN)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));

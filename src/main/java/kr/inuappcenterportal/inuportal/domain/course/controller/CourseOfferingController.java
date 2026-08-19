@@ -102,6 +102,19 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
         return ResponseEntity.ok(ResponseDto.of(courseOfferingService.getOpenCourseOfferingOptions(), "현재 학기 강의 검색 옵션 조회 성공"));
     }
 
+    @GetMapping("/by-codes")
+    public ResponseEntity<ResponseDto<List<CourseOfferingResponseDto>>> getCourseOfferingsByCodes(
+            @AuthenticationPrincipal Member member,
+            @RequestParam List<String> courseCodes
+    ) {
+        return ResponseEntity.ok(
+                ResponseDto.of(
+                        courseOfferingService.getCourseOfferingsByCourseCodes(courseCodes, canViewProfessor(member)),
+                        "개설 강의 목록 조회 성공"
+                )
+        );
+    }
+
     private boolean canViewProfessor(Member member) {
         return member != null
                 && member.getStudentId() != null
