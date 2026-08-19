@@ -43,6 +43,20 @@ public interface MemberRepository extends JpaRepository<Member,Long> {
     @Query("""
             SELECT m.id
             FROM Member m
+            WHERE SUBSTRING(m.studentId, LENGTH(m.studentId), 1) IN ('1', '3', '5', '7', '9')
+            """)
+    List<Long> findIdsByStudentIdEndingOdd();
+
+    @Query("""
+            SELECT m.id
+            FROM Member m
+            WHERE SUBSTRING(m.studentId, LENGTH(m.studentId), 1) IN ('0', '2', '4', '6', '8')
+            """)
+    List<Long> findIdsByStudentIdEndingEven();
+
+    @Query("""
+            SELECT m.id
+            FROM Member m
             WHERE m.id NOT IN (
                 SELECT DISTINCT t.member.id
                 FROM TimeTable t
