@@ -3,11 +3,14 @@ package kr.inuappcenterportal.inuportal.firebase;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.SendResponse;
 import kr.inuappcenterportal.inuportal.config.FcmTestAsyncConfig;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
@@ -28,23 +31,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class, FcmTransactionService.class})
 class SendToMembersTest {
@@ -313,7 +309,8 @@ class SendToMembersTest {
                 "Test Content",
                 tokenAndMemberId,
                 List.of(69L, 77L),
-                null
+                null,
+                Map.of()
         );
 
         BatchResponse batchResponse = mock(BatchResponse.class);
@@ -329,7 +326,7 @@ class SendToMembersTest {
         when(failedResponse.isSuccessful()).thenReturn(false);
         when(failedResponse.getException()).thenReturn(firebaseMessagingException);
         when(firebaseMessagingException.getMessage()).thenReturn("registration-token-not-registered");
-        when(firebaseMessaging.sendEachForMulticast(any())).thenReturn(batchResponse);
+        when(firebaseMessaging.sendEach(any(List.class))).thenReturn(batchResponse);
 
         fcmService.sendToMembers(dispatch);
 
@@ -354,7 +351,8 @@ class SendToMembersTest {
                 "Test Content",
                 tokenAndMemberId,
                 List.of(69L, 96L),
-                null
+                null,
+                Map.of()
         );
 
         FirebaseMessagingException firebaseMessagingException = mock(FirebaseMessagingException.class);
@@ -365,7 +363,7 @@ class SendToMembersTest {
 
         verify(fcmTransactionService).updateStatusToProcessing(1L);
         // dispatchToMembersInternal 내부에서 예외가 발생하므로 catch 블록의 markAsFailed가 호출되어야 함
-        verify(fcmTransactionService).markAsFailed(eq(1L), eq(2)); 
+        verify(fcmTransactionService).markAsFailed(eq(1L), eq(2));
         verify(jdbcTemplate).batchUpdate(anyString(), any(List.class), anyInt(), any());
     }
 
@@ -385,7 +383,8 @@ class SendToMembersTest {
                 "Test Content",
                 Map.of(),
                 List.of(69L, 96L),
-                null
+                null,
+                Map.of()
         );
 
         when(fcmMessageRepository.findById(1L)).thenReturn(Optional.of(fcmMessage));
@@ -397,6 +396,93 @@ class SendToMembersTest {
         verify(jdbcTemplate).batchUpdate(anyString(), any(List.class), anyInt(), any());
     }
 
+    @Test
+    void prepareTrackedNotification_returnsSavedMemberFcmMessageIds() {
+        FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69", "iphone");
+        FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96", "android");
+
+        when(fcmTokenRepository.findFcmTokensByMemberIds(eq(List.of(69L, 96L))))
+                .thenReturn(List.of(fcmToken1, fcmToken2));
+        when(fcmMessageRepository.saveAndFlush(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 1L);
+            return message;
+        });
+        when(memberFcmMessageRepository.saveAll(anyList()))
+                .thenReturn(List.of(
+                        memberFcmMessage(1001L, 1L, 69L, FcmMessageType.POST_REPLY),
+                        memberFcmMessage(1002L, 1L, 96L, FcmMessageType.POST_REPLY)
+                ));
+
+        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
+                List.of(69L, 96L),
+                "Test Title",
+                "Test Content",
+                FcmMessageType.POST_REPLY,
+                55L,
+                "/posts/55"
+        );
+
+        assertThat(dispatch.memberFcmMessageIds())
+                .containsEntry(69L, 1001L)
+                .containsEntry(96L, 1002L);
+        assertThat(dispatch.tokenAndMemberId())
+                .containsEntry("sample_token_69", 69L)
+                .containsEntry("sample_token_96", 96L);
+        assertThat(dispatch.path()).isEqualTo("/posts/55");
+    }
+
+    @Test
+    void dispatchTrackedNotification_includesMemberFcmMessageIdInPayload() throws FirebaseMessagingException {
+        Map<String, Long> tokenAndMemberId = new LinkedHashMap<>();
+        tokenAndMemberId.put("sample_token_69_a", 69L);
+        tokenAndMemberId.put("sample_token_69_b", 69L);
+        tokenAndMemberId.put("sample_token_96", 96L);
+        tokenAndMemberId.put("sample_token_guest", -1L);
+
+        TrackedNotificationDispatch dispatch = new TrackedNotificationDispatch(
+                1L,
+                tokenAndMemberId,
+                "Test Title",
+                "Test Content",
+                FcmMessageType.POST_REPLY,
+                55L,
+                "/posts/55",
+                Map.of(69L, 1001L, 96L, 1002L)
+        );
+
+        BatchResponse batchResponse = mock(BatchResponse.class);
+        SendResponse successResponse = mock(SendResponse.class);
+
+        when(batchResponse.getSuccessCount()).thenReturn(4);
+        when(batchResponse.getFailureCount()).thenReturn(0);
+        when(batchResponse.getResponses()).thenReturn(List.of(successResponse, successResponse, successResponse, successResponse));
+        when(successResponse.isSuccessful()).thenReturn(true);
+        when(firebaseMessaging.sendEach(any(List.class))).thenReturn(batchResponse);
+
+        fcmService.dispatchTrackedNotification(dispatch);
+
+        org.mockito.ArgumentCaptor<List<Message>> captor = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(firebaseMessaging).sendEach(captor.capture());
+        List<Message> sentMessages = captor.getValue();
+
+        assertThat(sentMessages).hasSize(4);
+        assertThat(sentMessages)
+                .extracting(this::tokenOf)
+                .containsExactly("sample_token_69_a", "sample_token_69_b", "sample_token_96", "sample_token_guest");
+
+        assertThat(dataOf(sentMessages.get(0)))
+                .containsEntry("type", "POST_REPLY")
+                .containsEntry("targetId", "55")
+                .containsEntry("path", "/posts/55")
+                .containsEntry("memberFcmMessageId", "1001");
+        assertThat(dataOf(sentMessages.get(1))).containsEntry("memberFcmMessageId", "1001");
+        assertThat(dataOf(sentMessages.get(2))).containsEntry("memberFcmMessageId", "1002");
+        assertThat(dataOf(sentMessages.get(3))).doesNotContainKey("memberFcmMessageId");
+
+        verify(fcmTransactionService).updateFinalStatus(1L, 4, 0);
+    }
+
     private void verifySavedPendingMessage(int expectedTargetCount) {
         org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
         verify(fcmMessageRepository).saveAndFlush(captor.capture());
@@ -406,6 +492,21 @@ class SendToMembersTest {
         assertThat(savedMessage.getSendCount()).isZero();
         assertThat(savedMessage.getFailureCount()).isZero();
         assertThat(savedMessage.getSendStatus()).isEqualTo(FcmSendStatus.PENDING);
+    }
+
+    private MemberFcmMessage memberFcmMessage(Long id, Long fcmMessageId, Long memberId, FcmMessageType type) {
+        MemberFcmMessage message = MemberFcmMessage.of(fcmMessageId, memberId, type);
+        ReflectionTestUtils.setField(message, "id", id);
+        return message;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> dataOf(Message message) {
+        return (Map<String, String>) ReflectionTestUtils.getField(message, "data");
+    }
+
+    private String tokenOf(Message message) {
+        return (String) ReflectionTestUtils.getField(message, "token");
     }
 
     private Member createMember(Long id) {
