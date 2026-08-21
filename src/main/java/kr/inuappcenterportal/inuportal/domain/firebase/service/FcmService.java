@@ -1,21 +1,13 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import com.google.firebase.messaging.BatchResponse;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.MulticastMessage;
-import com.google.firebase.messaging.Notification;
-import com.google.firebase.messaging.SendResponse;
-import com.google.firebase.messaging.AndroidConfig;
-import com.google.firebase.messaging.AndroidNotification;
-import com.google.firebase.messaging.ApnsConfig;
-import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
@@ -27,6 +19,9 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessa
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
+import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
+import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -44,19 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
-import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
-import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
-import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 
 @Service
 @Slf4j
@@ -397,9 +382,10 @@ public class FcmService {
 
     /**
      * DB에 이력을 남기지 않고 여러 사용자에게 알림을 보냅니다.
+     *
      * @param memberIds 대상 사용자 ID 목록
-     * @param title 알림 제목
-     * @param body 알림 내용
+     * @param title     알림 제목
+     * @param body      알림 내용
      */
     @Transactional(readOnly = true)
     public void sendUntrackedNotification(List<Long> memberIds, String title, String body) {
@@ -513,6 +499,42 @@ public class FcmService {
         message.markAsRead();
     }
 
+    /**
+     * 해당 페이지 전체 읽음 처리 메서드
+     */
+    @Transactional
+    public void markPageNotificationAsRead(Member member, int page) {
+        if (member == null) {
+            return;
+        }
+        Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Direction.DESC, "id"));
+        memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable)
+                .forEach(MemberFcmMessage::markAsRead);
+    }
+
+    /**
+     * 전체 읽음 처리 메서드
+     */
+    @Transactional
+    public int markAllNotificationAsRead(Member member) {
+        if (member == null) {
+            return 0;
+        }
+
+        return memberFcmMessageRepository.markAllAsReadByMemberId(member.getId(), LocalDateTime.now());
+    }
+
+    /**
+     * 읽지 않은 알림 갯수 조회 메서드
+     */
+    public int findIsReadFalseNotification(Member member) {
+        if (member == null) {
+            return 0;
+        }
+
+        return memberFcmMessageRepository.countByMemberIdAndIsReadFalse(member.getId());
+    }
+
     @Transactional(readOnly = true)
     public boolean hasUnreadNotification(Member member) {
         if (member == null) {
@@ -592,13 +614,13 @@ public class FcmService {
 
     private MulticastMessage createChatMessage(List<String> tokens, String title, String body, Long chatRoomId, boolean isMuted) {
         String roomIdStr = String.valueOf(chatRoomId);
-        
+
         AndroidNotification.Builder androidNotiBuilder = AndroidNotification.builder()
                 .setTag("room_" + roomIdStr);
-                
+
         Aps.Builder apsBuilder = Aps.builder()
                 .setThreadId("room_" + roomIdStr);
-                
+
         if (isMuted) {
             // Android: 무음용 채널 (앱에서 조용히 노출하도록 알림 중요도 낮춤)
             androidNotiBuilder.setChannelId("chat_channel_muted");
