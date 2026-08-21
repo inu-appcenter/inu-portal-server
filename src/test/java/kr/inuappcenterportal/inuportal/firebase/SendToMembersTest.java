@@ -357,7 +357,7 @@ class SendToMembersTest {
 
         FirebaseMessagingException firebaseMessagingException = mock(FirebaseMessagingException.class);
 
-        when(firebaseMessaging.sendEachForMulticast(any())).thenThrow(firebaseMessagingException);
+        when(firebaseMessaging.sendEachForMulticastAsync(any())).thenReturn(com.google.api.core.ApiFutures.immediateFailedFuture(firebaseMessagingException));
 
         fcmService.sendToMembers(dispatch);
 

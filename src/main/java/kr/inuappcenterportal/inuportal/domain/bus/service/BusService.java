@@ -34,6 +34,9 @@ public class BusService {
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusTargetRuleRepository busTargetRuleRepository;
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusStopAliasRepository busStopAliasRepository;
     private final kr.inuappcenterportal.inuportal.domain.bus.repository.BusServiceConfigRepository busServiceConfigRepository;
+    
+    private final kr.inuappcenterportal.inuportal.global.service.RedisService redisService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     private static final String SERVICE_STATUS_CONFIG_KEY = "BUS_SERVICE_STATUS";
 
@@ -244,10 +247,48 @@ public class BusService {
 
 
     public List<BusArrivalItemDto> getRealtimeArrivals(String bstopId) {
-        List<BusArrivalItemDto> arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
-
         if (bstopId == null || bstopId.isBlank()) {
-            return arrivals;
+            return new ArrayList<>();
+        }
+
+        // 콤마(,)로 여러 정류소 ID가 들어온 경우(예: "164000375, 164000499, ...") 각 정류소별로 분할 조회하여 병합
+        if (bstopId.contains(",")) {
+            String[] ids = bstopId.split(",");
+            List<BusArrivalItemDto> combined = new ArrayList<>();
+            for (String id : ids) {
+                String trimmedId = id.trim();
+                if (!trimmedId.isBlank()) {
+                    combined.addAll(getRealtimeArrivals(trimmedId));
+                }
+            }
+            return combined.stream()
+                    .filter(distinctByKey(item -> (item.getRouteId() != null ? item.getRouteId() : "") + "_" + (item.getBusId() != null ? item.getBusId() : "") + "_" + (item.getBstopId() != null ? item.getBstopId() : "")))
+                    .collect(Collectors.toList());
+        }
+
+        List<BusArrivalItemDto> arrivals = new ArrayList<>();
+        String redisKey = "bus_realtime:" + bstopId;
+        String cachedJson = redisService.getValue(redisKey);
+
+        if (cachedJson != null && !cachedJson.isBlank()) {
+            try {
+                // Redis에서 캐시된 데이터 파싱
+                BusArrivalItemDto[] arr = objectMapper.readValue(cachedJson, BusArrivalItemDto[].class);
+                arrivals = new ArrayList<>(Arrays.asList(arr));
+            } catch (Exception e) {
+                log.error("Redis에서 버스 도착 정보 파싱 실패 - bstopId: {}", bstopId, e);
+            }
+        }
+
+        // 캐시가 없으면(스케줄러 대상이 아니거나 최초 요청 시) 직접 API 호출 후 30초 캐싱
+        if (arrivals.isEmpty() && (cachedJson == null || cachedJson.isBlank())) {
+            arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
+            try {
+                String json = objectMapper.writeValueAsString(arrivals);
+                redisService.storeValueWithExpire(redisKey, json, 30, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ex) {
+                log.error("Redis 캐싱 실패 - bstopId: {}", bstopId, ex);
+            }
         }
 
         // 해당 정류소를 출발/경유하는 등록된 노선 목록
@@ -338,21 +379,6 @@ public class BusService {
                 .build();
     }
 
-    private static final java.util.Map<String, String> ROUTE_NO_FALLBACK = java.util.Map.ofEntries(
-            java.util.Map.entry("165000012", "8"),
-            java.util.Map.entry("165000020", "16"),
-            java.util.Map.entry("165000514", "41"),
-            java.util.Map.entry("164000004", "46"),
-            java.util.Map.entry("165000008", "6-1"),
-            java.util.Map.entry("165000007", "6"),
-            java.util.Map.entry("165000150", "1301"),
-            java.util.Map.entry("161000007", "9"),
-            java.util.Map.entry("161000027", "순환43"),
-            java.util.Map.entry("161000038", "순환42"),
-            java.util.Map.entry("165000201", "순환47"),
-            java.util.Map.entry("213000019", "3002")
-    );
-
     public BusHistoryResponseDto getHistory(String bstopId, String targetDateStr) {
         LocalDate targetDate = (targetDateStr != null && !targetDateStr.isBlank())
                 ? LocalDate.parse(targetDateStr, DateTimeFormatter.ISO_LOCAL_DATE)
@@ -399,12 +425,10 @@ public class BusService {
             }
             lastArrivalSeen.put(vehicleKey, h.getCreateDate());
 
-            String routeNo = h.getRouteNo();
+            // DB 노선 정보(bus_route_section)에 등록된 정식 노선명을 100% 동적 매핑
+            String routeNo = sectionRouteMap.get(h.getRouteId());
             if (routeNo == null || routeNo.isBlank()) {
-                routeNo = sectionRouteMap.get(h.getRouteId());
-            }
-            if (routeNo == null || routeNo.isBlank()) {
-                routeNo = ROUTE_NO_FALLBACK.getOrDefault(h.getRouteId(), "");
+                routeNo = (h.getRouteNo() != null) ? h.getRouteNo() : "";
             }
 
             records.add(BusHistoryResponseDto.HistoryRecord.builder()

@@ -151,10 +151,15 @@ public class MockRegistrationService {
             }
         }
     }
+    private static final List<String> ISU_ORDER = List.of(
+            "공통필수", "공통선택", "교양필수", "기초교양", "기초과학", "교양선택", "핵심교양", "심화교양",
+            "전공기초", "전공필수", "전공핵심", "전공선택", "전공심화", "전공선수", "선수", "교직선수",
+            "교직", "부전공", "복수전공", "연계전공", "군사학", "일반선택", "논문", "융합전공"
+    );
+
     private List<CourseOfferingResponseDto> toResponses(List<CourseOffering> offerings) {
         List<CourseOffering> sorted = offerings.stream().sorted(Comparator
-                .comparingInt((CourseOffering item) -> gradeOrder(item.getHyNameRaw()))
-                .thenComparing(item -> nullSafe(item.getIsuCode()))
+                .comparingInt((CourseOffering item) -> isuOrder(item.getIsuNameRaw()))
                 .thenComparing(item -> nullSafe(item.getSubjectNumber()))
                 .thenComparing(CourseOffering::getId)).toList();
         Map<Long, List<CourseMeeting>> meetings = meetingRepository.findAllByCourseOfferingIdIn(sorted.stream().map(CourseOffering::getId).toList()).stream()
@@ -162,6 +167,10 @@ public class MockRegistrationService {
         return sorted.stream().map(item -> CourseOfferingResponseDto.from(item,
                 meetingService.mergeContinuousMeetings(meetings.getOrDefault(item.getId(), List.of())), false)).toList();
     }
-    private int gradeOrder(String value) { return "전학년".equals(value) ? 0 : "1".equals(value) ? 1 : "2".equals(value) ? 2 : "3".equals(value) ? 3 : "4".equals(value) ? 4 : 99; }
+    private int isuOrder(String isuName) {
+        if (isuName == null) return Integer.MAX_VALUE;
+        int index = ISU_ORDER.indexOf(isuName);
+        return index < 0 ? Integer.MAX_VALUE : index;
+    }
     private String nullSafe(String value) { return value == null ? "" : value; }
 }

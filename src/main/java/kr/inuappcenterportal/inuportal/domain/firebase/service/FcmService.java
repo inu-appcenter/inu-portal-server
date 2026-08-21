@@ -372,6 +372,7 @@ public class FcmService {
             boolean batchFinished = false;
 
             for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
+                com.google.api.core.ApiFuture<BatchResponse> future = null;
                 try {
                     CompletableFuture<BatchResponse> future = CompletableFuture.supplyAsync(() -> {
                         try {
@@ -399,6 +400,9 @@ public class FcmService {
 
                     batchFinished = true;
                 } catch (Exception e) {
+                    if (future != null && !future.isDone()) {
+                        future.cancel(true);
+                    }
                     log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
                             attempt, maxRetries, fcmMessageId, messages.size(), e.getMessage());
 
@@ -563,10 +567,17 @@ public class FcmService {
 
     @Transactional
     public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
-        Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Direction.DESC, "id"));
-        Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
+        int pageIndex = page > 0 ? page - 1 : page;
 
-        messages.forEach(MemberFcmMessage::incrementViewCount);
+        if (pageIndex == 0 && member != null) {
+            // 1. 이전 방문들에서 이미 2회 이상 조회된 알림들을 일괄 읽음 처리
+            memberFcmMessageRepository.markAsReadByViewCount(member.getId(), 2, LocalDateTime.now());
+            // 2. 현재 회원의 모든 안 읽은 알림의 viewCount를 일괄 1 증가 (페이지 스크롤 여부에 상관없이 전체 적용)
+            memberFcmMessageRepository.incrementViewCountForAllUnread(member.getId());
+        }
+
+        Pageable pageable = PageRequest.of(pageIndex, 10, Sort.by(Sort.Direction.DESC, "id"));
+        Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
 
         Map<Long, FcmMessage> fcmMessageMap = fcmMessageRepository.findAllById(
                         messages.stream().map(MemberFcmMessage::getFcmMessageId).toList()
@@ -635,7 +646,7 @@ public class FcmService {
         if (member == null) {
             return false;
         }
-        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalse(member.getId());
+        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalseAndViewCountLessThan(member.getId(), 2);
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId) {

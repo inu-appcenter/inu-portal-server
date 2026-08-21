@@ -36,6 +36,14 @@ public class BusApiService {
 
     private static final java.util.Map<String, String> ALLOC_GAP_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
+    private static final com.github.benmanes.caffeine.cache.Cache<String, List<BusArrivalItemDto>> ARRIVAL_CACHE = 
+            com.github.benmanes.caffeine.cache.Caffeine.newBuilder()
+                    .expireAfterWrite(20, java.util.concurrent.TimeUnit.SECONDS)
+                    .maximumSize(1000)
+                    .build();
+
+    private static final java.util.Map<String, List<BusArrivalItemDto>> ARRIVAL_FALLBACK_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
     // API 키 만료 시 false로 변경하여 공공데이터포털 연동 일시 중단 가능
     private static final boolean IS_API_ENABLED = true;
 
@@ -112,27 +120,44 @@ public class BusApiService {
             return List.of();
         }
 
-
+        List<BusArrivalItemDto> cached = ARRIVAL_CACHE.getIfPresent(bstopId);
+        if (cached != null) {
+            return cached;
+        }
 
         try {
+            String trimmedStopId = bstopId.trim();
             String encodedKey = URLEncoder.encode(busApiKey, StandardCharsets.UTF_8);
+            String encodedBstopId = URLEncoder.encode(trimmedStopId, StandardCharsets.UTF_8);
             String url = String.format("%s?serviceKey=%s&bstopId=%s&pageNo=1&numOfRows=30",
-                    ARRIVAL_API_URL, busApiKey, bstopId);
+                    ARRIVAL_API_URL, encodedKey, encodedBstopId);
 
             String xmlResponse = webClient.get()
                     .uri(URI.create(url))
                     .retrieve()
                     .bodyToMono(String.class)
+                    .onErrorResume(org.springframework.web.reactive.function.client.WebClientResponseException.class, e -> {
+                        if (e.getStatusCode().value() == 429) {
+                            log.warn("공공데이터 API 호출 한도 초과 (429) - bstopId: {}", bstopId);
+                            return reactor.core.publisher.Mono.empty(); // Fallback 처리를 위해 빈 Mono 반환
+                        }
+                        return reactor.core.publisher.Mono.error(e);
+                    })
                     .block();
 
             if (xmlResponse == null || xmlResponse.isBlank()) {
-                return List.of();
+                return ARRIVAL_FALLBACK_CACHE.getOrDefault(bstopId, List.of());
             }
 
-            return parseArrivalXml(xmlResponse);
+            List<BusArrivalItemDto> result = parseArrivalXml(xmlResponse);
+            if (!result.isEmpty()) {
+                ARRIVAL_CACHE.put(bstopId, result);
+                ARRIVAL_FALLBACK_CACHE.put(bstopId, result);
+            }
+            return result;
         } catch (Exception e) {
             log.error("버스 도착 정보 API 호출 실패 (bstopId: {})", bstopId, e);
-            return List.of();
+            return ARRIVAL_FALLBACK_CACHE.getOrDefault(bstopId, List.of());
         }
     }
 
@@ -313,20 +338,43 @@ public class BusApiService {
     }
 
 
-    private static final java.util.Map<String, String> KNOWN_ROUTE_NO_MAP = java.util.Map.ofEntries(
-            java.util.Map.entry("165000012", "8"),
-            java.util.Map.entry("165000020", "16"),
-            java.util.Map.entry("165000514", "41"),
-            java.util.Map.entry("164000004", "46"),
-            java.util.Map.entry("165000008", "6-1"),
-            java.util.Map.entry("165000007", "6"),
-            java.util.Map.entry("165000150", "1301"),
-            java.util.Map.entry("161000007", "9"),
-            java.util.Map.entry("161000027", "순환43"),
-            java.util.Map.entry("161000038", "순환42"),
-            java.util.Map.entry("165000201", "순환47"),
-            java.util.Map.entry("213000019", "3002")
-    );
+    private static final java.util.Map<String, String> DYNAMIC_ROUTE_NO_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public String fetchRouteNoDynamically(String routeId) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || routeId == null || routeId.isBlank()) {
+            return "";
+        }
+
+        String cached = DYNAMIC_ROUTE_NO_CACHE.get(routeId);
+        if (cached != null) {
+            return cached;
+        }
+
+        try {
+            String url = String.format("%s?serviceKey=%s&routeId=%s&pageNo=1&numOfRows=1",
+                    ROUTE_INFO_API_URL, busApiKey, routeId.trim());
+            String xml = executeGetXml(url);
+            if (xml != null && !xml.isBlank()) {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                Document doc = factory.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+                NodeList items = doc.getElementsByTagName("itemList");
+                if (items.getLength() == 0) items = doc.getElementsByTagName("item");
+                if (items.getLength() > 0) {
+                    Element item = (Element) items.item(0);
+                    String routeNo = getTagValue("ROUTENO", item);
+                    if (!routeNo.isBlank()) {
+                        DYNAMIC_ROUTE_NO_CACHE.put(routeId, routeNo);
+                        return routeNo;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("노선 정보 API로부터 routeNo 동적 조회 실패 (routeId: {})", routeId, e);
+        }
+
+        DYNAMIC_ROUTE_NO_CACHE.put(routeId, "");
+        return "";
+    }
 
     private List<BusArrivalItemDto> parseArrivalXml(String xmlData) throws Exception {
         List<BusArrivalItemDto> result = new ArrayList<>();
@@ -340,8 +388,11 @@ public class BusApiService {
 
             String routeId = getTagValue("ROUTEID", item);
             String routeNo = getTagValue("ROUTENO", item);
-            if (routeNo.isBlank() && !routeId.isBlank()) {
-                routeNo = KNOWN_ROUTE_NO_MAP.getOrDefault(routeId, "");
+            if ((routeNo.isBlank() || routeNo.matches("^[0-9]+$")) && !routeId.isBlank()) {
+                String dynamicNo = fetchRouteNoDynamically(routeId);
+                if (!dynamicNo.isBlank()) {
+                    routeNo = dynamicNo;
+                }
             }
 
             result.add(BusArrivalItemDto.builder()
