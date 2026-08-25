@@ -9,7 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.AttachmentMeta;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.NoticeContentStatus;
 

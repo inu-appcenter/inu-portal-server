@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.keyword.domain;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
