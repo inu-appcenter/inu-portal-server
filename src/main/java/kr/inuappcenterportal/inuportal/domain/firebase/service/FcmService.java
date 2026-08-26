@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import com.google.firebase.messaging.*;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
@@ -21,7 +22,6 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -372,7 +372,6 @@ public class FcmService {
             boolean batchFinished = false;
 
             for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
-                com.google.api.core.ApiFuture<BatchResponse> future = null;
                 try {
                     CompletableFuture<BatchResponse> future = CompletableFuture.supplyAsync(() -> {
                         try {
@@ -400,9 +399,6 @@ public class FcmService {
 
                     batchFinished = true;
                 } catch (Exception e) {
-                    if (future != null && !future.isDone()) {
-                        future.cancel(true);
-                    }
                     log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
                             attempt, maxRetries, fcmMessageId, messages.size(), e.getMessage());
 
