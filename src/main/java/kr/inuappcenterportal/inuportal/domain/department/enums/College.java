@@ -5,6 +5,8 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Objects;
+
 @Getter
 @RequiredArgsConstructor
 public enum College {
@@ -29,7 +31,8 @@ public enum College {
     HUSS("HUSS", "V000"),
     ETC("기타", "V000"),
     NO_COLLEGE("단과대구분없음", "0000465"),
-    LAW_NO_COLLEGE("단과대구분없음(법학)", "0000706");
+    LAW_NO_COLLEGE("단과대구분없음(법학)", "0000706"),
+    ;
 
 
     private final String collegeName;
@@ -45,7 +48,7 @@ public enum College {
         for (College college : values()) {
             if (college.name().equalsIgnoreCase(trimmedValue)
                     || college.collegeName.equals(trimmedValue)
-                    || college.collegeCode.equals(trimmedValue)) {
+                    || Objects.equals(college.collegeCode, trimmedValue)) {
                 return college;
             }
         }

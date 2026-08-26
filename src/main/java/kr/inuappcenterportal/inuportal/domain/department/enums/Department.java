@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.Getter;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -134,8 +135,8 @@ public enum Department {
             Map.entry("환경공학전공", ENVIRONMENT_ENGINEERING),
             Map.entry("도시환경공학부", CIVIL_ENVIRONMENT_ENGINEERING),
 
+            Map.entry("도시건축학부", URBAN_ARCHITECTURE),
             Map.entry("건축공학전공", URBAN_ARCHITECTURE_ENGINEERING),
-            Map.entry("도시건축학부", URBAN_ARCHITECTURE_ARCHITECTURE),
             Map.entry("도시건축학전공", URBAN_ARCHITECTURE_ARCHITECTURE),
 
             Map.entry("나노바이오공학전공", BIOENGINEERING_NANO),
@@ -220,8 +221,16 @@ public enum Department {
         throw new MyException(MyErrorCode.INVALID_INPUT);
     }
 
+    // 공지 크롤링 가능한 department만 선택해주는 메서드(noticeService에서 사용)
+    public static Department[] noticeDepartments() {
+        return Arrays.stream(values())
+                .filter(Department::isServiceAvailable)
+                .toArray(Department[]::new);
+    }
+
     // 기존 notice 코드 호환용
     public String getUrls() {
         return noticeUrl;
     }
+
 }
