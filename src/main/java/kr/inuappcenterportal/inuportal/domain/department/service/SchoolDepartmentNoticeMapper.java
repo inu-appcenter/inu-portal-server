@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.department.service;
 
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 
 import java.util.Map;
 import java.util.Optional;

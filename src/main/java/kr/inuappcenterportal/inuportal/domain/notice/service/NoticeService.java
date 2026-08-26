@@ -2,17 +2,11 @@ package kr.inuappcenterportal.inuportal.domain.notice.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.AttachmentMeta;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.*;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.NoticeContentStatus;
-
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentCrawlerState;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
@@ -48,8 +42,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -89,8 +81,10 @@ public class NoticeService {
     private static final String NO_LABEL = "NO";
     private static final int ERROR_MESSAGE_LIMIT = 500;
 
-    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {};
-    private static final TypeReference<List<AttachmentMeta>> ATTACHMENT_META_LIST_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
+    };
+    private static final TypeReference<List<AttachmentMeta>> ATTACHMENT_META_LIST_TYPE = new TypeReference<>() {
+    };
 
     private final NoticeRepository noticeRepository;
     private final NoticeContentRepository noticeContentRepository;
@@ -154,7 +148,7 @@ public class NoticeService {
     )
     @CacheEvict(value = "noticeCache", cacheManager = "cacheManager")
     public void getNewDepartmentNotice() {
-        Department[] departments = Department.values();
+        Department[] departments = Department.noticeDepartments();
         int start = getCrawlerIndex(DEPT_INDEX_KEY);
         int end = Math.min(start + DEPT_SIZE, departments.length);
 
@@ -171,7 +165,7 @@ public class NoticeService {
             lockAtLeastFor = "PT30S"
     )
     public void backfillDepartmentNoticeContents() {
-        Department[] departments = Department.values();
+        Department[] departments = Department.noticeDepartments();
         int start = getCrawlerIndex(DEPT_CONTENT_INDEX_KEY);
         int end = Math.min(start + DEPT_CONTENT_SIZE, departments.length);
         int count = backfillDepartmentNoticeContents(departments, start, end);
@@ -188,7 +182,7 @@ public class NoticeService {
             lockAtLeastFor = "PT30S"
     )
     public void enrichDepartmentNoticeContents() {
-        Department[] departments = Department.values();
+        Department[] departments = Department.noticeDepartments();
         int start = getCrawlerIndex(DEPT_ENRICH_INDEX_KEY);
         int end = Math.min(start + DEPT_ENRICH_SIZE, departments.length);
         int count = enrichDepartmentNoticeContents(departments, start, end);
@@ -460,7 +454,7 @@ public class NoticeService {
                 String pubDateStr = item.select("pubDate").text().trim();
                 String parsedRssDate = parseRssDate(pubDateStr);
                 LocalDate date = parseDepartmentNoticeDate(parsedRssDate);
-                
+
                 long views = 0L;
                 String viewsStr = item.select("hit").text().trim();
                 if (!viewsStr.isBlank()) {
@@ -687,7 +681,7 @@ public class NoticeService {
             }
 
             Element contentRoot = findDepartmentNoticeContentRoot(detailDocument, config);
-            if (contentRoot == null && false) {
+            if (false) {
                 departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
                 log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
@@ -709,7 +703,7 @@ public class NoticeService {
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return;
             }
-            if (contentText.isBlank() && false) {
+            if (false) {
                 departmentNotice.markContentFailed(limitMessage("학과 공지 본문 추출 결과가 비어 있습니다."));
                 log.warn("학과 공지 본문 추출 결과가 비어 있습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
@@ -1180,7 +1174,7 @@ public class NoticeService {
             if (dateOnly.matches("\\d{4}-\\d{2}-\\d{2}")) {
                 return LocalDate.parse(dateOnly, DateTimeFormatter.ISO_LOCAL_DATE);
             }
-            
+
             log.warn("정의되지 않은 날짜 형식입니다. value={}", normalized);
             return LocalDate.now();
         } catch (Exception e) {
