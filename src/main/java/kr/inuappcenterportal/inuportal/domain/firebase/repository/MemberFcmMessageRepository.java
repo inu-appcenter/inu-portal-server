@@ -28,4 +28,16 @@ public interface MemberFcmMessageRepository extends JpaRepository<MemberFcmMessa
     int incrementViewCountForAllUnread(@Param("memberId") Long memberId);
 
     Optional<MemberFcmMessage> findByIdAndMemberId(Long id, Long memberId);
+
+    @Modifying
+    @Query("""
+                UPDATE MemberFcmMessage m
+                SET m.isRead = true,
+                    m.readAt = :readAt
+                WHERE m.memberId = :memberId
+                  AND m.isRead = false
+            """)
+    int markAllAsReadByMemberId(Long memberId, LocalDateTime readAt);
+
+    int countByMemberIdAndIsReadFalse(Long memberId);
 }
