@@ -18,10 +18,10 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenReposi
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -718,40 +718,56 @@ public class FcmService {
         }
     }
 
+    /**
+     * 채팅 메시지는 다른 알림과 달리 플랫폼별로 페이로드 형태를 다르게 보낸다.
+     *
+     * <p>Android: <b>data-only</b>. notification 블록이 있으면 OS가 알림을 직접 그려
+     * 버리고 앱의 백그라운드 메시지 핸들러가 실행되지 않는다. 그러면 앱이 채팅방
+     * 단위로 알림을 묶는(groupId + group summary) 코드를 돌릴 기회 자체가 없다.
+     * 제목/본문/채널 선택에 필요한 값은 전부 data로 내려보내고, 실제 노출은 앱이
+     * 한다. data-only가 backgrounded 상태에서도 배달되도록 priority는 HIGH.
+     *
+     * <p>iOS: 반대로 앱이 손댈 수 있는 게 없다. 백그라운드/종료 상태의 알림은 APNs가
+     * aps 블록 그대로 그리므로 스레드 묶음은 서버가 넣는 {@code thread-id}가 유일한
+     * 경로다. 그래서 alert/sound/thread-id를 aps에 직접 싣는다.
+     *
+     * <p>따라서 모든 플랫폼에 함께 나가는 최상위 {@code setNotification}은 쓰지 않는다
+     * (그걸 쓰면 Android도 notification 페이로드를 받아 위 전제가 깨진다).
+     */
     private MulticastMessage createChatMessage(List<String> tokens, String title, String body, Long chatRoomId, boolean isMuted) {
         String roomIdStr = String.valueOf(chatRoomId);
 
-        AndroidNotification.Builder androidNotiBuilder = AndroidNotification.builder()
-                .setTag("room_" + roomIdStr);
-
         Aps.Builder apsBuilder = Aps.builder()
-                .setThreadId("room_" + roomIdStr);
+                // 앱의 포그라운드 표시 경로도 chatRoomId를 그대로 threadId로 쓴다.
+                // 접두사를 붙이면 포그라운드에서 받은 알림과 백그라운드에서 받은
+                // 알림이 서로 다른 스레드로 갈라져 묶이지 않는다.
+                .setThreadId(roomIdStr)
+                .setAlert(ApsAlert.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build());
 
-        if (isMuted) {
-            // Android: 무음용 채널 (앱에서 조용히 노출하도록 알림 중요도 낮춤)
-            androidNotiBuilder.setChannelId("chat_channel_muted");
-        } else {
-            // Android: 소리/진동용 기본 채널
-            androidNotiBuilder.setChannelId("chat_channel_default");
-            // iOS: 소리가 나도록 default 설정
+        if (!isMuted) {
             apsBuilder.setSound("default");
         }
 
         return MulticastMessage.builder()
                 .addAllTokens(tokens)
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build())
                 // 웹뷰에서 라우팅할 때 참조할 공통 데이터 페이로드
                 .putData("type", "CHAT")
                 .putData("chatRoomId", roomIdStr)
+                // Android는 notification 블록이 없으므로 표시용 문구도 data로 내려준다
+                .putData("chatRoomName", title)
+                .putData("messageText", body)
+                // 채널(소리/무음) 선택은 앱이 이 값으로 판단한다
+                .putData("muted", String.valueOf(isMuted))
                 // 라우팅 정보는 data 블록에만 포함 (채팅방은 path param 형태)
                 .putData("path", "/chat/" + roomIdStr)
                 .setAndroidConfig(AndroidConfig.builder()
-                        .setNotification(androidNotiBuilder.build())
+                        .setPriority(AndroidConfig.Priority.HIGH)
                         .build())
                 .setApnsConfig(ApnsConfig.builder()
+                        .putHeader("apns-priority", "10")
                         .setAps(apsBuilder.build())
                         .build())
                 .build();

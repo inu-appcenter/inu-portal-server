@@ -5,7 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.department.dto.SchoolDepartmentRes
 import kr.inuappcenterportal.inuportal.domain.department.model.SchoolDepartment;
 import kr.inuappcenterportal.inuportal.domain.department.repository.SchoolDepartmentRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
