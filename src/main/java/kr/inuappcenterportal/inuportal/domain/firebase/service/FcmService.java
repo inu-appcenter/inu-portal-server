@@ -505,6 +505,26 @@ public class FcmService {
     }
 
     /**
+     * 푸시 payload의 공통 식별자로 읽음 처리하는 메서드.
+     * <p>
+     * 푸시 payload에는 수신자 전체가 공유하는 fcmMessageId만 실린다. 개인 알림함 행은
+     * 인증된 회원 정보와 조합해 서버가 특정한다.
+     */
+    @Transactional
+    public void markNotificationAsReadByFcmMessageId(Member member, Long fcmMessageId) {
+        if (member == null || fcmMessageId == null) {
+            return;
+        }
+        List<MemberFcmMessage> messages =
+                memberFcmMessageRepository.findAllByFcmMessageIdAndMemberId(fcmMessageId, member.getId());
+
+        if (messages.isEmpty()) {
+            throw new MyException(MyErrorCode.MESSAGE_NOT_FOUND);
+        }
+        messages.forEach(MemberFcmMessage::markAsRead);
+    }
+
+    /**
      * 해당 페이지 전체 읽음 처리 메서드
      */
     @Transactional

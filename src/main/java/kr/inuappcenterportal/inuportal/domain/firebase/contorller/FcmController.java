@@ -61,6 +61,15 @@ public class FcmController implements FcmApiSpecification {
         return ResponseEntity.ok(ResponseDto.of(null, "알림 읽음 처리 성공"));
     }
 
+    @PatchMapping("/notifications/fcm-messages/{fcmMessageId}/read")
+    public ResponseEntity<ResponseDto<Void>> readNotificationByFcmMessageId(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long fcmMessageId
+    ) {
+        fcmService.markNotificationAsReadByFcmMessageId(member, fcmMessageId);
+        return ResponseEntity.ok(ResponseDto.of(null, "알림 읽음 처리 성공"));
+    }
+
     @PatchMapping("/notification/read")
     public ResponseEntity<ResponseDto<Void>> readPageNotification(
             @AuthenticationPrincipal Member member,
