@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.notice.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
