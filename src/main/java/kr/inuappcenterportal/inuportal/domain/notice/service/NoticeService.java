@@ -1401,6 +1401,15 @@ public class NoticeService {
     }
 
     @Transactional(readOnly = true)
+    public DepartmentNoticeDetailResponseDto getDepartmentNoticeDetail(Long id) {
+        DepartmentNotice departmentNotice = departmentNoticeRepository.findById(id)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOTICE_NOT_FOUND));
+        List<AttachmentMeta> attachments = readAttachmentMetas(departmentNotice.getAttachmentMetaJson());
+        boolean hasSchedules = scheduleRepository.existsBySourceNoticeIdAndAiGeneratedTrue(id);
+        return DepartmentNoticeDetailResponseDto.of(departmentNotice, attachments, hasSchedules);
+    }
+
+    @Transactional(readOnly = true)
     public ListResponseDto<NoticeWithContentResponseDto> getNoticeWithContentList(String category, String sort, int page) {
         Pageable pageable = PageRequest.of(page > 0 ? --page : page, 8, sort(sort));
         Page<Notice> notices = noticeRepository.findAllWithContentByCategory(category, pageable);

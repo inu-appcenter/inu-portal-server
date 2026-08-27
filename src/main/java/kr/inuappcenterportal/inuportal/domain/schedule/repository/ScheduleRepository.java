@@ -49,6 +49,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findAllBySourceNoticeIdInAndAiGeneratedTrue(Collection<Long> sourceNoticeIds);
 
+    boolean existsBySourceNoticeIdAndAiGeneratedTrue(Long sourceNoticeId);
+
     @Query("SELECT COALESCE(MAX(s.id), 0) FROM Schedule s")
     Long findMaxId();
 

@@ -225,8 +225,12 @@ public class DepartmentNotice {
         return content.getBestEffortText();
     }
 
+    public String getContentHtml() {
+        return content == null ? null : content.getContentHtml();
+    }
+
     public String getContentText() {
-        return content.getContentText();
+        return content == null ? null : content.getContentText();
     }
 
     public String getAttachmentText() {

@@ -176,4 +176,46 @@ class NoticeServiceTest {
         assertNotEquals(initialHash, notice.getContentHash());
         assertEquals("수정된 본문 내용", notice.getContentText());
     }
+
+    @Test
+    void testGetDepartmentNoticeDetail_Success() {
+        // Given
+        Long noticeId = 100L;
+        kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice departmentNotice =
+                kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice.create(
+                        kr.inuappcenterportal.inuportal.domain.department.enums.Department.COMPUTER_ENGINEERING,
+                        "컴퓨터공학부 공지사항",
+                        java.time.LocalDate.of(2026, 8, 6),
+                        150L,
+                        "https://cse.inu.ac.kr/notice/100"
+                );
+        departmentNotice.updateContent(
+                "<p>컴퓨터공학부 상세 본문입니다.</p>",
+                "컴퓨터공학부 상세 본문입니다.",
+                "hash123",
+                java.time.LocalDateTime.now(),
+                "[]",
+                "[{\"name\":\"file1.pdf\",\"url\":\"https://cse.inu.ac.kr/download/1\",\"fileType\":\"pdf\"}]"
+        );
+
+        when(departmentNoticeRepository.findById(noticeId)).thenReturn(Optional.of(departmentNotice));
+        when(scheduleRepository.existsBySourceNoticeIdAndAiGeneratedTrue(noticeId)).thenReturn(true);
+
+        // When
+        kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeDetailResponseDto response =
+                noticeService.getDepartmentNoticeDetail(noticeId);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(departmentNotice.getTitle(), response.getTitle());
+        assertEquals(kr.inuappcenterportal.inuportal.domain.department.enums.Department.COMPUTER_ENGINEERING, response.getDepartment());
+        assertEquals("2026.08.06", response.getCreateDate());
+        assertEquals(150L, response.getView());
+        assertEquals("<p>컴퓨터공학부 상세 본문입니다.</p>", response.getContentHtml());
+        assertEquals("컴퓨터공학부 상세 본문입니다.", response.getContentText());
+        assertTrue(response.isHasSchedules());
+        assertNotNull(response.getAttachments());
+        assertEquals(1, response.getAttachments().size());
+        assertEquals("file1.pdf", response.getAttachments().get(0).name());
+    }
 }
