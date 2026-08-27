@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationRespo
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
@@ -28,6 +29,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -60,6 +62,7 @@ public class FcmService {
     private final JdbcTemplate jdbcTemplate;
     private final FcmTransactionService fcmTransactionService;
     private final FcmMetrics fcmMetrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void saveToken(TokenRequestDto tokenRequestDto, Long memberId) {
@@ -476,16 +479,24 @@ public class FcmService {
                         LinkedHashMap::new
                 ));
 
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId, path);
         batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
 
-        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId, path);
+        TrackedNotificationDispatch dispatch =
+                new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId, path);
+
+        // 저장 트랜잭션이 커밋된 뒤에 FcmEventListener가 발송한다.
+        // 호출한 도메인 트랜잭션이 롤백되면 알림함 행과 함께 발송도 취소된다.
+        eventPublisher.publishEvent(new TrackedNotificationDispatchEvent(dispatch));
+
+        return dispatch;
     }
 
     public void dispatchTrackedNotification(TrackedNotificationDispatch dispatch) {
         if (dispatch == null) {
             return;
         }
+        fcmTransactionService.updateStatusToProcessing(dispatch.fcmMessageId());
         if (!dispatch.tokenAndMemberId().isEmpty()) {
             DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(), dispatch.type(), dispatch.targetId(), dispatch.path());
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
@@ -744,11 +755,16 @@ public class FcmService {
 
 
     private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount, Long targetId) {
+        return saveTrackedMessage(title, body, adminMessage, targetCount, targetId, null);
+    }
+
+    private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount, Long targetId, String path) {
         FcmMessage fcmMessage = FcmMessage.builder()
                 .title(title)
                 .body(body)
                 .isAdminMessage(adminMessage)
                 .targetId(targetId)
+                .path(path)
                 .build();
         fcmMessage.markPending(targetCount);
         return fcmMessageRepository.saveAndFlush(fcmMessage);
