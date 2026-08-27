@@ -239,8 +239,7 @@ public class FcmService {
                 request.content(),
                 Map.copyOf(notificationTargets.tokenAndMemberId()),
                 List.copyOf(notificationTargets.targetMemberIds()),
-                request.path(),
-                Map.of()
+                request.path()
         );
     }
 
@@ -305,66 +304,20 @@ public class FcmService {
         });
     }
 
-    private Map<Long, Long> saveMemberFcmMessages(
-            Long fcmMessageId,
-            List<Long> memberIds,
-            FcmMessageType type
-    ) {
-        List<MemberFcmMessage> messages = distinctMemberIds(memberIds).stream()
-                .map(memberId -> MemberFcmMessage.of(fcmMessageId, memberId, type))
-                .toList();
-
-        return memberFcmMessageRepository.saveAll(messages).stream()
-                .collect(Collectors.toMap(
-                        MemberFcmMessage::getMemberId,
-                        MemberFcmMessage::getId
-                ));
-    }
-
     private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId) {
         return dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId, null);
     }
 
     private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId, String path) {
-        return dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId, path, Map.of());
-    }
-
-    private DeliveryResult dispatchToMembersInternal(
-            Long fcmMessageId,
-            Map<String, Long> tokenAndMemberId,
-            String title,
-            String body,
-            FcmMessageType type,
-            Long targetId,
-            String path,
-            Map<Long, Long> memberFcmMessageIds
-    ) {
-        List<Map.Entry<String, Long>> entries = new ArrayList<>(tokenAndMemberId.entrySet());
+        List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
         int batchSize = 500;
         int successCount = 0;
         int failureCount = 0;
         int maxRetries = 3;
 
-        for (int i = 0; i < entries.size(); i += batchSize) {
-            List<Map.Entry<String, Long>> batchEntries =
-                    entries.subList(i, Math.min(i + batchSize, entries.size()));
-
-            List<Message> messages = batchEntries.stream()
-                    .map(entry -> {
-                        String token = entry.getKey();
-                        Long memberId = entry.getValue();
-                        Long memberFcmMessageId = memberFcmMessageIds.get(memberId);
-
-                        return createMessage(
-                                token,
-                                title,
-                                body,
-                                type,
-                                targetId,
-                                path,
-                                memberFcmMessageId
-                        );
-                    }).toList();
+        for (int i = 0; i < tokens.size(); i += batchSize) {
+            List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
+            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId, path);
 
             int batchSuccess = 0;
             int batchFailure = 0;
@@ -372,16 +325,11 @@ public class FcmService {
             boolean batchFinished = false;
 
             for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
+                com.google.api.core.ApiFuture<BatchResponse> future = null;
                 try {
-                    CompletableFuture<BatchResponse> future = CompletableFuture.supplyAsync(() -> {
-                        try {
-                            return firebaseMessaging.sendEach(messages);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+                    future = firebaseMessaging.sendEachForMulticastAsync(message);
+                    BatchResponse response = future.get(60, java.util.concurrent.TimeUnit.SECONDS);
 
-                    BatchResponse response = future.get(15, java.util.concurrent.TimeUnit.SECONDS);
                     batchSuccess = response.getSuccessCount();
                     batchFailure = response.getFailureCount();
 
@@ -389,18 +337,18 @@ public class FcmService {
                     for (int j = 0; j < responses.size(); j++) {
                         SendResponse sendResponse = responses.get(j);
                         if (!sendResponse.isSuccessful()) {
-                            String token = batchEntries.get(j).getKey();
+                            String token = batchTokens.get(j);
                             FirebaseMessagingException exception = sendResponse.getException();
-                            log.warn("FCM send failed: token={}, error={}",
-                                    token,
-                                    exception != null ? exception.getMessage() : "unknown");
+                            log.warn("FCM send failed: token={}, error={}", token, exception != null ? exception.getMessage() : "unknown");
                         }
                     }
-
                     batchFinished = true;
                 } catch (Exception e) {
+                    if (future != null && !future.isDone()) {
+                        future.cancel(true);
+                    }
                     log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
-                            attempt, maxRetries, fcmMessageId, messages.size(), e.getMessage());
+                            attempt, maxRetries, fcmMessageId, batchTokens.size(), e.getMessage());
 
                     if (attempt < maxRetries) {
                         try {
@@ -410,19 +358,14 @@ public class FcmService {
                             break;
                         }
                     } else {
-                        batchFailure = messages.size();
+                        batchFailure = batchTokens.size();
                         log.error("FCM batch send permanently failed after {} attempts for fcmMessageId={}, batchSize={}",
-                                maxRetries, fcmMessageId, messages.size());
+                                maxRetries, fcmMessageId, batchTokens.size());
                     }
                 }
             }
-            fcmMetrics.recordBatch(
-                    type != null ? type.name() : "UNKNOWN",
-                    messages.size(),
-                    batchSuccess,
-                    batchFailure,
-                    System.nanoTime() - startNanos
-            );
+
+            fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
 
             successCount += batchSuccess;
             failureCount += batchFailure;
@@ -433,45 +376,6 @@ public class FcmService {
         }
 
         return new DeliveryResult(successCount, failureCount);
-    }
-
-    private Message createMessage(
-            String token,
-            String title,
-            String body,
-            FcmMessageType type,
-            Long targetId,
-            String path,
-            Long memberFcmMessageId
-    ) {
-        Message.Builder builder = Message.builder()
-                .setToken(token)
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build());
-
-        if (type != null) {
-            builder.putData("type", type.name());
-        }
-
-        if (targetId != null) {
-            builder.putData("targetId", String.valueOf(targetId));
-
-            if (type == FcmMessageType.SCHOOL_NOTICE || type == FcmMessageType.DEPARTMENT) {
-                builder.putData("noticeId", String.valueOf(targetId));
-            }
-        }
-
-        if (path != null && !path.isBlank()) {
-            builder.putData("path", path);
-        }
-
-        if (memberFcmMessageId != null) {
-            builder.putData("memberFcmMessageId", String.valueOf(memberFcmMessageId));
-        }
-
-        return builder.build();
     }
 
     /**
@@ -528,10 +432,9 @@ public class FcmService {
                 ));
 
         FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
+        batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
 
-        Map<Long, Long> memberFcmMessageIds = saveMemberFcmMessages(fcmMessage.getId(), memberIds, type);
-
-        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId, path, memberFcmMessageIds);
+        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId, path);
     }
 
     public void dispatchTrackedNotification(TrackedNotificationDispatch dispatch) {
@@ -539,7 +442,7 @@ public class FcmService {
             return;
         }
         if (!dispatch.tokenAndMemberId().isEmpty()) {
-            DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(), dispatch.type(), dispatch.targetId(), dispatch.path(), dispatch.memberFcmMessageIds());
+            DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(), dispatch.type(), dispatch.targetId(), dispatch.path());
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
         } else {
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), 0, 0);
