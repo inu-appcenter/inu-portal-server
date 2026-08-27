@@ -42,6 +42,15 @@ public interface FcmApiSpecification {
             Long memberFcmMessageId
     );
 
+    @Operation(summary = "푸시 알림 식별자로 읽음 처리",
+            description = "푸시 payload의 <code>fcmMessageId</code>로 해당 알림을 읽음 상태로 처리합니다. <br><br>" +
+                    "payload에는 수신자 전체가 공유하는 식별자만 담기며, 개인 알림함 항목은 인증된 회원 정보와 조합해 서버가 특정합니다. <br>" +
+                    "알림함 목록에서 항목을 직접 누른 경우에는 <code>memberFcmMessageId</code>를 쓰는 단건 읽음 처리 API를 사용하세요.")
+    ResponseEntity<ResponseDto<Void>> readNotificationByFcmMessageId(
+            @Parameter(hidden = true) Member member,
+            Long fcmMessageId
+    );
+
     @Operation(summary = "페이지 알림 읽음 처리", description = "회원의 특정 알림 페이지에 포함된 알림을 읽음 상태로 처리합니다.")
     ResponseEntity<ResponseDto<Void>> readPageNotification(
             @Parameter(hidden = true) Member member,

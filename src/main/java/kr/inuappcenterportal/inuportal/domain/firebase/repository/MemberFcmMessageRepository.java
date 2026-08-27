@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface MemberFcmMessageRepository extends JpaRepository<MemberFcmMessage, Long> {
@@ -28,6 +29,12 @@ public interface MemberFcmMessageRepository extends JpaRepository<MemberFcmMessa
     int incrementViewCountForAllUnread(@Param("memberId") Long memberId);
 
     Optional<MemberFcmMessage> findByIdAndMemberId(Long id, Long memberId);
+
+    /**
+     * 푸시 payload의 공통 식별자(fcmMessageId)와 인증된 회원으로 개인 알림함 행을 찾는다.
+     * (fcm_message_id, member_id)는 유일해야 하지만 DB 제약이 아직 없으므로 목록으로 받는다.
+     */
+    List<MemberFcmMessage> findAllByFcmMessageIdAndMemberId(Long fcmMessageId, Long memberId);
 
     @Modifying
     @Query("""

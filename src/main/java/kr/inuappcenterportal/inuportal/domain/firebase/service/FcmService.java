@@ -99,7 +99,7 @@ public class FcmService {
             return;
         }
 
-        MulticastMessage message = createMulticastMessage(target, title, body, null, null);
+        MulticastMessage message = createMulticastMessage(target, title, body, null, null, null, fcmMessage.getId());
         long startNanos = System.nanoTime();
         int batchSuccess = 0;
         int batchFailure = 0;
@@ -317,7 +317,7 @@ public class FcmService {
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
-            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId, path);
+            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId, path, fcmMessageId);
 
             int batchSuccess = 0;
             int batchFailure = 0;
@@ -505,6 +505,26 @@ public class FcmService {
     }
 
     /**
+     * 푸시 payload의 공통 식별자로 읽음 처리하는 메서드.
+     * <p>
+     * 푸시 payload에는 수신자 전체가 공유하는 fcmMessageId만 실린다. 개인 알림함 행은
+     * 인증된 회원 정보와 조합해 서버가 특정한다.
+     */
+    @Transactional
+    public void markNotificationAsReadByFcmMessageId(Member member, Long fcmMessageId) {
+        if (member == null || fcmMessageId == null) {
+            return;
+        }
+        List<MemberFcmMessage> messages =
+                memberFcmMessageRepository.findAllByFcmMessageIdAndMemberId(fcmMessageId, member.getId());
+
+        if (messages.isEmpty()) {
+            throw new MyException(MyErrorCode.MESSAGE_NOT_FOUND);
+        }
+        messages.forEach(MemberFcmMessage::markAsRead);
+    }
+
+    /**
      * 해당 페이지 전체 읽음 처리 메서드
      */
     @Transactional
@@ -548,11 +568,11 @@ public class FcmService {
         return memberFcmMessageRepository.existsByMemberIdAndIsReadFalseAndViewCountLessThan(member.getId(), 2);
     }
 
-    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId) {
-        return createMulticastMessage(tokens, title, body, type, targetId, null);
+    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path) {
+        return createMulticastMessage(tokens, title, body, type, targetId, path, null);
     }
 
-    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path) {
+    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path, Long fcmMessageId) {
         // notification(title, body)과 data를 항상 함께 발송한다 (data-only 발송 금지)
         // Android 백그라운드 노출 및 포그라운드 배너 표시를 위해 두 블록이 모두 필요하다
         MulticastMessage.Builder builder = MulticastMessage.builder()
@@ -576,6 +596,11 @@ public class FcmService {
         // 라우팅 정보는 클라이언트가 data 블록에서만 판단하므로 notification에는 넣지 않는다
         if (path != null && !path.isBlank()) {
             builder.putData("path", path);
+        }
+        // 수신자 전체가 공유하는 알림 식별자. 클라이언트는 이 값으로 읽음 처리 API를 호출하고,
+        // 서버가 인증된 회원 정보와 조합해 개인 알림함 행을 특정한다.
+        if (fcmMessageId != null) {
+            builder.putData("fcmMessageId", String.valueOf(fcmMessageId));
         }
         return builder.build();
     }
