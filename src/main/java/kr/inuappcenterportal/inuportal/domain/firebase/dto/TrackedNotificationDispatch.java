@@ -11,7 +11,6 @@ public record TrackedNotificationDispatch(
         String body,
         FcmMessageType type,
         Long targetId,
-        String path,
-        Map<Long, Long> memberFcmMessageIds
+        String path
 ) {
 }
