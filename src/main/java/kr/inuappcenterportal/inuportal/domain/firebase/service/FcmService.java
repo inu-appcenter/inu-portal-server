@@ -277,8 +277,8 @@ public class FcmService {
             // 4. 최종 상태 업데이트
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
 
-            log.info("Admin member notification finished: fcmMessageId={}, target={}, success={}, failure={}",
-                    dispatch.fcmMessageId(), dispatch.targetCount(), deliveryResult.successCount(), deliveryResult.failureCount());
+            log.info("Admin member notification finished: fcmMessageId={}, target={}, success={}, failure={}, unknown={}",
+                    dispatch.fcmMessageId(), dispatch.targetCount(), deliveryResult.successCount(), deliveryResult.failureCount(), deliveryResult.unknownCount());
         } catch (Exception e) {
             log.error("Admin member notification failed: fcmMessageId={}, target={}, message={}",
                     dispatch.fcmMessageId(), dispatch.targetCount(), e.getMessage(), e);
@@ -313,69 +313,114 @@ public class FcmService {
         int batchSize = 500;
         int successCount = 0;
         int failureCount = 0;
+        int unknownCount = 0;
         int maxRetries = 3;
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
-            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId, path, fcmMessageId);
 
             int batchSuccess = 0;
             int batchFailure = 0;
+            int batchUnknown = 0;
             long startNanos = System.nanoTime();
-            boolean batchFinished = false;
 
-            for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
+            // 재시도는 응답을 받아 실패가 확인된 토큰만 대상으로 한다.
+            // 배치를 통째로 재발송하면 이미 성공한 토큰에 푸시가 중복으로 도착한다.
+            List<String> pendingTokens = new ArrayList<>(batchTokens);
+
+            for (int attempt = 1; attempt <= maxRetries && !pendingTokens.isEmpty(); attempt++) {
+                MulticastMessage message = createMulticastMessage(pendingTokens, title, body, type, targetId, path, fcmMessageId);
                 com.google.api.core.ApiFuture<BatchResponse> future = null;
                 try {
                     future = firebaseMessaging.sendEachForMulticastAsync(message);
                     BatchResponse response = future.get(60, java.util.concurrent.TimeUnit.SECONDS);
 
-                    batchSuccess = response.getSuccessCount();
-                    batchFailure = response.getFailureCount();
-
                     List<SendResponse> responses = response.getResponses();
+                    List<String> retryableTokens = new ArrayList<>();
+
                     for (int j = 0; j < responses.size(); j++) {
                         SendResponse sendResponse = responses.get(j);
-                        if (!sendResponse.isSuccessful()) {
-                            String token = batchTokens.get(j);
-                            FirebaseMessagingException exception = sendResponse.getException();
-                            log.warn("FCM send failed: token={}, error={}", token, exception != null ? exception.getMessage() : "unknown");
+                        String token = pendingTokens.get(j);
+
+                        if (sendResponse.isSuccessful()) {
+                            batchSuccess++;
+                            continue;
+                        }
+
+                        FirebaseMessagingException exception = sendResponse.getException();
+                        if (attempt < maxRetries && isRetryable(exception)) {
+                            retryableTokens.add(token);
+                            log.warn("FCM send failed (retryable, attempt {}/{}): token={}, error={}",
+                                    attempt, maxRetries, token, describe(exception));
+                        } else {
+                            batchFailure++;
+                            log.warn("FCM send failed: token={}, error={}", token, describe(exception));
                         }
                     }
-                    batchFinished = true;
+
+                    pendingTokens = retryableTokens;
                 } catch (Exception e) {
                     if (future != null && !future.isDone()) {
                         future.cancel(true);
                     }
-                    log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
-                            attempt, maxRetries, fcmMessageId, batchTokens.size(), e.getMessage());
+                    // 호출 자체가 타임아웃/중단된 경우 토큰별 성공 여부를 알 수 없다.
+                    // 이미 나간 요청이 있을 수 있으므로 재시도하지 않고 미확인으로 남긴다.
+                    batchUnknown += pendingTokens.size();
+                    log.error("FCM batch send outcome unknown for fcmMessageId={}, pending={}, attempt={}/{}: {}",
+                            fcmMessageId, pendingTokens.size(), attempt, maxRetries, e.getMessage());
+                    pendingTokens = List.of();
+                    break;
+                }
 
-                    if (attempt < maxRetries) {
-                        try {
-                            Thread.sleep(attempt * 1000L);
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                    } else {
-                        batchFailure = batchTokens.size();
-                        log.error("FCM batch send permanently failed after {} attempts for fcmMessageId={}, batchSize={}",
-                                maxRetries, fcmMessageId, batchTokens.size());
+                if (!pendingTokens.isEmpty()) {
+                    try {
+                        Thread.sleep(attempt * 1000L);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        batchUnknown += pendingTokens.size();
+                        pendingTokens = List.of();
+                        break;
                     }
                 }
             }
 
-            fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
+            if (batchUnknown > 0) {
+                log.warn("FCM batch finished with unconfirmed results: fcmMessageId={}, unknown={}", fcmMessageId, batchUnknown);
+            }
+
+            fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, batchUnknown, System.nanoTime() - startNanos);
 
             successCount += batchSuccess;
             failureCount += batchFailure;
+            unknownCount += batchUnknown;
 
             if (fcmMessageId != null) {
                 fcmTransactionService.updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
             }
         }
 
-        return new DeliveryResult(successCount, failureCount);
+        return new DeliveryResult(successCount, failureCount, unknownCount);
+    }
+
+    /**
+     * 재시도해도 결과가 달라질 수 있는 오류인지 판단한다.
+     * 토큰 자체가 무효한 경우(UNREGISTERED 등)는 재시도해도 동일하므로 즉시 실패로 확정한다.
+     */
+    private boolean isRetryable(FirebaseMessagingException exception) {
+        if (exception == null || exception.getMessagingErrorCode() == null) {
+            return false;
+        }
+        return switch (exception.getMessagingErrorCode()) {
+            case UNAVAILABLE, INTERNAL, QUOTA_EXCEEDED -> true;
+            default -> false;
+        };
+    }
+
+    private String describe(FirebaseMessagingException exception) {
+        if (exception == null) {
+            return "unknown";
+        }
+        return exception.getMessagingErrorCode() + " / " + exception.getMessage();
     }
 
     /**
@@ -404,8 +449,8 @@ public class FcmService {
                 ));
 
         DeliveryResult deliveryResult = dispatchToMembersInternal(null, tokenAndMemberId, title, body, null, null);
-        log.info("Untracked notification sent: targets={}, success={}, failure={}",
-                tokenAndMemberId.size(), deliveryResult.successCount(), deliveryResult.failureCount());
+        log.info("Untracked notification sent: targets={}, success={}, failure={}, unknown={}",
+                tokenAndMemberId.size(), deliveryResult.successCount(), deliveryResult.failureCount(), deliveryResult.unknownCount());
     }
 
     /**
@@ -877,7 +922,9 @@ public class FcmService {
 
     private record DeliveryResult(
             int successCount,
-            int failureCount
+            int failureCount,
+            /** 호출이 타임아웃되어 토큰별 성공 여부를 확인하지 못한 건수. 실패로 집계하지 않는다. */
+            int unknownCount
     ) {
     }
 
