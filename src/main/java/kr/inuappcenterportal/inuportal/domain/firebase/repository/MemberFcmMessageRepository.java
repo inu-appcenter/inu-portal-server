@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.repository;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface MemberFcmMessageRepository extends JpaRepository<MemberFcmMessage, Long> {
@@ -28,4 +30,29 @@ public interface MemberFcmMessageRepository extends JpaRepository<MemberFcmMessa
     int incrementViewCountForAllUnread(@Param("memberId") Long memberId);
 
     Optional<MemberFcmMessage> findByIdAndMemberId(Long id, Long memberId);
+
+    /**
+     * 푸시 payload의 공통 식별자(fcmMessageId)와 인증된 회원으로 개인 알림함 행을 찾는다.
+     * (fcm_message_id, member_id)는 유일해야 하지만 DB 제약이 아직 없으므로 목록으로 받는다.
+     */
+    List<MemberFcmMessage> findAllByFcmMessageIdAndMemberId(Long fcmMessageId, Long memberId);
+
+    /** 이벤트 유실 보정 시 원래 수신 대상을 복원하기 위해 사용한다. */
+    @Query("SELECT m.memberId FROM MemberFcmMessage m WHERE m.fcmMessageId = :fcmMessageId")
+    List<Long> findMemberIdsByFcmMessageId(@Param("fcmMessageId") Long fcmMessageId);
+
+    @Query("SELECT m.fcmMessageType FROM MemberFcmMessage m WHERE m.fcmMessageId = :fcmMessageId")
+    List<FcmMessageType> findTypesByFcmMessageId(@Param("fcmMessageId") Long fcmMessageId);
+
+    @Modifying
+    @Query("""
+                UPDATE MemberFcmMessage m
+                SET m.isRead = true,
+                    m.readAt = :readAt
+                WHERE m.memberId = :memberId
+                  AND m.isRead = false
+            """)
+    int markAllAsReadByMemberId(Long memberId, LocalDateTime readAt);
+
+    int countByMemberIdAndIsReadFalse(Long memberId);
 }

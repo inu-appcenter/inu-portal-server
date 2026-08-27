@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.schedule.repository;
 
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -48,6 +48,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findAllBySourceNoticeIdAndAiGeneratedTrueOrderByStartDateAscIdAsc(Long sourceNoticeId);
 
     List<Schedule> findAllBySourceNoticeIdInAndAiGeneratedTrue(Collection<Long> sourceNoticeIds);
+
+    boolean existsBySourceNoticeIdAndAiGeneratedTrue(Long sourceNoticeId);
 
     @Query("SELECT COALESCE(MAX(s.id), 0) FROM Schedule s")
     Long findMaxId();

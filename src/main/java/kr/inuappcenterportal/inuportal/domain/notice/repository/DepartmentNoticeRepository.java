@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.notice.repository;
 
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeScheduleExtractStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,16 +29,26 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
             join fetch dn.content
             where dn.department = :department
               and (
-                    dn.content.contentText is null
-                    or dn.content.inlineImageUrlsJson is null
-                    or dn.content.attachmentMetaJson is null
+                    (
+                        (dn.content.contentText is null
+                         or dn.content.inlineImageUrlsJson is null
+                         or dn.content.attachmentMetaJson is null)
+                        and (dn.contentStatus is null or dn.contentStatus in :statuses)
+                    )
+                    or (
+                        dn.createDate >= :refreshThresholdDate
+                        and (dn.contentFetchedAt is null or dn.contentFetchedAt <= :fetchedBefore)
+                        and (dn.contentStatus is null or dn.contentStatus not in :excludedStatuses)
+                    )
               )
-              and (dn.contentStatus is null or dn.contentStatus in :statuses)
             order by dn.id desc
             """)
     List<DepartmentNotice> findBackfillTargetsByDepartment(
-            Department department,
-            List<DepartmentNoticeContentStatus> statuses,
+            @Param("department") Department department,
+            @Param("statuses") List<DepartmentNoticeContentStatus> statuses,
+            @Param("refreshThresholdDate") LocalDate refreshThresholdDate,
+            @Param("fetchedBefore") LocalDateTime fetchedBefore,
+            @Param("excludedStatuses") List<DepartmentNoticeContentStatus> excludedStatuses,
             Pageable pageable
     );
 

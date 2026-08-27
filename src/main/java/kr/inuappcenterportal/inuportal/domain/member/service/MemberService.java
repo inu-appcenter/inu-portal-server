@@ -8,7 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.department.repository.SchoolDepartmentRepository;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
