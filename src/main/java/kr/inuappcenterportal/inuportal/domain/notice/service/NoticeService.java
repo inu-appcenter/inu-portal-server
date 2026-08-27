@@ -687,7 +687,11 @@ public class NoticeService {
             }
 
             Element contentRoot = findDepartmentNoticeContentRoot(detailDocument, config);
+<<<<<<< HEAD
             if (contentRoot == null && false) {
+=======
+            if (false) {
+>>>>>>> parent of 7f5a28a1 (Merge pull request #419 from inu-appcenter/feat-학교-공지-본문-수정-감지-및-재크롤링)
                 departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
                 log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
@@ -709,7 +713,11 @@ public class NoticeService {
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return;
             }
+<<<<<<< HEAD
             if (contentText.isBlank() && false) {
+=======
+            if (false) {
+>>>>>>> parent of 7f5a28a1 (Merge pull request #419 from inu-appcenter/feat-학교-공지-본문-수정-감지-및-재크롤링)
                 departmentNotice.markContentFailed(limitMessage("학과 공지 본문 추출 결과가 비어 있습니다."));
                 log.warn("학과 공지 본문 추출 결과가 비어 있습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
