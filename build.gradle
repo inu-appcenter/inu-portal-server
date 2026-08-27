@@ -99,5 +99,25 @@ clean {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'loadtest'
+    }
+}
+
+// 실제 Firebase 호출/실 디바이스 토큰 없이 FCM 발송 파이프라인의 처리량을 확인하는 부하 테스트.
+// 느리고 리소스를 많이 쓰므로 기본 test 태스크(CI 포함)에서는 제외하고, 필요할 때만 수동 실행한다.
+// 실행: ./gradlew loadTest
+tasks.register('loadTest', Test) {
+    group = 'verification'
+    description = 'FCM 발송 파이프라인 부하 테스트 (가짜 FirebaseMessaging + 합성 토큰, 기본 test에서는 제외)'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'loadtest'
+    }
+    testLogging {
+        showStandardStreams = true
+        events 'passed', 'failed'
+    }
+    outputs.upToDateWhen { false }
 }
