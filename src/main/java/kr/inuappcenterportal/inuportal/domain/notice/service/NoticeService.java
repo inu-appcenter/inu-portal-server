@@ -712,6 +712,10 @@ public class NoticeService {
                     && Objects.equals(departmentNotice.getAttachmentMetaJson(), attachmentMetaJson)
                     && Objects.equals(departmentNotice.getInlineImageUrlsJson(), inlineImagesJson)) {
                 departmentNotice.touchContentFetchedAt(LocalDateTime.now());
+                if (departmentNotice.getContentStatus() == DepartmentNoticeContentStatus.PENDING
+                        || departmentNotice.getContentStatus() == DepartmentNoticeContentStatus.FAILED) {
+                    updateContentStatusAfterCrawl(departmentNotice, contentText, inlineImageUrls, attachmentMetas);
+                }
                 log.debug("[학과공지] 본문 내용 변동 없음: department={}, title={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getTitle());
                 return;
@@ -1346,6 +1350,10 @@ public class NoticeService {
                 && Objects.equals(notice.getAttachmentMetaJson(), attachmentMetaJson)
                 && Objects.equals(notice.getInlineImageUrlsJson(), inlineImagesJson)) {
             notice.touchContentFetchedAt(LocalDateTime.now());
+            if (notice.getContentStatus() == NoticeContentStatus.PENDING
+                    || notice.getContentStatus() == NoticeContentStatus.FAILED) {
+                updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
+            }
             log.debug("[학교공지] 본문 내용 변동 없음: [{}] {}", notice.getCategory(), notice.getTitle());
             return;
         }

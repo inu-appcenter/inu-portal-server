@@ -29,16 +29,16 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
             join fetch dn.content
             where dn.department = :department
               and (
-                    (
-                        (dn.content.contentText is null
-                         or dn.content.inlineImageUrlsJson is null
-                         or dn.content.attachmentMetaJson is null)
-                        and (dn.contentStatus is null or dn.contentStatus in :statuses)
+                    (dn.contentStatus is null or dn.contentStatus in :statuses)
+                    or (
+                        dn.content.contentText is null
+                        or dn.content.inlineImageUrlsJson is null
+                        or dn.content.attachmentMetaJson is null
                     )
                     or (
                         dn.createDate >= :refreshThresholdDate
                         and (dn.contentFetchedAt is null or dn.contentFetchedAt <= :fetchedBefore)
-                        and (dn.contentStatus is null or dn.contentStatus not in :excludedStatuses)
+                        and (dn.contentStatus not in :excludedStatuses)
                     )
               )
             order by dn.id desc
