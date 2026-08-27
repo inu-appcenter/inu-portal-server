@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,26 +36,16 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
             select n from Notice n
             left join fetch n.content
             where (
-                    (
-                        (n.content is null
-                         or n.content.contentText is null
-                         or n.content.inlineImageUrlsJson is null
-                         or n.content.attachmentMetaJson is null)
-                        and (n.contentStatus is null or n.contentStatus in :statuses)
-                    )
-                    or (
-                        n.createDate >= :refreshThresholdDate
-                        and (n.contentFetchedAt is null or n.contentFetchedAt <= :fetchedBefore)
-                        and (n.contentStatus is null or n.contentStatus not in :excludedStatuses)
-                    )
-            )
+                    n.content is null
+                    or n.content.contentText is null
+                    or n.content.inlineImageUrlsJson is null
+                    or n.content.attachmentMetaJson is null
+              )
+              and (n.contentStatus is null or n.contentStatus in :statuses)
             order by n.id desc
             """)
     List<Notice> findBackfillTargets(
             @Param("statuses") List<NoticeContentStatus> statuses,
-            @Param("refreshThresholdDate") String refreshThresholdDate,
-            @Param("fetchedBefore") LocalDateTime fetchedBefore,
-            @Param("excludedStatuses") List<NoticeContentStatus> excludedStatuses,
             Pageable pageable
     );
 

@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.notice.service;
 
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.NoticeCreatedEvent;
@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -41,17 +40,7 @@ public class NoticeCrawlHelper {
         Optional<Notice> existingNotice = noticeRepository.findByUrl(link);
         if (existingNotice.isPresent()) {
             Notice notice = existingNotice.get();
-            boolean isModified = !Objects.equals(notice.getSubCategory(), subCategory)
-                    || !Objects.equals(notice.getTitle(), title)
-                    || !Objects.equals(notice.getWriter(), writer)
-                    || !Objects.equals(notice.getDescription(), description);
-
             notice.update(subCategory, title, writer, description);
-
-            if (isModified) {
-                notice.markContentPending();
-                log.info("[학교공지] RSS 메타데이터 변경 감지 -> 본문 재크롤링 예약: [{}] {}", categoryName, title);
-            }
             return false; // 기존 공지 업데이트
         } else {
             Notice notice = Notice.builder()
@@ -93,16 +82,7 @@ public class NoticeCrawlHelper {
 
         if (existingNotice.isPresent()) {
             departmentNotice = existingNotice.get();
-            boolean isModified = !Objects.equals(departmentNotice.getTitle(), title)
-                    || !Objects.equals(departmentNotice.getCreateDate(), date)
-                    || !Objects.equals(departmentNotice.getUrl(), link);
-
             departmentNotice.updateListing(title, date, views, link);
-
-            if (isModified) {
-                departmentNotice.markContentPending();
-                log.info("[학과공지] 목록 메타데이터 변경 감지 -> 본문 재크롤링 예약: [{}] {}", department.name(), title);
-            }
         } else {
             departmentNotice = departmentNoticeRepository.save(
                     DepartmentNotice.create(department, title, date, views, link)

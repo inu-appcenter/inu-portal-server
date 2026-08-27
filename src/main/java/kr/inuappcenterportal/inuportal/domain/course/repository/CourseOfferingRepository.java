@@ -13,7 +13,4 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
 
     @EntityGraph(attributePaths = {"course", "semester"})
     List<CourseOffering> findAllBySemesterId(Long semesterId);
-
-    @EntityGraph(attributePaths = {"course", "semester"})
-    List<CourseOffering> findAllByCourseCourseCodeIn(List<String> courseCodes);
 }

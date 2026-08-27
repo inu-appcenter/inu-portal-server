@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.notice.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeScheduleExtractStatus;
 import lombok.AccessLevel;
@@ -156,16 +156,6 @@ public class DepartmentNotice {
         this.contentLastError = reason;
     }
 
-    public void markContentPending() {
-        this.contentStatus = DepartmentNoticeContentStatus.PENDING;
-        this.contentLastError = null;
-    }
-
-    public void touchContentFetchedAt(LocalDateTime fetchedAt) {
-        this.contentFetchedAt = fetchedAt;
-        this.contentLastError = null;
-    }
-
     public void markContentAccessDenied() {
         this.contentStatus = DepartmentNoticeContentStatus.ACCESS_DENIED;
         this.contentLastError = null;
@@ -225,12 +215,8 @@ public class DepartmentNotice {
         return content.getBestEffortText();
     }
 
-    public String getContentHtml() {
-        return content == null ? null : content.getContentHtml();
-    }
-
     public String getContentText() {
-        return content == null ? null : content.getContentText();
+        return content.getContentText();
     }
 
     public String getAttachmentText() {

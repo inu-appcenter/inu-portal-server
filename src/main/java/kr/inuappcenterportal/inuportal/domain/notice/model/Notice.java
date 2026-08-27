@@ -134,16 +134,6 @@ public class Notice {
         this.contentLastError = reason;
     }
 
-    public void markContentPending() {
-        this.contentStatus = NoticeContentStatus.PENDING;
-        this.contentLastError = null;
-    }
-
-    public void touchContentFetchedAt(LocalDateTime fetchedAt) {
-        this.contentFetchedAt = fetchedAt;
-        this.contentLastError = null;
-    }
-
     public void markContentAccessDenied() {
         this.contentStatus = NoticeContentStatus.ACCESS_DENIED;
         this.contentLastError = null;

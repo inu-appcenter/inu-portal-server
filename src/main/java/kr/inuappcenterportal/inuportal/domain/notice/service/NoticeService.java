@@ -2,11 +2,17 @@ package kr.inuappcenterportal.inuportal.domain.notice.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
-import kr.inuappcenterportal.inuportal.domain.notice.dto.*;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.AttachmentMeta;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.NoticeContentStatus;
+
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentCrawlerState;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
@@ -42,6 +48,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -81,10 +89,8 @@ public class NoticeService {
     private static final String NO_LABEL = "NO";
     private static final int ERROR_MESSAGE_LIMIT = 500;
 
-    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
-    };
-    private static final TypeReference<List<AttachmentMeta>> ATTACHMENT_META_LIST_TYPE = new TypeReference<>() {
-    };
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<AttachmentMeta>> ATTACHMENT_META_LIST_TYPE = new TypeReference<>() {};
 
     private final NoticeRepository noticeRepository;
     private final NoticeContentRepository noticeContentRepository;
@@ -148,7 +154,7 @@ public class NoticeService {
     )
     @CacheEvict(value = "noticeCache", cacheManager = "cacheManager")
     public void getNewDepartmentNotice() {
-        Department[] departments = Department.noticeDepartments();
+        Department[] departments = Department.values();
         int start = getCrawlerIndex(DEPT_INDEX_KEY);
         int end = Math.min(start + DEPT_SIZE, departments.length);
 
@@ -165,7 +171,7 @@ public class NoticeService {
             lockAtLeastFor = "PT30S"
     )
     public void backfillDepartmentNoticeContents() {
-        Department[] departments = Department.noticeDepartments();
+        Department[] departments = Department.values();
         int start = getCrawlerIndex(DEPT_CONTENT_INDEX_KEY);
         int end = Math.min(start + DEPT_CONTENT_SIZE, departments.length);
         int count = backfillDepartmentNoticeContents(departments, start, end);
@@ -182,7 +188,7 @@ public class NoticeService {
             lockAtLeastFor = "PT30S"
     )
     public void enrichDepartmentNoticeContents() {
-        Department[] departments = Department.noticeDepartments();
+        Department[] departments = Department.values();
         int start = getCrawlerIndex(DEPT_ENRICH_INDEX_KEY);
         int end = Math.min(start + DEPT_ENRICH_SIZE, departments.length);
         int count = enrichDepartmentNoticeContents(departments, start, end);
@@ -454,7 +460,7 @@ public class NoticeService {
                 String pubDateStr = item.select("pubDate").text().trim();
                 String parsedRssDate = parseRssDate(pubDateStr);
                 LocalDate date = parseDepartmentNoticeDate(parsedRssDate);
-
+                
                 long views = 0L;
                 String viewsStr = item.select("hit").text().trim();
                 if (!viewsStr.isBlank()) {
@@ -538,8 +544,6 @@ public class NoticeService {
 
     private int backfillDepartmentNoticeContents(Department[] departments, int start, int end) {
         int processedCount = 0;
-        LocalDate refreshThresholdDate = LocalDate.now().minusDays(7);
-        LocalDateTime fetchedBefore = LocalDateTime.now().minusHours(24);
 
         for (int i = start; i < end; i++) {
             Department department = departments[i];
@@ -554,9 +558,6 @@ public class NoticeService {
                             DepartmentNoticeContentStatus.NO_TEXT_CONTENT,
                             DepartmentNoticeContentStatus.OCR_PENDING
                     ),
-                    refreshThresholdDate,
-                    fetchedBefore,
-                    List.of(DepartmentNoticeContentStatus.ACCESS_DENIED),
                     PageRequest.of(0, DEPT_CONTENT_LIMIT_PER_DEPARTMENT)
             );
 
@@ -663,7 +664,7 @@ public class NoticeService {
             return;
         }
 
-        if (departmentNotice.getContentStatus() == DepartmentNoticeContentStatus.ACCESS_DENIED && departmentNotice.hasContentCrawlMetadata()) {
+        if (departmentNotice.isContentCrawlBlocked() && departmentNotice.hasContentCrawlMetadata()) {
             return;
         }
 
@@ -686,6 +687,13 @@ public class NoticeService {
             }
 
             Element contentRoot = findDepartmentNoticeContentRoot(detailDocument, config);
+            if (contentRoot == null && false) {
+                departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
+                log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
+                        departmentNotice.getDepartment().name(), departmentNotice.getUrl());
+                return;
+            }
+
             Element sanitizedContent = contentRoot == null ? null : contentRoot.clone();
             if (sanitizedContent != null) {
                 sanitizedContent.select("script, style, noscript, iframe").remove();
@@ -694,40 +702,29 @@ public class NoticeService {
             String contentHtml = sanitizedContent == null ? "" : sanitizedContent.html().trim();
             String contentText = sanitizedContent == null ? "" : sanitizedContent.text().trim();
             List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, departmentNotice.getUrl());
-            String inlineImagesJson = writeJson(inlineImageUrls);
             List<AttachmentMeta> attachmentMetas = collectAttachmentMetas(detailDocument, config, departmentNotice.getUrl());
-            String attachmentMetaJson = writeJson(attachmentMetas);
-
             if (contentRoot == null && inlineImageUrls.isEmpty() && attachmentMetas.isEmpty()) {
                 departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
                 log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return;
             }
-
-            String newContentHash = sha256(contentText);
-
-            if (departmentNotice.hasContent()
-                    && Objects.equals(departmentNotice.getContentHash(), newContentHash)
-                    && Objects.equals(departmentNotice.getAttachmentMetaJson(), attachmentMetaJson)
-                    && Objects.equals(departmentNotice.getInlineImageUrlsJson(), inlineImagesJson)) {
-                departmentNotice.touchContentFetchedAt(LocalDateTime.now());
-                log.debug("[학과공지] 본문 내용 변동 없음: department={}, title={}",
-                        departmentNotice.getDepartment().name(), departmentNotice.getTitle());
+            if (contentText.isBlank() && false) {
+                departmentNotice.markContentFailed(limitMessage("학과 공지 본문 추출 결과가 비어 있습니다."));
+                log.warn("학과 공지 본문 추출 결과가 비어 있습니다. department={}, url={}",
+                        departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return;
             }
 
             departmentNotice.updateContent(
                     contentHtml,
                     contentText,
-                    newContentHash,
+                    sha256(contentText),
                     LocalDateTime.now(),
-                    inlineImagesJson,
-                    attachmentMetaJson
+                    writeJson(inlineImageUrls),
+                    writeJson(attachmentMetas)
             );
             updateContentStatusAfterCrawl(departmentNotice, contentText, inlineImageUrls, attachmentMetas);
-            log.info("[학과공지] 본문/첨부파일 수집 및 업데이트 완료: department={}, title={}",
-                    departmentNotice.getDepartment().name(), departmentNotice.getTitle());
         } catch (Exception e) {
             departmentNotice.markContentFailed(limitMessage(e.getMessage()));
             log.warn("학과 공지 본문 크롤링에 실패했습니다. department={}, url={}, reason={}",
@@ -1183,7 +1180,7 @@ public class NoticeService {
             if (dateOnly.matches("\\d{4}-\\d{2}-\\d{2}")) {
                 return LocalDate.parse(dateOnly, DateTimeFormatter.ISO_LOCAL_DATE);
             }
-
+            
             log.warn("정의되지 않은 날짜 형식입니다. value={}", normalized);
             return LocalDate.now();
         } catch (Exception e) {
@@ -1230,8 +1227,6 @@ public class NoticeService {
     )
     @Transactional
     public void backfillNoticeContents() {
-        String refreshThresholdDate = LocalDate.now().minusDays(7).format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
-        LocalDateTime fetchedBefore = LocalDateTime.now().minusHours(12);
         List<Notice> notices = noticeRepository.findBackfillTargets(
                 List.of(
                         NoticeContentStatus.PENDING,
@@ -1241,9 +1236,6 @@ public class NoticeService {
                         NoticeContentStatus.NO_TEXT_CONTENT,
                         NoticeContentStatus.OCR_PENDING
                 ),
-                refreshThresholdDate,
-                fetchedBefore,
-                List.of(NoticeContentStatus.ACCESS_DENIED),
                 PageRequest.of(0, 15)
         );
 
@@ -1258,7 +1250,7 @@ public class NoticeService {
 
     @Transactional
     public void syncNoticeContent(Notice notice) {
-        if (notice.getContentStatus() == NoticeContentStatus.ACCESS_DENIED && notice.hasContentCrawlMetadata()) {
+        if (notice.isContentCrawlBlocked() && notice.hasContentCrawlMetadata()) {
             return;
         }
 
@@ -1315,7 +1307,6 @@ public class NoticeService {
         String contentHtml = sanitizedContent.html().trim();
         String contentText = sanitizedContent.text().trim();
         List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, notice.getUrl());
-        String inlineImagesJson = writeJson(inlineImageUrls);
 
         Set<String> seenUrls = new LinkedHashSet<>();
         List<AttachmentMeta> attachmentMetas = new ArrayList<>();
@@ -1338,28 +1329,16 @@ public class NoticeService {
                 ));
             }
         }
-        String attachmentMetaJson = writeJson(attachmentMetas);
-        String newContentHash = sha256(contentText);
-
-        if (notice.hasContent()
-                && Objects.equals(notice.getContentHash(), newContentHash)
-                && Objects.equals(notice.getAttachmentMetaJson(), attachmentMetaJson)
-                && Objects.equals(notice.getInlineImageUrlsJson(), inlineImagesJson)) {
-            notice.touchContentFetchedAt(LocalDateTime.now());
-            log.debug("[학교공지] 본문 내용 변동 없음: [{}] {}", notice.getCategory(), notice.getTitle());
-            return;
-        }
 
         notice.updateContent(
                 contentHtml,
                 contentText,
-                newContentHash,
+                sha256(contentText),
                 LocalDateTime.now(),
-                inlineImagesJson,
-                attachmentMetaJson
+                writeJson(inlineImageUrls),
+                writeJson(attachmentMetas)
         );
         updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
-        log.info("[학교공지] 본문/첨부파일 수집 및 업데이트 완료: [{}] {}", notice.getCategory(), notice.getTitle());
     }
 
     private void updateNoticeContentStatusAfterCrawl(
@@ -1398,15 +1377,6 @@ public class NoticeService {
                 .orElseThrow(() -> new MyException(MyErrorCode.NOTICE_NOT_FOUND));
         List<AttachmentMeta> attachments = readAttachmentMetas(notice.getAttachmentMetaJson());
         return NoticeDetailResponseDto.of(notice, attachments);
-    }
-
-    @Transactional(readOnly = true)
-    public DepartmentNoticeDetailResponseDto getDepartmentNoticeDetail(Long id) {
-        DepartmentNotice departmentNotice = departmentNoticeRepository.findById(id)
-                .orElseThrow(() -> new MyException(MyErrorCode.NOTICE_NOT_FOUND));
-        List<AttachmentMeta> attachments = readAttachmentMetas(departmentNotice.getAttachmentMetaJson());
-        boolean hasSchedules = scheduleRepository.existsBySourceNoticeIdAndAiGeneratedTrue(id);
-        return DepartmentNoticeDetailResponseDto.of(departmentNotice, attachments, hasSchedules);
     }
 
     @Transactional(readOnly = true)
