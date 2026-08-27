@@ -1221,6 +1221,8 @@ public class NoticeService {
     )
     @Transactional
     public void backfillNoticeContents() {
+        String refreshThresholdDate = LocalDate.now().minusDays(7).format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        LocalDateTime fetchedBefore = LocalDateTime.now().minusHours(12);
         List<Notice> notices = noticeRepository.findBackfillTargets(
                 List.of(
                         NoticeContentStatus.PENDING,
@@ -1230,6 +1232,9 @@ public class NoticeService {
                         NoticeContentStatus.NO_TEXT_CONTENT,
                         NoticeContentStatus.OCR_PENDING
                 ),
+                refreshThresholdDate,
+                fetchedBefore,
+                List.of(NoticeContentStatus.ACCESS_DENIED),
                 PageRequest.of(0, 15)
         );
 
@@ -1244,7 +1249,7 @@ public class NoticeService {
 
     @Transactional
     public void syncNoticeContent(Notice notice) {
-        if (notice.isContentCrawlBlocked() && notice.hasContentCrawlMetadata()) {
+        if (notice.getContentStatus() == NoticeContentStatus.ACCESS_DENIED && notice.hasContentCrawlMetadata()) {
             return;
         }
 
@@ -1301,6 +1306,7 @@ public class NoticeService {
         String contentHtml = sanitizedContent.html().trim();
         String contentText = sanitizedContent.text().trim();
         List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, notice.getUrl());
+        String inlineImagesJson = writeJson(inlineImageUrls);
 
         Set<String> seenUrls = new LinkedHashSet<>();
         List<AttachmentMeta> attachmentMetas = new ArrayList<>();
@@ -1323,16 +1329,28 @@ public class NoticeService {
                 ));
             }
         }
+        String attachmentMetaJson = writeJson(attachmentMetas);
+        String newContentHash = sha256(contentText);
+
+        if (notice.hasContent()
+                && Objects.equals(notice.getContentHash(), newContentHash)
+                && Objects.equals(notice.getAttachmentMetaJson(), attachmentMetaJson)
+                && Objects.equals(notice.getInlineImageUrlsJson(), inlineImagesJson)) {
+            notice.touchContentFetchedAt(LocalDateTime.now());
+            log.debug("[학교공지] 본문 내용 변동 없음: [{}] {}", notice.getCategory(), notice.getTitle());
+            return;
+        }
 
         notice.updateContent(
                 contentHtml,
                 contentText,
-                sha256(contentText),
+                newContentHash,
                 LocalDateTime.now(),
-                writeJson(inlineImageUrls),
-                writeJson(attachmentMetas)
+                inlineImagesJson,
+                attachmentMetaJson
         );
         updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
+        log.info("[학교공지] 본문/첨부파일 수집 및 업데이트 완료: [{}] {}", notice.getCategory(), notice.getTitle());
     }
 
     private void updateNoticeContentStatusAfterCrawl(
