@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
@@ -33,7 +34,7 @@ public interface FcmApiSpecification {
     @Operation(summary = "회원의 받은 알림 조회", description = "회원이 받은 모든 알림을 최신순으로 조회합니다.")
     ResponseEntity<ResponseDto<ListResponseDto<NotificationResponse>>> checkNotification(
             @Parameter(hidden = true) Member member,
-            int page
+            @Min(1) int page
     );
 
     @Operation(summary = "단건 알림 읽음 처리", description = "특정 알림 항목을 읽음 상태로 처리합니다.")
@@ -54,7 +55,7 @@ public interface FcmApiSpecification {
     @Operation(summary = "페이지 알림 읽음 처리", description = "회원의 특정 알림 페이지에 포함된 알림을 읽음 상태로 처리합니다.")
     ResponseEntity<ResponseDto<Void>> readPageNotification(
             @Parameter(hidden = true) Member member,
-            int page
+            @Min(1) int page
     );
 
     @Operation(summary = "전체 알림 읽음 처리", description = "회원의 모든 알림을 읽음 상태로 처리합니다.")
@@ -74,7 +75,7 @@ public interface FcmApiSpecification {
 
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 성공 횟수 조회",
             description = "관리자가 전송한 FCM 메세지들의 총 성공 횟수를 조회합니다.")
-    ResponseEntity<ResponseDto<List<AdminNotificationResponse>>> countAdminFcmMessagesSuccess(int page);
+    ResponseEntity<ResponseDto<List<AdminNotificationResponse>>> countAdminFcmMessagesSuccess(@Min(1) int page);
 
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 결과 조회",
             description = "관리자가 전송한 FCM 메시지의 발송 결과를 조회합니다.")

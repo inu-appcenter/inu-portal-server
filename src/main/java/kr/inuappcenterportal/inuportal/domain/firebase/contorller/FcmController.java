@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.contorller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
@@ -17,12 +16,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @Slf4j
 @RestController
+@Validated
 @RequestMapping("/api/tokens")
 @RequiredArgsConstructor
 public class FcmController implements FcmApiSpecification {
@@ -47,7 +48,7 @@ public class FcmController implements FcmApiSpecification {
     @GetMapping
     public ResponseEntity<ResponseDto<ListResponseDto<NotificationResponse>>> checkNotification(
             @AuthenticationPrincipal Member member,
-            @RequestParam(required = false, defaultValue = "1") @Min(1) int page
+            @RequestParam(required = false, defaultValue = "1") int page
     ) {
         return ResponseEntity.ok(ResponseDto.of(fcmService.findNotifications(member, page), "알림 조회 성공"));
     }
@@ -73,7 +74,7 @@ public class FcmController implements FcmApiSpecification {
     @PatchMapping("/notification/read")
     public ResponseEntity<ResponseDto<Void>> readPageNotification(
             @AuthenticationPrincipal Member member,
-            @RequestParam(required = false, defaultValue = "1") @Min(1) int page
+            @RequestParam(required = false, defaultValue = "1") int page
     ) {
         fcmService.markPageNotificationAsRead(member, page);
         return ResponseEntity.ok(ResponseDto.of(null, "해당 페이지 알림 읽음 처리 성공"));
@@ -119,7 +120,7 @@ public class FcmController implements FcmApiSpecification {
 
     @GetMapping("/admin")
     public ResponseEntity<ResponseDto<List<AdminNotificationResponse>>> countAdminFcmMessagesSuccess(
-            @RequestParam(required = false, defaultValue = "1") @Min(1) int page
+            @RequestParam(required = false, defaultValue = "1") int page
     ) {
         return ResponseEntity.ok(ResponseDto.of(fcmService.countAdminFcmMessagesSuccess(page), "FCM 메시지 개수 조회 성공"));
     }
