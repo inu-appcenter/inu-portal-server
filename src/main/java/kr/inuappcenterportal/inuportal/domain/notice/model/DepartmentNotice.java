@@ -156,6 +156,16 @@ public class DepartmentNotice {
         this.contentLastError = reason;
     }
 
+    public void markContentPending() {
+        this.contentStatus = DepartmentNoticeContentStatus.PENDING;
+        this.contentLastError = null;
+    }
+
+    public void touchContentFetchedAt(LocalDateTime fetchedAt) {
+        this.contentFetchedAt = fetchedAt;
+        this.contentLastError = null;
+    }
+
     public void markContentAccessDenied() {
         this.contentStatus = DepartmentNoticeContentStatus.ACCESS_DENIED;
         this.contentLastError = null;
