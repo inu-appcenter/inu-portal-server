@@ -37,17 +37,17 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
             select n from Notice n
             left join fetch n.content
             where (
-                    (
-                        (n.content is null
-                         or n.content.contentText is null
-                         or n.content.inlineImageUrlsJson is null
-                         or n.content.attachmentMetaJson is null)
-                        and (n.contentStatus is null or n.contentStatus in :statuses)
+                    (n.contentStatus is null or n.contentStatus in :statuses)
+                    or (
+                        n.content is null
+                        or n.content.contentText is null
+                        or n.content.inlineImageUrlsJson is null
+                        or n.content.attachmentMetaJson is null
                     )
                     or (
                         n.createDate >= :refreshThresholdDate
                         and (n.contentFetchedAt is null or n.contentFetchedAt <= :fetchedBefore)
-                        and (n.contentStatus is null or n.contentStatus not in :excludedStatuses)
+                        and (n.contentStatus not in :excludedStatuses)
                     )
             )
             order by n.id desc

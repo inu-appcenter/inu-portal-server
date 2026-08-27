@@ -150,6 +150,37 @@ class NoticeServiceTest {
     }
 
     @Test
+    void testSyncNoticeContent_PendingWithExistingContent_NormalizesStatus() {
+        // Given (Existing content + marked PENDING)
+        String targetUrl = "https://www.inu.ac.kr/bbs/inu/246/426845/artclView";
+        Notice notice = Notice.builder()
+                .category("학사")
+                .subCategory("일반")
+                .title("공지사항 제목")
+                .writer("작성부서")
+                .createDate("2026.07.08")
+                .url(targetUrl)
+                .description("요약...")
+                .build();
+
+        String mockHtml = "<!DOCTYPE html><html><body><div class=\"view-con\"><p>본문 내용입니다.</p></div></body></html>";
+        Document mockDoc = Jsoup.parse(mockHtml, targetUrl);
+
+        noticeService.parseAndSaveNoticeContent(notice, mockDoc);
+        assertEquals(NoticeContentStatus.SUCCESS, notice.getContentStatus());
+
+        // Fast Track marks PENDING
+        notice.markContentPending();
+        assertEquals(NoticeContentStatus.PENDING, notice.getContentStatus());
+
+        // When
+        noticeService.parseAndSaveNoticeContent(notice, mockDoc);
+
+        // Then
+        assertEquals(NoticeContentStatus.SUCCESS, notice.getContentStatus());
+    }
+
+    @Test
     void testSyncNoticeContent_ContentChanged_UpdatesContent() {
         // Given
         String targetUrl = "https://www.inu.ac.kr/bbs/inu/246/426845/artclView";
