@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -40,7 +41,17 @@ public class NoticeCrawlHelper {
         Optional<Notice> existingNotice = noticeRepository.findByUrl(link);
         if (existingNotice.isPresent()) {
             Notice notice = existingNotice.get();
+            boolean isModified = !Objects.equals(notice.getSubCategory(), subCategory)
+                    || !Objects.equals(notice.getTitle(), title)
+                    || !Objects.equals(notice.getWriter(), writer)
+                    || !Objects.equals(notice.getDescription(), description);
+
             notice.update(subCategory, title, writer, description);
+
+            if (isModified) {
+                notice.markContentPending();
+                log.info("[학교공지] RSS 메타데이터 변경 감지 -> 본문 재크롤링 예약: [{}] {}", categoryName, title);
+            }
             return false; // 기존 공지 업데이트
         } else {
             Notice notice = Notice.builder()
