@@ -93,7 +93,16 @@ public class NoticeCrawlHelper {
 
         if (existingNotice.isPresent()) {
             departmentNotice = existingNotice.get();
+            boolean isModified = !Objects.equals(departmentNotice.getTitle(), title)
+                    || !Objects.equals(departmentNotice.getCreateDate(), date)
+                    || !Objects.equals(departmentNotice.getUrl(), link);
+
             departmentNotice.updateListing(title, date, views, link);
+
+            if (isModified) {
+                departmentNotice.markContentPending();
+                log.info("[학과공지] 목록 메타데이터 변경 감지 -> 본문 재크롤링 예약: [{}] {}", department.name(), title);
+            }
         } else {
             departmentNotice = departmentNoticeRepository.save(
                     DepartmentNotice.create(department, title, date, views, link)
