@@ -14,6 +14,9 @@ import java.util.regex.Pattern;
 
 @Component
 @Slf4j
+/**
+ *  각 학과의 홈페이지에 존재하는 교육과정 페이지 크롤링 및 파싱
+ */
 public class CurriculumParser {
 
     public List<CurriculumItemDto> parse(Document document) {
