@@ -151,6 +151,7 @@ public class CourseMeetingService {
         return gapMinutes <= 15;
     }
 
+    // 연강이면 합치는 메서드
     private CourseMeetingResponseDto merge(
             CourseMeetingResponseDto current,
             CourseMeetingResponseDto next

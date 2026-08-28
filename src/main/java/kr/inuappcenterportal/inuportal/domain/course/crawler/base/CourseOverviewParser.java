@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
+/**
+ * 각 학과의 홈페이지에 존재하는 교과목개요 페이지 크롤링 및 파싱
+ */
 public class CourseOverviewParser {
     public List<CourseOverviewItemDto> parse(Document document) {
         List<CourseOverviewItemDto> result = new ArrayList<>();
