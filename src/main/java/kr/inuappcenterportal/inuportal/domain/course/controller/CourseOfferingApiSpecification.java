@@ -20,14 +20,74 @@ import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @Tag(name = "CourseOffering", description = "개설 강의 관련 API")
 public interface CourseOfferingApiSpecification {
+
+    @Operation(
+            summary = "과거 강의 데이터 엑셀 적재",
+            description = """
+                    [관리자 전용] 과거 강의계획서 엑셀 파일을 업로드하여 CourseOffering과 CourseMeeting을 생성 또는 갱신합니다.
+                    
+                    처리 방식:
+                    - 업로드한 엑셀 파일의 강의 row를 읽어 학기별 CourseOffering을 생성 또는 갱신합니다.
+                    - 시간표 컬럼의 [강의실:요일(교시)] 형식을 파싱하여 CourseMeeting을 저장합니다.
+                    - 같은 학기와 학수번호의 CourseOffering이 이미 있으면 기존 값을 갱신합니다.
+                    - CourseMeeting은 해당 CourseOffering의 기존 시간 정보를 삭제한 뒤 다시 저장합니다.
+                    - row 단위로 트랜잭션을 분리하여 일부 row가 실패해도 나머지 row는 계속 처리합니다.
+                    
+                    요청:
+                    - multipart/form-data 형식으로 files 필드에 .xlsx 파일을 하나 이상 전달합니다.
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "과거 강의 데이터 적재 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "과거 강의 데이터 적재 응답 예시",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "과거 강의 데이터 적재 성공"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "엑셀 파일 형식이 잘못되었거나 필수 헤더가 누락되었습니다.",
+                    content = @Content(schema = @Schema(implementation = ResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "관리자 권한이 없습니다.",
+                    content = @Content(schema = @Schema(implementation = ResponseDto.class))
+            )
+    })
+    ResponseEntity<ResponseDto<Void>> importLegacyCourse(
+            @Parameter(
+                    description = "과거 강의계획서 엑셀 파일 목록입니다. multipart/form-data의 files 필드로 전달합니다.",
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            array = @ArraySchema(schema = @Schema(type = "string", format = "binary"))
+                    )
+            )
+            @RequestPart("files") List<MultipartFile> files
+    );
 
     @Operation(
             summary = "개설 강의 및 강의 시간 동기화",
