@@ -41,7 +41,7 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
                         and (dn.contentStatus not in :excludedStatuses)
                     )
               )
-            order by dn.id desc
+            order by case when dn.contentStatus = 'PENDING' or dn.contentStatus = 'FAILED' then 0 else 1 end, dn.id desc
             """)
     List<DepartmentNotice> findBackfillTargetsByDepartment(
             @Param("department") Department department,
