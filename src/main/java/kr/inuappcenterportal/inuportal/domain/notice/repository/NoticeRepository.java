@@ -50,7 +50,7 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
                         and (n.contentStatus not in :excludedStatuses)
                     )
             )
-            order by n.id desc
+            order by case when n.contentStatus = 'PENDING' or n.contentStatus = 'FAILED' then 0 else 1 end, n.id desc
             """)
     List<Notice> findBackfillTargets(
             @Param("statuses") List<NoticeContentStatus> statuses,
