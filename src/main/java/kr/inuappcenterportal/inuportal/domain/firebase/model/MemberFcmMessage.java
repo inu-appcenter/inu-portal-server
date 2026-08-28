@@ -12,15 +12,7 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(
-        name = "member_fcm_message",
-        // 한 알림에 대해 회원당 알림함 행은 하나만 존재한다.
-        // 푸시 payload의 fcmMessageId로 개인 행을 특정하는 읽음 처리가 이 유일성에 기댄다.
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_member_fcm_message_message_member",
-                columnNames = {"fcm_message_id", "member_id"}
-        )
-)
+@Table(name = "member_fcm_message")
 public class MemberFcmMessage extends BaseTimeEntity {
 
     @Id

@@ -6,7 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.keyword.dto.res.KeywordResponse;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
 import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

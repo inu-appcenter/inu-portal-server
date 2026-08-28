@@ -40,17 +40,20 @@ public class FcmAsyncService {
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type) {
-        fcmService.prepareTrackedNotification(memberIds, title, body, type, null);
+        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, null);
+        fcmService.dispatchTrackedNotification(dispatch);
     }
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type, Long targetId) {
-        fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId);
+        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId);
+        fcmService.dispatchTrackedNotification(dispatch);
     }
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type, Long targetId, String path) {
-        fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId, path);
+        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId, path);
+        fcmService.dispatchTrackedNotification(dispatch);
     }
 
     @Async("messageExecutor")
