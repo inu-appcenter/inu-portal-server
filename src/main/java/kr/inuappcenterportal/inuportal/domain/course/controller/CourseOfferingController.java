@@ -1,7 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
-import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.crawler.excel.LegacyCourseExcelImporter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingOptionsResponseDto;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseOfferingService;
@@ -13,9 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,6 +31,18 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
 
     private final CourseOfferingSyncService courseOfferingSyncService;
     private final CourseOfferingService courseOfferingService;
+    private final LegacyCourseExcelImporter legacyCourseExcelImporter;
+
+    @PostMapping(
+            value = "/legacy",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ResponseDto<Void>> importLegacyCourse(
+            @RequestPart("files") List<MultipartFile> files
+    ) {
+        legacyCourseExcelImporter.importArchive(files);
+        return ResponseEntity.ok(ResponseDto.of(null, "과거 강의 데이터 적재 성공"));
+    }
 
     @PostMapping("/sync")
     public ResponseEntity<ResponseDto<Void>> syncCourseOffering(
