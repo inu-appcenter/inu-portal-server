@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.notice.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import lombok.Builder;
 import lombok.Getter;

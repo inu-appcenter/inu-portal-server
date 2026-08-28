@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.notice.repository;
 
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeScheduleExtractStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
@@ -41,7 +41,7 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
                         and (dn.contentStatus not in :excludedStatuses)
                     )
               )
-            order by dn.id desc
+            order by case when dn.contentStatus = 'PENDING' or dn.contentStatus = 'FAILED' then 0 else 1 end, dn.id desc
             """)
     List<DepartmentNotice> findBackfillTargetsByDepartment(
             @Param("department") Department department,

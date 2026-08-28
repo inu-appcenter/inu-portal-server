@@ -50,13 +50,9 @@ public class FcmMessage extends BaseTimeEntity {
     @Column(name = "target_id")
     private Long targetId;
 
-    /** 클라이언트 라우팅 경로. 이벤트 유실 시 재발송에서 payload를 그대로 복원하기 위해 보관한다. */
-    @Column(name = "path", length = 512)
-    private String path;
-
     @Builder
     public FcmMessage(String title, String body, boolean isAdminMessage, int sendCount,
-                      int failureCount, int targetCount, FcmSendStatus sendStatus, Long targetId, String path) {
+                      int failureCount, int targetCount, FcmSendStatus sendStatus, Long targetId) {
         this.title = title;
         this.body = body;
         this.adminMessage = isAdminMessage;
@@ -65,7 +61,6 @@ public class FcmMessage extends BaseTimeEntity {
         this.targetCount = Math.max(targetCount, 0);
         this.sendStatus = sendStatus == null ? FcmSendStatus.PENDING : sendStatus;
         this.targetId = targetId;
-        this.path = path;
     }
 
     public void markPending(int targetCount) {

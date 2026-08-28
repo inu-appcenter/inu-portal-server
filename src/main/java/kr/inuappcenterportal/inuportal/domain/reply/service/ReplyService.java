@@ -74,7 +74,7 @@ public class ReplyService {
                 String body = "댓글이 달렸어요: " + reply.getContent();
                 String path = "/home/tips/" + post.getId();
 
-                fcmService.prepareTrackedNotification(
+                TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
                         List.of(postAuthor.getId()),
                         title,
                         body,
@@ -82,6 +82,7 @@ public class ReplyService {
                         post.getId(),
                         path
                 );
+                fcmService.dispatchTrackedNotification(dispatch);
             }
         } catch (Exception e) {
             log.error("댓글 FCM 푸시알림 발송 실패: postId={}, replyId={}", post.getId(), reply.getId(), e);
@@ -118,7 +119,7 @@ public class ReplyService {
                 String body = "답글이 달렸어요: " + reReply.getContent();
                 String path = "/home/tips/" + post.getId();
 
-                fcmService.prepareTrackedNotification(
+                TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
                         new ArrayList<>(targetMemberIds),
                         title,
                         body,
@@ -126,6 +127,7 @@ public class ReplyService {
                         post.getId(),
                         path
                 );
+                fcmService.dispatchTrackedNotification(dispatch);
             }
         } catch (Exception e) {
             log.error("답글 FCM 푸시알림 발송 실패: postId={}, reReplyId={}", post.getId(), reReply.getId(), e);
