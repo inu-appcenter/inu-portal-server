@@ -13,6 +13,10 @@ import java.util.*;
 
 @Component
 public class ExcelParser {
+
+    /**
+     * 업로드된 엑셀 파일을 받을 때 쓰는 메서드
+     */
     public List<CourseOverviewExcelRow> parse(MultipartFile file) {
         try {
             return parse(file.getInputStream());
@@ -21,14 +25,20 @@ public class ExcelParser {
         }
     }
 
+    /**
+     * 실제 파싱 진입점 (.xlsx, .xls 같은 형식을 POI가 알아서 처리)
+     */
     public List<CourseOverviewExcelRow> parse(InputStream inputStream) {
         try (Workbook workbook = WorkbookFactory.create(inputStream)) {
             return parseWorkbook(workbook);
         } catch (IOException e) {
-            throw new MyException(MyErrorCode.INVALID_INPUT);
+            throw new MyException(MyErrorCode.INVALID_EXCEL_EXTENDER);
         }
     }
 
+    /**
+     * 실제 엑셀 파서
+     */
     private List<CourseOverviewExcelRow> parseWorkbook(Workbook workbook) {
         Sheet sheet = workbook.getSheetAt(0);
 
