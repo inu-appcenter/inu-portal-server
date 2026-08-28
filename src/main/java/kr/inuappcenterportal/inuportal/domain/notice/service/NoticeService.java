@@ -549,7 +549,6 @@ public class NoticeService {
                     List.of(
                             DepartmentNoticeContentStatus.PENDING,
                             DepartmentNoticeContentStatus.FAILED,
-                            DepartmentNoticeContentStatus.SUCCESS,
                             DepartmentNoticeContentStatus.ENRICH_PENDING,
                             DepartmentNoticeContentStatus.NO_TEXT_CONTENT,
                             DepartmentNoticeContentStatus.OCR_PENDING
@@ -1240,7 +1239,6 @@ public class NoticeService {
                 List.of(
                         NoticeContentStatus.PENDING,
                         NoticeContentStatus.FAILED,
-                        NoticeContentStatus.SUCCESS,
                         NoticeContentStatus.ENRICH_PENDING,
                         NoticeContentStatus.NO_TEXT_CONTENT,
                         NoticeContentStatus.OCR_PENDING
