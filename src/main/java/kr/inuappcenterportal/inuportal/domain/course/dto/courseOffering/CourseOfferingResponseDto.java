@@ -149,7 +149,7 @@ public record CourseOfferingResponseDto(
                 courseOffering.getEnrolledCount(),
                 savedCount,
                 resolveCapacityNullReason(courseOffering),
-                
+
                 courseOffering.getHussCourseYn(),
                 meetings
         );
@@ -166,7 +166,8 @@ public record CourseOfferingResponseDto(
         }
 
         // 정원이 존재하지 않을 때 교양이면 파싱 실패
-        if (LIBERAL_ARTS_ISU_CODES.contains(courseOffering.getIsuCode())) {
+        String isuCode = courseOffering.getIsuCode();
+        if (isuCode != null && LIBERAL_ARTS_ISU_CODES.contains(isuCode)) {
             return "PARSE_FAILED";
         }
 
