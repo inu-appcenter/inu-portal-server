@@ -23,6 +23,8 @@ import java.util.Optional;
 @Slf4j
 public class SemesterService {
 
+    // 이보다 이전 연도의 학기는 오래된 데이터라 목록 조회에서 제외
+    private static final int MIN_VISIBLE_YEAR = 2020;
     private final SemesterRepository semesterRepository;
     private final ScheduleRepository scheduleRepository;
     private final Clock clock;
@@ -32,7 +34,7 @@ public class SemesterService {
      */
     @Transactional(readOnly = true)
     public List<SemesterResponseDto> getSemesters() {
-        return semesterRepository.findAll()
+        return semesterRepository.findAllByYearGreaterThanEqual(MIN_VISIBLE_YEAR)
                 .stream()
                 .sorted(Comparator
                         .comparingInt((Semester semester) -> statusOrder(semester.getStatus()))
