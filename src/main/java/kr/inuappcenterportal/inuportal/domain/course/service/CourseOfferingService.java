@@ -22,6 +22,7 @@ import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRe
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
 import kr.inuappcenterportal.inuportal.domain.department.enums.College;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -145,7 +146,7 @@ public class CourseOfferingService {
     }
 
     private Semester getOpenSemester() {
-        return semesterRepository.findFirstByStatusOrderByStartDateDesc(kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus.OPEN)
+        return semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
     }
 
