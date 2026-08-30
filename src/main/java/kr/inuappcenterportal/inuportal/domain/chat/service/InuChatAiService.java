@@ -53,8 +53,7 @@ public class InuChatAiService {
                 .accept(MediaType.TEXT_PLAIN, MediaType.ALL)
                 .bodyValue(requestDto)
                 .retrieve()
-                .bodyToFlux(String.class)
-                .reduce("", (acc, chunk) -> acc + chunk)
+                .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(timeoutSeconds + 5))
                 .doOnSuccess(answer -> log.info("InuChat AI 응답 수신 완료: memberId={}, answerLength={}",
                         memberId, answer != null ? answer.length() : 0))
