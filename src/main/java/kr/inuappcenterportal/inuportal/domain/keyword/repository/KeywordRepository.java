@@ -14,9 +14,17 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
 
     @Query("SELECT k FROM Keyword k " +
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
-            "AND k.department = :department")
+            "AND k.department = :department " +
+            "AND k.isExcluded = false")
     List<Keyword> findKeywordsByKeywordAndDepartmentMatches(@Param("title") String title,
-                                                          @Param("department")Department department);
+                                                          @Param("department") Department department);
+
+    @Query("SELECT k FROM Keyword k " +
+            "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
+            "AND k.department = :department " +
+            "AND k.isExcluded = true")
+    List<Keyword> findExcludeKeywordsByDepartmentMatches(@Param("title") String title,
+                                                         @Param("department") Department department);
 
     List<Keyword> findAllByMemberId(Long memberId);
 
@@ -24,17 +32,26 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
 
     List<Keyword> findAllByMemberIdAndKeywordIsNull(Long memberId);
 
-    @Query("SELECT k FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL")
+    @Query("SELECT k FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL AND k.isExcluded = false")
     List<Keyword> findKeywordsByDepartmentAndKeywordIsNull(Department department);
 
     @Query("SELECT k FROM Keyword k " +
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
             "AND (k.category IS NULL OR k.category = :category) " +
-            "AND k.type = 'SCHOOL_NOTICE'")
+            "AND k.type = 'SCHOOL_NOTICE' " +
+            "AND k.isExcluded = false")
     List<Keyword> findKeywordsByKeywordAndCategoryMatches(@Param("title") String title,
                                                         @Param("category") String category);
 
-    @Query("SELECT k FROM Keyword k WHERE k.category = :category AND k.keyword IS NULL AND k.type = 'SCHOOL_NOTICE'")
+    @Query("SELECT k FROM Keyword k " +
+            "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
+            "AND (k.category IS NULL OR k.category = :category) " +
+            "AND k.type = 'SCHOOL_NOTICE' " +
+            "AND k.isExcluded = true")
+    List<Keyword> findExcludeKeywordsByCategoryMatches(@Param("title") String title,
+                                                       @Param("category") String category);
+
+    @Query("SELECT k FROM Keyword k WHERE k.category = :category AND k.keyword IS NULL AND k.type = 'SCHOOL_NOTICE' AND k.isExcluded = false")
     List<Keyword> findKeywordsByCategoryAndKeywordIsNull(@Param("category") String category);
 
     List<Keyword> findAllByMemberIdAndKeywordIsNullAndType(Long memberId, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type);

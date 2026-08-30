@@ -23,7 +23,10 @@ public record KeywordResponse(
         String department,
 
         @Schema(description = "알림 카테고리 (학교 공지)")
-        String category
+        String category,
+
+        @Schema(description = "제외 키워드 여부", example = "false")
+        boolean isExcluded
 
 ) {
     public static KeywordResponse from(Keyword keyword) {
@@ -33,7 +36,8 @@ public record KeywordResponse(
                 keyword.getKeyword(),
                 keyword.getType(),
                 keyword.getDepartment() == null ? null : keyword.getDepartment().getDepartmentName(),
-                keyword.getCategory()
+                keyword.getCategory(),
+                keyword.isExcluded()
         );
     }
 }

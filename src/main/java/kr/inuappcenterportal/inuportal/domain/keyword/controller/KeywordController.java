@@ -37,20 +37,22 @@ public class KeywordController {
     // 키워드 알림 등록
     @Operation(summary = "키워드 알림 등록",
             description = "키워드와 카테고리를 입력하여 키워드 알림을 등록합니다. <br><br>" +
-                    "keyword: 알림을 받고자 하는 키워드 <br>" +
+                    "keyword: 알림을 받고자 하는 키워드 (또는 제외할 키워드) <br>" +
                     "department: 학과 (학과 공지 키워드 알림 설정 시) <br>" +
-                    "category: 학교 공지 카테고리 (특정 학교 공지 카테고리에 한해 키워드 알림 설정 시)")
+                    "category: 학교 공지 카테고리 (특정 학교 공지 카테고리에 한해 키워드 알림 설정 시) <br>" +
+                    "isExcluded: 제외 키워드 여부 (기본값 false)")
     @PostMapping
     public ResponseEntity<ResponseDto<KeywordResponse>> addKeyword(@AuthenticationPrincipal Member member,
                                                                    @RequestParam String keyword,
                                                                    @RequestParam(required = false) Department department,
                                                                    @RequestParam(required = false) String departmentCode,
-                                                                   @RequestParam(required = false) String category) {
+                                                                   @RequestParam(required = false) String category,
+                                                                   @RequestParam(defaultValue = "false") boolean isExcluded) {
         Department resolvedDepartment = departmentCode == null
                 ? department
                 : schoolDepartmentService.getNoticeDepartment(departmentCode);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ResponseDto.of(keywordService.addKeyword(member, keyword, resolvedDepartment, category), "키워드 알림 등록 성공"));
+                .body(ResponseDto.of(keywordService.addKeyword(member, keyword, resolvedDepartment, category, isExcluded), "키워드 알림 등록 성공"));
     }
 
     // 키워드 알림 삭제
