@@ -397,6 +397,48 @@ class SendToMembersTest {
         verify(jdbcTemplate).batchUpdate(anyString(), any(List.class), anyInt(), any());
     }
 
+    @Test
+    void noticeAll_recordsSuccessStatusInsteadOfLeavingItPending() throws FirebaseMessagingException {
+        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 10L);
+            return message;
+        });
+
+        fcmService.noticeAll("공지 제목");
+
+        org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
+        verify(fcmMessageRepository).save(captor.capture());
+        FcmMessage saved = captor.getValue();
+        assertThat(saved.getSendStatus()).isEqualTo(FcmSendStatus.SUCCESS);
+        assertThat(saved.getTargetCount()).isEqualTo(1);
+        assertThat(saved.getSendCount()).isEqualTo(1);
+        assertThat(saved.getFailureCount()).isZero();
+    }
+
+    @Test
+    void noticeAll_recordsFailedStatusWhenTopicSendThrows() throws FirebaseMessagingException {
+        FirebaseMessagingException firebaseMessagingException = mock(FirebaseMessagingException.class);
+        when(firebaseMessaging.send(any(com.google.firebase.messaging.Message.class)))
+                .thenThrow(firebaseMessagingException);
+        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 11L);
+            return message;
+        });
+
+        fcmService.noticeAll("공지 제목", 42L);
+
+        org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
+        verify(fcmMessageRepository).save(captor.capture());
+        FcmMessage saved = captor.getValue();
+        assertThat(saved.getSendStatus()).isEqualTo(FcmSendStatus.FAILED);
+        assertThat(saved.getTargetCount()).isEqualTo(1);
+        assertThat(saved.getSendCount()).isZero();
+        assertThat(saved.getFailureCount()).isEqualTo(1);
+        assertThat(saved.getTargetId()).isEqualTo(42L);
+    }
+
     private void verifySavedPendingMessage(int expectedTargetCount) {
         org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
         verify(fcmMessageRepository).saveAndFlush(captor.capture());

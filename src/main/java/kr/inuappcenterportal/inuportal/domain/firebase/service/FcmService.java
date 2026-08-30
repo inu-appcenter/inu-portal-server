@@ -196,15 +196,30 @@ public class FcmService {
             messageBuilder.putData("path", "/councilnoticedetail?id=" + councilNoticeId);
         }
         com.google.firebase.messaging.Message message = messageBuilder.build();
+        boolean sendFailed = false;
         try {
             firebaseMessaging.send(message);
         } catch (FirebaseMessagingException e) {
+            sendFailed = true;
             log.warn("Notice topic send failed: {}", e.getMessage());
+        } catch (Exception e) {
+            sendFailed = true;
+            log.error("Notice topic send failed unexpectedly: {}", e.getMessage(), e);
         }
-        fcmMessageRepository.save(FcmMessage.builder()
+
+        // 토픽 발송은 요청 1건으로 취급한다. 상태를 기록하지 않으면 send_status가
+        // 필드 기본값 PENDING에 영구히 머물러, 유실 보정 등 PENDING을 재처리 대상으로
+        // 보는 로직이 이 행을 잘못 집어간다 (#431).
+        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
                 .title("인천대학교 총학생회")
                 .body(title)
+                .targetId(councilNoticeId)
                 .build());
+        if (sendFailed) {
+            fcmMessage.markFailed(1);
+        } else {
+            fcmMessage.updateDeliveryResult(1, 0);
+        }
     }
 
     @Transactional
