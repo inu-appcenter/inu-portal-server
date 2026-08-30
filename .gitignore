@@ -11,8 +11,10 @@ application*.yml
 firebase_key.json
 
 .env
+db.env
 .venv/
 db/past_course/course.db
+.DS_Store
 
 # User-specific stuff
 .idea/**/workspace.xml
