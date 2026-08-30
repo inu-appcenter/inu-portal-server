@@ -26,7 +26,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenReposi
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;

@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.notice.service;
 
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;
 import kr.inuappcenterportal.inuportal.domain.notice.model.NoticeCreatedEvent;
