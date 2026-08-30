@@ -72,7 +72,7 @@ public class KeywordService {
         // 키워드 매칭자들 먼저 처리 (우선순위 높음)
         for (Keyword k : keywordMatches) {
             if (!memberIdToTitle.containsKey(k.getMemberId())) {
-                String title = String.format("[%s-%s] 새로운 공지사항이 등록되었어요.", notice.getCategory(), k.getKeyword());
+                String title = String.format("[%s-%s] 새로운 공지사항이에요.", notice.getCategory(), k.getKeyword());
                 memberIdToTitle.put(k.getMemberId(), title);
             }
         }
@@ -80,7 +80,7 @@ public class KeywordService {
         // 카테고리 구독자들 처리 (이미 키워드 매칭된 유저는 제외)
         for (Keyword k : categorySubscribers) {
             if (!memberIdToTitle.containsKey(k.getMemberId())) {
-                String title = String.format("[%s] 새로운 공지사항이 등록되었어요.", notice.getCategory());
+                String title = String.format("[%s] 새로운 공지사항이에요.", notice.getCategory());
                 memberIdToTitle.put(k.getMemberId(), title);
             }
         }
@@ -118,14 +118,14 @@ public class KeywordService {
 
         for (Keyword k : keywordMatches) {
             if (!memberIdToTitle.containsKey(k.getMemberId())) {
-                String title = String.format("[%s-%s] 새로운 공지사항이 등록되었어요.", department.getDepartmentName(), k.getKeyword());
+                String title = String.format("[%s-%s] 새로운 학과 공지사항이에요.", department.getDepartmentName(), k.getKeyword());
                 memberIdToTitle.put(k.getMemberId(), title);
             }
         }
 
         for (Keyword k : departmentSubscribers) {
             if (!memberIdToTitle.containsKey(k.getMemberId())) {
-                String title = String.format("[%s] 새로운 공지사항이 등록되었어요.", department.getDepartmentName());
+                String title = String.format("[%s] 새로운 학과 공지사항이에요.", department.getDepartmentName());
                 memberIdToTitle.put(k.getMemberId(), title);
             }
         }
@@ -146,7 +146,7 @@ public class KeywordService {
 
         String body = departmentNotice.getTitle();
         if (scheduleCount != null && scheduleCount > 0) {
-            body += String.format("\n[횃불이 AI] 일정 %d개가 포함되어 있어요.", scheduleCount);
+            body += String.format("\n[횃불이 AI] 일정 %d개를 캘린더에서 확인해보세요.", scheduleCount);
         }
 
         final String finalBody = body;

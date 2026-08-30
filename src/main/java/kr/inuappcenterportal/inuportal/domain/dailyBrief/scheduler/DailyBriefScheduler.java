@@ -90,12 +90,20 @@ public class DailyBriefScheduler {
                     long diffMinutes = ChronoUnit.MINUTES.between(now, entry.startTime());
                     // 오차 범위 2분 이내 매칭 (5분 단위 스케줄러 고려)
                     if (Math.abs(diffMinutes - alertMinutes) <= 2) {
-                        String title = "[수업 알림] 잠시 후 수업이 시작됩니다!";
+                        String alertTimeText = (alertMinutes >= 60 && alertMinutes % 60 == 0)
+                                ? (alertMinutes / 60) + "시간"
+                                : (alertMinutes >= 60)
+                                    ? (alertMinutes / 60) + "시간 " + (alertMinutes % 60) + "분"
+                                    : alertMinutes + "분";
+                        String title = String.format("%s 후 수업이 시작돼요.", alertTimeText);
                         String locationInfo = (entry.location() != null && !entry.location().isBlank())
                                 ? ", " + entry.location()
                                 : "";
-                        String body = String.format("'%s' 수업이 %d분 후 (%s%s)에 시작해요.",
-                                entry.title(), alertMinutes, entry.startTime().format(TIME_FORMATTER), locationInfo);
+                        String body = String.format("%s (%s~%s%s)",
+                                entry.title(),
+                                entry.startTime().format(TIME_FORMATTER),
+                                entry.endTime().format(TIME_FORMATTER),
+                                locationInfo);
 
                         fcmService.sendDailyBriefNotification(
                                 member.getId(),
