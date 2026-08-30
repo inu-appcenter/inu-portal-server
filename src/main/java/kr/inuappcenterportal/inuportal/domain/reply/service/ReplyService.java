@@ -24,7 +24,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 
 @Service
@@ -74,7 +73,9 @@ public class ReplyService {
                 String body = "댓글이 달렸어요: " + reply.getContent();
                 String path = "/home/tips/" + post.getId();
 
-                TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
+                // prepareTrackedNotification이 저장 트랜잭션 커밋 이후 발송을 이벤트로
+                // 트리거한다. 여기서 dispatchTrackedNotification을 또 호출하면 중복 발송된다.
+                fcmService.prepareTrackedNotification(
                         List.of(postAuthor.getId()),
                         title,
                         body,
@@ -82,7 +83,6 @@ public class ReplyService {
                         post.getId(),
                         path
                 );
-                fcmService.dispatchTrackedNotification(dispatch);
             }
         } catch (Exception e) {
             log.error("댓글 FCM 푸시알림 발송 실패: postId={}, replyId={}", post.getId(), reply.getId(), e);
@@ -119,7 +119,9 @@ public class ReplyService {
                 String body = "답글이 달렸어요: " + reReply.getContent();
                 String path = "/home/tips/" + post.getId();
 
-                TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(
+                // prepareTrackedNotification이 저장 트랜잭션 커밋 이후 발송을 이벤트로
+                // 트리거한다. 여기서 dispatchTrackedNotification을 또 호출하면 중복 발송된다.
+                fcmService.prepareTrackedNotification(
                         new ArrayList<>(targetMemberIds),
                         title,
                         body,
@@ -127,7 +129,6 @@ public class ReplyService {
                         post.getId(),
                         path
                 );
-                fcmService.dispatchTrackedNotification(dispatch);
             }
         } catch (Exception e) {
             log.error("답글 FCM 푸시알림 발송 실패: postId={}, reReplyId={}", post.getId(), reReply.getId(), e);
