@@ -345,22 +345,10 @@ public class BusService {
             }
         }
 
-        if (remainingSecondsList.isEmpty()) {
-            // 과거 평균 배차 간격의 1/2을 기본 대기 추정치로 사용
-            Integer avgInterval = calculateAverageIntervalForDayOfWeek(bstopId, now.getDayOfWeek());
-            if (avgInterval != null && avgInterval > 0) {
-                int estimatedSec = Math.max(300, avgInterval / 2);
-                return BusArrivalItemDto.builder()
-                        .bstopId(bstopId)
-                        .routeId(routeId)
-                        .routeNo(routeNo)
-                        .arrivalEstimateTime(String.valueOf(estimatedSec))
-                        .estimatedArrivalSeconds(estimatedSec)
-                        .latestStopName("시간표 기반")
-                        .estimationNotice("시간표 기반")
-                        .congestion("2")
-                        .build();
-            }
+        // 같은 시간대에 대한 실측값이 2주 미만이면 추정하지 않는다.
+        // 이전에는 정류장 전체의 평균 배차간격 절반(최소 5분)을 반환해 야간에도
+        // 근거 없는 "5분 후"가 반복 표시될 수 있었다.
+        if (remainingSecondsList.size() < 2) {
             return null;
         }
 
@@ -374,7 +362,7 @@ public class BusService {
                 .arrivalEstimateTime(String.valueOf(medianSeconds))
                 .estimatedArrivalSeconds(medianSeconds)
                 .latestStopName("시간표 기반")
-                .estimationNotice("시간표 기반")
+                .estimationNotice(String.format("최근 %d주 동일 요일·시간대 실측 기반 추정", remainingSecondsList.size()))
                 .congestion("2")
                 .build();
     }
