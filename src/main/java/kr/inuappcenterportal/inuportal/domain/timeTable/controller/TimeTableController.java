@@ -17,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.ChatRoomTimeTableResponseDto;
 
 @RestController
 @RequiredArgsConstructor
@@ -58,6 +59,18 @@ public class TimeTableController implements TimeTableApiSpecification {
         return ResponseEntity.ok(
                 ResponseDto.of(response, "친구 대표 시간표 상세 조회 성공")
         );
+    }
+
+    @GetMapping("/chat-rooms/{roomId}/primary")
+    public ResponseEntity<ResponseDto<List<ChatRoomTimeTableResponseDto>>> getChatRoomPrimaryTimeTables(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long roomId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) SemesterTerm term
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(
+                timeTableService.getChatRoomPrimaryTimeTables(member.getId(), roomId, year, term),
+                "단체톡 참여자 대표 시간표 조회 성공"));
     }
 
     /**
