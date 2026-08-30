@@ -15,14 +15,16 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
     @Query("SELECT k FROM Keyword k " +
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
             "AND k.department = :department " +
-            "AND k.isExcluded = false")
+            "AND (k.isExcluded = false OR k.isExcluded IS NULL) " +
+            "AND k.keyword IS NOT NULL")
     List<Keyword> findKeywordsByKeywordAndDepartmentMatches(@Param("title") String title,
                                                           @Param("department") Department department);
 
     @Query("SELECT k FROM Keyword k " +
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
             "AND k.department = :department " +
-            "AND k.isExcluded = true")
+            "AND k.isExcluded = true " +
+            "AND k.keyword IS NOT NULL")
     List<Keyword> findExcludeKeywordsByDepartmentMatches(@Param("title") String title,
                                                          @Param("department") Department department);
 
@@ -32,14 +34,15 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
 
     List<Keyword> findAllByMemberIdAndKeywordIsNull(Long memberId);
 
-    @Query("SELECT k FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL AND k.isExcluded = false")
+    @Query("SELECT k FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL AND (k.isExcluded = false OR k.isExcluded IS NULL)")
     List<Keyword> findKeywordsByDepartmentAndKeywordIsNull(Department department);
 
     @Query("SELECT k FROM Keyword k " +
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
             "AND (k.category IS NULL OR k.category = :category) " +
             "AND k.type = 'SCHOOL_NOTICE' " +
-            "AND k.isExcluded = false")
+            "AND (k.isExcluded = false OR k.isExcluded IS NULL) " +
+            "AND k.keyword IS NOT NULL")
     List<Keyword> findKeywordsByKeywordAndCategoryMatches(@Param("title") String title,
                                                         @Param("category") String category);
 
@@ -47,11 +50,12 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
             "AND (k.category IS NULL OR k.category = :category) " +
             "AND k.type = 'SCHOOL_NOTICE' " +
-            "AND k.isExcluded = true")
+            "AND k.isExcluded = true " +
+            "AND k.keyword IS NOT NULL")
     List<Keyword> findExcludeKeywordsByCategoryMatches(@Param("title") String title,
                                                        @Param("category") String category);
 
-    @Query("SELECT k FROM Keyword k WHERE k.category = :category AND k.keyword IS NULL AND k.type = 'SCHOOL_NOTICE' AND k.isExcluded = false")
+    @Query("SELECT k FROM Keyword k WHERE k.category = :category AND k.keyword IS NULL AND k.type = 'SCHOOL_NOTICE' AND (k.isExcluded = false OR k.isExcluded IS NULL)")
     List<Keyword> findKeywordsByCategoryAndKeywordIsNull(@Param("category") String category);
 
     List<Keyword> findAllByMemberIdAndKeywordIsNullAndType(Long memberId, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type);

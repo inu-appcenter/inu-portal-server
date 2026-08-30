@@ -42,17 +42,35 @@ public class KeywordService {
 
     @Transactional
     public KeywordResponse addKeyword(Member member, String keywordString, Department department, String category, Boolean isExcluded) {
+        String trimmedKeyword = keywordString != null ? keywordString.trim() : null;
+        boolean excluded = isExcluded != null && isExcluded;
+
+        // 동일한 키워드 설정이 이미 존재하는지 멱등성(Idempotency) 확인
+        List<Keyword> existingKeywords = keywordRepository.findAllByMemberId(member.getId());
+        for (Keyword existing : existingKeywords) {
+            boolean sameType = department != null 
+                    ? (existing.getType() == FcmMessageType.DEPARTMENT && existing.getDepartment() == department)
+                    : (existing.getType() == FcmMessageType.SCHOOL_NOTICE && java.util.Objects.equals(existing.getCategory(), category));
+            boolean sameKeyword = java.util.Objects.equals(existing.getKeyword(), trimmedKeyword);
+            boolean sameExcluded = existing.isExcluded() == excluded;
+
+            if (sameType && sameKeyword && sameExcluded) {
+                log.info("[키워드 등록 스킵] 이미 동일한 키워드가 등록되어 있습니다. memberId={}, keyword={}", member.getId(), trimmedKeyword);
+                return KeywordResponse.from(existing);
+            }
+        }
+
         Keyword keyword;
 
         if (department != null) {
             // 학과 공지 키워드 생성 (기존 설정을 삭제하지 않음)
-            keyword = createDepartmentKeyword(member.getId(), keywordString, department, isExcluded);
+            keyword = createDepartmentKeyword(member.getId(), trimmedKeyword, department, excluded);
         } else {
             if (category != null) {
                 validateNoticeCategory(category);
             }
             // 학교 공지 키워드 생성 (기존 설정을 삭제하지 않음)
-            keyword = createSchoolNoticeKeyword(member.getId(), keywordString, category, isExcluded);
+            keyword = createSchoolNoticeKeyword(member.getId(), trimmedKeyword, category, excluded);
         }
 
         keywordRepository.save(keyword);
