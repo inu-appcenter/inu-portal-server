@@ -12,6 +12,7 @@ import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
@@ -33,6 +34,7 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -75,6 +77,7 @@ public class FcmService {
     private final JdbcTemplate jdbcTemplate;
     private final FcmTransactionService fcmTransactionService;
     private final FcmMetrics fcmMetrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void saveToken(TokenRequestDto tokenRequestDto, Long memberId) {
@@ -460,16 +463,29 @@ public class FcmService {
                         LinkedHashMap::new
                 ));
 
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId, path);
         batchInsertMemberFcmMessages(fcmMessage.getId(), memberIds, type);
 
-        return new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId, path);
+        TrackedNotificationDispatch dispatch =
+                new TrackedNotificationDispatch(fcmMessage.getId(), tokenAndMemberId, title, body, type, targetId, path);
+
+        // 저장 트랜잭션이 커밋된 뒤에 FcmEventListener가 발송한다.
+        // 호출한 도메인 트랜잭션이 롤백되면 알림함 행과 함께 발송도 취소된다.
+        // 호출부(ReplyService, FcmAsyncService)는 더 이상 dispatchTrackedNotification을
+        // 직접 호출하면 안 된다 — 이 이벤트가 대신 트리거한다.
+        eventPublisher.publishEvent(new TrackedNotificationDispatchEvent(dispatch));
+
+        return dispatch;
     }
 
     public void dispatchTrackedNotification(TrackedNotificationDispatch dispatch) {
         if (dispatch == null) {
             return;
         }
+        // 발송 시작 시 PENDING → PROCESSING으로 전이한다. 이 전이가 없으면 대량 배치가
+        // 나가는 동안에도 행이 계속 PENDING으로 보여, 유실 보정 스케줄러의 원자적 lease가
+        // 정상적으로 발송 중인 행을 가로채 중복 발송시킬 수 있다 (#431).
+        fcmTransactionService.updateStatusToProcessing(dispatch.fcmMessageId());
         if (!dispatch.tokenAndMemberId().isEmpty()) {
             DeliveryResult deliveryResult = dispatchToMembersInternal(dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(), dispatch.type(), dispatch.targetId(), dispatch.path());
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
@@ -651,11 +667,16 @@ public class FcmService {
 
 
     private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount, Long targetId) {
+        return saveTrackedMessage(title, body, adminMessage, targetCount, targetId, null);
+    }
+
+    private FcmMessage saveTrackedMessage(String title, String body, boolean adminMessage, int targetCount, Long targetId, String path) {
         FcmMessage fcmMessage = FcmMessage.builder()
                 .title(title)
                 .body(body)
                 .isAdminMessage(adminMessage)
                 .targetId(targetId)
+                .path(path)
                 .build();
         fcmMessage.markPending(targetCount);
         return fcmMessageRepository.saveAndFlush(fcmMessage);
