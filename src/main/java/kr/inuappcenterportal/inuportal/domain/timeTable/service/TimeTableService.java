@@ -11,6 +11,12 @@ import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomSc
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.member.service.FriendService;
+import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoom;
+import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatRoomMember;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatMemberStatus;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
+import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
+import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -22,6 +28,7 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableIt
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableDetailItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.ChatRoomTimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
@@ -53,6 +60,8 @@ public class TimeTableService {
     private final FriendService friendService;
     private final CourseMeetingService courseMeetingService;
     private final TimeTableEvaluationRepository timeTableEvaluationRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomMemberRepository chatRoomMemberRepository;
 
 
     /**
@@ -378,6 +387,44 @@ public class TimeTableService {
                         .toList();
 
         return TimeTableDetailResponseDto.from(timeTable, items);
+    }
+
+    /** 일반 단체톡의 현재 참여자 대표 시간표를 한 번에 조회한다. */
+    public List<ChatRoomTimeTableResponseDto> getChatRoomPrimaryTimeTables(
+            Long viewerId, Long roomId, Integer year, SemesterTerm term
+    ) {
+        if (year == null || term == null) throw new MyException(MyErrorCode.INPUT_YEAR_AND_TERM);
+
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        // 익명방에서는 별칭과 실회원 정보를 연결하지 않기 위해 시간표 비교도 제공하지 않는다.
+        if (room.getType() == ChatRoomType.OPEN || room.isAnonymous() ||
+                !chatRoomMemberRepository.existsByChatRoomIdAndMemberIdAndStatus(roomId, viewerId, ChatMemberStatus.JOINED)) {
+            throw new MyException(MyErrorCode.NOT_READABLE_TIMETABLE);
+        }
+
+        Long semesterId = semesterRepository.findByYearAndTerm(year, term)
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND)).getId();
+
+        return chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED).stream()
+                .map(member -> toChatRoomTimeTable(member, semesterId))
+                .toList();
+    }
+
+    private ChatRoomTimeTableResponseDto toChatRoomTimeTable(ChatRoomMember roomMember, Long semesterId) {
+        Member member = roomMember.getMember();
+        TimeTable timeTable = timeTableRepository
+                .findByMemberIdAndSemesterIdAndIsPrimaryTrue(member.getId(), semesterId).orElse(null);
+        if (timeTable == null) return new ChatRoomTimeTableResponseDto(member.getId(), member.getNickname(), null, null);
+
+        Visibility visibility = timeTable.getVisibility();
+        if (visibility == Visibility.PRIVATE) {
+            return new ChatRoomTimeTableResponseDto(member.getId(), member.getNickname(), visibility, null);
+        }
+        List<TimeTableDetailItemResponseDto> items = timeTableItemRepository.findAllByTimeTableId(timeTable.getId()).stream()
+                .map(item -> toDetailItemResponse(item, visibility)).toList();
+        return new ChatRoomTimeTableResponseDto(member.getId(), member.getNickname(), visibility,
+                TimeTableDetailResponseDto.from(timeTable, items));
     }
 
     // 친구용

@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.keyword.repository;
 
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.keyword.domain.Keyword;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,9 +14,19 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
 
     @Query("SELECT k FROM Keyword k " +
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
-            "AND k.department = :department")
+            "AND k.department = :department " +
+            "AND (k.isExcluded = false OR k.isExcluded IS NULL) " +
+            "AND k.keyword IS NOT NULL")
     List<Keyword> findKeywordsByKeywordAndDepartmentMatches(@Param("title") String title,
-                                                          @Param("department")Department department);
+                                                          @Param("department") Department department);
+
+    @Query("SELECT k FROM Keyword k " +
+            "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
+            "AND k.department = :department " +
+            "AND k.isExcluded = true " +
+            "AND k.keyword IS NOT NULL")
+    List<Keyword> findExcludeKeywordsByDepartmentMatches(@Param("title") String title,
+                                                         @Param("department") Department department);
 
     List<Keyword> findAllByMemberId(Long memberId);
 
@@ -24,17 +34,28 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
 
     List<Keyword> findAllByMemberIdAndKeywordIsNull(Long memberId);
 
-    @Query("SELECT k FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL")
+    @Query("SELECT k FROM Keyword k WHERE k.department = :department AND k.keyword IS NULL AND (k.isExcluded = false OR k.isExcluded IS NULL)")
     List<Keyword> findKeywordsByDepartmentAndKeywordIsNull(Department department);
 
     @Query("SELECT k FROM Keyword k " +
             "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
             "AND (k.category IS NULL OR k.category = :category) " +
-            "AND k.type = 'SCHOOL_NOTICE'")
+            "AND k.type = 'SCHOOL_NOTICE' " +
+            "AND (k.isExcluded = false OR k.isExcluded IS NULL) " +
+            "AND k.keyword IS NOT NULL")
     List<Keyword> findKeywordsByKeywordAndCategoryMatches(@Param("title") String title,
                                                         @Param("category") String category);
 
-    @Query("SELECT k FROM Keyword k WHERE k.category = :category AND k.keyword IS NULL AND k.type = 'SCHOOL_NOTICE'")
+    @Query("SELECT k FROM Keyword k " +
+            "WHERE :title LIKE CONCAT('%', k.keyword, '%') " +
+            "AND (k.category IS NULL OR k.category = :category) " +
+            "AND k.type = 'SCHOOL_NOTICE' " +
+            "AND k.isExcluded = true " +
+            "AND k.keyword IS NOT NULL")
+    List<Keyword> findExcludeKeywordsByCategoryMatches(@Param("title") String title,
+                                                       @Param("category") String category);
+
+    @Query("SELECT k FROM Keyword k WHERE k.category = :category AND k.keyword IS NULL AND k.type = 'SCHOOL_NOTICE' AND (k.isExcluded = false OR k.isExcluded IS NULL)")
     List<Keyword> findKeywordsByCategoryAndKeywordIsNull(@Param("category") String category);
 
     List<Keyword> findAllByMemberIdAndKeywordIsNullAndType(Long memberId, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type);

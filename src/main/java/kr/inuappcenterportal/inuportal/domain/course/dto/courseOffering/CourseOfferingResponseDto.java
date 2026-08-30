@@ -2,11 +2,11 @@ package kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_NAME;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 
 import java.util.List;
+import java.util.Set;
 
 public record CourseOfferingResponseDto(
         Long id,
@@ -74,6 +74,8 @@ public record CourseOfferingResponseDto(
         List<CourseMeetingResponseDto> meetings
 ) {
 
+    private static final Set<String> LIBERAL_ARTS_ISU_CODES = Set.of("11", "21", "23");
+
     // 교수명 노출 제한을 신경 쓰지 않는 내부 코드나 테스트, 혹은 기존 호출부 호환용
     public static CourseOfferingResponseDto from(
             CourseOffering courseOffering,
@@ -102,40 +104,52 @@ public record CourseOfferingResponseDto(
                 courseOffering.getSyllabus(),
                 courseOffering.getSubjectNumber(),
                 exposeProfessor ? courseOffering.getProfessor() : null,
+
                 courseOffering.getCourse().getId(),
                 courseOffering.getCourse().getCourseCode(),
                 courseOffering.getCourse().getTitle(),
                 courseOffering.getCourse().getEnglishTitle(),
+
                 courseOffering.getSemester().getId(),
                 courseOffering.getSemester().getYear(),
                 courseOffering.getSemester().getTerm(),
                 courseOffering.getSemester().getTerm().getDisplayName(),
 
-                valueOrFallback(courseOffering.getCnctrIsuCode(), courseOffering.getCnctrIsuName().name()),
-                valueOrFallback(courseOffering.getCnctrIsuNameRaw(), courseOffering.getCnctrIsuName().getDescription()),
-                valueOrFallback(courseOffering.getDeptCode(), courseOffering.getDeptName().name()),
-                valueOrFallback(courseOffering.getDeptNameRaw(), courseOffering.getDeptName().getDescription()),
-                valueOrFallback(courseOffering.getCollegeCode(), courseOffering.getCollegeName().name()),
-                valueOrFallback(courseOffering.getCollegeNameRaw(), courseOffering.getCollegeName().getDescription()),
-                valueOrFallback(courseOffering.getIsuFldCode(), courseOffering.getIsuFldName().name()),
-                valueOrFallback(courseOffering.getIsuFldNameRaw(), courseOffering.getIsuFldName().getDescription()),
-                valueOrFallback(courseOffering.getIsuCode(), courseOffering.getIsuName().name()),
-                valueOrFallback(courseOffering.getIsuNameRaw(), courseOffering.getIsuName().getDescription()),
-                valueOrFallback(courseOffering.getSsupTypeCode(), courseOffering.getSsupTypeName().name()),
-                valueOrFallback(courseOffering.getSsupTypeNameRaw(), courseOffering.getSsupTypeName().getDescription()),
-                valueOrFallback(courseOffering.getHyCode(), courseOffering.getHyName().name()),
-                valueOrFallback(courseOffering.getHyNameRaw(), courseOffering.getHyName().getDescription()),
-                valueOrFallback(courseOffering.getEnglishCode(), courseOffering.getEnglishName().name()),
-                valueOrFallback(courseOffering.getEnglishNameRaw(), courseOffering.getEnglishName().getDescription()),
+                courseOffering.getCnctrIsuCode(),
+                courseOffering.getCnctrIsuNameRaw(),
+
+                courseOffering.getDeptCode(),
+                courseOffering.getDeptNameRaw(),
+
+                courseOffering.getCollegeCode(),
+                courseOffering.getCollegeNameRaw(),
+
+                courseOffering.getIsuFldCode(),
+                courseOffering.getIsuFldNameRaw(),
+
+                courseOffering.getIsuCode(),
+                courseOffering.getIsuNameRaw(),
+
+                courseOffering.getSsupTypeCode(),
+                courseOffering.getSsupTypeNameRaw(),
+
+                courseOffering.getHyCode(),
+                courseOffering.getHyNameRaw(),
+
+                courseOffering.getEnglishCode(),
+                courseOffering.getEnglishNameRaw(),
                 courseOffering.getEnglishYn(),
+
                 courseOffering.getGradeEvaluation() == null ? null : courseOffering.getGradeEvaluation().name(),
                 valueOrFallback(courseOffering.getGradeEvaluationRaw(), courseOffering.getGradeEvaluation() == null ? null : courseOffering.getGradeEvaluation().getDescription()),
 
                 courseOffering.getCredit(),
+
                 courseOffering.getCapacity(),
                 courseOffering.getEnrolledCount(),
                 savedCount,
                 resolveCapacityNullReason(courseOffering),
+
                 courseOffering.getHussCourseYn(),
                 meetings
         );
@@ -152,7 +166,8 @@ public record CourseOfferingResponseDto(
         }
 
         // 정원이 존재하지 않을 때 교양이면 파싱 실패
-        if (courseOffering.getIsuName().equals(ISU_NAME.ADVANCED_LIBERAL_ARTS) || courseOffering.getIsuName().equals(ISU_NAME.BASIC_LIBERAL_ARTS) || courseOffering.getIsuName().equals(ISU_NAME.CORE_LIBERAL_ARTS)) {
+        String isuCode = courseOffering.getIsuCode();
+        if (isuCode != null && LIBERAL_ARTS_ISU_CODES.contains(isuCode)) {
             return "PARSE_FAILED";
         }
 

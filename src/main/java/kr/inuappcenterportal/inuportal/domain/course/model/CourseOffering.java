@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.GradeEvaluation;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
@@ -100,38 +100,6 @@ public class CourseOffering extends BaseTimeEntity {
     @JoinColumn(name = "semester_id", nullable = false)
     private Semester semester;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "cnctr_isu_name", nullable = false)
-    private CNCTR_ISU_NAME cnctrIsuName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "dept_name", nullable = false)
-    private DEPT_NAME deptName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "college_name", nullable = false)
-    private COLLEGE_NAME collegeName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "isu_fld_name", nullable = false)
-    private ISU_FLD_NAME isuFldName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "isu_name", nullable = false)
-    private ISU_NAME isuName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "ssup_type_name", nullable = false)
-    private SSUP_TYPE_NAME ssupTypeName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "hy_name", nullable = false)
-    private HY_NAME hyName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "english_name", nullable = false)
-    private ENGLISH_NAME englishName;
-
     @Column(nullable = false)
     private Integer credit;
 
@@ -170,14 +138,6 @@ public class CourseOffering extends BaseTimeEntity {
             String professor,
             Course course,
             Semester semester,
-            CNCTR_ISU_NAME cnctrIsuName,
-            DEPT_NAME deptName,
-            COLLEGE_NAME collegeName,
-            ISU_FLD_NAME isuFldName,
-            ISU_NAME isuName,
-            SSUP_TYPE_NAME ssupTypeName,
-            HY_NAME hyName,
-            ENGLISH_NAME englishName,
             GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
@@ -207,14 +167,6 @@ public class CourseOffering extends BaseTimeEntity {
         this.professor = professor;
         this.course = course;
         this.semester = semester;
-        this.cnctrIsuName = cnctrIsuName;
-        this.deptName = deptName;
-        this.collegeName = collegeName;
-        this.isuFldName = isuFldName;
-        this.isuName = isuName;
-        this.ssupTypeName = ssupTypeName;
-        this.hyName = hyName;
-        this.englishName = englishName;
         this.gradeEvaluation = gradeEvaluation;
         this.credit = credit;
         this.capacity = capacity;
@@ -247,14 +199,6 @@ public class CourseOffering extends BaseTimeEntity {
             String professor,
             Course course,
             Semester semester,
-            CNCTR_ISU_NAME cnctrIsuName,
-            DEPT_NAME deptName,
-            COLLEGE_NAME collegeName,
-            ISU_FLD_NAME isuFldName,
-            ISU_NAME isuName,
-            SSUP_TYPE_NAME ssupTypeName,
-            HY_NAME hyName,
-            ENGLISH_NAME englishName,
             GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
@@ -285,14 +229,6 @@ public class CourseOffering extends BaseTimeEntity {
                 professor,
                 course,
                 semester,
-                cnctrIsuName,
-                deptName,
-                collegeName,
-                isuFldName,
-                isuName,
-                ssupTypeName,
-                hyName,
-                englishName,
                 gradeEvaluation,
                 credit,
                 capacity,
@@ -324,14 +260,6 @@ public class CourseOffering extends BaseTimeEntity {
             String englishCode,
             String englishNameRaw,
             String hussCourseYn,
-            CNCTR_ISU_NAME cnctrIsuName,
-            DEPT_NAME deptName,
-            COLLEGE_NAME collegeName,
-            ISU_FLD_NAME isuFldName,
-            ISU_NAME isuName,
-            SSUP_TYPE_NAME ssupTypeName,
-            HY_NAME hyName,
-            ENGLISH_NAME englishName,
             Integer credit
     ) {
         this.course = course;
@@ -353,14 +281,6 @@ public class CourseOffering extends BaseTimeEntity {
         this.englishCode = englishCode;
         this.englishNameRaw = englishNameRaw;
         this.hussCourseYn = hussCourseYn;
-        this.cnctrIsuName = cnctrIsuName;
-        this.deptName = deptName;
-        this.collegeName = collegeName;
-        this.isuFldName = isuFldName;
-        this.isuName = isuName;
-        this.ssupTypeName = ssupTypeName;
-        this.hyName = hyName;
-        this.englishName = englishName;
         this.credit = credit;
     }
 

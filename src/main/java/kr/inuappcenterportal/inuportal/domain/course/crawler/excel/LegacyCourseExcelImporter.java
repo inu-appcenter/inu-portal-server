@@ -4,7 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.LegacyCourseRow;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseMeeting.TimeMapper;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
@@ -169,7 +169,7 @@ public class LegacyCourseExcelImporter {
         }
 
         // 교과목, 학과로 찾기
-        Department department = Department.from((row.departmentRaw()));
+        Department department = Department.fromApi(null, row.departmentRaw());
         Optional<Course> courseByTitleAndDepartment =
                 courseRepository.findByTitleAndDepartment(row.title(), department);
 
@@ -229,14 +229,6 @@ public class LegacyCourseExcelImporter {
                     null,
                     null,
                     null,
-                    CNCTR_ISU_NAME.from(row.cnctrIsuRaw()),
-                    DEPT_NAME.from(row.departmentRaw()),
-                    COLLEGE_NAME.from(row.collegeRaw()),
-                    ISU_FLD_NAME.from(row.isuFldRaw()),
-                    ISU_NAME.from(row.completionDivisionRaw()),
-                    SSUP_TYPE_NAME.from(row.ssupTypeRaw()),
-                    HY_NAME.from(row.gradeRaw()),
-                    ENGLISH_NAME.UNKNOWN,
                     safeCredit(row.credit())
             );
 
@@ -275,14 +267,6 @@ public class LegacyCourseExcelImporter {
                         row.professor(),
                         course,
                         semester,
-                        CNCTR_ISU_NAME.from(row.cnctrIsuRaw()),
-                        DEPT_NAME.from(row.departmentRaw()),
-                        COLLEGE_NAME.from(row.collegeRaw()),
-                        ISU_FLD_NAME.from(row.isuFldRaw()),
-                        ISU_NAME.from(row.completionDivisionRaw()),
-                        SSUP_TYPE_NAME.from(row.ssupTypeRaw()),
-                        HY_NAME.from(row.gradeRaw()),
-                        ENGLISH_NAME.UNKNOWN,
                         null,
                         safeCredit(row.credit()),
                         null,
@@ -397,7 +381,7 @@ public class LegacyCourseExcelImporter {
             return department.getCollegeName();
         }
 
-        return College.from(row.collegeRaw());
+        return College.fromApi(null, row.collegeRaw());
     }
 
     private Integer safeCredit(Integer credit) {

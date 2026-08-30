@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.keyword.domain;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,12 +31,16 @@ public class Keyword {
 
     private String category;
 
+    @Column(name = "is_excluded", nullable = false)
+    private boolean isExcluded = false;
+
     @Builder
-    private Keyword(Long memberId, String keyword, FcmMessageType type, Department department, String category) {
+    private Keyword(Long memberId, String keyword, FcmMessageType type, Department department, String category, Boolean isExcluded) {
         this.memberId = memberId;
         this.keyword = keyword;
         this.type = type;
         this.department = department;
         this.category = category;
+        this.isExcluded = (isExcluded != null && isExcluded);
     }
 }

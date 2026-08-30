@@ -50,9 +50,16 @@ public class FcmMessage extends BaseTimeEntity {
     @Column(name = "target_id")
     private Long targetId;
 
+    /**
+     * 유실 보정 스케줄러가 재발행 시 라우팅 정보를 추정하지 않고 그대로 복원할 수 있도록
+     * 저장 시점의 path를 함께 영속화한다 (#431).
+     */
+    @Column(name = "path")
+    private String path;
+
     @Builder
     public FcmMessage(String title, String body, boolean isAdminMessage, int sendCount,
-                      int failureCount, int targetCount, FcmSendStatus sendStatus, Long targetId) {
+                      int failureCount, int targetCount, FcmSendStatus sendStatus, Long targetId, String path) {
         this.title = title;
         this.body = body;
         this.adminMessage = isAdminMessage;
@@ -61,6 +68,7 @@ public class FcmMessage extends BaseTimeEntity {
         this.targetCount = Math.max(targetCount, 0);
         this.sendStatus = sendStatus == null ? FcmSendStatus.PENDING : sendStatus;
         this.targetId = targetId;
+        this.path = path;
     }
 
     public void markPending(int targetCount) {

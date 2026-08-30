@@ -1,6 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.schedule.repository;
 
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -81,4 +81,12 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("regularKeyword") String regularKeyword,
             @Param("seasonKeyword") String seasonKeyword
     );
+
+    @Query("""
+            SELECT s
+            FROM Schedule s
+            WHERE s.startDate <= :today AND s.endDate >= :today
+            ORDER BY s.startDate ASC
+            """)
+    List<Schedule> findAllByDateIncluded(@Param("today") LocalDate today);
 }
