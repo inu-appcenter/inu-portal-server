@@ -174,9 +174,9 @@ public class ChatRoomService {
         int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
         int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
-        String formattedContent = "[챗불이 답변]\n" + (aiAnswer != null ? aiAnswer : "") + "\n[CHATBULI_ANSWER]";
-        if (formattedContent.length() > 4000) {
-            formattedContent = formattedContent.substring(0, 3990) + "...\n[CHATBULI_ANSWER]";
+        String answerContent = aiAnswer != null ? aiAnswer : "";
+        if (answerContent.length() > 4000) {
+            answerContent = answerContent.substring(0, 3995) + "...";
         }
 
         ChatMessageResponseDto botResponseDto = ChatMessageResponseDto.builder()
@@ -185,7 +185,7 @@ public class ChatRoomService {
                 .senderNickname("챗불이")
                 .senderHash("BOT_CHATBULI")
                 .senderChatRoomMemberId(null)
-                .content(formattedContent)
+                .content(answerContent)
                 .imageCount(0)
                 .messageType(MessageType.BOT_ANSWER)
                 .unreadCount(initialUnreadCount)
@@ -201,7 +201,7 @@ public class ChatRoomService {
                 .id(messageId)
                 .chatRoom(chatRoom)
                 .sender(triggerUser)
-                .content(formattedContent)
+                .content(answerContent)
                 .senderNickname("챗불이")
                 .imageCount(0)
                 .messageType(MessageType.BOT_ANSWER)
@@ -212,7 +212,7 @@ public class ChatRoomService {
         chatBatchService.addMessageToQueue(botChatMessage);
 
         String pushPreview = aiAnswer != null && aiAnswer.length() > 60 ? aiAnswer.substring(0, 60) + "..." : aiAnswer;
-        sendChatNotification(chatRoom, triggerUser, "챗불이", "[챗불이 답변] " + pushPreview);
+        sendChatNotification(chatRoom, triggerUser, "챗불이", pushPreview != null && !pushPreview.isBlank() ? pushPreview : "챗불이 답변이 도착했습니다.");
     }
 
     private String extractCleanQuestion(String rawContent) {
