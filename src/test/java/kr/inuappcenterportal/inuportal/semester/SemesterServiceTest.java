@@ -285,7 +285,7 @@ public class SemesterServiceTest {
                 LocalDate.of(2027, 6, 21)
         );
 
-        when(semesterRepository.findAll())
+        when(semesterRepository.findAllByYearGreaterThanEqual(2020))
                 .thenReturn(List.of(closedSecond, upcomingFirst, openFirst, closedWinter, openSummer));
 
         // When
@@ -312,7 +312,7 @@ public class SemesterServiceTest {
                         SemesterStatus.UPCOMING
                 );
 
-        verify(semesterRepository).findAll();
+        verify(semesterRepository).findAllByYearGreaterThanEqual(2020);
     }
 
 

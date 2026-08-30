@@ -1,9 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.department.model;
 
 import jakarta.persistence.*;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
-import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentNoticeMapper;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "school_department", uniqueConstraints =
-        @UniqueConstraint(name = "uk_school_department_code", columnNames = "department_code"))
+@UniqueConstraint(name = "uk_school_department_code", columnNames = "department_code"))
 public class SchoolDepartment extends BaseTimeEntity {
 
     @Id
@@ -43,7 +42,7 @@ public class SchoolDepartment extends BaseTimeEntity {
         this.code = code;
         this.name = name;
         this.active = true;
-        this.noticeDepartment = SchoolDepartmentNoticeMapper.find(name).orElse(null);
+        this.noticeDepartment = Department.fromApi(code, name);
         this.sourceYear = sourceYear;
         this.sourceTerm = sourceTerm;
     }
@@ -57,7 +56,7 @@ public class SchoolDepartment extends BaseTimeEntity {
         this.sourceYear = sourceYear;
         this.sourceTerm = sourceTerm;
         this.active = true;
-        this.noticeDepartment = SchoolDepartmentNoticeMapper.find(name).orElse(null);
+        this.noticeDepartment = Department.fromApi(this.code, name);
     }
 
     public void deactivate() {
@@ -67,6 +66,6 @@ public class SchoolDepartment extends BaseTimeEntity {
     public Department getResolvedNoticeDepartment() {
         return noticeDepartment != null
                 ? noticeDepartment
-                : SchoolDepartmentNoticeMapper.find(name).orElse(null);
+                : Department.fromApi(this.code, name);
     }
 }

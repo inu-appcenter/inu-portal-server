@@ -10,14 +10,19 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOf
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.CompletionDivision;
 import kr.inuappcenterportal.inuportal.domain.course.enums.course.TargetGrade;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.GradeEvaluation;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
+import kr.inuappcenterportal.inuportal.domain.department.enums.College;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -141,7 +146,7 @@ public class CourseOfferingService {
     }
 
     private Semester getOpenSemester() {
-        return semesterRepository.findFirstByStatusOrderByStartDateDesc(kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus.OPEN)
+        return semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
     }
 
@@ -241,10 +246,10 @@ public class CourseOfferingService {
                 semester.getId(),
                 toDeptName(deptName),
                 toCollegeName(collegeName),
-                toHyNames(hyName),
-                toIsuNames(isuName),
-                toIsuFldNames(isuFldName),
-                toSsupTypeNames(ssupTypeName),
+                toCleanList(hyName),
+                toCleanList(isuName),
+                toCleanList(isuFldName),
+                toCleanList(ssupTypeName),
                 toCredits(credit),
                 keyword,
                 resolveMeetingFilterMode(filterMode, meetings),
@@ -280,104 +285,46 @@ public class CourseOfferingService {
         ));
     }
 
-    // DeptName 필터
-    private DEPT_NAME toDeptName(String value) {
+    // DeptName 필터 (프론트에서 학과명/코드 문자열로 넘어옴)
+    private Department toDeptName(String value) {
         if (isBlank(value)) {
             return null;
         }
 
-        DEPT_NAME deptName = DEPT_NAME.from(value);
-        if (deptName == DEPT_NAME.UNKNOWN) {
+        Department department = Department.fromApi(null, value);
+        if (department == Department.UNKNOWN) {
             throw new MyException(MyErrorCode.INVALID_INPUT);
         }
 
-        return deptName;
+        return department;
     }
 
-    // CollegeName 필터
-    private COLLEGE_NAME toCollegeName(String value) {
+    // CollegeName 필터 (프론트에서 단과대명/코드 문자열로 넘어옴)
+    private College toCollegeName(String value) {
         if (isBlank(value)) {
             return null;
         }
 
-        COLLEGE_NAME collegeName = COLLEGE_NAME.from(value);
-        if (collegeName == COLLEGE_NAME.UNKNOWN) {
+        College college = College.fromApi(null, value);
+        if (college == College.UNKNOWN) {
             throw new MyException(MyErrorCode.INVALID_INPUT);
         }
 
-        return collegeName;
+        return college;
     }
 
-    // HyNames 필터
-    // 리스트로 들어온 값을 분해하고, 각각의 HyName을 하나하나 값 검증
-    private List<HY_NAME> toHyNames(List<String> values) {
+    // HyNames, IsuNames, IsuFldNames, SSUPTypeNames 필터
+    // 리스트로 들어온 값을 분해하고, 각각의 값을 하나하나 정제(
+    private List<String> toCleanList(List<String> values) {
         if (values == null || values.isEmpty())
             return List.of();
 
-        return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(value -> {
-                    HY_NAME hyName = HY_NAME.from(value);
-                    if (hyName == HY_NAME.UNKNOWN) {
-                        throw new MyException(MyErrorCode.INVALID_INPUT);
-                    }
-                    return hyName;
-                })
+        return values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(String::trim)
                 .toList();
     }
 
-    // IsuNames 필터
-    // 리스트로 들어온 값을 분해하고, 각각의 IsuName을 하나하나 값 검증
-    private List<ISU_NAME> toIsuNames(List<String> values) {
-        if (values == null || values.isEmpty())
-            return List.of();
-
-        return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(value -> {
-                    ISU_NAME isuName = ISU_NAME.from(value);
-                    if (isuName == ISU_NAME.UNKNOWN) {
-                        throw new MyException(MyErrorCode.INVALID_INPUT);
-                    }
-
-                    return isuName;
-                })
-                .toList();
-    }
-
-    // IsuFldNames 필터
-    // 리스트로 들어온 값을 분해하고, 각각의 IsuFldName을 하나하나 값 검증
-    private List<ISU_FLD_NAME> toIsuFldNames(List<String> values) {
-        if (values == null || values.isEmpty())
-            return List.of();
-
-        return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(value -> {
-                    ISU_FLD_NAME isuFldName = ISU_FLD_NAME.from(value);
-                    if (isuFldName == ISU_FLD_NAME.UNKNOWN) {
-                        throw new MyException(MyErrorCode.INVALID_INPUT);
-                    }
-
-                    return isuFldName;
-                })
-                .toList();
-    }
-
-    // SSUPTypeNames 필터
-    // 리스트로 들어온 값을 분해하고, 각각의 SSUPTypeName을 하나하나 검증
-    private List<SSUP_TYPE_NAME> toSsupTypeNames(List<String> values) {
-        if (values == null || values.isEmpty())
-            return List.of();
-
-        return values.stream().filter(value -> value != null && !value.isBlank())
-                .map(value -> {
-                    SSUP_TYPE_NAME ssupTypeName = SSUP_TYPE_NAME.from(value);
-                    if (ssupTypeName == SSUP_TYPE_NAME.UNKNOWN) {
-                        throw new MyException(MyErrorCode.INVALID_INPUT);
-                    }
-
-                    return ssupTypeName;
-                })
-                .toList();
-    }
 
     // 학점 필터
     private List<Integer> toCredits(List<Integer> values) {
@@ -512,14 +459,6 @@ public class CourseOfferingService {
                             request.englishCode(),
                             request.englishName(),
                             request.hussCourseYn(),
-                            CNCTR_ISU_NAME.from(request.cnctrIsuName()),
-                            DEPT_NAME.from(request.deptName()),
-                            COLLEGE_NAME.from(request.collegeName()),
-                            ISU_FLD_NAME.from(request.isuFldName()),
-                            ISU_NAME.from(request.isuName()),
-                            SSUP_TYPE_NAME.from(request.suupTypeName()),
-                            HY_NAME.from(request.hyName()),
-                            ENGLISH_NAME.from(request.englishName()),
                             request.credit()
                     );
                     return existing;
@@ -550,14 +489,6 @@ public class CourseOfferingService {
                                 null,
                                 course,
                                 semester,
-                                CNCTR_ISU_NAME.from(request.cnctrIsuName()),
-                                DEPT_NAME.from(request.deptName()),
-                                COLLEGE_NAME.from(request.collegeName()),
-                                ISU_FLD_NAME.from(request.isuFldName()),
-                                ISU_NAME.from(request.isuName()),
-                                SSUP_TYPE_NAME.from(request.suupTypeName()),
-                                HY_NAME.from(request.hyName()),
-                                ENGLISH_NAME.from(request.englishName()),
                                 null,
                                 request.credit(),
                                 null,
@@ -633,7 +564,7 @@ public class CourseOfferingService {
                 item.courseCode(),
                 item.courseNameKor(),
                 item.courseNameEng(),
-                Department.from(item.deptName()),
+                Department.fromApi(item.deptCode(), item.deptName()),
                 TargetGrade.from(item.hyName()),
                 CompletionDivision.from(item.isuName()),
                 item.credit()

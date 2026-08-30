@@ -8,7 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.keyword.domain.Keyword;
 import kr.inuappcenterportal.inuportal.domain.keyword.dto.res.KeywordResponse;
 import kr.inuappcenterportal.inuportal.domain.keyword.repository.KeywordRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.model.Notice;

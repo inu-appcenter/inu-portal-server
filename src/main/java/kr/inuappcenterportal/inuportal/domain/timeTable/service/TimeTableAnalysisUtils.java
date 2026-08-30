@@ -16,43 +16,6 @@ import java.util.stream.Collectors;
 
 public class TimeTableAnalysisUtils {
 
-    public record ScheduleSlot(
-            String title,
-            DayOfWeek day,
-            LocalTime startTime,
-            LocalTime endTime,
-            Integer credit
-    ) {}
-
-    public record DayScheduleSummary(
-            DayOfWeek day,
-            List<ScheduleSlot> slots,
-            boolean isFreeDay,
-            boolean has9AmClass,
-            boolean hasLunchBreak,
-            List<String> longGaps, // 2시간 이상 공강 설명
-            int maxConsecutiveHours // 최대 연속 수업 시간(대략적)
-    ) {}
-
-    public record TimetableSummary(
-            int totalCredits,
-            int totalClasses,
-            int majorCourseCount,
-            int majorCredits,
-            int generalCourseCount,
-            int generalCredits,
-            int onlineCourseCount,
-            int onlineCredits,
-            int otherCourseCount,
-            List<String> freeDays,
-            List<DayScheduleSummary> daySummaries,
-            int countOf9AmClasses,
-            int totalLongGapsCount,
-            boolean hasFridayFree,
-            boolean hasMondayFree,
-            String rawScheduleText
-    ) {}
-
     /**
      * 시간표 아이템 목록을 바탕으로 고유 해시(SHA-256) 생성
      */
@@ -133,18 +96,12 @@ public class TimeTableAnalysisUtils {
                 if (offering != null) {
                     // 이러닝/온라인 여부 체크
                     boolean isOnline = false;
-                    if (offering.getSsupTypeName() != null) {
-                        switch (offering.getSsupTypeName()) {
-                            case E_LEARNING, E_LEARNING_HUSS, K_MOOC, OCU, BLENDED_ONLINE_COURSE, BLENDED_ONLINE_COURSE_HUSS -> isOnline = true;
-                            default -> {}
-                        }
-                    }
-                    if (!isOnline && offering.getSsupTypeNameRaw() != null) {
+                    if (offering.getSsupTypeNameRaw() != null) {
                         String raw = offering.getSsupTypeNameRaw().toLowerCase();
-                        if (raw.contains("e-learning") || raw.contains("온라인") || raw.contains("사이버") || raw.contains("k-mooc") || raw.contains("ocu")) {
-                            isOnline = true;
-                        }
+                        isOnline = raw.contains("e-learning") || raw.contains("온라인")
+                                || raw.contains("사이버") || raw.contains("k-mooc") || raw.contains("ocu");
                     }
+                    
                     if (isOnline) {
                         onlineCourseCount++;
                         onlineCredits += credit;
@@ -154,14 +111,7 @@ public class TimeTableAnalysisUtils {
                     boolean isMajor = false;
                     boolean isGeneral = false;
 
-                    if (offering.getIsuName() != null) {
-                        switch (offering.getIsuName()) {
-                            case MAJOR_FOUNDATION, MAJOR_CORE, MAJOR_ADVANCED -> isMajor = true;
-                            case BASIC_LIBERAL_ARTS, CORE_LIBERAL_ARTS, ADVANCED_LIBERAL_ARTS, GENERAL_ELECTIVE -> isGeneral = true;
-                            default -> {}
-                        }
-                    }
-                    if (!isMajor && !isGeneral && offering.getIsuNameRaw() != null) {
+                    if (offering.getIsuNameRaw() != null) {
                         if (offering.getIsuNameRaw().contains("전공")) isMajor = true;
                         else if (offering.getIsuNameRaw().contains("교양")) isGeneral = true;
                     }
@@ -288,5 +238,45 @@ public class TimeTableAnalysisUtils {
             case SATURDAY -> "토요일";
             case SUNDAY -> "일요일";
         };
+    }
+
+    public record ScheduleSlot(
+            String title,
+            DayOfWeek day,
+            LocalTime startTime,
+            LocalTime endTime,
+            Integer credit
+    ) {
+    }
+
+    public record DayScheduleSummary(
+            DayOfWeek day,
+            List<ScheduleSlot> slots,
+            boolean isFreeDay,
+            boolean has9AmClass,
+            boolean hasLunchBreak,
+            List<String> longGaps, // 2시간 이상 공강 설명
+            int maxConsecutiveHours // 최대 연속 수업 시간(대략적)
+    ) {
+    }
+
+    public record TimetableSummary(
+            int totalCredits,
+            int totalClasses,
+            int majorCourseCount,
+            int majorCredits,
+            int generalCourseCount,
+            int generalCredits,
+            int onlineCourseCount,
+            int onlineCredits,
+            int otherCourseCount,
+            List<String> freeDays,
+            List<DayScheduleSummary> daySummaries,
+            int countOf9AmClasses,
+            int totalLongGapsCount,
+            boolean hasFridayFree,
+            boolean hasMondayFree,
+            String rawScheduleText
+    ) {
     }
 }

@@ -15,7 +15,7 @@ import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageRes
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
 import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentService;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleListResponseDoc;

@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.notice.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeScheduleExtractStatus;
 import lombok.AccessLevel;

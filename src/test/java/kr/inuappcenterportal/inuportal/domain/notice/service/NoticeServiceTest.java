@@ -214,7 +214,7 @@ class NoticeServiceTest {
         Long noticeId = 100L;
         kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice departmentNotice =
                 kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice.create(
-                        kr.inuappcenterportal.inuportal.domain.notice.enums.Department.COMPUTER_ENGINEERING,
+                        kr.inuappcenterportal.inuportal.domain.department.enums.Department.COMPUTER_ENGINEERING,
                         "컴퓨터공학부 공지사항",
                         java.time.LocalDate.of(2026, 8, 6),
                         150L,
@@ -239,7 +239,7 @@ class NoticeServiceTest {
         // Then
         assertNotNull(response);
         assertEquals(departmentNotice.getTitle(), response.getTitle());
-        assertEquals(kr.inuappcenterportal.inuportal.domain.notice.enums.Department.COMPUTER_ENGINEERING, response.getDepartment());
+        assertEquals(kr.inuappcenterportal.inuportal.domain.department.enums.Department.COMPUTER_ENGINEERING, response.getDepartment());
         assertEquals("2026.08.06", response.getCreateDate());
         assertEquals(150L, response.getView());
         assertEquals("<p>컴퓨터공학부 상세 본문입니다.</p>", response.getContentHtml());

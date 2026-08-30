@@ -17,4 +17,7 @@ public interface SemesterRepository extends JpaRepository<Semester, Long> {
 
     List<Semester> findAllByOrderByStartDateDesc();
     List<Semester> findAllByStatus(SemesterStatus status);
+
+    // 특정 연도 이후 학기만 조회 (오래된 과거 학기는 목록에서 제외)
+    List<Semester> findAllByYearGreaterThanEqual(Integer year);
 }
