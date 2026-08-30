@@ -848,6 +848,41 @@ public class FcmService {
                 .toList();
     }
 
+    @Transactional
+    public void sendDailyBriefNotification(Long memberId, String title, String body, FcmMessageType type, String path) {
+        if (memberId == null) {
+            return;
+        }
+
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(List.of(memberId));
+        List<String> tokens = fcmTokens.stream().map(FcmToken::getToken).distinct().toList();
+
+        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
+                .title(title)
+                .body(body)
+                .targetId(null)
+                .isAdminMessage(false)
+                .build());
+
+        batchInsertMemberFcmMessages(fcmMessage.getId(), List.of(memberId), type);
+
+        if (tokens.isEmpty()) {
+            fcmMessage.updateDeliveryResult(0, 0);
+            return;
+        }
+
+        MulticastMessage message = createMulticastMessage(tokens, title, body, type, null, path);
+        try {
+            BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
+            fcmMessage.updateDeliveryResult(response.getSuccessCount(), response.getFailureCount());
+            log.info("Daily Brief push sent: memberId={}, success={}, failure={}",
+                    memberId, response.getSuccessCount(), response.getFailureCount());
+        } catch (Exception e) {
+            fcmMessage.markFailed(tokens.size());
+            log.error("Daily Brief push failed: memberId={}, error={}", memberId, e.getMessage(), e);
+        }
+    }
+
     private record DeliveryResult(
             int successCount,
             int failureCount

@@ -31,12 +31,16 @@ public class Keyword {
 
     private String category;
 
+    @Column(name = "is_excluded", nullable = false)
+    private boolean isExcluded = false;
+
     @Builder
-    private Keyword(Long memberId, String keyword, FcmMessageType type, Department department, String category) {
+    private Keyword(Long memberId, String keyword, FcmMessageType type, Department department, String category, Boolean isExcluded) {
         this.memberId = memberId;
         this.keyword = keyword;
         this.type = type;
         this.department = department;
         this.category = category;
+        this.isExcluded = (isExcluded != null && isExcluded);
     }
 }
