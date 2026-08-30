@@ -58,6 +58,7 @@ public class ChatRoomService {
     private final FcmAsyncService fcmAsyncService;
     private final SimpMessageSendingOperations messagingTemplate;
     private final ObjectMapper objectMapper;
+    private final InuChatAiService inuChatAiService;
 
     @Value("${jwtSecret}")
     private String salt;
@@ -101,6 +102,11 @@ public class ChatRoomService {
         int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
         MessageType messageType = messageDto.getMessageType() != null ? messageDto.getMessageType() : MessageType.TEXT;
+        boolean isBotQuestion = messageType == MessageType.BOT_QUESTION
+                || (messageDto.getContent() != null && messageDto.getContent().contains("[CHATBULI_QUESTION]"));
+        if (isBotQuestion) {
+            messageType = MessageType.BOT_QUESTION;
+        }
 
         ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
                 .messageId(messageId)
@@ -138,6 +144,87 @@ public class ChatRoomService {
         chatBatchService.addMessageToQueue(chatMessage);
 
         sendChatNotification(chatRoom, sender, nickname, messageDto.getContent());
+
+        if (isBotQuestion) {
+            processBotQuestionAsync(chatRoom, sender, memberId, messageDto.getContent());
+        }
+    }
+
+    private void processBotQuestionAsync(ChatRoom chatRoom, Member sender, Long memberId, String rawContent) {
+        String cleanQuestion = extractCleanQuestion(rawContent);
+        inuChatAiService.requestChat(memberId, cleanQuestion, List.of())
+                .subscribe(aiAnswer -> {
+                    try {
+                        sendBotAnswer(chatRoom.getId(), sender, aiAnswer);
+                    } catch (Exception e) {
+                        log.error("챗불이 답변 브로드캐스트 실패: roomId={}, error={}", chatRoom.getId(), e.getMessage(), e);
+                    }
+                });
+    }
+
+    @Transactional
+    public void sendBotAnswer(Long roomId, Member triggerUser, String aiAnswer) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId).orElse(null);
+        if (chatRoom == null) return;
+
+        LocalDateTime now = LocalDateTime.now();
+        Long messageId = TSID.fast().toLong();
+
+        Set<String> activeUserIds = chatRedisService.getRoomUserIds(roomId);
+        int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
+
+        String formattedContent = "[챗불이 답변]\n" + (aiAnswer != null ? aiAnswer : "") + "\n[CHATBULI_ANSWER]";
+        if (formattedContent.length() > 4000) {
+            formattedContent = formattedContent.substring(0, 3990) + "...\n[CHATBULI_ANSWER]";
+        }
+
+        ChatMessageResponseDto botResponseDto = ChatMessageResponseDto.builder()
+                .messageId(messageId)
+                .roomId(roomId)
+                .senderNickname("챗불이")
+                .senderHash("BOT_CHATBULI")
+                .senderChatRoomMemberId(null)
+                .content(formattedContent)
+                .imageCount(0)
+                .messageType(MessageType.BOT_ANSWER)
+                .unreadCount(initialUnreadCount)
+                .createDate(now)
+                .build();
+
+        broadcastAndCache(roomId, botResponseDto);
+
+        List<Long> activeMemberIds = activeUserIds.stream().map(Long::parseLong).toList();
+        chatRoomMemberRepository.updateLastReadMessageIdByRoomAndMemberIds(chatRoom, activeMemberIds, messageId);
+
+        ChatMessage botChatMessage = ChatMessage.builder()
+                .id(messageId)
+                .chatRoom(chatRoom)
+                .sender(triggerUser)
+                .content(formattedContent)
+                .senderNickname("챗불이")
+                .imageCount(0)
+                .messageType(MessageType.BOT_ANSWER)
+                .createDate(now)
+                .modifiedDate(now)
+                .build();
+
+        chatBatchService.addMessageToQueue(botChatMessage);
+
+        String pushPreview = aiAnswer != null && aiAnswer.length() > 60 ? aiAnswer.substring(0, 60) + "..." : aiAnswer;
+        sendChatNotification(chatRoom, triggerUser, "챗불이", "[챗불이 답변] " + pushPreview);
+    }
+
+    private String extractCleanQuestion(String rawContent) {
+        if (rawContent == null) return "";
+        String clean = rawContent.trim();
+        if (clean.startsWith("[챗불이에게 질문]")) {
+            clean = clean.substring("[챗불이에게 질문]".length()).trim();
+        }
+        if (clean.endsWith("[CHATBULI_QUESTION]")) {
+            clean = clean.substring(0, clean.length() - "[CHATBULI_QUESTION]".length()).trim();
+        }
+        return clean;
     }
 
     @Transactional

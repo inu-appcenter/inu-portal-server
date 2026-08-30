@@ -28,7 +28,7 @@ public class ChatMessage extends BaseTimeEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private Member sender;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, length = 4000)
     private String content;
 
     @Column(name = "senderNickname", nullable = false)
