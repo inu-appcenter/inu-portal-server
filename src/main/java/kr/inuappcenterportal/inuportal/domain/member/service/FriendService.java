@@ -74,7 +74,7 @@ public class FriendService {
                 .nickname(f.getRequester().getNickname())
                 .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
-                .department(f.getRequester().getDepartment())
+                .department(f.getRequester().getDepartment() == null ? null : f.getRequester().getDepartment().getDepartmentName())
                 .build()
         ).collect(Collectors.toList());
     }
@@ -91,7 +91,7 @@ public class FriendService {
                 .nickname(f.getReceiver().getNickname())
                 .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
-                .department(f.getReceiver().getDepartment())
+                .department(f.getReceiver().getDepartment() == null ? null : f.getReceiver().getDepartment().getDepartmentName())
                 .build()
         ).collect(Collectors.toList());
     }
@@ -112,7 +112,7 @@ public class FriendService {
                 .nickname(target.getNickname())
                 .studentId(target.getMaskedStudentId())
                 .fireId(target.getFireId())
-                .department(target.getDepartment())
+                .department(target.getDepartment() == null ? null : target.getDepartment().getDepartmentName())
                 .build();
     }
 
@@ -161,7 +161,7 @@ public class FriendService {
                 .studentId(f.getReceiver().getMaskedStudentId())
                 .fireId(f.getReceiver().getFireId())
                 .friendAlias(f.getRequesterAlias())
-                .department(f.getReceiver().getDepartment())
+                .department(f.getReceiver().getDepartment() == null ? null : f.getReceiver().getDepartment().getDepartmentName())
                 .build()
         ).collect(Collectors.toList());
 
@@ -172,7 +172,7 @@ public class FriendService {
                 .studentId(f.getRequester().getMaskedStudentId())
                 .fireId(f.getRequester().getFireId())
                 .friendAlias(f.getReceiverAlias())
-                .department(f.getRequester().getDepartment())
+                .department(f.getRequester().getDepartment() == null ? null : f.getRequester().getDepartment().getDepartmentName())
                 .build()
         ).collect(Collectors.toList()));
 
