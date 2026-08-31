@@ -261,6 +261,7 @@ SET dept_code = CASE dept_name_raw
     WHEN '경제학과'                  THEN '0000700'
     WHEN '경제학과(야)'              THEN '0000701'
     WHEN '무역학부'                  THEN '0000913'
+    WHEN 'Global Trade & Service학부' THEN '0000913'
     WHEN '무역학부(야)'              THEN '0000703'
     WHEN '소비자학과'                THEN '0000704'
     WHEN '소비자ㆍ아동학과'          THEN '0000704'

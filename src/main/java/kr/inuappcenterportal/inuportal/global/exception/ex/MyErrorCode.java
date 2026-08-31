@@ -111,6 +111,7 @@ public enum MyErrorCode {
     INVALID_GRADE(HttpStatus.BAD_REQUEST, "유효하지 않은 성적입니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 유저입니다."),
     GRADE_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 성적입니다."),
+    DUPLICATE_GRADE_RECORD(HttpStatus.BAD_REQUEST, "동일한 과목(과목코드+과목명)의 성적이 중복 입력되었습니다."),
     HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
     INVALID_EXCEL_EXTENDER(HttpStatus.BAD_REQUEST, "잘못된 확장자입니다."),
 

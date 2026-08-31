@@ -68,6 +68,15 @@ public class GradeRecordService {
         Semester semester = semesterRepository.findByYearAndTerm(request.year(), request.term())
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
 
+        // 요청으로 들어온 records 안에 같은 과목이 두 번 이상 들어있는지 검사
+        long distinctCount = request.records().stream()
+                .map(record -> record.courseCode() + "\u0000" + record.title())
+                .distinct()
+                .count();
+        if (distinctCount != request.records().size()) {
+            throw new MyException(MyErrorCode.DUPLICATE_GRADE_RECORD);
+        }
+
         gradeRecordRepository.deleteAllByMemberIdAndSemesterId(memberId, semester.getId());
 
         List<GradeRecord> records = request.records().
