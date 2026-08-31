@@ -25,7 +25,6 @@ public class CustomScheduleMeeting {
     @JoinColumn(name = "custom_schedule_id", nullable = false)
     CustomSchedule customSchedule;
 
-    @Column(nullable = false)
     String location;
 
     @Enumerated(EnumType.STRING)
