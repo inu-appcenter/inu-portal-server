@@ -223,4 +223,23 @@ public class MemberService {
         member.toggleChatPush();
         return member.getChatPushEnabled();
     }
+
+    @Transactional
+    public void updateNearbyVisibility(Long memberId, Boolean enabled) {
+        Member member = findMemberById(memberId);
+        member.updateNearbyVisibility(enabled);
+    }
+
+    @Transactional
+    public void updateLocation(Long memberId, LocationUpdateRequestDto requestDto) {
+        if (requestDto == null || requestDto.getLatitude() == null || requestDto.getLongitude() == null) {
+            throw new MyException(MyErrorCode.REQUIRED_LOCATION_PARAMETER);
+        }
+        if (requestDto.getLatitude() < -90.0 || requestDto.getLatitude() > 90.0 ||
+                requestDto.getLongitude() < -180.0 || requestDto.getLongitude() > 180.0) {
+            throw new MyException(MyErrorCode.INVALID_LOCATION_VALUE);
+        }
+        Member member = findMemberById(memberId);
+        member.updateLocation(requestDto.getLatitude(), requestDto.getLongitude());
+    }
 }

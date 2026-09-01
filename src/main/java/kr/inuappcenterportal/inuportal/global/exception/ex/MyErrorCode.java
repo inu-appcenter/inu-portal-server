@@ -115,6 +115,11 @@ public enum MyErrorCode {
     HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
     INVALID_EXCEL_EXTENDER(HttpStatus.BAD_REQUEST, "잘못된 확장자입니다."),
 
+    SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 건의사항입니다."),
+    HAS_NOT_SUGGESTION_AUTHORIZATION(HttpStatus.FORBIDDEN, "이 건의사항에 대한 권한이 없습니다."),
+    WRONG_SUGGESTION_STATUS(HttpStatus.BAD_REQUEST, "잘못된 형식의 건의사항 상태를 요청했습니다."),
+    WRONG_SUGGESTION_CATEGORY(HttpStatus.BAD_REQUEST, "잘못된 형식의 문의 유형을 요청했습니다."),
+
 
     // Chat 관련 에러 코드 추가
     NOT_FOUND_CHATROOM(HttpStatus.NOT_FOUND, "존재하지 않는 채팅방입니다."),
@@ -146,6 +151,9 @@ public enum MyErrorCode {
     MOCK_ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모의 수강신청 내역이 존재하지 않습니다."),
     MOCK_SCHEDULE_CONFLICT(HttpStatus.CONFLICT, "시간이 겹치는 강의가 있습니다."),
     SCHOOL_DEPARTMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "선택할 수 있는 학교 학과가 아닙니다."),
+    INVALID_LOCATION_VALUE(HttpStatus.BAD_REQUEST, "위치 값이 올바르지 않습니다."),
+    REQUIRED_LOCATION_PARAMETER(HttpStatus.BAD_REQUEST, "위치 파라미터가 필요합니다."),
+    NEARBY_VISIBILITY_NOT_AGREED(HttpStatus.BAD_REQUEST, "주변 친구 찾기 위치 노출 동의가 필요합니다."),
     ;
 
 
