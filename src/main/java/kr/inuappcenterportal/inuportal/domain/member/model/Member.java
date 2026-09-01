@@ -77,6 +77,18 @@ public class Member implements UserDetails {
     @Column(name = "chat_push_enabled")
     private Boolean chatPushEnabled = true;
 
+    @Column(name = "nearby_visibility")
+    private Boolean nearbyVisibility = false;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Column(name = "location_updated_at")
+    private LocalDateTime locationUpdatedAt;
+
     @OneToMany(mappedBy = "member", fetch = FetchType.LAZY, cascade = jakarta.persistence.CascadeType.ALL)
     private List<Scrap> scraps;
 
@@ -99,6 +111,7 @@ public class Member implements UserDetails {
         this.roles = roles;
         this.fireId = 1L;
         this.termsAgreed = false;
+        this.nearbyVisibility = false;
     }
 
     public void updateNicknameAndFire(String nickname, Long fireId) {
@@ -155,6 +168,17 @@ public class Member implements UserDetails {
             this.chatPushEnabled = !this.chatPushEnabled;
         }
         touchProfileModifiedAt();
+    }
+
+    public void updateNearbyVisibility(Boolean nearbyVisibility) {
+        this.nearbyVisibility = Boolean.TRUE.equals(nearbyVisibility);
+        touchProfileModifiedAt();
+    }
+
+    public void updateLocation(Double latitude, Double longitude) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.locationUpdatedAt = LocalDateTime.now();
     }
 
     public String getMaskedStudentId() {

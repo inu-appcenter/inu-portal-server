@@ -47,6 +47,9 @@ public class MemberResponseDto {
     @Schema(description = "전체 채팅 알림 수신 여부")
     private Boolean chatPushEnabled;
 
+    @Schema(description = "주변 친구 찾기 위치 노출 여부")
+    private Boolean nearbyVisibility;
+
     @Builder
     private MemberResponseDto(Member member, String role, Department department) {
         this.id = member.getId();
@@ -64,6 +67,7 @@ public class MemberResponseDto {
         this.profileModifiedAt = member.getProfileModifiedAt();
         this.lastSeenAt = member.getLastSeenAt();
         this.chatPushEnabled = member.getChatPushEnabled();
+        this.nearbyVisibility = Boolean.TRUE.equals(member.getNearbyVisibility());
     }
 
     public static MemberResponseDto userMember(Member member){

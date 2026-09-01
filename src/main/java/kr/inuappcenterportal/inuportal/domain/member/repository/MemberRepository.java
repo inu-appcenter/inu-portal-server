@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,17 @@ public interface MemberRepository extends JpaRepository<Member,Long> {
     Optional<Member> findByNickname(String nickname);
     Optional<Member> findByStudentId(String studentId);
     boolean existsByStudentId(String studentId);
+
+    @Query("""
+            SELECT m
+            FROM Member m
+            WHERE m.nearbyVisibility = true
+              AND m.locationUpdatedAt >= :cutoffTime
+              AND m.id != :requesterId
+              AND m.latitude IS NOT NULL
+              AND m.longitude IS NOT NULL
+            """)
+    List<Member> findActiveNearbyCandidates(@Param("cutoffTime") LocalDateTime cutoffTime, @Param("requesterId") Long requesterId);
 
     @Query("SELECT m.id FROM Member m")
     List<Long> findAllIds();

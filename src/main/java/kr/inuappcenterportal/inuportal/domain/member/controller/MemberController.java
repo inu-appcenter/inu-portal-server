@@ -15,6 +15,8 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.SchoolDepartmentUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.NearbyVisibilityRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
@@ -194,5 +196,31 @@ public class MemberController {
     public ResponseEntity<ResponseDto<Boolean>> toggleChatPush(@AuthenticationPrincipal Member member) {
         boolean isEnabled = memberService.toggleChatPush(member.getId());
         return ResponseEntity.ok(ResponseDto.of(isEnabled, "전체 채팅 알림 설정이 " + (isEnabled ? "켜졌습니다" : "꺼졌습니다")));
+    }
+
+    @Operation(summary = "주변 친구 찾기 위치 노출 설정 변경", description = "주변 친구 찾기 기능의 위치 노출 여부를 설정합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "주변 친구 찾기 노출 설정이 변경되었습니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "유효성 검사 실패", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PatchMapping("/nearby-visibility")
+    public ResponseEntity<ResponseDto<Void>> updateNearbyVisibility(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody NearbyVisibilityRequestDto requestDto) {
+        memberService.updateNearbyVisibility(member.getId(), requestDto.getEnabled());
+        return ResponseEntity.ok(ResponseDto.of(null, "주변 친구 찾기 노출 설정이 변경되었습니다."));
+    }
+
+    @Operation(summary = "내 위치 정보 갱신", description = "회원의 현재 위도, 경도 위치 정보를 갱신합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "위치 정보가 갱신되었습니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "위치 값이 올바르지 않습니다. / 위치 파라미터가 필요합니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PutMapping("/location")
+    public ResponseEntity<ResponseDto<Void>> updateLocation(
+            @AuthenticationPrincipal Member member,
+            @RequestBody LocationUpdateRequestDto requestDto) {
+        memberService.updateLocation(member.getId(), requestDto);
+        return ResponseEntity.ok(ResponseDto.of(null, "위치 정보가 갱신되었습니다."));
     }
 }

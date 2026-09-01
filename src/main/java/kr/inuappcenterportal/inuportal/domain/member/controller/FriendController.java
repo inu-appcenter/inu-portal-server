@@ -10,6 +10,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.NearbyFriendResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.service.FriendInviteService;
 import kr.inuappcenterportal.inuportal.domain.member.service.FriendService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -139,5 +140,18 @@ public class FriendController {
             @AuthenticationPrincipal UserDetails userDetails) {
         Long memberId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ResponseDto.of(friendService.getFriendProfile(memberId, friendId), "친구 프로필 조회 성공"));
+    }
+
+    @Operation(summary = "반경 내 위치 노출 중인 주변 친구 후보 조회", description = "지정된 위도, 경도 및 반경(m) 내 위치 노출 중인 사용자를 조회합니다.")
+    @SecurityRequirement(name = "Auth")
+    @GetMapping("/nearby")
+    public ResponseEntity<ResponseDto<List<NearbyFriendResponseDto>>> getNearbyFriends(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(required = false, defaultValue = "200") Integer radiusMeters,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        List<NearbyFriendResponseDto> nearbyFriends = friendService.getNearbyFriends(memberId, latitude, longitude, radiusMeters);
+        return ResponseEntity.ok(ResponseDto.of(nearbyFriends, "주변 친구 후보 조회 성공"));
     }
 }

@@ -138,4 +138,124 @@ class FriendServiceTest {
         );
         verify(friendRepository).delete(friend);
     }
+
+    @Test
+    @DisplayName("주변 친구 조회 실패 - 필수 파라미터 누락")
+    void getNearbyFriends_missingParameters_throwsException() {
+        kr.inuappcenterportal.inuportal.global.exception.ex.MyException ex =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        kr.inuappcenterportal.inuportal.global.exception.ex.MyException.class,
+                        () -> friendService.getNearbyFriends(1L, null, 126.6321, 200)
+                );
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.REQUIRED_LOCATION_PARAMETER,
+                ex.getErrorCode()
+        );
+    }
+
+    @Test
+    @DisplayName("주변 친구 조회 실패 - 위경도 범위 오류")
+    void getNearbyFriends_invalidRange_throwsException() {
+        kr.inuappcenterportal.inuportal.global.exception.ex.MyException ex =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        kr.inuappcenterportal.inuportal.global.exception.ex.MyException.class,
+                        () -> friendService.getNearbyFriends(1L, 37.4638, 200.0, 200)
+                );
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.INVALID_LOCATION_VALUE,
+                ex.getErrorCode()
+        );
+    }
+
+    @Test
+    @DisplayName("주변 친구 조회 실패 - 위치 노출 미동의")
+    void getNearbyFriends_notAgreed_throwsException() {
+        Member me = Member.builder().studentId("202000001").roles(List.of("ROLE_USER")).build();
+        ReflectionTestUtils.setField(me, "id", 1L);
+        // me has nearbyVisibility = false (default)
+
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(me));
+
+        kr.inuappcenterportal.inuportal.global.exception.ex.MyException ex =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        kr.inuappcenterportal.inuportal.global.exception.ex.MyException.class,
+                        () -> friendService.getNearbyFriends(1L, 37.4638, 126.6321, 200)
+                );
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.NEARBY_VISIBILITY_NOT_AGREED,
+                ex.getErrorCode()
+        );
+    }
+
+    @Test
+    @DisplayName("주변 친구 조회 성공 - 반경 필터링, 친구/차단 제외, 거리순 정렬 검증")
+    void getNearbyFriends_filtersAndSortsCorrectly() {
+        // Me at (37.4638, 126.6321) with nearbyVisibility = true
+        Member me = Member.builder().studentId("202000001").roles(List.of("ROLE_USER")).build();
+        me.updateNearbyVisibility(true);
+        ReflectionTestUtils.setField(me, "id", 1L);
+
+        // Candidate 1: ~50m away (lat: 37.4642, lon: 126.6321) -> should be included
+        Member closeUser = Member.builder().studentId("202000002").roles(List.of("ROLE_USER")).build();
+        closeUser.updateNicknameAndFire("closeUser", 2L);
+        closeUser.updateNearbyVisibility(true);
+        closeUser.updateLocation(37.4642, 126.6321);
+        ReflectionTestUtils.setField(closeUser, "id", 2L);
+
+        // Candidate 2: ~100m away (lat: 37.4647, lon: 126.6321) -> should be included after candidate 1
+        Member midUser = Member.builder().studentId("202000003").roles(List.of("ROLE_USER")).build();
+        midUser.updateNicknameAndFire("midUser", 3L);
+        midUser.updateNearbyVisibility(true);
+        midUser.updateLocation(37.4647, 126.6321);
+        ReflectionTestUtils.setField(midUser, "id", 3L);
+
+        // Candidate 3: ~500m away -> outside 200m radius -> should be excluded
+        Member farUser = Member.builder().studentId("202000004").roles(List.of("ROLE_USER")).build();
+        farUser.updateNicknameAndFire("farUser", 4L);
+        farUser.updateNearbyVisibility(true);
+        farUser.updateLocation(37.4683, 126.6321);
+        ReflectionTestUtils.setField(farUser, "id", 4L);
+
+        // Candidate 4: ~60m away, but already friend -> should be excluded
+        Member friendUser = Member.builder().studentId("202000005").roles(List.of("ROLE_USER")).build();
+        friendUser.updateNicknameAndFire("friendUser", 5L);
+        friendUser.updateNearbyVisibility(true);
+        friendUser.updateLocation(37.4643, 126.6321);
+        ReflectionTestUtils.setField(friendUser, "id", 5L);
+
+        // Candidate 5: ~70m away, but blocked -> should be excluded
+        Member blockedUser = Member.builder().studentId("202000006").roles(List.of("ROLE_USER")).build();
+        blockedUser.updateNicknameAndFire("blockedUser", 6L);
+        blockedUser.updateNearbyVisibility(true);
+        blockedUser.updateLocation(37.4644, 126.6321);
+        ReflectionTestUtils.setField(blockedUser, "id", 6L);
+
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(me));
+        when(memberRepository.findActiveNearbyCandidates(any(), eq(1L)))
+                .thenReturn(List.of(midUser, closeUser, farUser, friendUser, blockedUser));
+
+        when(friendRepository.existsFriendship(1L, 2L, FriendStatus.ACCEPTED)).thenReturn(false);
+        when(friendRepository.existsFriendship(1L, 3L, FriendStatus.ACCEPTED)).thenReturn(false);
+        when(friendRepository.existsFriendship(1L, 4L, FriendStatus.ACCEPTED)).thenReturn(false);
+        when(friendRepository.existsFriendship(1L, 5L, FriendStatus.ACCEPTED)).thenReturn(true);
+        when(friendRepository.existsFriendship(1L, 6L, FriendStatus.ACCEPTED)).thenReturn(false);
+
+        when(blockRepository.existsByBlockerAndBlocked(me, closeUser)).thenReturn(false);
+        when(blockRepository.existsByBlockerAndBlocked(closeUser, me)).thenReturn(false);
+        when(blockRepository.existsByBlockerAndBlocked(me, midUser)).thenReturn(false);
+        when(blockRepository.existsByBlockerAndBlocked(midUser, me)).thenReturn(false);
+        when(blockRepository.existsByBlockerAndBlocked(me, farUser)).thenReturn(false);
+        when(blockRepository.existsByBlockerAndBlocked(farUser, me)).thenReturn(false);
+        when(blockRepository.existsByBlockerAndBlocked(me, blockedUser)).thenReturn(true);
+
+        List<kr.inuappcenterportal.inuportal.domain.member.dto.NearbyFriendResponseDto> result =
+                friendService.getNearbyFriends(1L, 37.4638, 126.6321, 200);
+
+        org.junit.jupiter.api.Assertions.assertEquals(2, result.size());
+        org.junit.jupiter.api.Assertions.assertEquals(2L, result.get(0).memberId());
+        org.junit.jupiter.api.Assertions.assertEquals("closeUser", result.get(0).nickname());
+        org.junit.jupiter.api.Assertions.assertEquals(3L, result.get(1).memberId());
+        org.junit.jupiter.api.Assertions.assertEquals("midUser", result.get(1).nickname());
+        org.junit.jupiter.api.Assertions.assertTrue(result.get(0).distanceMeters() <= result.get(1).distanceMeters());
+    }
 }
