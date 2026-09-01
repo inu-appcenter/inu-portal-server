@@ -153,6 +153,7 @@ public enum MyErrorCode {
     SCHOOL_DEPARTMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "선택할 수 있는 학교 학과가 아닙니다."),
     INVALID_LOCATION_VALUE(HttpStatus.BAD_REQUEST, "위치 값이 올바르지 않습니다."),
     REQUIRED_LOCATION_PARAMETER(HttpStatus.BAD_REQUEST, "위치 파라미터가 필요합니다."),
+    NEARBY_VISIBILITY_NOT_AGREED(HttpStatus.BAD_REQUEST, "주변 친구 찾기 위치 노출 동의가 필요합니다."),
     ;
 
 

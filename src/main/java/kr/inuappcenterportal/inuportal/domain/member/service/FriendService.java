@@ -294,6 +294,10 @@ public class FriendService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
+        if (!Boolean.TRUE.equals(member.getNearbyVisibility())) {
+            throw new MyException(MyErrorCode.NEARBY_VISIBILITY_NOT_AGREED);
+        }
+
         int effectiveRadius = (radiusMeters == null || radiusMeters <= 0) ? DEFAULT_NEARBY_RADIUS_METERS : radiusMeters;
         LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(NEARBY_LOCATION_TTL_MINUTES);
 
