@@ -4,5 +4,8 @@
     <content url="file://$MODULE_DIR$/../../build/generated/querydsl">
       <sourceFolder url="file://$MODULE_DIR$/../../build/generated/querydsl" isTestSource="false" generated="true" />
     </content>
+    <content url="file://$MODULE_DIR$/../../build/generated/querydsl">
+      <sourceFolder url="file://$MODULE_DIR$/../../build/generated/querydsl" isTestSource="false" generated="true" />
+    </content>
   </component>
 </module>

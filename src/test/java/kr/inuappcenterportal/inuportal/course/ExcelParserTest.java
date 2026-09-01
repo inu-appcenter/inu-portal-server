@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.course;
 
 import kr.inuappcenterportal.inuportal.domain.course.crawler.excel.ExcelParser;
-import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseExcelRow;
+import kr.inuappcenterportal.inuportal.domain.course.dto.course.crawlerItem.CourseOverviewExcelRow;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -25,11 +25,15 @@ public class ExcelParserTest {
         header.createCell(0).setCellValue("학수번호");
         header.createCell(1).setCellValue("담당교수");
         header.createCell(2).setCellValue("교과목명");
+        header.createCell(3).setCellValue("성적평가");
+        header.createCell(4).setCellValue("정원");
 
         Row row = sheet.createRow(2);
         row.createCell(0).setCellValue("0009062001");
         row.createCell(1).setCellValue("김정경");
         row.createCell(2).setCellValue("RISE");
+        row.createCell(3).setCellValue("상대평가");
+        row.createCell(4).setCellValue("2,500");
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);
@@ -44,11 +48,13 @@ public class ExcelParserTest {
 
         ExcelParser parser = new ExcelParser();
 
-        List<CourseExcelRow> rows = parser.parse(file);
+        List<CourseOverviewExcelRow> rows = parser.parse(file);
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).subjectNumber()).isEqualTo("0009062001");
         assertThat(rows.get(0).professor()).isEqualTo("김정경");
         assertThat(rows.get(0).courseTitle()).isEqualTo("RISE");
+        assertThat(rows.get(0).gradeEvaluation()).isEqualTo("상대평가");
+        assertThat(rows.get(0).capacity()).isEqualTo(2500);
     }
 }

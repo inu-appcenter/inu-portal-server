@@ -59,8 +59,5 @@ public class MemberFcmMessage extends BaseTimeEntity {
 
     public void incrementViewCount() {
         this.viewCount += 1;
-        if (this.viewCount >= 2) {
-            markAsRead();
-        }
     }
 }

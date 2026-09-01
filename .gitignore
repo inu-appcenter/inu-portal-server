@@ -6,7 +6,15 @@
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 application*.properties
 application*.yml
+!src/test/resources/application*.yml
+!src/test/resources/application*.properties
 firebase_key.json
+
+.env
+db.env
+.venv/
+db/past_course/course.db
+.DS_Store
 
 # User-specific stuff
 .idea/**/workspace.xml
@@ -183,6 +191,6 @@ build/
 .claude/
 .gradle-user-verify/
 
-###  IDE 설정 파일 ###
+### IDE 설정 파일 ###
 *.xml
 *.iml

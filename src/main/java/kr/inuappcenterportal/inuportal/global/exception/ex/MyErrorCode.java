@@ -79,6 +79,7 @@ public enum MyErrorCode {
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 공지사항입니다."),
     TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 시간표입니다."),
     TIMETABLE_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 시간표 요소입니다."),
+    TIMETABLE_EVALUATION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "동일한 시간표에서는 최대 3회까지만 다시 생성할 수 있습니다. 시간표를 수정하면 새롭게 평가받을 수 있어요!"),
     SEMESTER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 학기입니다."),
     DUPLICATE_TIMETABLE_NAME(HttpStatus.BAD_REQUEST, "같은 이름의 시간표가 존재합니다."),
     HAS_NOT_TIMETABLE_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 시간표에 접근할 권한이 없습니다."),
@@ -110,7 +111,9 @@ public enum MyErrorCode {
     INVALID_GRADE(HttpStatus.BAD_REQUEST, "유효하지 않은 성적입니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 유저입니다."),
     GRADE_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 성적입니다."),
+    DUPLICATE_GRADE_RECORD(HttpStatus.BAD_REQUEST, "동일한 과목(과목코드+과목명)의 성적이 중복 입력되었습니다."),
     HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
+    INVALID_EXCEL_EXTENDER(HttpStatus.BAD_REQUEST, "잘못된 확장자입니다."),
 
     SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 건의사항입니다."),
     HAS_NOT_SUGGESTION_AUTHORIZATION(HttpStatus.FORBIDDEN, "이 건의사항에 대한 권한이 없습니다."),
@@ -138,6 +141,16 @@ public enum MyErrorCode {
     INVALID_OFFICIAL_CHAT_TARGET(HttpStatus.BAD_REQUEST, "운영자 채팅은 일반 학생하고만 가능합니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 입력값입니다."),
     INVALID_NICKNAME_KEYWORD(HttpStatus.BAD_REQUEST, "사용할 수 없는 단어(알림, 운영진 등)가 포함된 닉네임입니다."),
+    MOCK_REGISTRATION_NOT_OPEN(HttpStatus.CONFLICT, "현재 모의수강신청이 가능한 학기가 아닙니다."),
+    MOCK_WATCHLIST_DUPLICATE(HttpStatus.CONFLICT, "이미 모의 장바구니에 담긴 강의입니다."),
+    MOCK_WATCHLIST_LIMIT(HttpStatus.CONFLICT, "모의 장바구니는 최대 10개 강의까지 담을 수 있습니다."),
+    MOCK_WATCHLIST_NOT_FOUND(HttpStatus.NOT_FOUND, "모의 장바구니 항목이 존재하지 않습니다."),
+    MOCK_ENROLLMENT_DUPLICATE(HttpStatus.CONFLICT, "이미 신청한 강의입니다."),
+    MOCK_ENROLLMENT_SAME_COURSE(HttpStatus.CONFLICT, "동일 교과목의 다른 분반을 이미 신청했습니다."),
+    MOCK_ENROLLMENT_CREDIT_LIMIT(HttpStatus.CONFLICT, "최대 신청 학점인 24학점을 초과합니다."),
+    MOCK_ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모의 수강신청 내역이 존재하지 않습니다."),
+    MOCK_SCHEDULE_CONFLICT(HttpStatus.CONFLICT, "시간이 겹치는 강의가 있습니다."),
+    SCHOOL_DEPARTMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "선택할 수 있는 학교 학과가 아닙니다."),
     ;
 
 

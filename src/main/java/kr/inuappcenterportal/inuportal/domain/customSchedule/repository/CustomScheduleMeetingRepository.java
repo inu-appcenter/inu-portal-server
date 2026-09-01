@@ -9,4 +9,6 @@ public interface CustomScheduleMeetingRepository extends JpaRepository<CustomSch
     void deleteAllByCustomScheduleId(Long customScheduleId);
 
     List<CustomScheduleMeeting> findAllByCustomScheduleId(Long customScheduleId);
+
+    List<CustomScheduleMeeting> findAllByCustomScheduleIdIn(List<Long> customScheduleIds);
 }

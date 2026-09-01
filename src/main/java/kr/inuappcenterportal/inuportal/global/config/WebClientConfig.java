@@ -29,10 +29,13 @@ public class WebClientConfig {
         factory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.VALUES_ONLY);
         return WebClient.builder()
                 .uriBuilderFactory(factory)
+                .defaultHeader(org.springframework.http.HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .defaultHeader(org.springframework.http.HttpHeaders.ACCEPT, "application/xml, text/xml, */*")
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }
+
 
     @Bean
     public WebClient schoolApiWebClient(SchoolApiProperties properties) {

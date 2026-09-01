@@ -25,12 +25,12 @@ public class CustomScheduleMeeting {
     @JoinColumn(name = "custom_schedule_id", nullable = false)
     CustomSchedule customSchedule;
 
-    @Column(nullable = false)
     String location;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "`day`", nullable = false)
     DayOfWeek day;
+
 
     @Column(nullable = false)
     LocalTime startTime;

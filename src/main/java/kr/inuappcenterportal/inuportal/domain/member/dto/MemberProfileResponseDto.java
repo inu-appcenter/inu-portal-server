@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.member.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import lombok.Builder;
 import lombok.Getter;
 

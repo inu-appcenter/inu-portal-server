@@ -14,9 +14,10 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.SchoolDepartmentUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
 import kr.inuappcenterportal.inuportal.domain.reply.dto.ReplyListResponseDto;
@@ -167,6 +168,16 @@ public class MemberController {
     public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member,
                                                                     @RequestParam Department department){
         return ResponseEntity.ok(ResponseDto.of(memberService.updateMemberDepartment(member.getId(), department),"회원 학과 수정 성공"));
+    }
+
+    @PatchMapping("/school-department")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> updateSchoolDepartment(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody SchoolDepartmentUpdateRequestDto request
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(
+                memberService.updateSchoolDepartment(member.getId(), request.departmentCode()),
+                "회원 학교 학과 수정 성공"));
     }
 
     @Operation(summary = "회원 약관 동의", description = "회원이 약관에 동의합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.")

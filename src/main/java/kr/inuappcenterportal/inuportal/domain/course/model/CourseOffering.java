@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.model;
 
 import jakarta.persistence.*;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.*;
+import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.GradeEvaluation;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.global.model.BaseTimeEntity;
 import lombok.AccessLevel;
@@ -33,6 +33,63 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "subject_number")
     private String subjectNumber;
 
+    @Column(name = "dept_code")
+    private String deptCode;
+
+    @Column(name = "dept_name_raw")
+    private String deptNameRaw;
+
+    @Column(name = "college_code")
+    private String collegeCode;
+
+    @Column(name = "college_name_raw")
+    private String collegeNameRaw;
+
+    @Column(name = "hy_code")
+    private String hyCode;
+
+    @Column(name = "hy_name_raw")
+    private String hyNameRaw;
+
+    @Column(name = "isu_code")
+    private String isuCode;
+
+    @Column(name = "isu_name_raw")
+    private String isuNameRaw;
+
+    @Column(name = "isu_fld_code")
+    private String isuFldCode;
+
+    @Column(name = "isu_fld_name_raw")
+    private String isuFldNameRaw;
+
+    @Column(name = "ssup_type_code")
+    private String ssupTypeCode;
+
+    @Column(name = "ssup_type_name_raw")
+    private String ssupTypeNameRaw;
+
+    @Column(name = "cnctr_isu_code")
+    private String cnctrIsuCode;
+
+    @Column(name = "cnctr_isu_name_raw")
+    private String cnctrIsuNameRaw;
+
+    @Column(name = "english_code")
+    private String englishCode;
+
+    @Column(name = "english_yn")
+    private String englishYn;
+
+    @Column(name = "english_name_raw")
+    private String englishNameRaw;
+
+    @Column(name = "grade_evaluation_raw")
+    private String gradeEvaluationRaw;
+
+    @Column(name = "huss_course_yn")
+    private String hussCourseYn;
+
     private String professor;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -43,38 +100,6 @@ public class CourseOffering extends BaseTimeEntity {
     @JoinColumn(name = "semester_id", nullable = false)
     private Semester semester;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "cnctr_isu_name", nullable = false)
-    private CNCTR_ISU_NAME cnctrIsuName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "dept_name", nullable = false)
-    private DEPT_NAME deptName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "college_name", nullable = false)
-    private COLLEGE_NAME collegeName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "isu_fld_name", nullable = false)
-    private ISU_FLD_NAME isuFldName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "isu_name", nullable = false)
-    private ISU_NAME isuName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "ssup_type_name", nullable = false)
-    private SSUP_TYPE_NAME ssupTypeName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "hy_name", nullable = false)
-    private HY_NAME hyName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "english_name", nullable = false)
-    private ENGLISH_NAME englishName;
-
     @Column(nullable = false)
     private Integer credit;
 
@@ -83,85 +108,131 @@ public class CourseOffering extends BaseTimeEntity {
     @Column(name = "enrolled_count")
     private Integer enrolledCount;
 
-    private String note;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade_evaluation")
+    private GradeEvaluation gradeEvaluation;
 
     // 생성자
     private CourseOffering(
             String syllabus,
             String subjectNumber,
+            String deptCode,
+            String deptNameRaw,
+            String collegeCode,
+            String collegeNameRaw,
+            String hyCode,
+            String hyNameRaw,
+            String isuCode,
+            String isuNameRaw,
+            String isuFldCode,
+            String isuFldNameRaw,
+            String ssupTypeCode,
+            String ssupTypeNameRaw,
+            String cnctrIsuCode,
+            String cnctrIsuNameRaw,
+            String englishYn,
+            String englishCode,
+            String englishNameRaw,
+            String hussCourseYn,
+            String gradeEvaluationRaw,
             String professor,
             Course course,
             Semester semester,
-            CNCTR_ISU_NAME cnctrIsuName,
-            DEPT_NAME deptName,
-            COLLEGE_NAME collegeName,
-            ISU_FLD_NAME isuFldName,
-            ISU_NAME isuName,
-            SSUP_TYPE_NAME ssupTypeName,
-            HY_NAME hyName,
-            ENGLISH_NAME englishName,
+            GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
-            Integer enrolledCount,
-            String note
+            Integer enrolledCount
     ) {
         this.syllabus = syllabus;
         this.subjectNumber = subjectNumber;
+        this.deptCode = deptCode;
+        this.deptNameRaw = deptNameRaw;
+        this.collegeCode = collegeCode;
+        this.collegeNameRaw = collegeNameRaw;
+        this.hyCode = hyCode;
+        this.hyNameRaw = hyNameRaw;
+        this.isuCode = isuCode;
+        this.isuNameRaw = isuNameRaw;
+        this.isuFldCode = isuFldCode;
+        this.isuFldNameRaw = isuFldNameRaw;
+        this.ssupTypeCode = ssupTypeCode;
+        this.ssupTypeNameRaw = ssupTypeNameRaw;
+        this.cnctrIsuCode = cnctrIsuCode;
+        this.cnctrIsuNameRaw = cnctrIsuNameRaw;
+        this.englishYn = englishYn;
+        this.englishCode = englishCode;
+        this.englishNameRaw = englishNameRaw;
+        this.hussCourseYn = hussCourseYn;
+        this.gradeEvaluationRaw = gradeEvaluationRaw;
         this.professor = professor;
         this.course = course;
         this.semester = semester;
-        this.cnctrIsuName = cnctrIsuName;
-        this.deptName = deptName;
-        this.collegeName = collegeName;
-        this.isuFldName = isuFldName;
-        this.isuName = isuName;
-        this.ssupTypeName = ssupTypeName;
-        this.hyName = hyName;
-        this.englishName = englishName;
+        this.gradeEvaluation = gradeEvaluation;
         this.credit = credit;
         this.capacity = capacity;
         this.enrolledCount = enrolledCount;
-        this.note = note;
     }
 
     // 정적 팩토리 메서드
     public static CourseOffering create(
             String syllabus,
             String subjectNumber,
+            String deptCode,
+            String deptNameRaw,
+            String collegeCode,
+            String collegeNameRaw,
+            String hyCode,
+            String hyNameRaw,
+            String isuCode,
+            String isuNameRaw,
+            String isuFldCode,
+            String isuFldNameRaw,
+            String ssupTypeCode,
+            String ssupTypeNameRaw,
+            String cnctrIsuCode,
+            String cnctrIsuNameRaw,
+            String englishYn,
+            String englishCode,
+            String englishNameRaw,
+            String hussCourseYn,
+            String gradeEvaluationRaw,
             String professor,
             Course course,
             Semester semester,
-            CNCTR_ISU_NAME cnctrIsuName,
-            DEPT_NAME deptName,
-            COLLEGE_NAME collegeName,
-            ISU_FLD_NAME isuFldName,
-            ISU_NAME isuName,
-            SSUP_TYPE_NAME ssupTypeName,
-            HY_NAME hyName,
-            ENGLISH_NAME englishName,
+            GradeEvaluation gradeEvaluation,
             Integer credit,
             Integer capacity,
-            Integer enrolledCount,
-            String note
+            Integer enrolledCount
     ) {
         return new CourseOffering(
                 syllabus,
                 subjectNumber,
+                deptCode,
+                deptNameRaw,
+                collegeCode,
+                collegeNameRaw,
+                hyCode,
+                hyNameRaw,
+                isuCode,
+                isuNameRaw,
+                isuFldCode,
+                isuFldNameRaw,
+                ssupTypeCode,
+                ssupTypeNameRaw,
+                cnctrIsuCode,
+                cnctrIsuNameRaw,
+                englishYn,
+                englishCode,
+                englishNameRaw,
+                hussCourseYn,
+                gradeEvaluationRaw,
                 professor,
                 course,
                 semester,
-                cnctrIsuName,
-                deptName,
-                collegeName,
-                isuFldName,
-                isuName,
-                ssupTypeName,
-                hyName,
-                englishName,
+                gradeEvaluation,
                 credit,
                 capacity,
-                enrolledCount,
-                note
+                enrolledCount
         );
     }
 
@@ -171,25 +242,45 @@ public class CourseOffering extends BaseTimeEntity {
      */
     public void updateFromApi(
             Course course,
-            CNCTR_ISU_NAME cnctrIsuName,
-            DEPT_NAME deptName,
-            COLLEGE_NAME collegeName,
-            ISU_FLD_NAME isuFldName,
-            ISU_NAME isuName,
-            SSUP_TYPE_NAME ssupTypeName,
-            HY_NAME hyName,
-            ENGLISH_NAME englishName,
+            String deptCode,
+            String deptNameRaw,
+            String collegeCode,
+            String collegeNameRaw,
+            String hyCode,
+            String hyNameRaw,
+            String isuCode,
+            String isuNameRaw,
+            String isuFldCode,
+            String isuFldNameRaw,
+            String ssupTypeCode,
+            String ssupTypeNameRaw,
+            String cnctrIsuCode,
+            String cnctrIsuNameRaw,
+            String englishYn,
+            String englishCode,
+            String englishNameRaw,
+            String hussCourseYn,
             Integer credit
     ) {
         this.course = course;
-        this.cnctrIsuName = cnctrIsuName;
-        this.deptName = deptName;
-        this.collegeName = collegeName;
-        this.isuFldName = isuFldName;
-        this.isuName = isuName;
-        this.ssupTypeName = ssupTypeName;
-        this.hyName = hyName;
-        this.englishName = englishName;
+        this.deptCode = deptCode;
+        this.deptNameRaw = deptNameRaw;
+        this.collegeCode = collegeCode;
+        this.collegeNameRaw = collegeNameRaw;
+        this.hyCode = hyCode;
+        this.hyNameRaw = hyNameRaw;
+        this.isuCode = isuCode;
+        this.isuNameRaw = isuNameRaw;
+        this.isuFldCode = isuFldCode;
+        this.isuFldNameRaw = isuFldNameRaw;
+        this.ssupTypeCode = ssupTypeCode;
+        this.ssupTypeNameRaw = ssupTypeNameRaw;
+        this.cnctrIsuCode = cnctrIsuCode;
+        this.cnctrIsuNameRaw = cnctrIsuNameRaw;
+        this.englishYn = englishYn;
+        this.englishCode = englishCode;
+        this.englishNameRaw = englishNameRaw;
+        this.hussCourseYn = hussCourseYn;
         this.credit = credit;
     }
 
@@ -198,11 +289,26 @@ public class CourseOffering extends BaseTimeEntity {
      * 엑셀 파일에서 파싱한 교수명 업데이트 메서드
      * (public void updateFromExcel(...)) 나중에 이런 식으로 확장
      */
-    public void updateProfessor(String professor) {
-        if (professor == null || professor.isBlank()) {
-            return;
+    public void updateFromExcel(
+            String professor,
+            Integer capacity,
+            String gradeEvaluationRaw,
+            GradeEvaluation gradeEvaluation
+    ) {
+        if (professor != null && !professor.isBlank()) {
+            this.professor = professor.trim();
         }
 
-        this.professor = professor.trim();
+        if (capacity != null) {
+            this.capacity = capacity;
+        }
+
+        if (gradeEvaluation != null) {
+            this.gradeEvaluation = gradeEvaluation;
+        }
+
+        if (gradeEvaluationRaw != null && !gradeEvaluationRaw.isBlank()) {
+            this.gradeEvaluationRaw = gradeEvaluationRaw.trim();
+        }
     }
 }

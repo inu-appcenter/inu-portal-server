@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 
 import java.util.List;
 

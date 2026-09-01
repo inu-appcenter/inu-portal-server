@@ -9,13 +9,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
+import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentService;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleListResponseDoc;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
@@ -41,6 +43,7 @@ import java.util.List;
 @RequestMapping("/api/notices")
 public class NoticeController {
     private final NoticeService noticeService;
+    private final SchoolDepartmentService schoolDepartmentService;
     private final ScheduleService scheduleService;
 
     @Operation(summary = "모든 공지사항 가져오기", description = "url 파라미터로 카테고리, 정렬기준, 페이지를 보냅니다.")
@@ -162,6 +165,39 @@ public class NoticeController {
                         "해당 학과 모든 공지사항 가져오기 성공"
                 )
         );
+    }
+
+    @GetMapping("/school-department")
+    public ResponseEntity<ResponseDto<DepartmentNoticePageResponse>> getSchoolDepartmentNotices(
+            @RequestParam String departmentCode,
+            @RequestParam(required = false, defaultValue = "date") String sort,
+            @RequestParam(required = false, defaultValue = "1") @Min(1) int page
+    ) {
+        Department department = schoolDepartmentService.getNoticeDepartment(departmentCode);
+        return ResponseEntity.ok(ResponseDto.of(
+                noticeService.getDepartmentNotices(department, sort, page),
+                "학교 학과 기준 공지사항 조회 성공"
+        ));
+    }
+
+    @Operation(summary = "학과 공지사항 상세 조회", description = "학과 공지사항 데이터베이스 id로 상세 내용과 첨부파일을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "학과 공지사항 상세 조회 성공",
+                    content = @Content(schema = @Schema(implementation = DepartmentNoticeDetailResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않는 공지사항입니다.",
+                    content = @Content(schema = @Schema(implementation = ResponseDto.class))
+            )
+    })
+    @GetMapping("/department/{id}")
+    public ResponseEntity<ResponseDto<DepartmentNoticeDetailResponseDto>> getDepartmentNoticeDetail(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(noticeService.getDepartmentNoticeDetail(id), "학과 공지사항 상세 조회 성공"));
     }
 
     @Operation(summary = "학과 공지 연결 일정 조회", description = "학과 공지 id로 연결된 일정 목록을 조회합니다.")

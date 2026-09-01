@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -38,22 +37,22 @@ public class FcmAsyncService {
         fcmService.sendToMembers(dispatch);
     }
 
+    // prepareTrackedNotification이 저장 트랜잭션 커밋 이후 발송을 이벤트로 트리거한다.
+    // 여기서 dispatchTrackedNotification을 또 호출하면 중복 발송된다.
+
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type) {
-        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, null);
-        fcmService.dispatchTrackedNotification(dispatch);
+        fcmService.prepareTrackedNotification(memberIds, title, body, type, null);
     }
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type, Long targetId) {
-        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId);
-        fcmService.dispatchTrackedNotification(dispatch);
+        fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId);
     }
 
     @Async("messageExecutor")
     public void sendAsyncTrackedNotification(List<Long> memberIds, String title, String body, kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type, Long targetId, String path) {
-        TrackedNotificationDispatch dispatch = fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId, path);
-        fcmService.dispatchTrackedNotification(dispatch);
+        fcmService.prepareTrackedNotification(memberIds, title, body, type, targetId, path);
     }
 
     @Async("messageExecutor")

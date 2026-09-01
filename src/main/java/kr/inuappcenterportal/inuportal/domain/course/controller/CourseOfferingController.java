@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.course.controller;
 
+import kr.inuappcenterportal.inuportal.domain.course.crawler.excel.LegacyCourseExcelImporter;
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingOptionsResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
@@ -12,9 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -27,6 +31,18 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
 
     private final CourseOfferingSyncService courseOfferingSyncService;
     private final CourseOfferingService courseOfferingService;
+    private final LegacyCourseExcelImporter legacyCourseExcelImporter;
+
+    @PostMapping(
+            value = "/legacy",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ResponseDto<Void>> importLegacyCourse(
+            @RequestPart("files") List<MultipartFile> files
+    ) {
+        legacyCourseExcelImporter.importArchive(files);
+        return ResponseEntity.ok(ResponseDto.of(null, "과거 강의 데이터 적재 성공"));
+    }
 
     @PostMapping("/sync")
     public ResponseEntity<ResponseDto<Void>> syncCourseOffering(
@@ -79,6 +95,26 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
                         "개설 강의 목록 조회 성공"
                 )
         );
+    }
+
+    @GetMapping("/open")
+    public ResponseEntity<ResponseDto<List<CourseOfferingResponseDto>>> getOpenCourseOfferings(
+            @AuthenticationPrincipal Member member,
+            @RequestParam(required = false) String deptCode,
+            @RequestParam(required = false) String isuCode,
+            @RequestParam(required = false) String isuFldCode,
+            @RequestParam(required = false) String cnctrIsuCode,
+            @RequestParam(required = false) Boolean hussOnly,
+            @RequestParam(required = false) Boolean majorOnly,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(courseOfferingService.getOpenCourseOfferings(
+                deptCode, isuCode, isuFldCode, cnctrIsuCode, hussOnly, majorOnly, keyword, false), "현재 학기 개설 강의 조회 성공"));
+    }
+
+    @GetMapping("/open/options")
+    public ResponseEntity<ResponseDto<CourseOfferingOptionsResponseDto>> getOpenCourseOfferingOptions() {
+        return ResponseEntity.ok(ResponseDto.of(courseOfferingService.getOpenCourseOfferingOptions(), "현재 학기 강의 검색 옵션 조회 성공"));
     }
 
     private boolean canViewProfessor(Member member) {

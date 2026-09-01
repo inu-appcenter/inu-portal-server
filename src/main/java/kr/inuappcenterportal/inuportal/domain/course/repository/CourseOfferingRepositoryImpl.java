@@ -12,8 +12,6 @@ import jakarta.persistence.EntityManager;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseOfferingMeetingFilter;
 import kr.inuappcenterportal.inuportal.domain.course.dto.courseOffering.CourseOfferingSearchCondition;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.CourseOfferingSort;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.HY_NAME;
-import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.ISU_NAME;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.MeetingFilterMode;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import org.springframework.data.domain.Page;
@@ -49,27 +47,27 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
         builder.and(courseOffering.semester.id.eq(condition.semesterId()));
 
         if (condition.deptName() != null) {
-            builder.and(courseOffering.deptName.eq(condition.deptName()));
+            builder.and(courseOffering.deptCode.in(condition.deptName().apiCodes()));
         }
 
         if (condition.collegeName() != null) {
-            builder.and(courseOffering.collegeName.eq(condition.collegeName()));
+            builder.and(courseOffering.collegeCode.in(condition.collegeName().apiCodes()));
         }
 
         if (!condition.hyNames().isEmpty()) {
-            builder.and(courseOffering.hyName.in(condition.hyNames()));
+            builder.and(courseOffering.hyNameRaw.in(condition.hyNames()));
         }
 
         if (!condition.isuNames().isEmpty()) {
-            builder.and(courseOffering.isuName.in(condition.isuNames()));
+            builder.and(courseOffering.isuNameRaw.in(condition.isuNames()));
         }
 
         if (!condition.isuFldNames().isEmpty()) {
-            builder.and(courseOffering.isuFldName.in(condition.isuFldNames()));
+            builder.and(courseOffering.isuFldNameRaw.in(condition.isuFldNames()));
         }
 
         if (!condition.ssupTypeNames().isEmpty()) {
-            builder.and(courseOffering.ssupTypeName.in(condition.ssupTypeNames()));
+            builder.and(courseOffering.ssupTypeNameRaw.in(condition.ssupTypeNames()));
         }
 
         if (!condition.credits().isEmpty()) {
@@ -78,10 +76,10 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
 
         if (StringUtils.hasText(condition.keyword())) {
             builder.and(
-                    courseOffering.subjectNumber.containsIgnoreCase(condition.keyword())
-                            .or(courseOffering.course.title.containsIgnoreCase(condition.keyword()))
-                            .or(courseOffering.course.englishTitle.containsIgnoreCase(condition.keyword()))
-                            .or(courseOffering.professor.containsIgnoreCase(condition.keyword()))
+                    courseOffering.subjectNumber.contains(condition.keyword())
+                            .or(courseOffering.course.title.contains(condition.keyword()))
+                            .or(courseOffering.course.englishTitle.contains(condition.keyword()))
+                            .or(courseOffering.professor.contains(condition.keyword()))
             );
         }
 
@@ -125,27 +123,16 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
 
         // 과목이 전공이면 1, 교양이면 2, 기타면 3
         NumberExpression<Integer> categoryOrder = new CaseBuilder()
-                .when(courseOffering.isuName.in(
-                        ISU_NAME.MAJOR_ADVANCED,
-                        ISU_NAME.MAJOR_CORE,
-                        ISU_NAME.MAJOR_FOUNDATION
-                )).then(1)
-                .when(courseOffering.isuName.in(
-                        ISU_NAME.BASIC_LIBERAL_ARTS,
-                        ISU_NAME.ADVANCED_LIBERAL_ARTS,
-                        ISU_NAME.CORE_LIBERAL_ARTS,
-                        ISU_NAME.GENERAL_ELECTIVE,
-                        ISU_NAME.MILITARY_SCIENCE,
-                        ISU_NAME.TEACHING_PROFESSION
-                )).then(2)
+                .when(courseOffering.isuCode.in("25", "31", "41")).then(1)
+                .when(courseOffering.isuCode.in("11", "21", "23", "50", "70", "80")).then(2)
                 .otherwise(3);
 
         NumberExpression<Integer> hyNameOrder = new CaseBuilder()
-                .when(courseOffering.hyName.eq(HY_NAME.ALL)).then(1)
-                .when(courseOffering.hyName.eq(HY_NAME.GRADE1)).then(2)
-                .when(courseOffering.hyName.eq(HY_NAME.GRADE2)).then(3)
-                .when(courseOffering.hyName.eq(HY_NAME.GRADE3)).then(4)
-                .when(courseOffering.hyName.eq(HY_NAME.GRADE4)).then(5)
+                .when(courseOffering.hyCode.eq("0")).then(1)
+                .when(courseOffering.hyCode.eq("1")).then(2)
+                .when(courseOffering.hyCode.eq("2")).then(3)
+                .when(courseOffering.hyCode.eq("3")).then(4)
+                .when(courseOffering.hyCode.eq("4")).then(5)
                 .otherwise(99);
 
         JPQLQuery<Long> savedCountSubquery = JPAExpressions

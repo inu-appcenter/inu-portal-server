@@ -20,7 +20,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import org.junit.jupiter.api.Test;
@@ -329,7 +329,7 @@ class SendToMembersTest {
         when(failedResponse.isSuccessful()).thenReturn(false);
         when(failedResponse.getException()).thenReturn(firebaseMessagingException);
         when(firebaseMessagingException.getMessage()).thenReturn("registration-token-not-registered");
-        when(firebaseMessaging.sendEachForMulticast(any())).thenReturn(batchResponse);
+        when(firebaseMessaging.sendEachForMulticastAsync(any())).thenReturn(com.google.api.core.ApiFutures.immediateFuture(batchResponse));
 
         fcmService.sendToMembers(dispatch);
 
@@ -359,7 +359,7 @@ class SendToMembersTest {
 
         FirebaseMessagingException firebaseMessagingException = mock(FirebaseMessagingException.class);
 
-        when(firebaseMessaging.sendEachForMulticast(any())).thenThrow(firebaseMessagingException);
+        when(firebaseMessaging.sendEachForMulticastAsync(any())).thenReturn(com.google.api.core.ApiFutures.immediateFailedFuture(firebaseMessagingException));
 
         fcmService.sendToMembers(dispatch);
 
@@ -395,6 +395,107 @@ class SendToMembersTest {
         verify(fcmTransactionService).updateStatusToProcessing(1L);
         verify(fcmTransactionService).updateFinalStatus(1L, 0, 0);
         verify(jdbcTemplate).batchUpdate(anyString(), any(List.class), anyInt(), any());
+    }
+
+    @Test
+    void noticeAll_recordsSuccessStatusInsteadOfLeavingItPending() throws FirebaseMessagingException {
+        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 10L);
+            return message;
+        });
+
+        fcmService.noticeAll("공지 제목");
+
+        org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
+        verify(fcmMessageRepository).save(captor.capture());
+        FcmMessage saved = captor.getValue();
+        assertThat(saved.getSendStatus()).isEqualTo(FcmSendStatus.SUCCESS);
+        assertThat(saved.getTargetCount()).isEqualTo(1);
+        assertThat(saved.getSendCount()).isEqualTo(1);
+        assertThat(saved.getFailureCount()).isZero();
+    }
+
+    @Test
+    void noticeAll_recordsFailedStatusWhenTopicSendThrows() throws FirebaseMessagingException {
+        FirebaseMessagingException firebaseMessagingException = mock(FirebaseMessagingException.class);
+        when(firebaseMessaging.send(any(com.google.firebase.messaging.Message.class)))
+                .thenThrow(firebaseMessagingException);
+        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 11L);
+            return message;
+        });
+
+        fcmService.noticeAll("공지 제목", 42L);
+
+        org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
+        verify(fcmMessageRepository).save(captor.capture());
+        FcmMessage saved = captor.getValue();
+        assertThat(saved.getSendStatus()).isEqualTo(FcmSendStatus.FAILED);
+        assertThat(saved.getTargetCount()).isEqualTo(1);
+        assertThat(saved.getSendCount()).isZero();
+        assertThat(saved.getFailureCount()).isEqualTo(1);
+        assertThat(saved.getTargetId()).isEqualTo(42L);
+    }
+
+    @Test
+    void noticeAll_persistsFailedRecordWithoutPropagatingUnexpectedRuntimeException()
+            throws FirebaseMessagingException {
+        // send()는 FirebaseMessagingException만 선언하지만, SDK 내부 사정으로
+        // 런타임 예외가 나올 수 있다. 이게 전파되면 @Transactional 경계가 롤백돼
+        // 발송 기록 자체가 사라진다. 기록은 남기고 예외는 삼켜야 한다.
+        when(firebaseMessaging.send(any(com.google.firebase.messaging.Message.class)))
+                .thenThrow(new IllegalStateException("FirebaseApp is not initialized"));
+        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 12L);
+            return message;
+        });
+
+        org.assertj.core.api.Assertions.assertThatCode(() -> fcmService.noticeAll("공지 제목"))
+                .doesNotThrowAnyException();
+
+        org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
+        verify(fcmMessageRepository).save(captor.capture());
+        assertThat(captor.getValue().getSendStatus()).isEqualTo(FcmSendStatus.FAILED);
+    }
+
+    @Test
+    void noticeAll_sendsOnceAndRecordsOnceWithoutTargetIdForSingleArgOverload()
+            throws FirebaseMessagingException {
+        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 13L);
+            return message;
+        });
+
+        fcmService.noticeAll("공지 제목");
+
+        // 단건 오버로드가 내부적으로 2-arg 버전을 호출하므로, 발송과 저장이
+        // 각각 정확히 1회여야 한다 (중복 푸시/중복 행 방지).
+        verify(firebaseMessaging).send(any(com.google.firebase.messaging.Message.class));
+        org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
+        verify(fcmMessageRepository).save(captor.capture());
+        assertThat(captor.getValue().getTargetId()).isNull();
+    }
+
+    @Test
+    void noticeAll_recordIsNotAnAdminMessageSoItStaysOutOfAdminStats()
+            throws FirebaseMessagingException {
+        // 토픽 발송 행이 이제 targetCount=1, SUCCESS로 확정되므로,
+        // adminMessage로 잘못 분류되면 관리자 발송 통계에 섞여 들어간다.
+        when(fcmMessageRepository.save(any(FcmMessage.class))).thenAnswer(invocation -> {
+            FcmMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", 14L);
+            return message;
+        });
+
+        fcmService.noticeAll("공지 제목", 7L);
+
+        org.mockito.ArgumentCaptor<FcmMessage> captor = org.mockito.ArgumentCaptor.forClass(FcmMessage.class);
+        verify(fcmMessageRepository).save(captor.capture());
+        assertThat(captor.getValue().isAdminMessage()).isFalse();
     }
 
     private void verifySavedPendingMessage(int expectedTargetCount) {

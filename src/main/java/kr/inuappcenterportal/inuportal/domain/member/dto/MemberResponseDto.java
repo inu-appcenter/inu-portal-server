@@ -2,7 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.member.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,6 +28,10 @@ public class MemberResponseDto {
     @Schema(description = "학과")
     private String department;
 
+    private String departmentCode;
+
+    private String studentId;
+
     @Schema(description = "약관 동의 여부", example = "false")
     private Boolean termsAgreed;
 
@@ -50,6 +54,11 @@ public class MemberResponseDto {
         this.fireId = member.getFireId();
         this.role = role;
         this.department = department == null? null : department.getDepartmentName();
+        if (member.getSchoolDepartment() != null) {
+            this.department = member.getSchoolDepartment().getName();
+            this.departmentCode = member.getSchoolDepartment().getCode();
+        }
+        this.studentId = member.getStudentId();
         this.termsAgreed = member.getTermsAgreed();
         this.joinedAt = member.getJoinedAt();
         this.profileModifiedAt = member.getProfileModifiedAt();

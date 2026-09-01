@@ -4,12 +4,18 @@ services:
     container_name: intip
     init: true
     restart: unless-stopped
+    # graceful shutdown 드레인이 끝날 때까지 SIGKILL을 늦춘다 (기본 10s → 45s)
+    stop_grace_period: 45s
     shm_size: '2gb'
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: prod
+      # graceful shutdown: 종료 신호 후 진행 중인 요청/비동기 작업을 마무리한 뒤 종료
+      SERVER_SHUTDOWN: graceful
+      SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE: 15s
       COURSE_OVERVIEW_DIRECTORY: /intip/overviews
-      COURSE_OVERVIEW_FILENAME_PATTERN: course-offering-{year}-{term-code}.xlsx
+      COURSE_OVERVIEW_FILENAME_PATTERN: "course-offering-{year}-{term-code}.xlsx"
+      COURSE_OVERVIEW_CAPACITY_FILENAME_PATTERN: "course-offering-capacity-{year}-{term-code}.xlsx"
     ports:
       - "8086:8086"
     volumes:

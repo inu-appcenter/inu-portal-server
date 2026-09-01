@@ -3,13 +3,14 @@ package kr.inuappcenterportal.inuportal.domain.notice.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
+import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticeListResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.DepartmentNoticePageResponse;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeWithContentResponseDto;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.AttachmentMeta;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.DepartmentNoticeContentStatus;
 import kr.inuappcenterportal.inuportal.domain.notice.enums.NoticeContentStatus;
 
@@ -544,6 +545,8 @@ public class NoticeService {
 
     private int backfillDepartmentNoticeContents(Department[] departments, int start, int end) {
         int processedCount = 0;
+        LocalDate refreshThresholdDate = LocalDate.now().minusDays(7);
+        LocalDateTime fetchedBefore = LocalDateTime.now().minusHours(24);
 
         for (int i = start; i < end; i++) {
             Department department = departments[i];
@@ -553,11 +556,13 @@ public class NoticeService {
                     List.of(
                             DepartmentNoticeContentStatus.PENDING,
                             DepartmentNoticeContentStatus.FAILED,
-                            DepartmentNoticeContentStatus.SUCCESS,
                             DepartmentNoticeContentStatus.ENRICH_PENDING,
                             DepartmentNoticeContentStatus.NO_TEXT_CONTENT,
                             DepartmentNoticeContentStatus.OCR_PENDING
                     ),
+                    refreshThresholdDate,
+                    fetchedBefore,
+                    List.of(DepartmentNoticeContentStatus.ACCESS_DENIED),
                     PageRequest.of(0, DEPT_CONTENT_LIMIT_PER_DEPARTMENT)
             );
 
@@ -664,7 +669,7 @@ public class NoticeService {
             return;
         }
 
-        if (departmentNotice.isContentCrawlBlocked() && departmentNotice.hasContentCrawlMetadata()) {
+        if (departmentNotice.getContentStatus() == DepartmentNoticeContentStatus.ACCESS_DENIED && departmentNotice.hasContentCrawlMetadata()) {
             return;
         }
 
@@ -687,13 +692,6 @@ public class NoticeService {
             }
 
             Element contentRoot = findDepartmentNoticeContentRoot(detailDocument, config);
-            if (contentRoot == null && false) {
-                departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
-                log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
-                        departmentNotice.getDepartment().name(), departmentNotice.getUrl());
-                return;
-            }
-
             Element sanitizedContent = contentRoot == null ? null : contentRoot.clone();
             if (sanitizedContent != null) {
                 sanitizedContent.select("script, style, noscript, iframe").remove();
@@ -702,29 +700,44 @@ public class NoticeService {
             String contentHtml = sanitizedContent == null ? "" : sanitizedContent.html().trim();
             String contentText = sanitizedContent == null ? "" : sanitizedContent.text().trim();
             List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, departmentNotice.getUrl());
+            String inlineImagesJson = writeJson(inlineImageUrls);
             List<AttachmentMeta> attachmentMetas = collectAttachmentMetas(detailDocument, config, departmentNotice.getUrl());
+            String attachmentMetaJson = writeJson(attachmentMetas);
+
             if (contentRoot == null && inlineImageUrls.isEmpty() && attachmentMetas.isEmpty()) {
                 departmentNotice.markContentFailed(limitMessage("학과 공지 본문 selector를 찾지 못했습니다."));
                 log.warn("학과 공지 본문 selector를 찾지 못했습니다. department={}, url={}",
                         departmentNotice.getDepartment().name(), departmentNotice.getUrl());
                 return;
             }
-            if (contentText.isBlank() && false) {
-                departmentNotice.markContentFailed(limitMessage("학과 공지 본문 추출 결과가 비어 있습니다."));
-                log.warn("학과 공지 본문 추출 결과가 비어 있습니다. department={}, url={}",
-                        departmentNotice.getDepartment().name(), departmentNotice.getUrl());
+
+            String newContentHash = sha256(contentText);
+
+            if (departmentNotice.hasContent()
+                    && Objects.equals(departmentNotice.getContentHash(), newContentHash)
+                    && Objects.equals(departmentNotice.getAttachmentMetaJson(), attachmentMetaJson)
+                    && Objects.equals(departmentNotice.getInlineImageUrlsJson(), inlineImagesJson)) {
+                departmentNotice.touchContentFetchedAt(LocalDateTime.now());
+                if (departmentNotice.getContentStatus() == DepartmentNoticeContentStatus.PENDING
+                        || departmentNotice.getContentStatus() == DepartmentNoticeContentStatus.FAILED) {
+                    updateContentStatusAfterCrawl(departmentNotice, contentText, inlineImageUrls, attachmentMetas);
+                }
+                log.debug("[학과공지] 본문 내용 변동 없음: department={}, title={}",
+                        departmentNotice.getDepartment().name(), departmentNotice.getTitle());
                 return;
             }
 
             departmentNotice.updateContent(
                     contentHtml,
                     contentText,
-                    sha256(contentText),
+                    newContentHash,
                     LocalDateTime.now(),
-                    writeJson(inlineImageUrls),
-                    writeJson(attachmentMetas)
+                    inlineImagesJson,
+                    attachmentMetaJson
             );
             updateContentStatusAfterCrawl(departmentNotice, contentText, inlineImageUrls, attachmentMetas);
+            log.info("[학과공지] 본문/첨부파일 수집 및 업데이트 완료: department={}, title={}",
+                    departmentNotice.getDepartment().name(), departmentNotice.getTitle());
         } catch (Exception e) {
             departmentNotice.markContentFailed(limitMessage(e.getMessage()));
             log.warn("학과 공지 본문 크롤링에 실패했습니다. department={}, url={}, reason={}",
@@ -1227,15 +1240,19 @@ public class NoticeService {
     )
     @Transactional
     public void backfillNoticeContents() {
+        String refreshThresholdDate = LocalDate.now().minusDays(7).format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        LocalDateTime fetchedBefore = LocalDateTime.now().minusHours(12);
         List<Notice> notices = noticeRepository.findBackfillTargets(
                 List.of(
                         NoticeContentStatus.PENDING,
                         NoticeContentStatus.FAILED,
-                        NoticeContentStatus.SUCCESS,
                         NoticeContentStatus.ENRICH_PENDING,
                         NoticeContentStatus.NO_TEXT_CONTENT,
                         NoticeContentStatus.OCR_PENDING
                 ),
+                refreshThresholdDate,
+                fetchedBefore,
+                List.of(NoticeContentStatus.ACCESS_DENIED),
                 PageRequest.of(0, 15)
         );
 
@@ -1250,7 +1267,7 @@ public class NoticeService {
 
     @Transactional
     public void syncNoticeContent(Notice notice) {
-        if (notice.isContentCrawlBlocked() && notice.hasContentCrawlMetadata()) {
+        if (notice.getContentStatus() == NoticeContentStatus.ACCESS_DENIED && notice.hasContentCrawlMetadata()) {
             return;
         }
 
@@ -1307,6 +1324,7 @@ public class NoticeService {
         String contentHtml = sanitizedContent.html().trim();
         String contentText = sanitizedContent.text().trim();
         List<String> inlineImageUrls = collectInlineImageUrls(sanitizedContent, notice.getUrl());
+        String inlineImagesJson = writeJson(inlineImageUrls);
 
         Set<String> seenUrls = new LinkedHashSet<>();
         List<AttachmentMeta> attachmentMetas = new ArrayList<>();
@@ -1329,16 +1347,32 @@ public class NoticeService {
                 ));
             }
         }
+        String attachmentMetaJson = writeJson(attachmentMetas);
+        String newContentHash = sha256(contentText);
+
+        if (notice.hasContent()
+                && Objects.equals(notice.getContentHash(), newContentHash)
+                && Objects.equals(notice.getAttachmentMetaJson(), attachmentMetaJson)
+                && Objects.equals(notice.getInlineImageUrlsJson(), inlineImagesJson)) {
+            notice.touchContentFetchedAt(LocalDateTime.now());
+            if (notice.getContentStatus() == NoticeContentStatus.PENDING
+                    || notice.getContentStatus() == NoticeContentStatus.FAILED) {
+                updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
+            }
+            log.debug("[학교공지] 본문 내용 변동 없음: [{}] {}", notice.getCategory(), notice.getTitle());
+            return;
+        }
 
         notice.updateContent(
                 contentHtml,
                 contentText,
-                sha256(contentText),
+                newContentHash,
                 LocalDateTime.now(),
-                writeJson(inlineImageUrls),
-                writeJson(attachmentMetas)
+                inlineImagesJson,
+                attachmentMetaJson
         );
         updateNoticeContentStatusAfterCrawl(notice, contentText, inlineImageUrls, attachmentMetas);
+        log.info("[학교공지] 본문/첨부파일 수집 및 업데이트 완료: [{}] {}", notice.getCategory(), notice.getTitle());
     }
 
     private void updateNoticeContentStatusAfterCrawl(
@@ -1377,6 +1411,15 @@ public class NoticeService {
                 .orElseThrow(() -> new MyException(MyErrorCode.NOTICE_NOT_FOUND));
         List<AttachmentMeta> attachments = readAttachmentMetas(notice.getAttachmentMetaJson());
         return NoticeDetailResponseDto.of(notice, attachments);
+    }
+
+    @Transactional(readOnly = true)
+    public DepartmentNoticeDetailResponseDto getDepartmentNoticeDetail(Long id) {
+        DepartmentNotice departmentNotice = departmentNoticeRepository.findById(id)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOTICE_NOT_FOUND));
+        List<AttachmentMeta> attachments = readAttachmentMetas(departmentNotice.getAttachmentMetaJson());
+        boolean hasSchedules = scheduleRepository.existsBySourceNoticeIdAndAiGeneratedTrue(id);
+        return DepartmentNoticeDetailResponseDto.of(departmentNotice, attachments, hasSchedules);
     }
 
     @Transactional(readOnly = true)

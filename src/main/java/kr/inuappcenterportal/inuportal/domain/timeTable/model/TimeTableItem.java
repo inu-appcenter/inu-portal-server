@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomSchedule;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -83,5 +85,12 @@ public class TimeTableItem {
             CustomSchedule customSchedule
     ) {
         return new TimeTableItem(memo, TimeTableItemType.CUSTOM, timeTable, null, customSchedule);
+    }
+
+    public void updateMemo(String memo) {
+        if (memo != null && memo.isBlank())
+            throw new MyException(MyErrorCode.INVALID_INPUT);
+
+        this.memo = memo;
     }
 }

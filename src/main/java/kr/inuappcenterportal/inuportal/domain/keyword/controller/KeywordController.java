@@ -4,8 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.keyword.dto.res.KeywordResponse;
 import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
+import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import kr.inuappcenterportal.inuportal.domain.notice.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import java.util.List;
 public class KeywordController {
 
     private final KeywordService keywordService;
+    private final SchoolDepartmentService schoolDepartmentService;
 
     // 키워드 알림 조회
     @Operation(summary = "키워드 알림 조회",
@@ -35,16 +37,22 @@ public class KeywordController {
     // 키워드 알림 등록
     @Operation(summary = "키워드 알림 등록",
             description = "키워드와 카테고리를 입력하여 키워드 알림을 등록합니다. <br><br>" +
-                    "keyword: 알림을 받고자 하는 키워드 <br>" +
+                    "keyword: 알림을 받고자 하는 키워드 (또는 제외할 키워드) <br>" +
                     "department: 학과 (학과 공지 키워드 알림 설정 시) <br>" +
-                    "category: 학교 공지 카테고리 (특정 학교 공지 카테고리에 한해 키워드 알림 설정 시)")
+                    "category: 학교 공지 카테고리 (특정 학교 공지 카테고리에 한해 키워드 알림 설정 시) <br>" +
+                    "isExcluded: 제외 키워드 여부 (기본값 false)")
     @PostMapping
     public ResponseEntity<ResponseDto<KeywordResponse>> addKeyword(@AuthenticationPrincipal Member member,
                                                                    @RequestParam String keyword,
                                                                    @RequestParam(required = false) Department department,
-                                                                   @RequestParam(required = false) String category) {
+                                                                   @RequestParam(required = false) String departmentCode,
+                                                                   @RequestParam(required = false) String category,
+                                                                   @RequestParam(defaultValue = "false") boolean isExcluded) {
+        Department resolvedDepartment = departmentCode == null
+                ? department
+                : schoolDepartmentService.getNoticeDepartment(departmentCode);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ResponseDto.of(keywordService.addKeyword(member, keyword, department, category), "키워드 알림 등록 성공"));
+                .body(ResponseDto.of(keywordService.addKeyword(member, keyword, resolvedDepartment, category, isExcluded), "키워드 알림 등록 성공"));
     }
 
     // 키워드 알림 삭제
@@ -75,6 +83,18 @@ public class KeywordController {
                                                                                @RequestBody List<Department> departments) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ResponseDto.of(keywordService.syncDepartmentFcm(member, departments), "학과 새 글 알림 구독 성공"));
+    }
+
+    @PostMapping("/school-department")
+    public ResponseEntity<ResponseDto<List<KeywordResponse>>> syncSchoolDepartmentFcm(
+            @AuthenticationPrincipal Member member,
+            @RequestBody List<String> departmentCodes
+    ) {
+        List<Department> departments = departmentCodes == null ? List.of() : departmentCodes.stream()
+                .map(schoolDepartmentService::getNoticeDepartment)
+                .toList();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ResponseDto.of(keywordService.syncDepartmentFcm(member, departments), "학교 학과 기준 새 글 알림 구독 성공"));
     }
 
     // 학교 새 글 알림 조회
