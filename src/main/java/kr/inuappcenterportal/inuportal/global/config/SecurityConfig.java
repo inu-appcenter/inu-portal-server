@@ -53,7 +53,7 @@ public class SecurityConfig {
                         // ADMIN 권한 전용 설정
                         .requestMatchers(HttpMethod.POST, "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync", "/api/semesters/sync", "/api/courses/sync", "/api/course-offerings/sync").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/logs/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/suggestions/*/answer").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/suggestions/*/status").hasRole("ADMIN")
                         .requestMatchers("/api/members/all", "/api/reports", "/api/images", "/api/images/**", "/api/categories", "/api/councilNotices", "/api/councilNotices/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs/**", "/api/tokens/admin/**", "/api/admin/feature-flags/**").hasRole("ADMIN")
 
                         // USER 또는 ADMIN 권한 설정

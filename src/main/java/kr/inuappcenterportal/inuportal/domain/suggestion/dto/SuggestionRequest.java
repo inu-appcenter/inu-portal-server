@@ -21,7 +21,7 @@ public class SuggestionRequest {
     @Size(max = 1000)
     private String cheerMessage;
 
-    @Schema(description = "문의 유형", example = "BUG", allowableValues = {"BUG", "FEATURE_REQUEST", "ETC"})
+    @Schema(description = "문의 유형", example = "BUG_REPORT", allowableValues = {"BUG_REPORT", "FEATURE_SUGGESTION", "SCHOOL_INFO_ERROR", "ETC", "CHEER"})
     @NotBlank
     private String category;
 
