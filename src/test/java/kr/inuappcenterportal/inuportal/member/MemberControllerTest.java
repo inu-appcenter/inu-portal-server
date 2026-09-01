@@ -32,6 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.when;
 import static org.mockito.Mockito.mock;
@@ -194,9 +195,55 @@ public class MemberControllerTest {
         verify(memberService).updateMemberNicknameFireId(any(Long.class),any(MemberUpdateNicknameDto.class));
     }
 
+    @Test
+    @DisplayName("주변 친구 노출 설정 변경 테스트")
+    void updateNearbyVisibilityTest() throws Exception {
+        Member authMember = mock(Member.class);
+        when(authMember.getId()).thenReturn(1L);
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
+        kr.inuappcenterportal.inuportal.domain.member.dto.NearbyVisibilityRequestDto dto =
+                new kr.inuappcenterportal.inuportal.domain.member.dto.NearbyVisibilityRequestDto(true);
 
+        mockMvc.perform(patch("/api/members/nearby-visibility")
+                        .header("Auth", token)
+                        .content(objectMapper.writeValueAsString(dto))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.msg").value("주변 친구 찾기 노출 설정이 변경되었습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andDo(print());
 
+        verify(memberService).updateNearbyVisibility(eq(1L), eq(true));
+    }
 
+    @Test
+    @DisplayName("위치 정보 갱신 테스트")
+    void updateLocationTest() throws Exception {
+        Member authMember = mock(Member.class);
+        when(authMember.getId()).thenReturn(1L);
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
+        kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto dto =
+                new kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto(37.4638, 126.6321);
+
+        mockMvc.perform(put("/api/members/location")
+                        .header("Auth", token)
+                        .content(objectMapper.writeValueAsString(dto))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.msg").value("위치 정보가 갱신되었습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andDo(print());
+
+        verify(memberService).updateLocation(eq(1L), any(kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto.class));
+    }
 }

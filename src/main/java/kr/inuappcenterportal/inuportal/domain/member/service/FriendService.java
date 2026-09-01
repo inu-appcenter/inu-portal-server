@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.FriendAliasRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.FriendResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.NearbyFriendResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
 import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -18,6 +19,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -272,5 +276,64 @@ public class FriendService {
 
         return !blockRepository.existsByBlockerAndBlocked(member, target)
                 && !blockRepository.existsByBlockerAndBlocked(target, member);
+    }
+
+    private static final int DEFAULT_NEARBY_RADIUS_METERS = 200;
+    private static final long NEARBY_LOCATION_TTL_MINUTES = 5L;
+    private static final double EARTH_RADIUS_METERS = 6371000.0;
+
+    @Transactional(readOnly = true)
+    public List<NearbyFriendResponseDto> getNearbyFriends(Long memberId, Double latitude, Double longitude, Integer radiusMeters) {
+        if (latitude == null || longitude == null) {
+            throw new MyException(MyErrorCode.REQUIRED_LOCATION_PARAMETER);
+        }
+        if (latitude < -90.0 || latitude > 90.0 || longitude < -180.0 || longitude > 180.0) {
+            throw new MyException(MyErrorCode.INVALID_LOCATION_VALUE);
+        }
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+
+        int effectiveRadius = (radiusMeters == null || radiusMeters <= 0) ? DEFAULT_NEARBY_RADIUS_METERS : radiusMeters;
+        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(NEARBY_LOCATION_TTL_MINUTES);
+
+        List<Member> candidates = memberRepository.findActiveNearbyCandidates(cutoffTime, member.getId());
+
+        List<NearbyFriendResponseDto> result = new ArrayList<>();
+        for (Member candidate : candidates) {
+            if (isAcceptedFriend(member.getId(), candidate.getId())) {
+                continue;
+            }
+            if (blockRepository.existsByBlockerAndBlocked(member, candidate) ||
+                    blockRepository.existsByBlockerAndBlocked(candidate, member)) {
+                continue;
+            }
+
+            double distance = calculateDistanceInMeters(latitude, longitude, candidate.getLatitude(), candidate.getLongitude());
+            long distanceMeters = Math.round(distance);
+
+            if (distanceMeters <= effectiveRadius) {
+                result.add(NearbyFriendResponseDto.builder()
+                        .memberId(candidate.getId())
+                        .nickname(candidate.getNickname())
+                        .studentId(candidate.getMaskedStudentId())
+                        .fireId(candidate.getFireId())
+                        .distanceMeters(distanceMeters)
+                        .build());
+            }
+        }
+
+        result.sort(Comparator.comparingLong(NearbyFriendResponseDto::distanceMeters));
+        return result;
+    }
+
+    private double calculateDistanceInMeters(double lat1, double lon1, double lat2, double lon2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return EARTH_RADIUS_METERS * c;
     }
 }

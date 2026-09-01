@@ -410,4 +410,57 @@ public class MemberServiceTest {
 
         assertTrue(member.getTermsAgreed());
     }
+
+    @Test
+    @DisplayName("주변 친구 노출 설정 변경 테스트")
+    public void updateNearbyVisibilityTest() {
+        Member member = Member.builder().studentId("202301452").roles(Collections.singletonList("ROLE_USER")).build();
+        ReflectionTestUtils.setField(member, "id", 1L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+
+        assertFalse(member.getNearbyVisibility());
+
+        memberService.updateNearbyVisibility(1L, true);
+        assertTrue(member.getNearbyVisibility());
+
+        memberService.updateNearbyVisibility(1L, false);
+        assertFalse(member.getNearbyVisibility());
+    }
+
+    @Test
+    @DisplayName("위치 정보 갱신 성공 테스트")
+    public void updateLocationSuccessTest() {
+        Member member = Member.builder().studentId("202301452").roles(Collections.singletonList("ROLE_USER")).build();
+        ReflectionTestUtils.setField(member, "id", 1L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+
+        kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto dto =
+                new kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto(37.4638, 126.6321);
+
+        memberService.updateLocation(1L, dto);
+
+        assertEquals(37.4638, member.getLatitude());
+        assertEquals(126.6321, member.getLongitude());
+        assertNotNull(member.getLocationUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("위치 정보 갱신 실패 - 파라미터 누락")
+    public void updateLocationMissingParameterTest() {
+        kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto dto =
+                new kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto(null, 126.6321);
+
+        MyException ex = assertThrows(MyException.class, () -> memberService.updateLocation(1L, dto));
+        assertEquals(kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.REQUIRED_LOCATION_PARAMETER, ex.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("위치 정보 갱신 실패 - 위경도 범위 오류")
+    public void updateLocationInvalidRangeTest() {
+        kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto dto =
+                new kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto(95.0, 126.6321);
+
+        MyException ex = assertThrows(MyException.class, () -> memberService.updateLocation(1L, dto));
+        assertEquals(kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.INVALID_LOCATION_VALUE, ex.getErrorCode());
+    }
 }
