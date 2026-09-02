@@ -52,7 +52,7 @@ public class DailyBriefScheduler {
     /**
      * 1. 수업 시작 전 알림 (5분마다 실행)
      */
-    @Scheduled(cron = "0 */5 * * * MON-FRI")
+    @Scheduled(cron = "0 */5 * * * MON-FRI", zone = "Asia/Seoul")
     @Transactional(readOnly = true)
     public void sendPreClassAlerts() {
         Optional<Semester> openSemesterOpt = semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN);
@@ -123,7 +123,7 @@ public class DailyBriefScheduler {
     /**
      * 2. 당일 강의 목록 묶음 브리핑 (10분마다 실행)
      */
-    @Scheduled(cron = "0 0/10 7-22 * * MON-FRI")
+    @Scheduled(cron = "0 0/10 7-22 * * MON-FRI", zone = "Asia/Seoul")
     @Transactional(readOnly = true)
     public void sendDailyClassBriefing() {
         Optional<Semester> openSemesterOpt = semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN);
@@ -196,7 +196,7 @@ public class DailyBriefScheduler {
     /**
      * 3. 당일 학사/학과 일정 브리핑 (10분마다 실행)
      */
-    @Scheduled(cron = "0 0/10 7-22 * * *")
+    @Scheduled(cron = "0 0/10 7-22 * * *", zone = "Asia/Seoul")
     @Transactional(readOnly = true)
     public void sendDailyScheduleBriefing() {
         LocalDate today = LocalDate.now();
