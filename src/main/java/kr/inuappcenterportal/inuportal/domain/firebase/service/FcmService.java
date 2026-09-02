@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
@@ -47,10 +48,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -66,6 +69,17 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDisp
 public class FcmService {
 
     private static final long UNLINKED_MEMBER_ID = -1L;
+
+    /**
+     * 재시도해도 결과가 달라지지 않는 영구 실패 사유. 이 목록에 없는 사유(일시적 네트워크
+     * 오류, 타임아웃, UNAVAILABLE, INTERNAL, QUOTA_EXCEEDED 등)는 전부 재시도 대상으로 본다.
+     */
+    private static final Set<MessagingErrorCode> PERMANENT_ERROR_CODES = EnumSet.of(
+            MessagingErrorCode.UNREGISTERED,
+            MessagingErrorCode.INVALID_ARGUMENT,
+            MessagingErrorCode.SENDER_ID_MISMATCH,
+            MessagingErrorCode.THIRD_PARTY_AUTH_ERROR
+    );
 
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmMessageRepository fcmMessageRepository;
@@ -341,6 +355,9 @@ public class FcmService {
         return dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId, null);
     }
 
+    /**
+     * 개별 토큰에 대한 재전송 로직
+     */
     private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId, String path) {
         List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
         int batchSize = 500;
@@ -350,53 +367,34 @@ public class FcmService {
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
-            MulticastMessage message = createMulticastMessage(batchTokens, title, body, type, targetId, path);
 
             int batchSuccess = 0;
-            int batchFailure = 0;
+            int batchPermanentFailure = 0;
             long startNanos = System.nanoTime();
-            boolean batchFinished = false;
 
-            for (int attempt = 1; attempt <= maxRetries && !batchFinished; attempt++) {
-                com.google.api.core.ApiFuture<BatchResponse> future = null;
-                try {
-                    future = firebaseMessaging.sendEachForMulticastAsync(message);
-                    BatchResponse response = future.get(60, java.util.concurrent.TimeUnit.SECONDS);
-                    
-                    batchSuccess = response.getSuccessCount();
-                    batchFailure = response.getFailureCount();
+            // 아직 전달이 확정되지 않아 다음 시도에 다시 보내야 하는 토큰들.
+            List<String> pendingTokens = new ArrayList<>(batchTokens);
 
-                    List<SendResponse> responses = response.getResponses();
-                    for (int j = 0; j < responses.size(); j++) {
-                        SendResponse sendResponse = responses.get(j);
-                        if (!sendResponse.isSuccessful()) {
-                            String token = batchTokens.get(j);
-                            FirebaseMessagingException exception = sendResponse.getException();
-                            log.warn("FCM send failed: token={}, error={}", token, exception != null ? exception.getMessage() : "unknown");
-                        }
-                    }
-                    batchFinished = true;
-                } catch (Exception e) {
-                    if (future != null && !future.isDone()) {
-                        future.cancel(true);
-                    }
-                    log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
-                            attempt, maxRetries, fcmMessageId, batchTokens.size(), e.getMessage());
-
-                    if (attempt < maxRetries) {
-                        try {
-                            Thread.sleep(attempt * 1000L);
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                    } else {
-                        batchFailure = batchTokens.size();
-                        log.error("FCM batch send permanently failed after {} attempts for fcmMessageId={}, batchSize={}",
-                                maxRetries, fcmMessageId, batchTokens.size());
-                    }
+            for (int attempt = 1; attempt <= maxRetries && !pendingTokens.isEmpty(); attempt++) {
+                if (attempt > 1 && !backoffBeforeRetry(attempt)) {
+                    // 인터럽트된 경우 남은 토큰은 그대로 실패로 확정한다.
+                    break;
                 }
+
+                MulticastMessage message = createMulticastMessage(pendingTokens, title, body, type, targetId, path);
+                SendAttemptOutcome outcome = sendAttempt(pendingTokens, message, fcmMessageId, attempt, maxRetries);
+
+                batchSuccess += outcome.successCount();
+                batchPermanentFailure += outcome.permanentFailureCount();
+                pendingTokens = outcome.retryableTokens();
             }
+
+            if (!pendingTokens.isEmpty()) {
+                log.error("FCM send permanently failed after {} attempts: fcmMessageId={}, batchSize={}, unresolved={}",
+                        maxRetries, fcmMessageId, batchTokens.size(), pendingTokens.size());
+            }
+
+            int batchFailure = batchPermanentFailure + pendingTokens.size();
 
             fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
 
@@ -409,6 +407,72 @@ public class FcmService {
         }
 
         return new DeliveryResult(successCount, failureCount);
+    }
+
+    /**
+     * 한 번의 발송 시도. 배치 호출 자체가 실패하면 개별 결과를 알 수 없으므로 넘겨받은 토큰 전부를 재시도 대상으로 반환
+     */
+    private SendAttemptOutcome sendAttempt(List<String> tokens, MulticastMessage message, Long fcmMessageId, int attempt, int maxRetries) {
+        com.google.api.core.ApiFuture<BatchResponse> future = null;
+        try {
+            future = firebaseMessaging.sendEachForMulticastAsync(message);
+            BatchResponse response = future.get(60, java.util.concurrent.TimeUnit.SECONDS);
+
+            List<SendResponse> responses = response.getResponses();
+            List<String> retryableTokens = new ArrayList<>();
+            int permanentFailureCount = 0;
+
+            for (int j = 0; j < responses.size(); j++) {
+                SendResponse sendResponse = responses.get(j);
+                if (sendResponse.isSuccessful()) {
+                    continue;
+                }
+                String token = tokens.get(j);
+                FirebaseMessagingException exception = sendResponse.getException();
+                String reason = exception != null ? exception.getMessage() : "unknown";
+
+                if (isRetryable(exception)) {
+                    retryableTokens.add(token);
+                    log.warn("FCM send failed (retryable, attempt {}/{}): token={}, error={}",
+                            attempt, maxRetries, token, reason);
+                } else {
+                    permanentFailureCount++;
+                    log.warn("FCM send failed (permanent): token={}, error={}", token, reason);
+                }
+            }
+
+            return new SendAttemptOutcome(response.getSuccessCount(), permanentFailureCount, retryableTokens);
+        } catch (Exception e) {
+            if (future != null && !future.isDone()) {
+                future.cancel(true);
+            }
+            log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
+                    attempt, maxRetries, fcmMessageId, tokens.size(), e.getMessage());
+            return new SendAttemptOutcome(0, 0, new ArrayList<>(tokens));
+        }
+    }
+
+    /**
+     * 재시도 사유 판정. 사유를 알 수 없으면(소켓 타임아웃처럼 MessagingErrorCode가 비어 있는
+     * 경우가 대표적이다) 일시 장애로 본다. 영구 실패로 단정해 유실시키는 쪽이 더 나쁘다.
+     */
+    private boolean isRetryable(FirebaseMessagingException exception) {
+        if (exception == null) {
+            return true;
+        }
+        MessagingErrorCode errorCode = exception.getMessagingErrorCode();
+        return errorCode == null || !PERMANENT_ERROR_CODES.contains(errorCode);
+    }
+
+    /** 재시도 전 선형 백오프. 인터럽트되면 false를 돌려주고 호출부가 루프를 끝낸다. */
+    private boolean backoffBeforeRetry(int attempt) {
+        try {
+            Thread.sleep((attempt - 1) * 1000L);
+            return true;
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
     /**
@@ -881,6 +945,14 @@ public class FcmService {
             fcmMessage.markFailed(tokens.size());
             log.error("Daily Brief push failed: memberId={}, error={}", memberId, e.getMessage(), e);
         }
+    }
+
+    /** 한 번의 발송 시도 결과. {@code retryableTokens}는 다음 시도에 다시 보낼 토큰이다. */
+    private record SendAttemptOutcome(
+            int successCount,
+            int permanentFailureCount,
+            List<String> retryableTokens
+    ) {
     }
 
     private record DeliveryResult(
