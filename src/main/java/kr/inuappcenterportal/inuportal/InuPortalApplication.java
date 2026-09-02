@@ -15,6 +15,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties({SchoolApiProperties.class, CourseOverviewProperties.class, VllmProperties.class})
 public class InuPortalApplication {
 
+        @jakarta.annotation.PostConstruct
+    public void init() {
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Seoul"));
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(InuPortalApplication.class, args);
     }
