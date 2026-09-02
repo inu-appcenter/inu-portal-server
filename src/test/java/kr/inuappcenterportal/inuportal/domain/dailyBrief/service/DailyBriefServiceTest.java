@@ -86,4 +86,58 @@ class DailyBriefServiceTest {
         assertThat(result.scheduleDailyBriefTime()).isEqualTo("10:00");
         assertThat(result.scheduleScope()).isEqualTo(ScheduleScope.DEPT_ONLY);
     }
+
+    @Test
+    @DisplayName("설정이 없을 때 createDefaultSetting 호출 시 기본 설정 저장 테스트")
+    void createDefaultSetting_whenNotExists() {
+        // given
+        Member member = Member.builder()
+                .studentId("202000001")
+                .roles(List.of("ROLE_USER"))
+                .build();
+
+        given(dailyBriefSettingRepository.findByMember(member)).willReturn(Optional.empty());
+
+        // when
+        dailyBriefService.createDefaultSetting(member);
+
+        // then
+        org.mockito.Mockito.verify(dailyBriefSettingRepository, org.mockito.Mockito.times(1))
+                .save(any(DailyBriefSetting.class));
+    }
+
+    @Test
+    @DisplayName("이미 설정이 있을 때 createDefaultSetting 호출 시 중복 저장 안 함 테스트")
+    void createDefaultSetting_whenAlreadyExists() {
+        // given
+        Member member = Member.builder()
+                .studentId("202000001")
+                .roles(List.of("ROLE_USER"))
+                .build();
+
+        DailyBriefSetting existingSetting = DailyBriefSetting.createDefault(member);
+        given(dailyBriefSettingRepository.findByMember(member)).willReturn(Optional.of(existingSetting));
+
+        // when
+        dailyBriefService.createDefaultSetting(member);
+
+        // then
+        org.mockito.Mockito.verify(dailyBriefSettingRepository, org.mockito.Mockito.never())
+                .save(any(DailyBriefSetting.class));
+    }
+
+    @Test
+    @DisplayName("전체 회원 대상 기본 알림 설정 백필 테스트")
+    void backfillDefaultSettings() {
+        // given
+        given(dailyBriefSettingRepository.backfillDefaultSettingsForAllMembers()).willReturn(42);
+
+        // when
+        int count = dailyBriefService.backfillDefaultSettings();
+
+        // then
+        assertThat(count).isEqualTo(42);
+        org.mockito.Mockito.verify(dailyBriefSettingRepository, org.mockito.Mockito.times(1))
+                .backfillDefaultSettingsForAllMembers();
+    }
 }

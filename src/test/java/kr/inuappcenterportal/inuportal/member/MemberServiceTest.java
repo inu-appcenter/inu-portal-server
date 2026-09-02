@@ -12,6 +12,7 @@ import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ public class MemberServiceTest {
 
     @Mock
     private SchoolLoginRepository schoolLoginRepository;
+
+    @Mock
+    private DailyBriefService dailyBriefService;
 
 
     @Test
@@ -137,6 +141,7 @@ public class MemberServiceTest {
 
         //then
         verify(memberRepository).save(any());
+        verify(dailyBriefService, times(1)).createDefaultSetting(any());
     }
 
     @Test

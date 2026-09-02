@@ -43,4 +43,21 @@ public class DailyBriefService {
         setting.update(requestDto);
         return DailyBriefSettingResponseDto.from(setting);
     }
+
+    @Transactional
+    public void createDefaultSetting(Member member) {
+        if (member == null) {
+            return;
+        }
+        if (dailyBriefSettingRepository.findByMember(member).isEmpty()) {
+            dailyBriefSettingRepository.save(DailyBriefSetting.createDefault(member));
+        }
+    }
+
+    @Transactional
+    public int backfillDefaultSettings() {
+        int insertedCount = dailyBriefSettingRepository.backfillDefaultSettingsForAllMembers();
+        log.info("[Daily Brief] 기본 알림 설정 백필 완료: {}명의 회원에게 기본 설정 추가됨", insertedCount);
+        return insertedCount;
+    }
 }
