@@ -200,8 +200,9 @@ public class DailyBriefScheduler {
     @Transactional(readOnly = true)
     public void sendDailyScheduleBriefing() {
         LocalDate today = LocalDate.now();
-        List<Schedule> todayAllSchedules = scheduleRepository.findAllByDateIncluded(today);
-        if (todayAllSchedules.isEmpty()) {
+        // 연속 일정은 시작일에만 브리핑한다.
+        List<Schedule> todayStartingSchedules = scheduleRepository.findAllStartingOn(today);
+        if (todayStartingSchedules.isEmpty()) {
             return;
         }
 
@@ -213,7 +214,7 @@ public class DailyBriefScheduler {
                 Member member = setting.getMember();
                 ScheduleScope scope = setting.getScheduleScope();
 
-                List<Schedule> targetSchedules = todayAllSchedules.stream().filter(s -> {
+                List<Schedule> targetSchedules = todayStartingSchedules.stream().filter(s -> {
                     boolean isSchool = (s.getDepartment() == null);
                     boolean isMyDept = (s.getDepartment() != null && member.getDepartment() != null
                             && s.getDepartment().equals(member.getDepartment()));
