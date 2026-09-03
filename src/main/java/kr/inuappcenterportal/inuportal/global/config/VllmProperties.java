@@ -6,6 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record VllmProperties(
         String url,
         String apiKey,
-        String model
+        String model,
+        String visionModel
 ) {
+    public String getVisionModelOrDefault() {
+        return (visionModel != null && !visionModel.isBlank())
+                ? visionModel
+                : "Qwen/Qwen2.5-VL-7B-Instruct";
+    }
 }

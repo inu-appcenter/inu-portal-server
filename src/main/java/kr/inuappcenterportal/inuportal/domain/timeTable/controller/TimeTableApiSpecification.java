@@ -797,4 +797,22 @@ public interface TimeTableApiSpecification {
             @PathVariable Long semesterId,
             @RequestBody @Valid TimeTableCreateRequestDto request
     );
+
+    @Operation(
+            summary = "시간표 이미지 AI 인식",
+            description = """
+                    업로드된 시간표 이미지를 Vision AI(Qwen2.5-VL)로 분석하여 강의 목록을 추출하고,
+                    해당 학기 개설 강좌 DB와 매칭하여 후보 강좌 및 최적 추천 강좌를 반환합니다.
+                    """
+    )
+    ResponseEntity<ResponseDto<List<kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableImage.TimeTableImageRecognizeResponseDto>>> recognizeTimeTableImage(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Member member,
+            @Parameter(description = "시간표 이미지 파일")
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @Parameter(description = "시간표 년도 (생략 시 현재 학기)")
+            @RequestParam(value = "year", required = false) Integer year,
+            @Parameter(description = "시간표 학기 (생략 시 현재 학기)")
+            @RequestParam(value = "term", required = false) SemesterTerm term
+    );
 }

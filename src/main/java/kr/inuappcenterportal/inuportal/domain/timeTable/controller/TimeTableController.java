@@ -19,12 +19,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.ChatRoomTimeTableResponseDto;
 
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableImage.TimeTableImageRecognizeResponseDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableImageRecognitionService;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/timetables")
 public class TimeTableController implements TimeTableApiSpecification {
 
     private final TimeTableService timeTableService;
+    private final TimeTableImageRecognitionService timeTableImageRecognitionService;
 
 
     /**
@@ -193,6 +199,25 @@ public class TimeTableController implements TimeTableApiSpecification {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ResponseDto.of(response, "시간표 생성 성공")
+        );
+    }
+
+    /**
+     * 시간표 이미지 AI 인식 컨트롤러
+     */
+    @Override
+    @PostMapping(value = "/image-import/recognize", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<List<TimeTableImageRecognizeResponseDto>>> recognizeTimeTableImage(
+            @AuthenticationPrincipal Member member,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "year", required = false) Integer year,
+            @RequestParam(value = "term", required = false) SemesterTerm term
+    ) {
+        List<TimeTableImageRecognizeResponseDto> response =
+                timeTableImageRecognitionService.recognizeTimeTableImage(file, year, term);
+
+        return ResponseEntity.ok(
+                ResponseDto.of(response, "시간표 이미지 인식 및 강좌 매칭 성공")
         );
     }
 
