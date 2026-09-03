@@ -39,6 +39,13 @@ public class VllmService {
     }
 
     /**
+     * 기본 설정된 vLLM Vision 모델명 조회
+     */
+    public String getVisionModel() {
+        return vllmProperties.getVisionModelOrDefault();
+    }
+
+    /**
      * 범용 실시간 SSE 스트리밍 채팅 완성
      *
      * @param requestDto 요청 DTO (model이 null이면 기본 설정 모델 사용)
@@ -143,6 +150,9 @@ public class VllmService {
                     return choices.get(0).path("message").path("content").asText();
                 }
             }
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            log.error("vLLM sync chat error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("AI 응답 생성 실패: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             log.error("vLLM sync chat error: ", e);
             throw new RuntimeException("AI 응답 생성 실패", e);
