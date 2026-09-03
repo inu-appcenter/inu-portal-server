@@ -54,29 +54,42 @@ public class TimeTableImageRecognitionService {
     private final ObjectMapper objectMapper;
 
     private static final String VISION_SYSTEM_PROMPT = """
-            당신은 대학교 시간표 이미지를 분석하여 강의 목록을 정밀하게 추출하는 시각 분석 AI 전문가입니다.
-            제공된 시간표 이미지를 분석하여 모든 강의 블록의 정보를 JSON 규격에 맞추어 정확하게 추출하세요.
+            당신은 대학교 시간표 및 수강신청 이미지를 분석하여 강의 목록을 정밀하게 추출하는 시각 분석 AI 전문가입니다.
+            제공된 이미지를 분석하여 모든 강의 항목의 정보를 JSON 규격에 맞추어 정확하게 추출하세요.
 
-            [시간표 구조 분석 규칙]
-            1. 상단 가로축: 일반적으로 요일(월, 화, 수, 목, 금, 토)을 나타냅니다.
-            2. 좌측 세로축: 시간(09:00, 10:00, 10:30 등) 또는 교시(1교시, 2교시 등)를 나타냅니다.
-            3. 강의 셀(블록): 보통 [과목명], [교수명], [강의실] 순서로 여러 줄에 걸쳐 적혀 있습니다.
-               - 과목명: 셀의 가장 대표적인 타이틀입니다.
-               - 교수명: 사람이름 (예: 홍길동, 김철수 등). 없으면 빈 문자열("")로 설정하세요.
-               - 강의실: 건물/호수 (예: "7-302", "정201", "16호관 203호" 등). 없으면 빈 문자열("")로 설정하세요.
-               - 수강번호/학수번호: [12345]나 영숫자 조합 코드가 적혀있다면 subjectNumber에 채우세요. 없으면 빈 문자열("")로 설정하세요.
-            4. 동일 과목 통합: 동일한 과목이 여러 요일 또는 시간대로 나뉘어 있다면(예: 월 10:00~11:15, 수 10:00~11:15), 하나의 과목 항목 아래 meetings 배열에 각 시간대를 담으세요.
-            5. 요일(day) 표기: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY 중 하나로 정확히 매핑하세요.
-            6. 시간(startTime, endTime) 표기: 반드시 24시간 형식 "HH:mm" (예: "09:00", "10:15", "13:30", "15:00")으로 기재하세요.
+            [이미지 유형별 분석 규칙]
+
+            ■ 유형 1: 2D 격자형 시간표 (에브리타임, 대학교 포털 시간표 등)
+            1. 시간축 눈금 해석 (중요!):
+               - 좌측 축의 숫자는 시간(Hour)입니다: 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8...
+               - 12 다음의 1, 2, 3, 4, 5, 6, 7, 8은 '오후 시간(13:00, 14:00, 15:00, 16:00, 17:00, 18:00, 19:00, 20:00)'을 의미합니다! 절대로 오전 1시나 09:00으로 임의 추정하지 마세요.
+            2. 강의 블록의 시간 판독:
+               - 블록의 상단 모서리와 하단 모서리가 좌측 숫자 눈금의 어디에 걸쳐 있는지 수평선을 따라 정밀하게 확인하여 시작 시간과 종료 시간을 판독하세요.
+               - 시간표에 적힌 과목명을 1순위로 정확히 읽으세요 (예: '철근콘크리트구조2', '강구조1', '건축설비(2)', '건축구조실험(2)'). 과목명 뒤의 (2) 등 분반 표기도 과목명에 그대로 포함하세요.
+            3. 하단 비대면/온라인 강의 및 기타 항목:
+               - 시간표 그리드 하단에 별도로 나열된 비대면/e-러닝 과목(예: '문학과테마기행')도 놓치지 말고 추출하세요. (시간이 없으면 startTime="", endTime=""으로 기재)
+               - '근로', '알바' 등 비정규 개인 일정 블록도 title: "근로"로 추출하세요.
+            4. 동일 과목 통합: 동일한 과목이 여러 요일/시간대로 나뉘어 있다면(예: 월 10:00~11:30, 수 08:00~09:00), 하나의 과목 객체 아래 meetings 배열에 각 시간대를 담으세요.
+
+            ■ 유형 2: 수강신청 / 장바구니 / 신청정보 목록형 화면 (수강신청 앱, 포털 리스트 등)
+            1. 학수번호(수강번호) 추출 (최우선):
+               - 주황색 또는 괄호 안에 적힌 10자리 숫자 코드(예: [0010517001], [0011918001])가 있다면 반드시 subjectNumber에 추출하세요.
+            2. 과목명 추출:
+               - '[75분수업]', '[온라인혼합형강좌]' 같은 부가 수식어는 제외하고 순수 과목명만 title에 기재하세요 (예: '음성인식입문', '심층학습', '시스템보안', '블록체인').
+            3. 교수명 및 강의실 추출:
+               - 교수 이름(예: '김우일', '김인수', '이승수', '박기석')을 professor에 기재하세요.
+               - 건물-호수(예: '07-502', '07-505', '07-504')를 classroom에 기재하세요.
+            4. 요일 및 교시/시간:
+               - 요일(월, 화, 수, 목, 금)과 교시/시간 정보가 있으면 meetings에 기재하세요.
 
             [출력 형식 제한]
-            반드시 설명이나 인사말, Markdown 코드 블록(```json 등) 없이, 오직 아래와 같은 순수 JSON 배열만 출력하세요:
+            설명이나 인사말, Markdown 코드 블록(```json 등) 없이, 오직 아래와 같은 순수 JSON 배열만 출력하세요:
             [
               {
-                "title": "자료구조",
-                "professor": "홍길동",
-                "classroom": "7-302",
-                "subjectNumber": "",
+                "title": "과목명",
+                "professor": "교수명 (없으면 빈 문자열)",
+                "classroom": "강의실 (없으면 빈 문자열)",
+                "subjectNumber": "학수번호 (있으면 10자리 코드, 없으면 빈 문자열)",
                 "meetings": [
                   {
                     "day": "MONDAY",
@@ -340,14 +353,16 @@ public class TimeTableImageRecognitionService {
         return results;
     }
 
+    private static final Set<String> NON_COURSE_KEYWORDS = Set.of(
+            "근로", "교내근로", "국가근로", "알바", "아르바이트", "봉사", "동아리", "스터디", "개인일정", "일정"
+    );
+
     private int calculateMatchScore(
             ExtractedCourse extracted,
             CourseOffering offering,
             List<CourseMeetingResponseDto> meetings
     ) {
-        int score = 0;
-
-        // 1. 수강번호 / 학수번호 일치 여부 (최우선)
+        // 1. 수강번호 / 학수번호 일치 여부 (최우선: 완벽 일치 시 즉시 1000점)
         if (extracted.subjectNumber() != null && !extracted.subjectNumber().isBlank()) {
             if (extracted.subjectNumber().equalsIgnoreCase(offering.getSubjectNumber())) {
                 return 1000;
@@ -357,49 +372,98 @@ public class TimeTableImageRecognitionService {
         String extractedTitleNorm = normalizeText(extracted.title());
         String offeringTitleNorm = normalizeText(offering.getCourse().getTitle());
 
-        // 2. 과목명 비교
+        // 비정규 개인 일정 키워드(근로, 알바 등)는 교과목 DB와 매칭하지 않음
+        if (NON_COURSE_KEYWORDS.contains(extractedTitleNorm)) {
+            return 0;
+        }
+
+        // 2. 과목명 비교 (과목명 연관성이 없으면 시간표 시간대가 겹치더라도 매칭 절대 배제)
+        int titleScore = 0;
         if (extractedTitleNorm.equals(offeringTitleNorm)) {
-            score += 60;
+            titleScore = 100;
         } else if (offeringTitleNorm.contains(extractedTitleNorm) || extractedTitleNorm.contains(offeringTitleNorm)) {
-            score += 35;
+            titleScore = 70;
         } else {
             double sim = calculateSimilarity(extractedTitleNorm, offeringTitleNorm);
-            if (sim >= 0.7) {
-                score += (int) (sim * 40);
+            if (sim >= 0.45) {
+                titleScore = (int) (sim * 60);
             }
         }
 
-        // 3. 교수명 비교
+        // 과목명이 전혀 일치하지 않으면 후보 강좌로 절대 추천하지 않음
+        if (titleScore == 0) {
+            return 0;
+        }
+
+        int score = titleScore;
+
+        // 3. 분반 힌트 판별 (예: 과목명이 "건축설비(2)"인 경우 -> offering.getSubjectNumber() 끝자리 "002" 분반 우대)
+        String extractedDivision = extractDivisionHint(extracted.title());
+        if (extractedDivision != null && offering.getSubjectNumber() != null) {
+            String offeringSubject = offering.getSubjectNumber().trim();
+            if (offeringSubject.length() >= 3) {
+                String offeringDiv = offeringSubject.substring(offeringSubject.length() - 3).replaceAll("^0+", "");
+                if (extractedDivision.equals(offeringDiv)) {
+                    score += 40;
+                }
+            }
+        }
+
+        // 4. 교수명 비교
         if (extracted.professor() != null && !extracted.professor().isBlank()) {
             String extractedProfNorm = normalizeText(extracted.professor());
             String offeringProfNorm = normalizeText(offering.getProfessor());
             if (offeringProfNorm != null && !offeringProfNorm.isBlank()) {
                 if (extractedProfNorm.equals(offeringProfNorm)) {
-                    score += 30;
+                    score += 35;
                 } else if (offeringProfNorm.contains(extractedProfNorm) || extractedProfNorm.contains(offeringProfNorm)) {
-                    score += 15;
-                } else if (score > 40) {
-                    // 과목명은 일치하나 교수명이 완전히 다르면 감점 (다른 분반일 가능성)
-                    score -= 15;
+                    score += 20;
+                } else if (extractedProfNorm.length() >= 2 && offeringProfNorm.length() >= 2) {
+                    score -= 10;
                 }
             }
         }
 
-        // 4. 요일 및 시간대 비교
+        // 5. 강의실 비교
+        if (extracted.classroom() != null && !extracted.classroom().isBlank()) {
+            String extractedRoomNorm = normalizeText(extracted.classroom());
+            if (meetings != null) {
+                boolean roomMatched = meetings.stream().anyMatch(m -> {
+                    String roomNorm = normalizeText(m.location());
+                    return !roomNorm.isEmpty() && (roomNorm.contains(extractedRoomNorm) || extractedRoomNorm.contains(roomNorm));
+                });
+                if (roomMatched) {
+                    score += 20;
+                }
+            }
+        }
+
+        // 6. 요일 및 시간대 비교 (동일 과목 내 올바른 분반을 고르기 위한 보조 가중치, 최대 40점)
         if (meetings != null && !meetings.isEmpty() && extracted.meetings() != null && !extracted.meetings().isEmpty()) {
+            int meetingBonus = 0;
             for (TimeTableImageMeetingDto em : extracted.meetings()) {
                 for (CourseMeetingResponseDto om : meetings) {
                     if (em.day() != null && em.day().name().equalsIgnoreCase(om.day().name())) {
-                        score += 15;
+                        meetingBonus += 10;
                         if (isTimeClose(em.startTime(), om.startTime()) && isTimeClose(em.endTime(), om.endTime())) {
-                            score += 25;
+                            meetingBonus += 15;
                         }
                     }
                 }
             }
+            score += Math.min(meetingBonus, 40);
         }
 
         return score;
+    }
+
+    private String extractDivisionHint(String title) {
+        if (title == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\((\\d+)\\)").matcher(title);
+        if (m.find()) {
+            return m.group(1).replaceAll("^0+", "");
+        }
+        return null;
     }
 
     private boolean isTimeClose(String t1Str, LocalTime lt2) {
