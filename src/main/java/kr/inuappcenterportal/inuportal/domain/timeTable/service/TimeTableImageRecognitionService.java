@@ -334,7 +334,7 @@ public class TimeTableImageRecognitionService {
             Long recommendedId = null;
             if (!scoredList.isEmpty()) {
                 ScoredOffering top = scoredList.get(0);
-                if (top.score() >= 50) {
+                if (top.score() >= 50 || scoredList.size() == 1) {
                     recommendedId = top.offering().getId();
                 }
             }
