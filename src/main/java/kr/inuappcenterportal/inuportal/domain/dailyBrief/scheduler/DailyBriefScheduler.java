@@ -1,8 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.dailyBrief.scheduler;
 
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
+import kr.inuappcenterportal.inuportal.domain.course.service.CourseMeetingService;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
@@ -43,6 +45,7 @@ public class DailyBriefScheduler {
     private final TimeTableRepository timeTableRepository;
     private final TimeTableItemRepository timeTableItemRepository;
     private final CourseMeetingRepository courseMeetingRepository;
+    private final CourseMeetingService courseMeetingService;
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
     private final SemesterRepository semesterRepository;
     private final ScheduleRepository scheduleRepository;
@@ -285,13 +288,19 @@ public class DailyBriefScheduler {
 
         if (!courseOfferingIds.isEmpty()) {
             List<CourseMeeting> courseMeetings = courseMeetingRepository.findAllByCourseOfferingIdIn(courseOfferingIds);
+            Map<Long, List<CourseMeeting>> meetingsByOfferingId = courseMeetings.stream()
+                    .collect(Collectors.groupingBy(m -> m.getCourseOffering().getId()));
+
             for (TimeTableItem item : items) {
                 if (item.getCourseOffering() == null) continue;
                 String title = item.getCourseOffering().getCourse().getTitle();
 
-                for (CourseMeeting m : courseMeetings) {
-                    if (m.getCourseOffering().getId().equals(item.getCourseOffering().getId()) && m.getDay() == today) {
-                        entries.add(new ClassScheduleEntry(title, m.getLocation(), m.getStartTime(), m.getEndTime()));
+                List<CourseMeeting> itemMeetings = meetingsByOfferingId.getOrDefault(item.getCourseOffering().getId(), List.of());
+                List<CourseMeetingResponseDto> mergedMeetings = courseMeetingService.mergeContinuousMeetings(itemMeetings);
+
+                for (CourseMeetingResponseDto m : mergedMeetings) {
+                    if (m.day() == today) {
+                        entries.add(new ClassScheduleEntry(title, m.location(), m.startTime(), m.endTime()));
                     }
                 }
             }
