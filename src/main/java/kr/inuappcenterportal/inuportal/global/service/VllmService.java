@@ -150,6 +150,9 @@ public class VllmService {
                     return choices.get(0).path("message").path("content").asText();
                 }
             }
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            log.error("vLLM sync chat error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("AI 응답 생성 실패: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             log.error("vLLM sync chat error: ", e);
             throw new RuntimeException("AI 응답 생성 실패", e);

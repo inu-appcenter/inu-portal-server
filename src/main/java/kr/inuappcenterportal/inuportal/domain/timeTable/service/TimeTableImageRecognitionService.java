@@ -27,11 +27,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 
 @Service
 @RequiredArgsConstructor
@@ -106,7 +113,7 @@ public class TimeTableImageRecognitionService {
                 .model(visionModel)
                 .messages(messages)
                 .temperature(0.1)
-                .maxTokens(3000)
+                .maxTokens(1500)
                 .stream(false)
                 .build();
 
@@ -131,11 +138,43 @@ public class TimeTableImageRecognitionService {
 
     private String convertFileToDataUrl(MultipartFile file) {
         try {
+            byte[] bytes = file.getBytes();
+            BufferedImage original = ImageIO.read(new ByteArrayInputStream(bytes));
+
+            // 이미지 디코딩 성공 시, 토큰 초과 방지를 위해 최대 해상도를 1280px로 조절
+            if (original != null) {
+                int width = original.getWidth();
+                int height = original.getHeight();
+                int maxDim = Math.max(width, height);
+                final int TARGET_MAX_DIM = 1280;
+
+                if (maxDim > TARGET_MAX_DIM) {
+                    double scale = (double) TARGET_MAX_DIM / maxDim;
+                    int newWidth = (int) Math.round(width * scale);
+                    int newHeight = (int) Math.round(height * scale);
+
+                    BufferedImage resized = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D g2d = resized.createGraphics();
+                    g2d.setColor(Color.WHITE);
+                    g2d.fillRect(0, 0, newWidth, newHeight);
+                    g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.drawImage(original, 0, 0, newWidth, newHeight, null);
+                    g2d.dispose();
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(resized, "jpeg", baos);
+                    String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+                    return "data:image/jpeg;base64," + base64;
+                }
+            }
+
             String contentType = file.getContentType();
             if (contentType == null || !contentType.startsWith("image/")) {
                 contentType = "image/jpeg";
             }
-            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+            String base64 = Base64.getEncoder().encodeToString(bytes);
             return "data:" + contentType + ";base64," + base64;
         } catch (IOException e) {
             log.error("Failed to read image bytes: ", e);
