@@ -48,6 +48,7 @@ public class DailyBriefScheduler {
     private final ScheduleRepository scheduleRepository;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("M월 d일");
 
     /**
      * 1. 수업 시작 전 알림 (5분마다 실행)
@@ -233,12 +234,16 @@ public class DailyBriefScheduler {
                     continue;
                 }
 
-                String title = "[Daily Brief] 오늘의 학사일정을 확인하세요 🗓️";
+                String title = "오늘부터 시작되는 학사일정이에요.";
                 StringBuilder bodyBuilder = new StringBuilder();
                 for (int i = 0; i < targetSchedules.size(); i++) {
                     Schedule s = targetSchedules.get(i);
                     String categoryLabel = (s.getDepartment() == null) ? "학교" : s.getDepartment().getDepartmentName();
-                    bodyBuilder.append(String.format("• [%s] %s", categoryLabel, s.getContent()));
+                    bodyBuilder.append(String.format("• [%s] %s (%s)",
+                            categoryLabel,
+                            s.getContent(),
+                            formatSchedulePeriod(s)
+                    ));
                     if (i < targetSchedules.size() - 1) {
                         bodyBuilder.append("\n");
                     }
@@ -255,6 +260,19 @@ public class DailyBriefScheduler {
                 log.error("Failed to send daily schedule brief for memberId={}: {}", setting.getMember().getId(), e.getMessage(), e);
             }
         }
+    }
+
+    private String formatSchedulePeriod(Schedule schedule) {
+        LocalDate startDate = schedule.getStartDate();
+        LocalDate endDate = schedule.getEndDate();
+
+        if (endDate == null || endDate.equals(startDate)) {
+            return startDate.format(DATE_FORMATTER);
+        }
+
+        return String.format("%s ~ %s",
+                startDate.format(DATE_FORMATTER),
+                endDate.format(DATE_FORMATTER));
     }
 
     private List<ClassScheduleEntry> extractTodayClassEntries(List<TimeTableItem> items, DayOfWeek today) {
