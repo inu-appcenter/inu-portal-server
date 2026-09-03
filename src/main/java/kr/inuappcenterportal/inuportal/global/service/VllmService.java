@@ -39,6 +39,13 @@ public class VllmService {
     }
 
     /**
+     * 기본 설정된 vLLM Vision 모델명 조회
+     */
+    public String getVisionModel() {
+        return vllmProperties.getVisionModelOrDefault();
+    }
+
+    /**
      * 범용 실시간 SSE 스트리밍 채팅 완성
      *
      * @param requestDto 요청 DTO (model이 null이면 기본 설정 모델 사용)
