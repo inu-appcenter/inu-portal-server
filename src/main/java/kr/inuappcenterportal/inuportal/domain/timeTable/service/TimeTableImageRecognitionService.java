@@ -226,7 +226,7 @@ public class TimeTableImageRecognitionService {
                     String title = courseNode.path("title").asText("").trim();
                     String professor = courseNode.path("professor").asText("").trim();
                     String classroom = courseNode.path("classroom").asText("").trim();
-                    String subjectNumber = courseNode.path("subjectNumber").asText("").trim();
+                    String subjectNumber = courseNode.path("subjectNumber").asText("").replaceAll("[^0-9a-zA-Z]", "").trim();
 
                     List<TimeTableImageMeetingDto> meetings = new ArrayList<>();
                     JsonNode meetingsNode = courseNode.path("meetings");
@@ -364,7 +364,9 @@ public class TimeTableImageRecognitionService {
     ) {
         // 1. 수강번호 / 학수번호 일치 여부 (최우선: 완벽 일치 시 즉시 1000점)
         if (extracted.subjectNumber() != null && !extracted.subjectNumber().isBlank()) {
-            if (extracted.subjectNumber().equalsIgnoreCase(offering.getSubjectNumber())) {
+            String extSn = extracted.subjectNumber().replaceAll("[^0-9a-zA-Z]", "").trim();
+            String offSn = offering.getSubjectNumber() != null ? offering.getSubjectNumber().replaceAll("[^0-9a-zA-Z]", "").trim() : "";
+            if (!extSn.isEmpty() && extSn.equalsIgnoreCase(offSn)) {
                 return 1000;
             }
         }
