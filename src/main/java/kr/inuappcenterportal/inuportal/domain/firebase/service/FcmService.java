@@ -1,7 +1,16 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import com.google.firebase.messaging.*;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.ApsAlert;
+import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.MessagingErrorCode;
+import com.google.firebase.messaging.MulticastMessage;
+import com.google.firebase.messaging.Notification;
+import com.google.firebase.messaging.SendResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
@@ -44,7 +53,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -329,6 +342,9 @@ public class FcmService {
         return dispatchToMembersInternal(fcmMessageId, tokenAndMemberId, title, body, type, targetId, null);
     }
 
+    /**
+     * 개별 토큰에 대한 재전송 로직
+     */
     private DeliveryResult dispatchToMembersInternal(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType type, Long targetId, String path) {
         List<String> tokens = new ArrayList<>(tokenAndMemberId.keySet());
         int batchSize = 500;
@@ -426,12 +442,18 @@ public class FcmService {
     /**
      * 재시도해도 결과가 달라질 수 있는 오류인지 판단한다.
      * 토큰 자체가 무효한 경우(UNREGISTERED 등)는 재시도해도 동일하므로 즉시 실패로 확정한다.
+     * 사유를 알 수 없는 경우(소켓 타임아웃처럼 MessagingErrorCode가 비어 있는 경우)는
+     * 일시 장애로 보고 재시도한다. 영구 실패로 단정해 유실시키는 쪽이 더 나쁘다.
      */
     private boolean isRetryable(FirebaseMessagingException exception) {
-        if (exception == null || exception.getMessagingErrorCode() == null) {
-            return false;
+        if (exception == null) {
+            return true;
         }
-        return switch (exception.getMessagingErrorCode()) {
+        MessagingErrorCode errorCode = exception.getMessagingErrorCode();
+        if (errorCode == null) {
+            return true;
+        }
+        return switch (errorCode) {
             case UNAVAILABLE, INTERNAL, QUOTA_EXCEEDED -> true;
             default -> false;
         };

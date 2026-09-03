@@ -3,6 +3,8 @@ package kr.inuappcenterportal.inuportal.firebase;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.MessagingErrorCode;
+import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.SendResponse;
 import kr.inuappcenterportal.inuportal.config.FcmTestAsyncConfig;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
@@ -24,6 +26,7 @@ import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -31,6 +34,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,6 +47,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -329,6 +334,7 @@ class SendToMembersTest {
         when(failedResponse.isSuccessful()).thenReturn(false);
         when(failedResponse.getException()).thenReturn(firebaseMessagingException);
         when(firebaseMessagingException.getMessage()).thenReturn("registration-token-not-registered");
+        when(firebaseMessagingException.getMessagingErrorCode()).thenReturn(MessagingErrorCode.UNREGISTERED);
         when(firebaseMessaging.sendEachForMulticastAsync(any())).thenReturn(com.google.api.core.ApiFutures.immediateFuture(batchResponse));
 
         fcmService.sendToMembers(dispatch);
@@ -516,5 +522,109 @@ class SendToMembersTest {
                 .build();
         ReflectionTestUtils.setField(member, "id", id);
         return member;
+    }
+
+    /**
+     * API 타임아웃 회귀 테스트 (#143). sendEachForMulticast는 개별 토큰이 타임아웃으로 실패해도
+     * BatchResponse 자체는 정상 반환한다. 예전 구현은 이 경우를 로그만 남기고 즉시 실패로 확정해,
+     * 멀쩡한 토큰이 재시도 한 번 없이 유실됐다.
+     */
+    @Test
+    void dispatchRetriesOnlyTokensThatFailedWithTransientError() {
+        Map<String, Long> tokenAndMemberId = new LinkedHashMap<>();
+        tokenAndMemberId.put("token_ok", 69L);
+        tokenAndMemberId.put("token_timeout", 96L);
+
+        AdminNotificationDispatch dispatch = new AdminNotificationDispatch(
+                1L, "Test Title", "Test Content", tokenAndMemberId, List.of(69L, 96L), null);
+
+        FirebaseMessagingException timeout = mock(FirebaseMessagingException.class);
+        when(timeout.getMessage()).thenReturn("Timed out while making an API call: Connect timed out");
+        when(timeout.getMessagingErrorCode()).thenReturn(null);
+
+        // 중첩 스터빙(when(...) 인자 안에서 다시 스터빙)은 Mockito가 거부하므로 미리 만들어 둔다.
+        BatchResponse firstAttempt = mockBatchResponse(mockSendResponse(true, null), mockSendResponse(false, timeout));
+        BatchResponse retryAttempt = mockBatchResponse(mockSendResponse(true, null));
+
+        when(firebaseMessaging.sendEachForMulticastAsync(any()))
+                .thenReturn(com.google.api.core.ApiFutures.immediateFuture(firstAttempt))
+                .thenReturn(com.google.api.core.ApiFutures.immediateFuture(retryAttempt));
+
+        fcmService.sendToMembers(dispatch);
+
+        ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
+        verify(firebaseMessaging, times(2)).sendEachForMulticastAsync(captor.capture());
+
+        // 재시도는 실패한 토큰만 대상으로 한다. 이미 성공한 토큰이 빠지므로 중복 푸시도 없다.
+        assertThat(tokensOf(captor.getAllValues().get(0))).containsExactly("token_ok", "token_timeout");
+        assertThat(tokensOf(captor.getAllValues().get(1))).containsExactly("token_timeout");
+
+        verify(fcmTransactionService).updateFinalStatus(1L, 2, 0);
+    }
+
+    @Test
+    void dispatchDoesNotRetryPermanentFailures() {
+        Map<String, Long> tokenAndMemberId = new LinkedHashMap<>();
+        tokenAndMemberId.put("token_dead", 69L);
+
+        AdminNotificationDispatch dispatch = new AdminNotificationDispatch(
+                1L, "Test Title", "Test Content", tokenAndMemberId, List.of(69L), null);
+
+        FirebaseMessagingException unregistered = mock(FirebaseMessagingException.class);
+        when(unregistered.getMessage()).thenReturn("registration-token-not-registered");
+        when(unregistered.getMessagingErrorCode()).thenReturn(MessagingErrorCode.UNREGISTERED);
+
+        BatchResponse response = mockBatchResponse(mockSendResponse(false, unregistered));
+
+        when(firebaseMessaging.sendEachForMulticastAsync(any()))
+                .thenReturn(com.google.api.core.ApiFutures.immediateFuture(response));
+
+        fcmService.sendToMembers(dispatch);
+
+        verify(firebaseMessaging, times(1)).sendEachForMulticastAsync(any());
+        verify(fcmTransactionService).updateFinalStatus(1L, 0, 1);
+    }
+
+    @Test
+    void dispatchDoesNotRetryWhenTheCallItselfFails() {
+        Map<String, Long> tokenAndMemberId = new LinkedHashMap<>();
+        tokenAndMemberId.put("token_69", 69L);
+        tokenAndMemberId.put("token_96", 96L);
+
+        AdminNotificationDispatch dispatch = new AdminNotificationDispatch(
+                1L, "Test Title", "Test Content", tokenAndMemberId, List.of(69L, 96L), null);
+
+        FirebaseMessagingException callFailure = mock(FirebaseMessagingException.class);
+
+        when(firebaseMessaging.sendEachForMulticastAsync(any()))
+                .thenReturn(com.google.api.core.ApiFutures.immediateFailedFuture(callFailure));
+
+        fcmService.sendToMembers(dispatch);
+
+        // 배치 호출 자체가 실패하면 이미 나간 요청이 성공했을 수 있으므로 재발송하지 않고
+        // 미확인(unknown)으로 남긴다. 실패로 단정해 유실시키는 쪽이 더 나쁘다.
+        verify(firebaseMessaging, times(1)).sendEachForMulticastAsync(any());
+        verify(fcmTransactionService).updateFinalStatus(1L, 0, 0);
+    }
+
+    private BatchResponse mockBatchResponse(SendResponse... responses) {
+        BatchResponse batchResponse = mock(BatchResponse.class);
+        int successCount = (int) Arrays.stream(responses).filter(SendResponse::isSuccessful).count();
+        when(batchResponse.getResponses()).thenReturn(List.of(responses));
+        when(batchResponse.getSuccessCount()).thenReturn(successCount);
+        when(batchResponse.getFailureCount()).thenReturn(responses.length - successCount);
+        return batchResponse;
+    }
+
+    private SendResponse mockSendResponse(boolean successful, FirebaseMessagingException exception) {
+        SendResponse sendResponse = mock(SendResponse.class);
+        when(sendResponse.isSuccessful()).thenReturn(successful);
+        when(sendResponse.getException()).thenReturn(exception);
+        return sendResponse;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> tokensOf(MulticastMessage message) {
+        return (List<String>) ReflectionTestUtils.getField(message, "tokens");
     }
 }
