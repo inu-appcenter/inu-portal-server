@@ -42,6 +42,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
@@ -848,7 +849,13 @@ public class FcmService {
                 .toList();
     }
 
-    @Transactional
+    /**
+     * Daily Brief 스케줄러는 조회 성능을 위해 read-only 트랜잭션에서 실행된다.
+     * 발송 이력 저장은 반드시 별도의 쓰기 트랜잭션에서 수행해야 하며,
+     * 사용자 한 명의 저장 실패가 스케줄러 전체 트랜잭션을 rollback-only로
+     * 오염시키지 않도록 사용자별로 트랜잭션을 분리한다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendDailyBriefNotification(Long memberId, String title, String body, FcmMessageType type, String path) {
         if (memberId == null) {
             return;
