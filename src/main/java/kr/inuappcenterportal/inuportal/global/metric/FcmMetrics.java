@@ -18,6 +18,21 @@ public class FcmMetrics {
     }
 
     public void recordBatch(String type, int batchSize, int successCount, int failureCount, long durationNanos) {
+        recordBatch(type, batchSize, successCount, failureCount, 0, durationNanos);
+    }
+
+    /**
+     * @param unknownCount 호출이 타임아웃되어 토큰별 성공 여부를 확인하지 못한 건수.
+     *                     실제로는 발송됐을 수 있으므로 실패로 집계하지 않는다.
+     */
+    public void recordBatch(String type, int batchSize, int successCount, int failureCount, int unknownCount, long durationNanos) {
+        if (unknownCount > 0) {
+            Counter.builder("intip_fcm_send_total")
+                    .tag("type", type)
+                    .tag("result", "unknown")
+                    .register(registry)
+                    .increment(unknownCount);
+        }
         if (successCount > 0) {
             Counter.builder("intip_fcm_send_total")
                     .tag("type", type)

@@ -1,5 +1,9 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
@@ -7,10 +11,6 @@ import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
-import com.google.firebase.messaging.AndroidConfig;
-import com.google.firebase.messaging.AndroidNotification;
-import com.google.firebase.messaging.ApnsConfig;
-import com.google.firebase.messaging.Aps;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
@@ -18,8 +18,10 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotification
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
@@ -29,6 +31,9 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessa
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
+import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
+import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -43,25 +48,18 @@ import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
-import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
-import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
-import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 
 @Service
 @Slf4j
@@ -69,17 +67,6 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDisp
 public class FcmService {
 
     private static final long UNLINKED_MEMBER_ID = -1L;
-
-    /**
-     * 재시도해도 결과가 달라지지 않는 영구 실패 사유. 이 목록에 없는 사유(일시적 네트워크
-     * 오류, 타임아웃, UNAVAILABLE, INTERNAL, QUOTA_EXCEEDED 등)는 전부 재시도 대상으로 본다.
-     */
-    private static final Set<MessagingErrorCode> PERMANENT_ERROR_CODES = EnumSet.of(
-            MessagingErrorCode.UNREGISTERED,
-            MessagingErrorCode.INVALID_ARGUMENT,
-            MessagingErrorCode.SENDER_ID_MISMATCH,
-            MessagingErrorCode.THIRD_PARTY_AUTH_ERROR
-    );
 
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmMessageRepository fcmMessageRepository;
@@ -131,7 +118,7 @@ public class FcmService {
             return;
         }
 
-        MulticastMessage message = createMulticastMessage(target, title, body, null, null);
+        MulticastMessage message = createMulticastMessage(target, title, body, null, null, null, fcmMessage.getId());
         long startNanos = System.nanoTime();
         int batchSuccess = 0;
         int batchFailure = 0;
@@ -324,8 +311,8 @@ public class FcmService {
             // 4. 최종 상태 업데이트
             fcmTransactionService.updateFinalStatus(dispatch.fcmMessageId(), deliveryResult.successCount(), deliveryResult.failureCount());
 
-            log.info("Admin member notification finished: fcmMessageId={}, target={}, success={}, failure={}",
-                    dispatch.fcmMessageId(), dispatch.targetCount(), deliveryResult.successCount(), deliveryResult.failureCount());
+            log.info("Admin member notification finished: fcmMessageId={}, target={}, success={}, failure={}, unknown={}",
+                    dispatch.fcmMessageId(), dispatch.targetCount(), deliveryResult.successCount(), deliveryResult.failureCount(), deliveryResult.unknownCount());
         } catch (Exception e) {
             log.error("Admin member notification failed: fcmMessageId={}, target={}, message={}",
                     dispatch.fcmMessageId(), dispatch.targetCount(), e.getMessage(), e);
@@ -363,123 +350,128 @@ public class FcmService {
         int batchSize = 500;
         int successCount = 0;
         int failureCount = 0;
+        int unknownCount = 0;
         int maxRetries = 3;
 
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batchTokens = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
 
             int batchSuccess = 0;
-            int batchPermanentFailure = 0;
+            int batchFailure = 0;
+            int batchUnknown = 0;
             long startNanos = System.nanoTime();
 
-            // 아직 전달이 확정되지 않아 다음 시도에 다시 보내야 하는 토큰들.
+            // 재시도는 응답을 받아 실패가 확인된 토큰만 대상으로 한다.
+            // 배치를 통째로 재발송하면 이미 성공한 토큰에 푸시가 중복으로 도착한다.
             List<String> pendingTokens = new ArrayList<>(batchTokens);
 
             for (int attempt = 1; attempt <= maxRetries && !pendingTokens.isEmpty(); attempt++) {
-                if (attempt > 1 && !backoffBeforeRetry(attempt)) {
-                    // 인터럽트된 경우 남은 토큰은 그대로 실패로 확정한다.
+                MulticastMessage message = createMulticastMessage(pendingTokens, title, body, type, targetId, path, fcmMessageId);
+                com.google.api.core.ApiFuture<BatchResponse> future = null;
+                try {
+                    future = firebaseMessaging.sendEachForMulticastAsync(message);
+                    BatchResponse response = future.get(60, java.util.concurrent.TimeUnit.SECONDS);
+
+                    List<SendResponse> responses = response.getResponses();
+                    List<String> retryableTokens = new ArrayList<>();
+
+                    for (int j = 0; j < responses.size(); j++) {
+                        SendResponse sendResponse = responses.get(j);
+                        String token = pendingTokens.get(j);
+
+                        if (sendResponse.isSuccessful()) {
+                            batchSuccess++;
+                            continue;
+                        }
+
+                        FirebaseMessagingException exception = sendResponse.getException();
+                        if (attempt < maxRetries && isRetryable(exception)) {
+                            retryableTokens.add(token);
+                            log.warn("FCM send failed (retryable, attempt {}/{}): token={}, error={}",
+                                    attempt, maxRetries, token, describe(exception));
+                        } else {
+                            batchFailure++;
+                            log.warn("FCM send failed: token={}, error={}", token, describe(exception));
+                        }
+                    }
+
+                    pendingTokens = retryableTokens;
+                } catch (Exception e) {
+                    if (future != null && !future.isDone()) {
+                        future.cancel(true);
+                    }
+                    // 호출 자체가 타임아웃/중단된 경우 토큰별 성공 여부를 알 수 없다.
+                    // 이미 나간 요청이 있을 수 있으므로 재시도하지 않고 미확인으로 남긴다.
+                    batchUnknown += pendingTokens.size();
+                    log.error("FCM batch send outcome unknown for fcmMessageId={}, pending={}, attempt={}/{}: {}",
+                            fcmMessageId, pendingTokens.size(), attempt, maxRetries, e.getMessage());
+                    pendingTokens = List.of();
                     break;
                 }
 
-                MulticastMessage message = createMulticastMessage(pendingTokens, title, body, type, targetId, path);
-                SendAttemptOutcome outcome = sendAttempt(pendingTokens, message, fcmMessageId, attempt, maxRetries);
-
-                batchSuccess += outcome.successCount();
-                batchPermanentFailure += outcome.permanentFailureCount();
-                pendingTokens = outcome.retryableTokens();
+                if (!pendingTokens.isEmpty()) {
+                    try {
+                        Thread.sleep(attempt * 1000L);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        batchUnknown += pendingTokens.size();
+                        pendingTokens = List.of();
+                        break;
+                    }
+                }
             }
 
-            if (!pendingTokens.isEmpty()) {
-                log.error("FCM send permanently failed after {} attempts: fcmMessageId={}, batchSize={}, unresolved={}",
-                        maxRetries, fcmMessageId, batchTokens.size(), pendingTokens.size());
+            if (batchUnknown > 0) {
+                log.warn("FCM batch finished with unconfirmed results: fcmMessageId={}, unknown={}", fcmMessageId, batchUnknown);
             }
 
-            int batchFailure = batchPermanentFailure + pendingTokens.size();
-
-            fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, System.nanoTime() - startNanos);
+            fcmMetrics.recordBatch(type != null ? type.name() : "UNKNOWN", batchTokens.size(), batchSuccess, batchFailure, batchUnknown, System.nanoTime() - startNanos);
 
             successCount += batchSuccess;
             failureCount += batchFailure;
+            unknownCount += batchUnknown;
 
             if (fcmMessageId != null) {
                 fcmTransactionService.updateIncrementalResult(fcmMessageId, batchSuccess, batchFailure);
             }
         }
 
-        return new DeliveryResult(successCount, failureCount);
+        return new DeliveryResult(successCount, failureCount, unknownCount);
     }
 
     /**
-     * 한 번의 발송 시도. 배치 호출 자체가 실패하면 개별 결과를 알 수 없으므로 넘겨받은 토큰 전부를 재시도 대상으로 반환
-     */
-    private SendAttemptOutcome sendAttempt(List<String> tokens, MulticastMessage message, Long fcmMessageId, int attempt, int maxRetries) {
-        com.google.api.core.ApiFuture<BatchResponse> future = null;
-        try {
-            future = firebaseMessaging.sendEachForMulticastAsync(message);
-            BatchResponse response = future.get(60, java.util.concurrent.TimeUnit.SECONDS);
-
-            List<SendResponse> responses = response.getResponses();
-            List<String> retryableTokens = new ArrayList<>();
-            int permanentFailureCount = 0;
-
-            for (int j = 0; j < responses.size(); j++) {
-                SendResponse sendResponse = responses.get(j);
-                if (sendResponse.isSuccessful()) {
-                    continue;
-                }
-                String token = tokens.get(j);
-                FirebaseMessagingException exception = sendResponse.getException();
-                String reason = exception != null ? exception.getMessage() : "unknown";
-
-                if (isRetryable(exception)) {
-                    retryableTokens.add(token);
-                    log.warn("FCM send failed (retryable, attempt {}/{}): token={}, error={}",
-                            attempt, maxRetries, token, reason);
-                } else {
-                    permanentFailureCount++;
-                    log.warn("FCM send failed (permanent): token={}, error={}", token, reason);
-                }
-            }
-
-            return new SendAttemptOutcome(response.getSuccessCount(), permanentFailureCount, retryableTokens);
-        } catch (Exception e) {
-            if (future != null && !future.isDone()) {
-                future.cancel(true);
-            }
-            log.warn("FCM batch send attempt {}/{} failed for fcmMessageId={}, batchSize={}: {}",
-                    attempt, maxRetries, fcmMessageId, tokens.size(), e.getMessage());
-            return new SendAttemptOutcome(0, 0, new ArrayList<>(tokens));
-        }
-    }
-
-    /**
-     * 재시도 사유 판정. 사유를 알 수 없으면(소켓 타임아웃처럼 MessagingErrorCode가 비어 있는
-     * 경우가 대표적이다) 일시 장애로 본다. 영구 실패로 단정해 유실시키는 쪽이 더 나쁘다.
+     * 재시도해도 결과가 달라질 수 있는 오류인지 판단한다.
+     * 토큰 자체가 무효한 경우(UNREGISTERED 등)는 재시도해도 동일하므로 즉시 실패로 확정한다.
+     * 사유를 알 수 없는 경우(소켓 타임아웃처럼 MessagingErrorCode가 비어 있는 경우)는
+     * 일시 장애로 보고 재시도한다. 영구 실패로 단정해 유실시키는 쪽이 더 나쁘다.
      */
     private boolean isRetryable(FirebaseMessagingException exception) {
         if (exception == null) {
             return true;
         }
         MessagingErrorCode errorCode = exception.getMessagingErrorCode();
-        return errorCode == null || !PERMANENT_ERROR_CODES.contains(errorCode);
+        if (errorCode == null) {
+            return true;
+        }
+        return switch (errorCode) {
+            case UNAVAILABLE, INTERNAL, QUOTA_EXCEEDED -> true;
+            default -> false;
+        };
     }
 
-    /** 재시도 전 선형 백오프. 인터럽트되면 false를 돌려주고 호출부가 루프를 끝낸다. */
-    private boolean backoffBeforeRetry(int attempt) {
-        try {
-            Thread.sleep((attempt - 1) * 1000L);
-            return true;
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            return false;
+    private String describe(FirebaseMessagingException exception) {
+        if (exception == null) {
+            return "unknown";
         }
+        return exception.getMessagingErrorCode() + " / " + exception.getMessage();
     }
 
     /**
      * DB에 이력을 남기지 않고 여러 사용자에게 알림을 보냅니다.
+     *
      * @param memberIds 대상 사용자 ID 목록
-     * @param title 알림 제목
-     * @param body 알림 내용
+     * @param title     알림 제목
+     * @param body      알림 내용
      */
     @Transactional(readOnly = true)
     public void sendUntrackedNotification(List<Long> memberIds, String title, String body) {
@@ -500,8 +492,8 @@ public class FcmService {
                 ));
 
         DeliveryResult deliveryResult = dispatchToMembersInternal(null, tokenAndMemberId, title, body, null, null);
-        log.info("Untracked notification sent: targets={}, success={}, failure={}",
-                tokenAndMemberId.size(), deliveryResult.successCount(), deliveryResult.failureCount());
+        log.info("Untracked notification sent: targets={}, success={}, failure={}, unknown={}",
+                tokenAndMemberId.size(), deliveryResult.successCount(), deliveryResult.failureCount(), deliveryResult.unknownCount());
     }
 
     /**
@@ -613,6 +605,62 @@ public class FcmService {
         message.markAsRead();
     }
 
+    /**
+     * 푸시 payload의 공통 식별자로 읽음 처리하는 메서드.
+     * <p>
+     * 푸시 payload에는 수신자 전체가 공유하는 fcmMessageId만 실린다. 개인 알림함 행은
+     * 인증된 회원 정보와 조합해 서버가 특정한다.
+     */
+    @Transactional
+    public void markNotificationAsReadByFcmMessageId(Member member, Long fcmMessageId) {
+        if (member == null || fcmMessageId == null) {
+            return;
+        }
+        List<MemberFcmMessage> messages =
+                memberFcmMessageRepository.findAllByFcmMessageIdAndMemberId(fcmMessageId, member.getId());
+
+        if (messages.isEmpty()) {
+            throw new MyException(MyErrorCode.MESSAGE_NOT_FOUND);
+        }
+        messages.forEach(MemberFcmMessage::markAsRead);
+    }
+
+    /**
+     * 해당 페이지 전체 읽음 처리 메서드
+     */
+    @Transactional
+    public void markPageNotificationAsRead(Member member, int page) {
+        if (member == null) {
+            return;
+        }
+        Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Direction.DESC, "id"));
+        memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable)
+                .forEach(MemberFcmMessage::markAsRead);
+    }
+
+    /**
+     * 전체 읽음 처리 메서드
+     */
+    @Transactional
+    public int markAllNotificationAsRead(Member member) {
+        if (member == null) {
+            return 0;
+        }
+
+        return memberFcmMessageRepository.markAllAsReadByMemberId(member.getId(), LocalDateTime.now());
+    }
+
+    /**
+     * 읽지 않은 알림 갯수 조회 메서드
+     */
+    public int findIsReadFalseNotification(Member member) {
+        if (member == null) {
+            return 0;
+        }
+
+        return memberFcmMessageRepository.countByMemberIdAndIsReadFalse(member.getId());
+    }
+
     @Transactional(readOnly = true)
     public boolean hasUnreadNotification(Member member) {
         if (member == null) {
@@ -621,11 +669,11 @@ public class FcmService {
         return memberFcmMessageRepository.existsByMemberIdAndIsReadFalseAndViewCountLessThan(member.getId(), 2);
     }
 
-    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId) {
-        return createMulticastMessage(tokens, title, body, type, targetId, null);
+    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path) {
+        return createMulticastMessage(tokens, title, body, type, targetId, path, null);
     }
 
-    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path) {
+    private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path, Long fcmMessageId) {
         // notification(title, body)과 data를 항상 함께 발송한다 (data-only 발송 금지)
         // Android 백그라운드 노출 및 포그라운드 배너 표시를 위해 두 블록이 모두 필요하다
         MulticastMessage.Builder builder = MulticastMessage.builder()
@@ -649,6 +697,11 @@ public class FcmService {
         // 라우팅 정보는 클라이언트가 data 블록에서만 판단하므로 notification에는 넣지 않는다
         if (path != null && !path.isBlank()) {
             builder.putData("path", path);
+        }
+        // 수신자 전체가 공유하는 알림 식별자. 클라이언트는 이 값으로 읽음 처리 API를 호출하고,
+        // 서버가 인증된 회원 정보와 조합해 개인 알림함 행을 특정한다.
+        if (fcmMessageId != null) {
+            builder.putData("fcmMessageId", String.valueOf(fcmMessageId));
         }
         return builder.build();
     }
@@ -690,40 +743,56 @@ public class FcmService {
         }
     }
 
+    /**
+     * 채팅 메시지는 다른 알림과 달리 플랫폼별로 페이로드 형태를 다르게 보낸다.
+     *
+     * <p>Android: <b>data-only</b>. notification 블록이 있으면 OS가 알림을 직접 그려
+     * 버리고 앱의 백그라운드 메시지 핸들러가 실행되지 않는다. 그러면 앱이 채팅방
+     * 단위로 알림을 묶는(groupId + group summary) 코드를 돌릴 기회 자체가 없다.
+     * 제목/본문/채널 선택에 필요한 값은 전부 data로 내려보내고, 실제 노출은 앱이
+     * 한다. data-only가 backgrounded 상태에서도 배달되도록 priority는 HIGH.
+     *
+     * <p>iOS: 반대로 앱이 손댈 수 있는 게 없다. 백그라운드/종료 상태의 알림은 APNs가
+     * aps 블록 그대로 그리므로 스레드 묶음은 서버가 넣는 {@code thread-id}가 유일한
+     * 경로다. 그래서 alert/sound/thread-id를 aps에 직접 싣는다.
+     *
+     * <p>따라서 모든 플랫폼에 함께 나가는 최상위 {@code setNotification}은 쓰지 않는다
+     * (그걸 쓰면 Android도 notification 페이로드를 받아 위 전제가 깨진다).
+     */
     private MulticastMessage createChatMessage(List<String> tokens, String title, String body, Long chatRoomId, boolean isMuted) {
         String roomIdStr = String.valueOf(chatRoomId);
-        
-        AndroidNotification.Builder androidNotiBuilder = AndroidNotification.builder()
-                .setTag("room_" + roomIdStr);
-                
+
         Aps.Builder apsBuilder = Aps.builder()
-                .setThreadId("room_" + roomIdStr);
-                
-        if (isMuted) {
-            // Android: 무음용 채널 (앱에서 조용히 노출하도록 알림 중요도 낮춤)
-            androidNotiBuilder.setChannelId("chat_channel_muted");
-        } else {
-            // Android: 소리/진동용 기본 채널
-            androidNotiBuilder.setChannelId("chat_channel_default");
-            // iOS: 소리가 나도록 default 설정
+                // 앱의 포그라운드 표시 경로도 chatRoomId를 그대로 threadId로 쓴다.
+                // 접두사를 붙이면 포그라운드에서 받은 알림과 백그라운드에서 받은
+                // 알림이 서로 다른 스레드로 갈라져 묶이지 않는다.
+                .setThreadId(roomIdStr)
+                .setAlert(ApsAlert.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build());
+
+        if (!isMuted) {
             apsBuilder.setSound("default");
         }
 
         return MulticastMessage.builder()
                 .addAllTokens(tokens)
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build())
                 // 웹뷰에서 라우팅할 때 참조할 공통 데이터 페이로드
                 .putData("type", "CHAT")
                 .putData("chatRoomId", roomIdStr)
+                // Android는 notification 블록이 없으므로 표시용 문구도 data로 내려준다
+                .putData("chatRoomName", title)
+                .putData("messageText", body)
+                // 채널(소리/무음) 선택은 앱이 이 값으로 판단한다
+                .putData("muted", String.valueOf(isMuted))
                 // 라우팅 정보는 data 블록에만 포함 (채팅방은 path param 형태)
                 .putData("path", "/chat/" + roomIdStr)
                 .setAndroidConfig(AndroidConfig.builder()
-                        .setNotification(androidNotiBuilder.build())
+                        .setPriority(AndroidConfig.Priority.HIGH)
                         .build())
                 .setApnsConfig(ApnsConfig.builder()
+                        .putHeader("apns-priority", "10")
                         .setAps(apsBuilder.build())
                         .build())
                 .build();
@@ -912,7 +981,13 @@ public class FcmService {
                 .toList();
     }
 
-    @Transactional
+    /**
+     * Daily Brief 스케줄러는 조회 성능을 위해 read-only 트랜잭션에서 실행된다.
+     * 발송 이력 저장은 반드시 별도의 쓰기 트랜잭션에서 수행해야 하며,
+     * 사용자 한 명의 저장 실패가 스케줄러 전체 트랜잭션을 rollback-only로
+     * 오염시키지 않도록 사용자별로 트랜잭션을 분리한다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendDailyBriefNotification(Long memberId, String title, String body, FcmMessageType type, String path) {
         if (memberId == null) {
             return;
@@ -947,17 +1022,11 @@ public class FcmService {
         }
     }
 
-    /** 한 번의 발송 시도 결과. {@code retryableTokens}는 다음 시도에 다시 보낼 토큰이다. */
-    private record SendAttemptOutcome(
-            int successCount,
-            int permanentFailureCount,
-            List<String> retryableTokens
-    ) {
-    }
-
     private record DeliveryResult(
             int successCount,
-            int failureCount
+            int failureCount,
+            /** 호출이 타임아웃되어 토큰별 성공 여부를 확인하지 못한 건수. 실패로 집계하지 않는다. */
+            int unknownCount
     ) {
     }
 

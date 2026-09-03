@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
 import kr.inuappcenterportal.inuportal.domain.department.repository.SchoolDepartmentRepository;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
@@ -35,6 +36,7 @@ public class MemberService {
     private final FriendRepository friendRepository;
     private final BlockRepository blockRepository;
     private final SchoolDepartmentRepository schoolDepartmentRepository;
+    private final DailyBriefService dailyBriefService;
 
     private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
             "알림", "공지", "알람", "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
@@ -151,7 +153,9 @@ public class MemberService {
 
     private Member createMember(String studentId, List<String> roles) {
         Member member = Member.builder().studentId(studentId).roles(roles).build();
-        return memberRepository.save(member);
+        Member savedMember = memberRepository.save(member);
+        dailyBriefService.createDefaultSetting(savedMember);
+        return savedMember;
     }
 
     private Member synchronizeRoles(Member member, List<String> roles) {

@@ -586,7 +586,7 @@ class SendToMembersTest {
     }
 
     @Test
-    void dispatchRetriesWholeBatchWhenTheCallItselfFails() {
+    void dispatchDoesNotRetryWhenTheCallItselfFails() {
         Map<String, Long> tokenAndMemberId = new LinkedHashMap<>();
         tokenAndMemberId.put("token_69", 69L);
         tokenAndMemberId.put("token_96", 96L);
@@ -601,9 +601,10 @@ class SendToMembersTest {
 
         fcmService.sendToMembers(dispatch);
 
-        // 배치 호출 자체가 실패하면 개별 결과를 알 수 없으므로 전체 토큰을 최대 3회까지 재시도한다.
-        verify(firebaseMessaging, times(3)).sendEachForMulticastAsync(any());
-        verify(fcmTransactionService).updateFinalStatus(1L, 0, 2);
+        // 배치 호출 자체가 실패하면 이미 나간 요청이 성공했을 수 있으므로 재발송하지 않고
+        // 미확인(unknown)으로 남긴다. 실패로 단정해 유실시키는 쪽이 더 나쁘다.
+        verify(firebaseMessaging, times(1)).sendEachForMulticastAsync(any());
+        verify(fcmTransactionService).updateFinalStatus(1L, 0, 0);
     }
 
     private BatchResponse mockBatchResponse(SendResponse... responses) {
