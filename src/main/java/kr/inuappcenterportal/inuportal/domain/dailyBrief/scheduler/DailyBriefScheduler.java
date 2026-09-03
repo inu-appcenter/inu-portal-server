@@ -1,8 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.dailyBrief.scheduler;
 
+import kr.inuappcenterportal.inuportal.domain.course.dto.courseMeeting.CourseMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseMeeting;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRepository;
+import kr.inuappcenterportal.inuportal.domain.course.service.CourseMeetingService;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
@@ -43,11 +45,13 @@ public class DailyBriefScheduler {
     private final TimeTableRepository timeTableRepository;
     private final TimeTableItemRepository timeTableItemRepository;
     private final CourseMeetingRepository courseMeetingRepository;
+    private final CourseMeetingService courseMeetingService;
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
     private final SemesterRepository semesterRepository;
     private final ScheduleRepository scheduleRepository;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("M월 d일");
 
     /**
      * 1. 수업 시작 전 알림 (5분마다 실행)
@@ -200,8 +204,9 @@ public class DailyBriefScheduler {
     @Transactional(readOnly = true)
     public void sendDailyScheduleBriefing() {
         LocalDate today = LocalDate.now();
-        List<Schedule> todayAllSchedules = scheduleRepository.findAllByDateIncluded(today);
-        if (todayAllSchedules.isEmpty()) {
+        // 연속 일정은 시작일에만 브리핑한다.
+        List<Schedule> todayStartingSchedules = scheduleRepository.findAllStartingOn(today);
+        if (todayStartingSchedules.isEmpty()) {
             return;
         }
 
@@ -213,7 +218,7 @@ public class DailyBriefScheduler {
                 Member member = setting.getMember();
                 ScheduleScope scope = setting.getScheduleScope();
 
-                List<Schedule> targetSchedules = todayAllSchedules.stream().filter(s -> {
+                List<Schedule> targetSchedules = todayStartingSchedules.stream().filter(s -> {
                     boolean isSchool = (s.getDepartment() == null);
                     boolean isMyDept = (s.getDepartment() != null && member.getDepartment() != null
                             && s.getDepartment().equals(member.getDepartment()));
@@ -232,12 +237,16 @@ public class DailyBriefScheduler {
                     continue;
                 }
 
-                String title = "[Daily Brief] 오늘의 학사일정을 확인하세요 🗓️";
+                String title = "오늘부터 시작되는 학사일정이에요.";
                 StringBuilder bodyBuilder = new StringBuilder();
                 for (int i = 0; i < targetSchedules.size(); i++) {
                     Schedule s = targetSchedules.get(i);
                     String categoryLabel = (s.getDepartment() == null) ? "학교" : s.getDepartment().getDepartmentName();
-                    bodyBuilder.append(String.format("• [%s] %s", categoryLabel, s.getContent()));
+                    bodyBuilder.append(String.format("• [%s] %s (%s)",
+                            categoryLabel,
+                            s.getContent(),
+                            formatSchedulePeriod(s)
+                    ));
                     if (i < targetSchedules.size() - 1) {
                         bodyBuilder.append("\n");
                     }
@@ -256,6 +265,19 @@ public class DailyBriefScheduler {
         }
     }
 
+    private String formatSchedulePeriod(Schedule schedule) {
+        LocalDate startDate = schedule.getStartDate();
+        LocalDate endDate = schedule.getEndDate();
+
+        if (endDate == null || endDate.equals(startDate)) {
+            return startDate.format(DATE_FORMATTER);
+        }
+
+        return String.format("%s ~ %s",
+                startDate.format(DATE_FORMATTER),
+                endDate.format(DATE_FORMATTER));
+    }
+
     private List<ClassScheduleEntry> extractTodayClassEntries(List<TimeTableItem> items, DayOfWeek today) {
         List<ClassScheduleEntry> entries = new ArrayList<>();
 
@@ -266,13 +288,19 @@ public class DailyBriefScheduler {
 
         if (!courseOfferingIds.isEmpty()) {
             List<CourseMeeting> courseMeetings = courseMeetingRepository.findAllByCourseOfferingIdIn(courseOfferingIds);
+            Map<Long, List<CourseMeeting>> meetingsByOfferingId = courseMeetings.stream()
+                    .collect(Collectors.groupingBy(m -> m.getCourseOffering().getId()));
+
             for (TimeTableItem item : items) {
                 if (item.getCourseOffering() == null) continue;
                 String title = item.getCourseOffering().getCourse().getTitle();
 
-                for (CourseMeeting m : courseMeetings) {
-                    if (m.getCourseOffering().getId().equals(item.getCourseOffering().getId()) && m.getDay() == today) {
-                        entries.add(new ClassScheduleEntry(title, m.getLocation(), m.getStartTime(), m.getEndTime()));
+                List<CourseMeeting> itemMeetings = meetingsByOfferingId.getOrDefault(item.getCourseOffering().getId(), List.of());
+                List<CourseMeetingResponseDto> mergedMeetings = courseMeetingService.mergeContinuousMeetings(itemMeetings);
+
+                for (CourseMeetingResponseDto m : mergedMeetings) {
+                    if (m.day() == today) {
+                        entries.add(new ClassScheduleEntry(title, m.location(), m.startTime(), m.endTime()));
                     }
                 }
             }

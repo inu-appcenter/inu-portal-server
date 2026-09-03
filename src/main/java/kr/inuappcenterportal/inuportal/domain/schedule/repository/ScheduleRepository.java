@@ -82,6 +82,17 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("seasonKeyword") String seasonKeyword
     );
 
+    /**
+     * Daily Brief는 연속 일정의 시작일에만 알림을 발송한다.
+     */
+    @Query("""
+            SELECT s
+            FROM Schedule s
+            WHERE s.startDate = :today
+            ORDER BY s.id ASC
+            """)
+    List<Schedule> findAllStartingOn(@Param("today") LocalDate today);
+
     @Query("""
             SELECT s
             FROM Schedule s
