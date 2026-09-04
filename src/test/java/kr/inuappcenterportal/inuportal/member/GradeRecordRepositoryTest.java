@@ -63,7 +63,7 @@ class GradeRecordRepositoryTest {
     private GradeRecord newRecord(String courseCode, String title, Grade grade) {
         Member member = memberRepository.findById(memberId).orElseThrow();
         Semester semester = semesterRepository.findById(semesterId).orElseThrow();
-        return GradeRecord.create(member, semester, null, courseCode, title, 3, grade, true, false);
+        return GradeRecord.create(member, semester, null, courseCode, title, 3, grade, true, false, null, null);
     }
 
     @Test

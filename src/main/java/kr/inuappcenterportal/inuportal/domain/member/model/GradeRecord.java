@@ -58,6 +58,14 @@ public class GradeRecord extends BaseTimeEntity {
     @Column(name = "is_course_repetition")
     private Boolean isCourseRepetition;
 
+    /** 이수구분(전공기초 / 전공핵심 / 심화교양 …) 원문. 졸업요건 판정에 쓰인다. */
+    @Column(name = "isu_name")
+    private String isuName;
+
+    /** 이수영역(전공심화 / 사회 …) 원문. */
+    @Column(name = "isu_fld_name")
+    private String isuFldName;
+
     private GradeRecord(
             Member member,
             Semester semester,
@@ -67,7 +75,9 @@ public class GradeRecord extends BaseTimeEntity {
             Integer credit,
             Grade grade,
             Boolean isMajor,
-            Boolean courseRepetition
+            Boolean courseRepetition,
+            String isuName,
+            String isuFldName
     ) {
         this.member = member;
         this.semester = semester;
@@ -78,6 +88,8 @@ public class GradeRecord extends BaseTimeEntity {
         this.grade = grade;
         this.isMajor = isMajor;
         this.isCourseRepetition = courseRepetition;
+        this.isuName = isuName;
+        this.isuFldName = isuFldName;
     }
 
     public static GradeRecord create(
@@ -89,8 +101,10 @@ public class GradeRecord extends BaseTimeEntity {
             Integer credit,
             Grade grade,
             Boolean isMajor,
-            Boolean isCourseRepetition) {
-        return new GradeRecord(member, semester, course, courseCode, title, credit, grade, isMajor, isCourseRepetition);
+            Boolean isCourseRepetition,
+            String isuName,
+            String isuFldName) {
+        return new GradeRecord(member, semester, course, courseCode, title, credit, grade, isMajor, isCourseRepetition, isuName, isuFldName);
     }
 
     // 개별 수정을 위한 메서드

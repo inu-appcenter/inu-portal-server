@@ -73,7 +73,7 @@ class GradeRecordServiceTest {
     }
 
     private GradeRecordRequestDto record(String courseCode, String title) {
-        return new GradeRecordRequestDto(courseCode, title, 3, "A+", true, false);
+        return new GradeRecordRequestDto(courseCode, title, 3, "A+", true, false, null, null);
     }
 
     private GradeRecordSaveRequestDto request(GradeRecordRequestDto... records) {
