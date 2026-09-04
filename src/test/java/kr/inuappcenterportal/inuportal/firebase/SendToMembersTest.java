@@ -90,7 +90,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_usesAllTokensAndAllMembersForDefaultSend() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(null, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
+                new AdminNotificationRequest(null, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null, null);
 
         FcmToken linkedToken = new FcmToken(69L, "sample_token_69", "iphone");
         FcmToken unlinkedToken = new FcmToken(null, "sample_token_guest", "android");
@@ -120,7 +120,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_carriesPathThrough() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(null, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", "/board/1");
+                new AdminNotificationRequest(null, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", "/board/1", null);
 
         FcmToken linkedToken = new FcmToken(69L, "sample_token_69", "iphone");
 
@@ -140,7 +140,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_filtersLoggedInTokensAndMembers() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_IN, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
+                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_IN, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null, null);
 
         FcmToken fcmToken1 = new FcmToken(69L, "sample_token_69", "iphone");
         FcmToken fcmToken2 = new FcmToken(96L, "sample_token_96", "android");
@@ -164,7 +164,7 @@ class SendToMembersTest {
     @Test
     void prepareAdminNotification_filtersLoggedOutTokensAndMembers() {
         AdminNotificationRequest request =
-                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_OUT, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null);
+                new AdminNotificationRequest(AdminNotificationTargetType.LOGGED_OUT, null, List.of(), List.of(), List.of(), "Test Title", "Test Content", null, null);
 
         FcmToken fcmToken1 = new FcmToken(null, "sample_token_guest_1", "iphone");
         FcmToken fcmToken2 = new FcmToken(null, "sample_token_guest_2", "android");
@@ -200,6 +200,7 @@ class SendToMembersTest {
                         List.of(),
                         "Test Title",
                         "Test Content",
+                        null,
                         null
                 );
 
@@ -237,6 +238,7 @@ class SendToMembersTest {
                         List.of(),
                         "Test Title",
                         "Test Content",
+                        null,
                         null
                 );
 
@@ -273,6 +275,7 @@ class SendToMembersTest {
                         List.of(Department.COMPUTER_ENGINEERING),
                         "Test Title",
                         "Test Content",
+                        null,
                         null
                 );
 

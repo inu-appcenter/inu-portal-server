@@ -6,8 +6,11 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotification
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.ScheduledNotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.model.ScheduledNotification;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.ScheduledNotificationService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -30,6 +33,7 @@ public class FcmController implements FcmApiSpecification {
 
     private final FcmService fcmService;
     private final FcmAsyncService fcmAsyncService;
+    private final ScheduledNotificationService scheduledNotificationService;
 
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> saveToken(@Valid @RequestBody TokenRequestDto tokenRequestDto,
@@ -106,6 +110,12 @@ public class FcmController implements FcmApiSpecification {
 
     @PostMapping("/admin")
     public ResponseEntity<ResponseDto<Long>> sendToMembers(@Valid @RequestBody AdminNotificationRequest request) {
+        if (request.scheduledAt() != null) {
+            ScheduledNotification scheduledNotification = scheduledNotificationService.reserve(request);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(ResponseDto.of(scheduledNotification.getId(), "FCM 예약 등록 성공"));
+        }
+
         AdminNotificationDispatch dispatch = fcmService.prepareAdminNotification(request);
 
         if (dispatch.hasTarget() || dispatch.hasMemberTarget()) {
@@ -116,6 +126,19 @@ public class FcmController implements FcmApiSpecification {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ResponseDto.of(dispatch.fcmMessageId(), "발송 대상 토큰이 없어 요청만 기록했습니다."));
+    }
+
+    @GetMapping("/admin/scheduled")
+    public ResponseEntity<ResponseDto<ListResponseDto<ScheduledNotificationResponse>>> getScheduledNotifications(
+            @RequestParam(required = false, defaultValue = "1") int page
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(scheduledNotificationService.findScheduled(page), "예약 알림 조회 성공"));
+    }
+
+    @DeleteMapping("/admin/scheduled/{scheduledNotificationId}")
+    public ResponseEntity<ResponseDto<Void>> cancelScheduledNotification(@PathVariable Long scheduledNotificationId) {
+        scheduledNotificationService.cancel(scheduledNotificationId);
+        return ResponseEntity.ok(ResponseDto.of(null, "예약 알림 취소 성공"));
     }
 
     @GetMapping("/admin")
