@@ -29,6 +29,7 @@ class FcmControllerValidationTest {
             validateParameters("checkNotification", new Class<?>[]{Member.class, int.class}, null, 1);
             validateParameters("readPageNotification", new Class<?>[]{Member.class, int.class}, null, 1);
             validateParameters("countAdminFcmMessagesSuccess", new Class<?>[]{int.class}, 1);
+            validateParameters("getScheduledNotifications", new Class<?>[]{int.class}, 1);
         }).doesNotThrowAnyException();
     }
 
@@ -53,7 +54,7 @@ class FcmControllerValidationTest {
     private java.util.Set<? extends jakarta.validation.ConstraintViolation<FcmController>> validateParameters(
             String methodName, Class<?>[] parameterTypes, Object... args) {
         try {
-            FcmController controller = new FcmController(null, null);
+            FcmController controller = new FcmController(null, null, null);
             Method method = FcmController.class.getMethod(methodName, parameterTypes);
             return executableValidator.validateParameters(controller, method, args);
         } catch (NoSuchMethodException e) {

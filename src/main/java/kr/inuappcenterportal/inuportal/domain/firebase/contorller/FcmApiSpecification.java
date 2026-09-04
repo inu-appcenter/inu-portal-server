@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotification
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.ScheduledNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -70,8 +71,20 @@ public interface FcmApiSpecification {
 
     @Operation(summary = "(관리자 전용) 회원 알림 전송",
             description = "지정 회원들에게 알림을 전송합니다. <br><br>" +
-                    "memberIds가 비어있으면 전체 회원에게 알림을 전송합니다.")
+                    "memberIds가 비어있으면 전체 회원에게 알림을 전송합니다. <br><br>" +
+                    "scheduledAt이 지정되면 즉시 전송하지 않고 예약만 등록합니다. 응답의 id는 " +
+                    "이 경우 예약 알림 식별자이며, 발송 후 실제 결과는 <code>/admin/{fcmMessageId}</code>가 아니라 " +
+                    "<code>/admin/scheduled</code> 목록에서 상태(SENT/FAILED/EXPIRED 등)를 확인해야 합니다.")
     ResponseEntity<ResponseDto<Long>> sendToMembers(@Valid AdminNotificationRequest request);
+
+    @Operation(summary = "(관리자 전용) 예약 알림 목록 조회",
+            description = "등록된 예약 알림을 최신순으로 조회합니다.")
+    ResponseEntity<ResponseDto<ListResponseDto<ScheduledNotificationResponse>>> getScheduledNotifications(@Min(1) int page);
+
+    @Operation(summary = "(관리자 전용) 예약 알림 취소",
+            description = "발송 시작 전(SCHEDULED 상태)인 예약 알림만 취소할 수 있습니다. " +
+                    "이미 발송이 시작됐거나 종결된 건은 409로 거부됩니다.")
+    ResponseEntity<ResponseDto<Void>> cancelScheduledNotification(Long scheduledNotificationId);
 
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 성공 횟수 조회",
             description = "관리자가 전송한 FCM 메세지들의 총 성공 횟수를 조회합니다.")

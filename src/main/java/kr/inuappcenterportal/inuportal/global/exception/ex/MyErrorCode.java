@@ -72,6 +72,7 @@ public enum MyErrorCode {
     KEYWORD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 키워드입니다."),
     KEYWORD_ACCESS_DENIED(HttpStatus.FORBIDDEN, "이 키워드의 수정/삭제에 대한 권한이 없습니다."),
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 메시지입니다."),
+    SCHEDULED_NOTIFICATION_ALREADY_DISPATCHING(HttpStatus.CONFLICT, "이미 발송이 시작되었거나 종결된 예약 알림입니다."),
     NOT_FOUND_LOG(HttpStatus.NOT_FOUND, "존재하지 않는 로그입니다."),
     FEATURE_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "현재 비활성화된 기능입니다."),
     FEATURE_FLAG_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 feature flag입니다."),

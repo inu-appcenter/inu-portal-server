@@ -1,13 +1,19 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.dto.req;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+// 예약 발송은 요청을 JSON으로 저장했다가 발송 시점에 역직렬화한다. 그 사이 필드가
+// 추가돼도 이미 저장된 예약 건의 역직렬화가 깨지지 않도록 알 수 없는 필드를 무시한다.
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record AdminNotificationRequest(
 
         @Schema(description = "Target type", example = "ALL")
@@ -34,7 +40,11 @@ public record AdminNotificationRequest(
         String content,
 
         @Schema(description = "Path to navigate to when the notification is tapped. Full URL for web, relative path for in-app routes.", example = "/board/1")
-        String path
+        String path,
+
+        @Schema(description = "Scheduled send time. Null means send immediately.", example = "2026-09-05T09:00:00")
+        @Future(message = "Scheduled time must be in the future.")
+        LocalDateTime scheduledAt
 
 ) {
     public AdminNotificationTargetType resolveTargetType() {
