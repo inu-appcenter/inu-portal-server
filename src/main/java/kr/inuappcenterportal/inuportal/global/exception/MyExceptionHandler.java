@@ -6,6 +6,8 @@ import kr.inuappcenterportal.inuportal.domain.academic.exception.AcademicExcepti
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -59,6 +61,22 @@ public class MyExceptionHandler {
     public ResponseEntity<ResponseDto<Integer>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         String errorMessage = "요청한 JSON 데이터를 읽을 수 없습니다: " + ex.getMessage();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseDto.of(-1, errorMessage));
+    }
+
+    // 같은 회원의 데이터를 여러 요청이 동시에 쓸 때 발생하는 DB 락 대기/데드락(예: 성적 여러
+    // 학기를 동시에 저장) 전용 처리. 클라이언트가 잠깐 뒤 재시도하면 대개 성공한다.
+    @ExceptionHandler(CannotAcquireLockException.class)
+    public ResponseEntity<ResponseDto<Integer>> handleCannotAcquireLockException(CannotAcquireLockException ex) {
+        log.error("DB 락 획득 실패(동시 요청 충돌) msg:{}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ResponseDto.of(-1, "다른 요청과 동시에 처리되어 저장에 실패했습니다. 잠시 후 다시 시도해주세요."));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ResponseDto<Integer>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.error("데이터 무결성 제약 위반 msg:{}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ResponseDto.of(-1, "요청하신 내용이 기존 데이터와 충돌해 저장에 실패했습니다. 잠시 후 다시 시도해주세요."));
     }
 
 }

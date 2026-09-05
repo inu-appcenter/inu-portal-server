@@ -14,7 +14,9 @@ public record GradeRecordResponseDto(
         Grade grade,
         String grade_value,
         Boolean isMajor,
-        Boolean isCourseRepetition
+        Boolean isCourseRepetition,
+        String isuName,
+        String isuFldName
 ) {
     public static GradeRecordResponseDto from(
             GradeRecord gradeRecord
@@ -29,7 +31,9 @@ public record GradeRecordResponseDto(
                 gradeRecord.getGrade(),
                 gradeRecord.getGrade() == null ? null : gradeRecord.getGrade().getValue(),
                 gradeRecord.getIsMajor(),
-                gradeRecord.getIsCourseRepetition()
+                gradeRecord.getIsCourseRepetition(),
+                gradeRecord.getIsuName(),
+                gradeRecord.getIsuFldName()
         );
     }
 }
