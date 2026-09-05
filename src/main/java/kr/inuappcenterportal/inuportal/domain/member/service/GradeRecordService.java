@@ -95,7 +95,9 @@ public class GradeRecordService {
                         record.credit(),
                         Grade.from(record.grade()),
                         record.isMajor(),
-                        record.isCourseRepetition()
+                        record.isCourseRepetition(),
+                        record.isuName(),
+                        record.isuFldName()
                 )).toList();
 
         try {

@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository
 import kr.inuappcenterportal.inuportal.domain.member.dto.GradeRecordRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.GradeRecordResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.GradeRecordSaveRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.model.GradeRecord;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.GradeRecordRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -73,7 +75,7 @@ class GradeRecordServiceTest {
     }
 
     private GradeRecordRequestDto record(String courseCode, String title) {
-        return new GradeRecordRequestDto(courseCode, title, 3, "A+", true, false);
+        return new GradeRecordRequestDto(courseCode, title, 3, "A+", true, false, null, null);
     }
 
     private GradeRecordSaveRequestDto request(GradeRecordRequestDto... records) {
@@ -176,6 +178,28 @@ class GradeRecordServiceTest {
 
             assertEquals(2, result.size());
             verify(gradeRecordRepository).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("이수구분/이수영역 값은 저장 및 응답에 모두 반영된다")
+        void isuFields_areMappedToEntityAndResponse() {
+            when(gradeRecordRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            GradeRecordSaveRequestDto request = request(
+                    new GradeRecordRequestDto("ABC123", "자료구조", 3, "A+", true, false, "전공핵심", "전공심화")
+            );
+
+            List<GradeRecordResponseDto> result =
+                    gradeRecordService.replaceGradeRecord(request, MEMBER_ID);
+
+            ArgumentCaptor<List<GradeRecord>> captor = ArgumentCaptor.forClass(List.class);
+            verify(gradeRecordRepository).saveAll(captor.capture());
+
+            GradeRecord savedRecord = captor.getValue().get(0);
+            assertEquals("전공핵심", savedRecord.getIsuName());
+            assertEquals("전공심화", savedRecord.getIsuFldName());
+            assertEquals("전공핵심", result.get(0).isuName());
+            assertEquals("전공심화", result.get(0).isuFldName());
         }
     }
 

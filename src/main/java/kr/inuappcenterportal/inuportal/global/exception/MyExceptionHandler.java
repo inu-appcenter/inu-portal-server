@@ -63,6 +63,8 @@ public class MyExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseDto.of(-1, errorMessage));
     }
 
+    // 같은 회원의 데이터를 여러 요청이 동시에 쓸 때 발생하는 DB 락 대기/데드락(예: 성적 여러
+    // 학기를 동시에 저장) 전용 처리. 클라이언트가 잠깐 뒤 재시도하면 대개 성공한다.
     @ExceptionHandler(CannotAcquireLockException.class)
     public ResponseEntity<ResponseDto<Integer>> handleCannotAcquireLockException(CannotAcquireLockException ex) {
         log.error("DB 락 획득 실패(동시 요청 충돌) msg:{}", ex.getMessage());
