@@ -54,7 +54,7 @@ public class FcmMessage extends BaseTimeEntity {
      * 유실 보정 스케줄러가 재발행 시 라우팅 정보를 추정하지 않고 그대로 복원할 수 있도록
      * 저장 시점의 path를 함께 영속화한다 (#431).
      */
-    @Column(name = "path")
+    @Column(name = "path", length = 512)
     private String path;
 
     @Builder

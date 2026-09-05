@@ -117,6 +117,20 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
         return ResponseEntity.ok(ResponseDto.of(courseOfferingService.getOpenCourseOfferingOptions(), "현재 학기 강의 검색 옵션 조회 성공"));
     }
 
+    // meeting·교수명은 이 API 용도(학점 계산에 필요한 학점/이수구분 등 채우기)에
+    // 필요 없어 항상 뺀다.
+    @GetMapping("/by-codes")
+    public ResponseEntity<ResponseDto<List<CourseOfferingResponseDto>>> getCourseOfferingsByCodes(
+            @RequestParam List<String> courseCodes
+    ) {
+        return ResponseEntity.ok(
+                ResponseDto.of(
+                        courseOfferingService.getCourseOfferingsByCourseCodes(courseCodes, false),
+                        "개설 강의 목록 조회 성공"
+                )
+        );
+    }
+
     private boolean canViewProfessor(Member member) {
         return member != null
                 && member.getStudentId() != null
