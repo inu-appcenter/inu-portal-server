@@ -218,6 +218,7 @@ public class FcmService {
                 .title("인천대학교 총학생회")
                 .body(title)
                 .targetId(councilNoticeId)
+                .path(councilNoticeId == null ? null : "/councilnoticedetail?id=" + councilNoticeId)
                 .build());
         if (sendFailed) {
             fcmMessage.markFailed(1);
@@ -228,11 +229,21 @@ public class FcmService {
 
     @Transactional
     public Long prepareKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType, Long targetId) {
+        return prepareKeywordNotice(tokenAndMemberId, title, body, fcmMessageType, targetId, null);
+    }
+
+    /**
+     * 발송 payload에 실리는 path를 이력에도 함께 남긴다. 알림함(NotificationResponse)이
+     * 이 값을 그대로 내려주므로, 저장하지 않으면 알림함에서 누른 알림만 시스템 알림 탭과
+     * 다른 화면으로 가게 된다 (키워드 공지의 경우 학교 공지 원문 링크).
+     */
+    @Transactional
+    public Long prepareKeywordNotice(Map<String, Long> tokenAndMemberId, String title, String body, FcmMessageType fcmMessageType, Long targetId, String path) {
         if (tokenAndMemberId.isEmpty()) {
             return null;
         }
 
-        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId);
+        FcmMessage fcmMessage = saveTrackedMessage(title, body, false, tokenAndMemberId.size(), targetId, path);
 
         List<Long> targetMemberIds = tokenAndMemberId.values().stream()
                 .filter(id -> id != null && !id.equals(UNLINKED_MEMBER_ID))
