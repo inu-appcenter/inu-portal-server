@@ -61,9 +61,13 @@ class GradeRecordRepositoryTest {
     }
 
     private GradeRecord newRecord(String courseCode, String title, Grade grade) {
+        return newRecord(courseCode, title, grade, null, null);
+    }
+
+    private GradeRecord newRecord(String courseCode, String title, Grade grade, String isuName, String isuFldName) {
         Member member = memberRepository.findById(memberId).orElseThrow();
         Semester semester = semesterRepository.findById(semesterId).orElseThrow();
-        return GradeRecord.create(member, semester, null, courseCode, title, 3, grade, true, false, null, null);
+        return GradeRecord.create(member, semester, null, courseCode, title, 3, grade, true, false, isuName, isuFldName);
     }
 
     @Test
@@ -98,5 +102,19 @@ class GradeRecordRepositoryTest {
                 .setParameter("semesterId", semesterId)
                 .getSingleResult();
         assertEquals(0L, count);
+    }
+
+    @Test
+    @DisplayName("isuName/isuFldName 값은 저장 후 다시 조회해도 유지된다")
+    void saveAndReload_preservesIsuFields() {
+        GradeRecord saved = gradeRecordRepository.save(
+                newRecord("ABC123", "자료구조", Grade.A_PLUS, "전공핵심", "전공심화")
+        );
+        em.flush();
+        em.clear();
+
+        GradeRecord reloaded = gradeRecordRepository.findById(saved.getId()).orElseThrow();
+        assertEquals("전공핵심", reloaded.getIsuName());
+        assertEquals("전공심화", reloaded.getIsuFldName());
     }
 }
