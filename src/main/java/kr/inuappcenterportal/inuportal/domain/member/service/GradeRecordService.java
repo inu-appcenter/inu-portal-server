@@ -16,6 +16,9 @@ import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterReposi
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GradeRecordService {
+
+    private static final String GRADE_RECORD_UNIQUE_CONSTRAINT = "uk_grade_member_semester_course";
 
     private final SemesterRepository semesterRepository;
     private final GradeRecordRepository gradeRecordRepository;
@@ -93,9 +98,30 @@ public class GradeRecordService {
                         record.isCourseRepetition()
                 )).toList();
 
-        return gradeRecordRepository.saveAll(records).stream()
-                .map(GradeRecordResponseDto::from)
-                .toList();
+        try {
+            List<GradeRecord> savedRecords = gradeRecordRepository.saveAll(records);
+            gradeRecordRepository.flush();
+            return savedRecords.stream()
+                    .map(GradeRecordResponseDto::from)
+                    .toList();
+        } catch (DataIntegrityViolationException ex) {
+            if (isGradeRecordUniqueConstraintViolation(ex)) {
+                throw new DuplicateKeyException("성적 기록 unique 제약 위반", ex);
+            }
+            throw ex;
+        }
+    }
+
+    private boolean isGradeRecordUniqueConstraintViolation(DataIntegrityViolationException ex) {
+        Throwable cause = ex;
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException constraintViolation
+                    && GRADE_RECORD_UNIQUE_CONSTRAINT.equals(constraintViolation.getConstraintName())) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     private Course findCourse(String courseCode) {
