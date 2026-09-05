@@ -45,6 +45,14 @@ public class ScheduledNotificationScheduler {
     @Value("${fcm.schedule.max-per-run:20}")
     private int maxPerRun;
 
+    /**
+     * lease가 커밋된 뒤 이만큼(분) 지나도 DISPATCHING에서 벗어나지 못한 행은 리스너가
+     * 끝까지 못 간 것으로 보고 재선점한다. 정상적인 리스너 처리 시간(비동기 발송 준비)보다
+     * 넉넉히 커야 진행 중인 건을 오탐으로 재선점하지 않는다.
+     */
+    @Value("${fcm.schedule.stalled-after-minutes:5}")
+    private long stalledAfterMinutes;
+
     @Scheduled(fixedDelayString = "${fcm.schedule.interval-ms:60000}")
     @SchedulerLock(
             name = "scheduled-notification-dispatch",
@@ -57,8 +65,9 @@ public class ScheduledNotificationScheduler {
         }
 
         LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime staleBefore = now.minusMinutes(stalledAfterMinutes);
         Pageable pageable = PageRequest.of(0, maxPerRun);
-        List<Long> dueIds = scheduledNotificationRepository.findDueIds(now, pageable);
+        List<Long> dueIds = scheduledNotificationRepository.findDueIds(now, staleBefore, pageable);
 
         if (dueIds.isEmpty()) {
             return;
@@ -67,8 +76,9 @@ public class ScheduledNotificationScheduler {
         int dispatched = 0;
         for (Long id : dueIds) {
             // 원자적 선점: 이미 취소되었거나(다른 요청이 CANCELED로 바꿨거나) 다른 인스턴스가
-            // 먼저 집었다면 lease가 false를 반환하고, 이 행은 건드리지 않는다.
-            if (!txService.lease(id)) {
+            // 먼저 집었다면, 혹은 아직 stale하지 않은 정상 처리 중인 DISPATCHING이라면
+            // lease가 false를 반환하고 이 행은 건드리지 않는다.
+            if (!txService.lease(id, now, staleBefore)) {
                 continue;
             }
             eventPublisher.publishEvent(new ScheduledNotificationDueEvent(id));
