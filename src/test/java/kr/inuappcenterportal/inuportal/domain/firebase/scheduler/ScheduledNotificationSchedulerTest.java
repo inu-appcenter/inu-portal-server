@@ -20,6 +20,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -44,6 +45,7 @@ class ScheduledNotificationSchedulerTest {
         scheduler = new ScheduledNotificationScheduler(
                 scheduledNotificationRepository, txService, eventPublisher, FIXED_CLOCK);
         ReflectionTestUtils.setField(scheduler, "maxPerRun", 20);
+        ReflectionTestUtils.setField(scheduler, "stalledAfterMinutes", 5L);
     }
 
     @Test
@@ -58,22 +60,22 @@ class ScheduledNotificationSchedulerTest {
     @Test
     void leaseFailureSkipsPublishingEvent() {
         ReflectionTestUtils.setField(scheduler, "scheduleEnabled", true);
-        when(scheduledNotificationRepository.findDueIds(any(), any(Pageable.class))).thenReturn(List.of(1L));
+        when(scheduledNotificationRepository.findDueIds(any(), any(), any(Pageable.class))).thenReturn(List.of(1L));
         // 다른 인스턴스가 먼저 선점했거나, 그사이 취소됐다고 가정한다.
-        when(txService.lease(1L)).thenReturn(false);
+        when(txService.lease(eq(1L), any(), any())).thenReturn(false);
 
         scheduler.dispatchDueNotifications();
 
-        verify(txService).lease(1L);
+        verify(txService).lease(eq(1L), any(), any());
         verifyNoInteractions(eventPublisher);
     }
 
     @Test
     void leaseSuccessPublishesDueEvent() {
         ReflectionTestUtils.setField(scheduler, "scheduleEnabled", true);
-        when(scheduledNotificationRepository.findDueIds(any(), any(Pageable.class))).thenReturn(List.of(2L, 3L));
-        when(txService.lease(2L)).thenReturn(true);
-        when(txService.lease(3L)).thenReturn(false);
+        when(scheduledNotificationRepository.findDueIds(any(), any(), any(Pageable.class))).thenReturn(List.of(2L, 3L));
+        when(txService.lease(eq(2L), any(), any())).thenReturn(true);
+        when(txService.lease(eq(3L), any(), any())).thenReturn(false);
 
         scheduler.dispatchDueNotifications();
 
@@ -85,7 +87,7 @@ class ScheduledNotificationSchedulerTest {
     @Test
     void noDueCandidatesSkipsLeaseAttempts() {
         ReflectionTestUtils.setField(scheduler, "scheduleEnabled", true);
-        when(scheduledNotificationRepository.findDueIds(any(), any(Pageable.class))).thenReturn(List.of());
+        when(scheduledNotificationRepository.findDueIds(any(), any(), any(Pageable.class))).thenReturn(List.of());
 
         scheduler.dispatchDueNotifications();
 
