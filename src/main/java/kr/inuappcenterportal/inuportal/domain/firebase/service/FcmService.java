@@ -921,6 +921,10 @@ public class FcmService {
             case NO_FRIENDS -> memberRepository.findIdsWithNoFriends();
 
             case NO_COMMUNITY_ACTIVITY -> memberRepository.findIdsWithNoCommunityActivity();
+
+            case STUDENT_ID_ODD -> memberRepository.findIdsByStudentIdEndingOdd();
+
+            case STUDENT_ID_EVEN -> memberRepository.findIdsByStudentIdEndingEven();
         };
     }
 
