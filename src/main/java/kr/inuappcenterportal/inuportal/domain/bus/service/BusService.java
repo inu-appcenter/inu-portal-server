@@ -266,29 +266,39 @@ public class BusService {
                     .collect(Collectors.toList());
         }
 
-        List<BusArrivalItemDto> arrivals = new ArrayList<>();
         String redisKey = "bus_realtime:" + bstopId;
         String cachedJson = redisService.getValue(redisKey);
 
         if (cachedJson != null && !cachedJson.isBlank()) {
             try {
-                // Redis에서 캐시된 데이터 파싱
+                // Redis에서 캐시된 데이터 파싱 (이미 스케줄러에서 추정치까지 완벽히 보강된 완성본)
                 BusArrivalItemDto[] arr = objectMapper.readValue(cachedJson, BusArrivalItemDto[].class);
-                arrivals = new ArrayList<>(Arrays.asList(arr));
+                return new ArrayList<>(Arrays.asList(arr));
             } catch (Exception e) {
                 log.error("Redis에서 버스 도착 정보 파싱 실패 - bstopId: {}", bstopId, e);
             }
         }
 
-        // 캐시가 없으면(스케줄러 대상이 아니거나 최초 요청 시) 직접 API 호출 후 30초 캐싱
-        if (arrivals.isEmpty() && (cachedJson == null || cachedJson.isBlank())) {
-            arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
-            try {
-                String json = objectMapper.writeValueAsString(arrivals);
-                redisService.storeValueWithExpire(redisKey, json, 30, java.util.concurrent.TimeUnit.SECONDS);
-            } catch (Exception ex) {
-                log.error("Redis 캐싱 실패 - bstopId: {}", bstopId, ex);
-            }
+        // 캐시가 없으면(스케줄러 미등록 정류장이거나 캐시 만료 시) 직접 API 호출 및 추정치 보강 후 캐싱
+        List<BusArrivalItemDto> arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
+        arrivals = augmentWithEstimatedArrivals(bstopId, arrivals);
+        try {
+            String json = objectMapper.writeValueAsString(arrivals);
+            redisService.storeValueWithExpire(redisKey, json, 30, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ex) {
+            log.error("Redis 캐싱 실패 - bstopId: {}", bstopId, ex);
+        }
+
+        return arrivals;
+    }
+
+    public List<BusArrivalItemDto> augmentWithEstimatedArrivals(String bstopId, List<BusArrivalItemDto> realTimeArrivals) {
+        List<BusArrivalItemDto> result = new ArrayList<>(realTimeArrivals);
+
+        // 심야 운행 종료 시간대(00:30 ~ 05:00)에는 추정 계산을 전면 스킵하여 불필요한 DB 연산 방지
+        LocalTime currentTime = LocalTime.now();
+        if ((currentTime.isAfter(LocalTime.of(0, 30)) && currentTime.isBefore(LocalTime.of(5, 0))) || currentTime.equals(LocalTime.of(0, 30))) {
+            return result;
         }
 
         // 해당 정류소를 출발/경유하는 등록된 노선 목록
@@ -299,7 +309,7 @@ public class BusService {
                     .collect(Collectors.toList());
         }
 
-        Set<String> liveRouteIds = arrivals.stream()
+        Set<String> liveRouteIds = result.stream()
                 .map(BusArrivalItemDto::getRouteId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -310,12 +320,12 @@ public class BusService {
             if (routeId != null && !liveRouteIds.contains(routeId)) {
                 BusArrivalItemDto estimatedItem = calculateEstimatedArrivalForRoute(bstopId, routeId, section.getRouteNo());
                 if (estimatedItem != null) {
-                    arrivals.add(estimatedItem);
+                    result.add(estimatedItem);
                 }
             }
         }
 
-        return arrivals;
+        return result;
     }
 
     private BusArrivalItemDto calculateEstimatedArrivalForRoute(String bstopId, String routeId, String routeNo) {
@@ -323,8 +333,29 @@ public class BusService {
             return null;
         }
 
+        // 1. Redis 추정치 캐시 확인 (3분 TTL - 30초마다 DB를 쿼리하지 않도록 보호)
+        String estKey = "bus_est:" + bstopId + ":" + routeId;
+        String cachedEst = redisService.getValue(estKey);
+        if (cachedEst != null && !cachedEst.isBlank()) {
+            if ("NONE".equals(cachedEst)) {
+                return null;
+            }
+            try {
+                return objectMapper.readValue(cachedEst, BusArrivalItemDto.class);
+            } catch (Exception e) {
+                log.error("추정치 캐시 역직렬화 실패 - bstopId: {}, routeId: {}", bstopId, routeId, e);
+            }
+        }
+
         LocalDateTime now = LocalDateTime.now();
         LocalTime currentTime = now.toLocalTime();
+
+        // 00:30 ~ 05:00 심야 시간대 컷오프
+        if ((currentTime.isAfter(LocalTime.of(0, 30)) && currentTime.isBefore(LocalTime.of(5, 0))) || currentTime.equals(LocalTime.of(0, 30))) {
+            redisService.storeValueWithExpire(estKey, "NONE", 180, java.util.concurrent.TimeUnit.SECONDS);
+            return null;
+        }
+
         List<Integer> remainingSecondsList = new ArrayList<>();
 
         // 최근 4주간 동일 요일의 실측 도착 시간 중 현재 시간 이후 가장 가까운 도착 시각과의 차이 계산
@@ -333,11 +364,12 @@ public class BusService {
             LocalDateTime startWindow = pastDate.atTime(currentTime);
             LocalDateTime endWindow = pastDate.atTime(currentTime.plusMinutes(45));
 
-            List<BusArrivalHistory> pastLogs = busArrivalHistoryRepository
-                    .findByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(bstopId, routeId, startWindow, endWindow);
+            // findFirstBy 사용으로 LIMIT 1 적용 (최초 1건만 조회하여 메모리 및 네트워크 오버헤드 최소화)
+            Optional<BusArrivalHistory> pastLogOpt = busArrivalHistoryRepository
+                    .findFirstByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(bstopId, routeId, startWindow, endWindow);
 
-            if (!pastLogs.isEmpty()) {
-                LocalTime nextArrivalTime = pastLogs.get(0).getCreateDate().toLocalTime();
+            if (pastLogOpt.isPresent()) {
+                LocalTime nextArrivalTime = pastLogOpt.get().getCreateDate().toLocalTime();
                 long diff = java.time.Duration.between(currentTime, nextArrivalTime).getSeconds();
                 if (diff > 0 && diff <= 45 * 60) {
                     remainingSecondsList.add((int) diff);
@@ -345,17 +377,16 @@ public class BusService {
             }
         }
 
-        // 같은 시간대에 대한 실측값이 2주 미만이면 추정하지 않는다.
-        // 이전에는 정류장 전체의 평균 배차간격 절반(최소 5분)을 반환해 야간에도
-        // 근거 없는 "5분 후"가 반복 표시될 수 있었다.
+        // 같은 시간대에 대한 실측값이 2주 미만이면 추정하지 않는다. (반복 DB 쿼리 방지를 위해 NONE으로 3분 캐싱)
         if (remainingSecondsList.size() < 2) {
+            redisService.storeValueWithExpire(estKey, "NONE", 180, java.util.concurrent.TimeUnit.SECONDS);
             return null;
         }
 
         Collections.sort(remainingSecondsList);
         int medianSeconds = remainingSecondsList.get(remainingSecondsList.size() / 2);
 
-        return BusArrivalItemDto.builder()
+        BusArrivalItemDto estimated = BusArrivalItemDto.builder()
                 .bstopId(bstopId)
                 .routeId(routeId)
                 .routeNo(routeNo)
@@ -365,7 +396,17 @@ public class BusService {
                 .estimationNotice(String.format("최근 %d주 동일 요일·시간대 실측 기반 추정", remainingSecondsList.size()))
                 .congestion("2")
                 .build();
+
+        // 3분 동안 유효한 추정치로 캐싱
+        try {
+            redisService.storeValueWithExpire(estKey, objectMapper.writeValueAsString(estimated), 180, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("추정치 캐시 저장 실패 - key: {}", estKey, e);
+        }
+
+        return estimated;
     }
+
 
     public BusHistoryResponseDto getHistory(String bstopId, String targetDateStr) {
         LocalDate targetDate = (targetDateStr != null && !targetDateStr.isBlank())

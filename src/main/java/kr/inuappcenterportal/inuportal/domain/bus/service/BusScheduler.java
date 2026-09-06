@@ -68,11 +68,14 @@ public class BusScheduler {
                     Thread.currentThread().interrupt();
                 }
 
-                List<BusArrivalItemDto> arrivals = busApiService.fetchBusArrivals(stop.getBstopId());
-                
-                // 조회된 실시간 데이터를 Redis에 캐싱 (스케줄러 주기가 30초이므로 여유있게 40초 TTL 설정)
+                List<BusArrivalItemDto> rawArrivals = busApiService.fetchBusArrivals(stop.getBstopId());
+
+                // 실시간 도착 정보에 시간표 기반 추정치까지 백그라운드에서 사전 계산 및 보강
+                List<BusArrivalItemDto> finalArrivals = busService.augmentWithEstimatedArrivals(stop.getBstopId(), rawArrivals);
+
+                // 조회 및 보강 완료된 데이터를 Redis에 캐싱 (스케줄러 주기가 30초이므로 여유있게 40초 TTL 설정)
                 try {
-                    String json = objectMapper.writeValueAsString(arrivals);
+                    String json = objectMapper.writeValueAsString(finalArrivals);
                     redisService.storeValueWithExpire("bus_realtime:" + stop.getBstopId(), json, 40, java.util.concurrent.TimeUnit.SECONDS);
                 } catch (Exception ex) {
                     log.error("Redis 캐싱 실패 - bstopId: {}", stop.getBstopId(), ex);
@@ -80,7 +83,7 @@ public class BusScheduler {
 
                 LocalDateTime sevenMinutesAgo = LocalDateTime.now().minusMinutes(7);
 
-                for (BusArrivalItemDto arrival : arrivals) {
+                for (BusArrivalItemDto arrival : rawArrivals) {
                     Integer estimateTime = parseIntegerSafe(arrival.getArrivalEstimateTime());
                     Integer restStops = parseIntegerSafe(arrival.getRestStopCount());
 

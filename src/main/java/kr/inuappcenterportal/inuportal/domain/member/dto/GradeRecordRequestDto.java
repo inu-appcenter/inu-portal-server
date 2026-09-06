@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.member.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record GradeRecordRequestDto(
         String courseCode,
@@ -20,6 +21,18 @@ public record GradeRecordRequestDto(
                 description = "재수강 성적 취소 여부",
                 example = "false"
         )
-        @NotNull Boolean isCourseRepetition
+        @NotNull Boolean isCourseRepetition,
+        @Schema(
+                description = "이수구분(전공기초 / 전공핵심 / 심화교양 …) 원문. 없으면 null",
+                example = "전공핵심",
+                nullable = true
+        )
+        @Size(max = 255) String isuName,
+        @Schema(
+                description = "이수영역(전공심화 / 사회 …) 원문. 없으면 null",
+                example = "전공심화",
+                nullable = true
+        )
+        @Size(max = 255) String isuFldName
 ) {
 }

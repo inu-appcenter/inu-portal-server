@@ -32,11 +32,13 @@ class ScheduledNotificationTransactionServiceTest {
 
     @Test
     void leaseTranslatesRowCountToBoolean() {
-        when(scheduledNotificationRepository.leaseForDispatch(1L)).thenReturn(1);
-        when(scheduledNotificationRepository.leaseForDispatch(2L)).thenReturn(0);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime staleBefore = now.minusMinutes(5);
+        when(scheduledNotificationRepository.leaseForDispatch(1L, now, staleBefore)).thenReturn(1);
+        when(scheduledNotificationRepository.leaseForDispatch(2L, now, staleBefore)).thenReturn(0);
 
-        assertThat(txService.lease(1L)).isTrue();
-        assertThat(txService.lease(2L)).isFalse();
+        assertThat(txService.lease(1L, now, staleBefore)).isTrue();
+        assertThat(txService.lease(2L, now, staleBefore)).isFalse();
     }
 
     @Test
