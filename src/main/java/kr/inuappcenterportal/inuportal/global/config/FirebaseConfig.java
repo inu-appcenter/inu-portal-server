@@ -26,10 +26,13 @@ public class FirebaseConfig {
             InputStream serviceAccount =
                     new ClassPathResource("firebase_key.json").getInputStream();
 
+            // 2026-09-07 장애에서는 커넥션 수립이 5초 안에 끝나지 않아 6,500건이 타임아웃 났다.
+            // 근본 원인은 동시 커넥션 폭주였고 그건 FcmDispatchGate가 막는다. 여기 상향은
+            // 정상 부하에서 일시적으로 응답이 느려질 때 곧바로 포기하지 않게 하는 여유분일 뿐이다.
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setConnectTimeout(5000)
-                    .setReadTimeout(15000)
+                    .setConnectTimeout(10000)
+                    .setReadTimeout(30000)
                     .build();
 
             FirebaseApp.initializeApp(options);

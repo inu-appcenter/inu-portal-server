@@ -37,6 +37,17 @@ public class FcmAsyncService {
         fcmService.sendToMembers(dispatch);
     }
 
+    /**
+     * 실패자에게만 다시 보낸다. 알림함 행은 최초 발송 때 이미 만들어져 있으므로 새로 만들지 않는다.
+     * 선점(lease)은 호출 전에 끝나 있어야 한다 — 여기서 하면 이미 비동기라 연타를 막지 못한다.
+     */
+    @Async("messageExecutor")
+    public void retryAsync(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body,
+                           kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType type,
+                           Long targetId, String path, int previousSendCount) {
+        fcmService.retryFailedTargets(fcmMessageId, tokenAndMemberId, title, body, type, targetId, path, previousSendCount);
+    }
+
     // prepareTrackedNotification이 저장 트랜잭션 커밋 이후 발송을 이벤트로 트리거한다.
     // 여기서 dispatchTrackedNotification을 또 호출하면 중복 발송된다.
 

@@ -155,6 +155,9 @@ public enum MyErrorCode {
     INVALID_LOCATION_VALUE(HttpStatus.BAD_REQUEST, "위치 값이 올바르지 않습니다."),
     REQUIRED_LOCATION_PARAMETER(HttpStatus.BAD_REQUEST, "위치 파라미터가 필요합니다."),
     NEARBY_VISIBILITY_NOT_AGREED(HttpStatus.BAD_REQUEST, "주변 친구 찾기 위치 노출 동의가 필요합니다."),
+    FCM_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 관리자 알림입니다."),
+    FCM_RETRY_NO_TARGET(HttpStatus.CONFLICT, "재시도할 대상이 없습니다. 전달에 실패한 수신자가 없거나, 실패 기록이 남지 않은 과거 발송입니다."),
+    FCM_RETRY_NOT_ALLOWED(HttpStatus.CONFLICT, "지금은 재시도할 수 없습니다. 이미 발송 중이거나 재시도 대상이 아닌 상태입니다."),
     ;
 
 
