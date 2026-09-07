@@ -8,6 +8,7 @@ import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.SendResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageFailedTargetRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,11 +27,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -64,6 +68,12 @@ class FcmServiceTest {
 
     @Mock
     private FcmDispatchGate fcmDispatchGate;
+
+    @Mock
+    private FcmFailedTargetService fcmFailedTargetService;
+
+    @Mock
+    private FcmMessageFailedTargetRepository fcmMessageFailedTargetRepository;
 
     @InjectMocks
     private FcmService fcmService;
@@ -142,6 +152,35 @@ class FcmServiceTest {
     }
 
     /**
+     * 재시도가 "실패한 사람에게만" 나가려면 이 기록이 정확해야 한다. 특히 한 회원이 기기를
+     * 여러 대 쓸 때, 하나라도 전달됐으면 그 회원은 이미 알림을 받은 것이므로 실패자로 남으면 안 된다.
+     * 남기면 다음 재시도에서 같은 알림을 두 번 받는다.
+     */
+    @Test
+    @DisplayName("토큰 하나라도 전달된 회원은 실패 기록에서 빠지고, 전부 실패한 회원만 남는다")
+    void sendToMembers_recordsOnlyMembersWithNoSuccessfulToken() {
+        Map<String, Long> tokenAndMemberId = new LinkedHashMap<>();
+        tokenAndMemberId.put("memberA_phone", 1L);   // 성공
+        tokenAndMemberId.put("memberA_tablet", 1L);  // 실패 → 그래도 A는 받았으므로 제외
+        tokenAndMemberId.put("memberB_phone", 2L);   // 실패 → B는 전부 실패
+        tokenAndMemberId.put("orphan_token", -1L);   // 회원 없는 토큰 → 대상 특정 불가라 제외
+
+        AdminNotificationDispatch dispatch = new AdminNotificationDispatch(
+                7L, "Title", "Body", tokenAndMemberId, List.of(), null);
+
+        BatchResponse batch = mixedBatch(List.of(true, false, false, false));
+        when(firebaseMessaging.sendEachForMulticastAsync(any(MulticastMessage.class)))
+                .thenReturn(ApiFutures.immediateFuture(batch));
+
+        fcmService.sendToMembers(dispatch);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Set<Long>> captor = ArgumentCaptor.forClass(Set.class);
+        verify(fcmFailedTargetService).replaceFailedTargets(eq(7L), captor.capture());
+        assertThat(captor.getValue()).containsExactly(2L);
+    }
+
+    /**
      * 2026-09-07 장애 로그 6,648건 전수 분류 결과를 그대로 고정한다.
      * 무효 토큰은 항상 MessagingErrorCode가 채워져 오고, errorCode가 비어 있는 건은 전부 타임아웃이었다.
      */
@@ -201,6 +240,25 @@ class FcmServiceTest {
         FirebaseMessagingException exception = mock(FirebaseMessagingException.class);
         when(exception.getMessagingErrorCode()).thenReturn(code);
         return exception;
+    }
+
+    /** 성공/실패가 섞인 배치. 마지막 시도까지 실패한 토큰은 영구 실패로 확정된다. */
+    private BatchResponse mixedBatch(List<Boolean> outcomes) {
+        BatchResponse batchResponse = mock(BatchResponse.class);
+        FirebaseMessagingException permanent = mock(FirebaseMessagingException.class);
+        when(permanent.getMessagingErrorCode()).thenReturn(MessagingErrorCode.UNREGISTERED);
+
+        List<SendResponse> responses = new ArrayList<>();
+        for (Boolean successful : outcomes) {
+            SendResponse response = mock(SendResponse.class);
+            when(response.isSuccessful()).thenReturn(successful);
+            if (!successful) {
+                when(response.getException()).thenReturn(permanent);
+            }
+            responses.add(response);
+        }
+        when(batchResponse.getResponses()).thenReturn(responses);
+        return batchResponse;
     }
 
     private BatchResponse successBatch(int successCount) {

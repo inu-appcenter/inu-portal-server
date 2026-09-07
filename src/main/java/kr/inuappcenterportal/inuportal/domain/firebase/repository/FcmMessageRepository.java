@@ -72,4 +72,28 @@ public interface FcmMessageRepository extends JpaRepository<FcmMessage, Long> {
               AND f.createDate < :maxAgeBefore
             """)
     int abandonPendingOlderThan(@Param("notBefore") LocalDateTime notBefore, @Param("maxAgeBefore") LocalDateTime maxAgeBefore);
+
+    /**
+     * 관리자 수동 재시도의 원자적 선점(lease). {@code leasePendingForRecovery}와 같은 이유로
+     * 조건부 UPDATE를 쓴다. 관리자가 버튼을 연타하거나 여러 명이 동시에 눌러도 정확히 하나만
+     * 1을 반환하므로, 이 값이 1일 때만 실제 재발송을 시작해야 중복 푸시를 피할 수 있다.
+     *
+     * <p>재시도 가능한 상태는 발송이 끝난 실패 계열뿐이다. PENDING/PROCESSING은 아직 발송이
+     * 진행 중일 수 있어 제외한다 — 어디까지 나갔는지 모르는 상태에서 재발송하면 그대로 중복이다.
+     * SUCCESS/NO_TARGET은 재시도할 대상 자체가 없다.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE FcmMessage f
+            SET f.sendStatus = kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus.PROCESSING,
+                f.retryCount = f.retryCount + 1,
+                f.lastRetriedAt = :now
+            WHERE f.id = :id
+              AND f.sendStatus IN (
+                    kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus.FAILED,
+                    kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus.PARTIAL_FAILURE,
+                    kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus.ABANDONED
+              )
+            """)
+    int leaseForRetry(@Param("id") Long id, @Param("now") LocalDateTime now);
 }

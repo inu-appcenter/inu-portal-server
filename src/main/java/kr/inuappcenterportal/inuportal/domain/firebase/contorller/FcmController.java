@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationRespo
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.ScheduledNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.ScheduledNotification;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmRetryService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.ScheduledNotificationService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -34,6 +35,7 @@ public class FcmController implements FcmApiSpecification {
     private final FcmService fcmService;
     private final FcmAsyncService fcmAsyncService;
     private final ScheduledNotificationService scheduledNotificationService;
+    private final FcmRetryService fcmRetryService;
 
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> saveToken(@Valid @RequestBody TokenRequestDto tokenRequestDto,
@@ -151,5 +153,10 @@ public class FcmController implements FcmApiSpecification {
     @GetMapping("/admin/{fcmMessageId}")
     public ResponseEntity<ResponseDto<AdminNotificationResponse>> getAdminFcmMessageResult(@PathVariable Long fcmMessageId) {
         return ResponseEntity.ok(ResponseDto.of(fcmService.findAdminNotificationResult(fcmMessageId), "FCM 메시지 조회 성공"));
+    }
+
+    @PostMapping("/admin/{fcmMessageId}/retry")
+    public ResponseEntity<ResponseDto<AdminNotificationResponse>> retryAdminFcmMessage(@PathVariable Long fcmMessageId) {
+        return ResponseEntity.ok(ResponseDto.of(fcmRetryService.retry(fcmMessageId), "FCM 재발송 요청 접수 성공"));
     }
 }

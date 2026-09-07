@@ -25,6 +25,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotification
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageFailedTargetRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
@@ -57,7 +58,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -80,6 +83,8 @@ public class FcmService {
     private final FcmTransactionService fcmTransactionService;
     private final FcmMetrics fcmMetrics;
     private final FcmDispatchGate fcmDispatchGate;
+    private final FcmFailedTargetService fcmFailedTargetService;
+    private final FcmMessageFailedTargetRepository fcmMessageFailedTargetRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     /** 청크 간 최소 간격. 게이트가 동시성을 막고, 이 값은 버스트를 한 번 더 눕히는 용도다. */
@@ -407,6 +412,10 @@ public class FcmService {
         List<List<String>> chunks = fcmDispatchGate.chunk(tokens);
         int dispatched = 0;
 
+        // 전달에 성공한 회원. 한 회원의 기기가 여러 대면 토큰도 여러 개인데, 그중 하나라도
+        // 성공했으면 그 회원은 알림을 받은 것이므로 재시도 대상에서 빠져야 한다.
+        Set<Long> deliveredMemberIds = new HashSet<>();
+
         for (List<String> batchTokens : chunks) {
             if (dispatched > 0) {
                 try {
@@ -442,6 +451,10 @@ public class FcmService {
 
                         if (sendResponse.isSuccessful()) {
                             batchSuccess++;
+                            Long deliveredMemberId = tokenAndMemberId.get(token);
+                            if (deliveredMemberId != null && deliveredMemberId > 0) {
+                                deliveredMemberIds.add(deliveredMemberId);
+                            }
                             continue;
                         }
 
@@ -494,7 +507,62 @@ public class FcmService {
             }
         }
 
+        if (fcmMessageId != null) {
+            fcmFailedTargetService.replaceFailedTargets(
+                    fcmMessageId, undeliveredMemberIds(tokenAndMemberId, deliveredMemberIds));
+        }
+
         return new DeliveryResult(successCount, failureCount, unknownCount);
+    }
+
+    /**
+     * 실패했던 회원들에게만 다시 발송한다.
+     *
+     * <p>{@link #sendToMembers}와 달리 알림함 행({@code member_fcm_message})을 새로 만들지 않는다.
+     * 최초 발송 때 이미 만들어져 있고, 재시도는 새 알림이 아니라 같은 알림의 재전송이기 때문이다.
+     * 사용자 알림함에 같은 항목이 두 번 뜨지 않는 이유가 이것이다.
+     *
+     * <p>집계는 덮어쓰지 않고 이전 성공분 위에 합산한다. 자세한 규칙은
+     * {@link kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage#applyRetryResult}를 참고.
+     */
+    public void retryFailedTargets(Long fcmMessageId, Map<String, Long> tokenAndMemberId, String title, String body,
+                                   FcmMessageType type, Long targetId, String path, int previousSendCount) {
+        try {
+            DeliveryResult result = dispatchToMembersInternal(
+                    fcmMessageId, tokenAndMemberId, title, body, type, targetId, path);
+
+            fcmTransactionService.applyRetryResult(
+                    fcmMessageId, previousSendCount, result.successCount(), result.failureCount());
+
+            log.warn("Admin notification retry finished: fcmMessageId={}, retried={}, success={}, failure={}, unknown={}",
+                    fcmMessageId, tokenAndMemberId.size(), result.successCount(), result.failureCount(), result.unknownCount());
+        } catch (Exception e) {
+            // 재시도가 통째로 실패해도 이전 성공분은 살아 있어야 한다. markFailed는 sendCount를
+            // 0으로 밀어버리므로 쓰지 않고, 재시도 대상 전부가 실패한 것으로만 확정한다.
+            log.error("Admin notification retry failed: fcmMessageId={}, target={}, message={}",
+                    fcmMessageId, tokenAndMemberId.size(), e.getMessage(), e);
+            fcmTransactionService.applyRetryResult(fcmMessageId, previousSendCount, 0, tokenAndMemberId.size());
+        }
+    }
+
+    /**
+     * 이번 발송에서 <b>단 하나의 토큰도 전달되지 않은</b> 회원을 추린다. 재시도 대상이 된다.
+     *
+     * <p>결과를 확인하지 못한(미확인) 토큰도 성공으로 치지 않으므로 여기에 포함된다. 알림을 조용히
+     * 유실시키는 쪽이 중복 수신보다 나쁘다는 기존 판단({@link #isRetryable})과 같은 방향이다.
+     * 다만 재시도는 관리자가 명시적으로 누를 때만 일어나므로, 이 판단이 자동 재발송으로 번지지는 않는다.
+     *
+     * <p>회원과 연결되지 않은 토큰(로그아웃 기기 등, memberId가 없거나 음수)은 재시도 대상에서
+     * 제외한다. 재시도는 회원의 현재 토큰을 다시 조회하는 방식이라 주인이 없으면 대상을 특정할 수 없다.
+     */
+    private Set<Long> undeliveredMemberIds(Map<String, Long> tokenAndMemberId, Set<Long> deliveredMemberIds) {
+        Set<Long> undelivered = new HashSet<>();
+        for (Long memberId : tokenAndMemberId.values()) {
+            if (memberId != null && memberId > 0 && !deliveredMemberIds.contains(memberId)) {
+                undelivered.add(memberId);
+            }
+        }
+        return undelivered;
     }
 
     /**
@@ -631,14 +699,33 @@ public class FcmService {
     public List<AdminNotificationResponse> countAdminFcmMessagesSuccess(int page) {
         Pageable pageable = PageRequest.of(page - 1, 8, Sort.by(Sort.Direction.DESC, "id"));
         Page<FcmMessage> fcmMessages = fcmMessageRepository.findAllByAdminMessageTrue(pageable);
-        return fcmMessages.stream().map(AdminNotificationResponse::of).toList();
+
+        List<Long> ids = fcmMessages.stream().map(FcmMessage::getId).toList();
+        Map<Long, Integer> retryableCounts = countRetryableTargets(ids);
+
+        return fcmMessages.stream()
+                .map(message -> AdminNotificationResponse.of(
+                        message, retryableCounts.getOrDefault(message.getId(), 0)))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public AdminNotificationResponse findAdminNotificationResult(Long fcmMessageId) {
         FcmMessage fcmMessage = fcmMessageRepository.findByIdAndAdminMessageTrue(fcmMessageId)
                 .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
-        return AdminNotificationResponse.of(fcmMessage);
+        return AdminNotificationResponse.of(
+                fcmMessage, fcmMessageFailedTargetRepository.countByFcmMessageId(fcmMessageId));
+    }
+
+    private Map<Long, Integer> countRetryableTargets(List<Long> fcmMessageIds) {
+        if (fcmMessageIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Integer> counts = new LinkedHashMap<>();
+        for (Object[] row : fcmMessageFailedTargetRepository.countGroupedByFcmMessageIds(fcmMessageIds)) {
+            counts.put((Long) row[0], ((Number) row[1]).intValue());
+        }
+        return counts;
     }
 
     @Transactional

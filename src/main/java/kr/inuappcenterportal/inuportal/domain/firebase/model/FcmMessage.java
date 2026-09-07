@@ -15,6 +15,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -56,6 +58,13 @@ public class FcmMessage extends BaseTimeEntity {
      */
     @Column(name = "path", length = 512)
     private String path;
+
+    /** 관리자가 수동 재시도한 횟수. 0이면 최초 발송 결과 그대로다. */
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0;
+
+    @Column(name = "last_retried_at")
+    private LocalDateTime lastRetriedAt;
 
     @Builder
     public FcmMessage(String title, String body, boolean isAdminMessage, int sendCount,
@@ -122,5 +131,19 @@ public class FcmMessage extends BaseTimeEntity {
         this.sendCount = 0;
         this.failureCount = this.targetCount;
         this.sendStatus = this.targetCount == 0 ? FcmSendStatus.NO_TARGET : FcmSendStatus.FAILED;
+    }
+
+    /**
+     * 재시도 결과를 기존 성공분 위에 합산해 확정한다.
+     *
+     * <p>{@code previousSendCount}는 재시도 이전까지 성공한 건수다. 재시도는 실패자에게만
+     * 보내므로 이전 성공분은 그대로 유효하고, 실패 건수는 이번 재시도 결과로 <b>대체</b>된다.
+     * 재시도가 전부 성공하면 failureCount가 0이 되어 상태가 SUCCESS로 확정된다.
+     *
+     * <p>집계 단위가 토큰이라 재시도 사이에 회원의 기기 수가 바뀌면 합이 최초 targetCount와
+     * 어긋날 수 있다. {@link #updateDeliveryResult}가 targetCount를 하한으로 끌어올려 보정한다.
+     */
+    public void applyRetryResult(int previousSendCount, int retrySuccessCount, int retryFailureCount) {
+        updateDeliveryResult(Math.max(previousSendCount, 0) + Math.max(retrySuccessCount, 0), retryFailureCount);
     }
 }
