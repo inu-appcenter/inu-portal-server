@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationRespo
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.ScheduledNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.ScheduledNotification;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmRetryService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.ScheduledNotificationService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -34,6 +35,7 @@ public class FcmController implements FcmApiSpecification {
     private final FcmService fcmService;
     private final FcmAsyncService fcmAsyncService;
     private final ScheduledNotificationService scheduledNotificationService;
+    private final FcmRetryService fcmRetryService;
 
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> saveToken(@Valid @RequestBody TokenRequestDto tokenRequestDto,
@@ -151,5 +153,18 @@ public class FcmController implements FcmApiSpecification {
     @GetMapping("/admin/{fcmMessageId}")
     public ResponseEntity<ResponseDto<AdminNotificationResponse>> getAdminFcmMessageResult(@PathVariable Long fcmMessageId) {
         return ResponseEntity.ok(ResponseDto.of(fcmService.findAdminNotificationResult(fcmMessageId), "FCM 메시지 조회 성공"));
+    }
+
+    @PostMapping("/admin/{fcmMessageId}/retry")
+    public ResponseEntity<ResponseDto<AdminNotificationResponse>> retryAdminFcmMessage(@PathVariable Long fcmMessageId) {
+        // 선점은 트랜잭션 안에서 끝내고, 실제 발송은 커밋된 뒤에 띄운다.
+        // 발송 작업이 같은 fcm_message 행을 갱신하므로 락을 쥔 채 넘기면 안 된다.
+        FcmRetryService.RetryDispatch dispatch = fcmRetryService.prepareRetry(fcmMessageId);
+
+        fcmAsyncService.retryAsync(
+                dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(),
+                dispatch.type(), dispatch.targetId(), dispatch.path(), dispatch.previousSendCount());
+
+        return ResponseEntity.ok(ResponseDto.of(dispatch.response(), "FCM 재발송 요청 접수 성공"));
     }
 }

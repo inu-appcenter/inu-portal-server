@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
 import com.google.firebase.messaging.BatchResponse;
-import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
@@ -21,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 @Slf4j
 public class FcmAsyncExecutor {
-    private final FirebaseMessaging firebaseMessaging;
+    private final FcmDispatchGate fcmDispatchGate;
     private final FcmMetrics fcmMetrics;
     private final List<String> failedTokensList = Collections.synchronizedList(new ArrayList<>());
 
@@ -39,7 +38,10 @@ public class FcmAsyncExecutor {
                             .build())
                     .build();
 
-            BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
+            // 게이트를 거치지 않고 firebaseMessaging을 직접 호출하면 전역 팬아웃 상한이 깨진다.
+            // 이 메서드는 sendExecutor(코어 8/최대 16)에서 병렬 실행되므로,
+            // 여기서 상한이 풀리면 청크 크기 × 스레드 수만큼 커넥션이 동시에 열린다.
+            BatchResponse response = fcmDispatchGate.send(message);
             batchSuccess = response.getSuccessCount();
             batchFailure = response.getFailureCount();
             List<SendResponse> responses = response.getResponses();
@@ -48,6 +50,11 @@ public class FcmAsyncExecutor {
                     failedTokensList.add(tokens.get(i));
                 }
             }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            batchFailure = tokens.size();
+            failedTokensList.addAll(tokens);
+            log.warn("FCM batch send interrupted: batchSize={}", tokens.size());
         } catch (FirebaseMessagingException e) {
             batchFailure = tokens.size();
             failedTokensList.addAll(tokens);

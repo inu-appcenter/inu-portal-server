@@ -14,10 +14,13 @@ import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
+import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageFailedTargetRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncExecutor;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmDispatchGate;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmFailedTargetService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -51,8 +54,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class, FcmTransactionService.class})
+@SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class, FcmTransactionService.class, FcmDispatchGate.class})
 class SendToMembersTest {
+
+    @MockBean
+    private FcmMessageFailedTargetRepository fcmMessageFailedTargetRepository;
+
+    @MockBean
+    private FcmFailedTargetService fcmFailedTargetService;
 
     @MockBean
     private FcmTokenRepository fcmTokenRepository;

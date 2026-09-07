@@ -93,4 +93,13 @@ public interface FcmApiSpecification {
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 결과 조회",
             description = "관리자가 전송한 FCM 메시지의 발송 결과를 조회합니다.")
     ResponseEntity<ResponseDto<AdminNotificationResponse>> getAdminFcmMessageResult(Long fcmMessageId);
+
+    @Operation(summary = "(관리자 전용) 실패한 관리자 알림 재발송",
+            description = "전달에 실패한 수신자에게만 다시 발송합니다. 이미 받은 사람에게 중복 푸시가 가지 않도록, " +
+                    "발송 시 기록해 둔 '전달 실패 회원'만 대상으로 하며 그들의 현재 토큰을 다시 조회해 보냅니다. " +
+                    "알림함 항목은 새로 만들지 않고 기존 알림을 그대로 재전송합니다.\n\n" +
+                    "FAILED / PARTIAL_FAILURE / ABANDONED 상태만 재시도할 수 있습니다. " +
+                    "발송이 진행 중이거나(PENDING/PROCESSING) 재시도 대상이 없으면 409로 거부됩니다. " +
+                    "실패 기록이 남기 시작한 시점 이전의 과거 발송도 대상이 없어 409가 됩니다.")
+    ResponseEntity<ResponseDto<AdminNotificationResponse>> retryAdminFcmMessage(Long fcmMessageId);
 }
