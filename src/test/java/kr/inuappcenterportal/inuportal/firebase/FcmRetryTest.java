@@ -14,6 +14,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepo
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncExecutor;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmDispatchGate;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionService;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
@@ -41,7 +42,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class, FcmTransactionService.class})
+@SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class, FcmTransactionService.class, FcmDispatchGate.class})
 class FcmRetryTest {
 
     @MockBean
