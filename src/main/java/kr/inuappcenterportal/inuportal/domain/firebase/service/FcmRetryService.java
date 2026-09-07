@@ -45,18 +45,18 @@ public class FcmRetryService {
     private final FcmMessageFailedTargetRepository fcmMessageFailedTargetRepository;
     private final MemberFcmMessageRepository memberFcmMessageRepository;
     private final FcmTokenRepository fcmTokenRepository;
-    private final FcmAsyncService fcmAsyncService;
 
     /**
-     * 재시도를 접수한다. 실제 발송은 비동기로 진행되며, 이 메서드는 선점에 성공한 시점의
-     * 알림 상태를 돌려준다.
+     * 재시도할 대상을 확정하고 원자적으로 선점한다. <b>실제 발송은 이 트랜잭션이 커밋된 뒤</b>
+     * 호출자가 {@link FcmAsyncService#retryAsync}로 띄운다. 발송 작업이 같은 fcm_message 행을
+     * 갱신하므로, 락을 쥔 채로 넘기지 않기 위해서다(기존 관리자 발송 경로와 같은 구조).
      *
      * <p>선점({@code leaseForRetry})은 조건부 UPDATE라, 관리자가 버튼을 연타하거나 두 명이
      * 동시에 눌러도 정확히 한 번만 통과한다. 통과하지 못하면 이미 발송 중이거나 재시도할 수 없는
      * 상태이므로 409로 거절한다.
      */
     @Transactional
-    public AdminNotificationResponse retry(Long fcmMessageId) {
+    public RetryDispatch prepareRetry(Long fcmMessageId) {
         FcmMessage fcmMessage = fcmMessageRepository.findByIdAndAdminMessageTrue(fcmMessageId)
                 .orElseThrow(() -> new MyException(MyErrorCode.FCM_MESSAGE_NOT_FOUND));
 
@@ -82,7 +82,11 @@ public class FcmRetryService {
         log.warn("Admin notification retry accepted: fcmMessageId={}, failedMembers={}, tokens={}, previousSendCount={}",
                 fcmMessageId, failedMemberIds.size(), tokenAndMemberId.size(), fcmMessage.getSendCount());
 
-        fcmAsyncService.retryAsync(
+        // leaseForRetry가 벌크 UPDATE라 영속성 컨텍스트를 비운 뒤 다시 읽어 최신 상태를 돌려준다.
+        FcmMessage leased = fcmMessageRepository.findById(fcmMessageId).orElse(fcmMessage);
+
+        return new RetryDispatch(
+                AdminNotificationResponse.of(leased, tokenAndMemberId.size()),
                 fcmMessageId,
                 tokenAndMemberId,
                 fcmMessage.getTitle(),
@@ -92,10 +96,23 @@ public class FcmRetryService {
                 fcmMessage.getPath(),
                 fcmMessage.getSendCount()
         );
+    }
 
-        // leaseForRetry가 벌크 UPDATE라 영속성 컨텍스트를 비운 뒤 다시 읽어 최신 상태를 돌려준다.
-        FcmMessage leased = fcmMessageRepository.findById(fcmMessageId).orElse(fcmMessage);
-        return AdminNotificationResponse.of(leased, tokenAndMemberId.size());
+    /**
+     * 선점까지 끝난 재시도 요청. {@code response}는 관리자에게 바로 돌려줄 상태이고,
+     * 나머지는 커밋 뒤 비동기 발송에 넘길 인자다.
+     */
+    public record RetryDispatch(
+            AdminNotificationResponse response,
+            Long fcmMessageId,
+            Map<String, Long> tokenAndMemberId,
+            String title,
+            String body,
+            FcmMessageType type,
+            Long targetId,
+            String path,
+            int previousSendCount
+    ) {
     }
 
     /**

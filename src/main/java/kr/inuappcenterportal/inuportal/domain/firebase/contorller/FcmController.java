@@ -157,6 +157,14 @@ public class FcmController implements FcmApiSpecification {
 
     @PostMapping("/admin/{fcmMessageId}/retry")
     public ResponseEntity<ResponseDto<AdminNotificationResponse>> retryAdminFcmMessage(@PathVariable Long fcmMessageId) {
-        return ResponseEntity.ok(ResponseDto.of(fcmRetryService.retry(fcmMessageId), "FCM 재발송 요청 접수 성공"));
+        // 선점은 트랜잭션 안에서 끝내고, 실제 발송은 커밋된 뒤에 띄운다.
+        // 발송 작업이 같은 fcm_message 행을 갱신하므로 락을 쥔 채 넘기면 안 된다.
+        FcmRetryService.RetryDispatch dispatch = fcmRetryService.prepareRetry(fcmMessageId);
+
+        fcmAsyncService.retryAsync(
+                dispatch.fcmMessageId(), dispatch.tokenAndMemberId(), dispatch.title(), dispatch.body(),
+                dispatch.type(), dispatch.targetId(), dispatch.path(), dispatch.previousSendCount());
+
+        return ResponseEntity.ok(ResponseDto.of(dispatch.response(), "FCM 재발송 요청 접수 성공"));
     }
 }

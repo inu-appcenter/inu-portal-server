@@ -1,6 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
@@ -14,7 +13,6 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,7 +24,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -48,9 +45,6 @@ class FcmRetryServiceTest {
 
     @Mock
     private FcmTokenRepository fcmTokenRepository;
-
-    @Mock
-    private FcmAsyncService fcmAsyncService;
 
     @InjectMocks
     private FcmRetryService fcmRetryService;
@@ -84,18 +78,18 @@ class FcmRetryServiceTest {
                 .thenReturn(List.of(FcmMessageType.GENERAL));
         when(fcmMessageRepository.findById(13030L)).thenReturn(Optional.of(message));
 
-        AdminNotificationResponse response = fcmRetryService.retry(13030L);
+        FcmRetryService.RetryDispatch dispatch = fcmRetryService.prepareRetry(13030L);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Long>> tokensCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(fcmAsyncService).retryAsync(
-                eq(13030L), tokensCaptor.capture(), eq("공지"), eq("본문"),
-                eq(FcmMessageType.GENERAL), eq(null), eq(null), eq(1149));
-
-        assertThat(tokensCaptor.getValue())
+        assertThat(dispatch.tokenAndMemberId())
                 .as("실패했던 회원의 현재 토큰만 대상이어야 이미 받은 사람에게 중복이 가지 않는다")
                 .containsExactlyInAnyOrderEntriesOf(Map.of("newToken11", 11L, "newToken22", 22L));
-        assertThat(response.retryableCount()).isEqualTo(2);
+        assertThat(dispatch.previousSendCount())
+                .as("이전 성공분을 넘겨야 재시도 결과 합산에서 이미 받은 사람이 실패로 뒤집히지 않는다")
+                .isEqualTo(1149);
+        assertThat(dispatch.type()).isEqualTo(FcmMessageType.GENERAL);
+        assertThat(dispatch.title()).isEqualTo("공지");
+        assertThat(dispatch.body()).isEqualTo("본문");
+        assertThat(dispatch.response().retryableCount()).isEqualTo(2);
     }
 
     @Test
@@ -104,12 +98,10 @@ class FcmRetryServiceTest {
         when(fcmMessageRepository.findByIdAndAdminMessageTrue(1L)).thenReturn(Optional.of(adminMessage(10, 0)));
         when(fcmMessageFailedTargetRepository.findMemberIdsByFcmMessageId(1L)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> fcmRetryService.retry(1L))
+        assertThatThrownBy(() -> fcmRetryService.prepareRetry(1L))
                 .isInstanceOf(MyException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.FCM_RETRY_NO_TARGET);
 
-        verify(fcmAsyncService, never()).retryAsync(
-                anyLong(), any(), any(), any(), any(), any(), any(), anyInt());
         verify(fcmMessageRepository, never()).leaseForRetry(anyLong(), any());
     }
 
@@ -120,7 +112,7 @@ class FcmRetryServiceTest {
         when(fcmMessageFailedTargetRepository.findMemberIdsByFcmMessageId(1L)).thenReturn(List.of(7L));
         when(fcmTokenRepository.findFcmTokensByMemberIds(List.of(7L))).thenReturn(List.of());
 
-        assertThatThrownBy(() -> fcmRetryService.retry(1L))
+        assertThatThrownBy(() -> fcmRetryService.prepareRetry(1L))
                 .isInstanceOf(MyException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.FCM_RETRY_NO_TARGET);
 
@@ -139,12 +131,9 @@ class FcmRetryServiceTest {
         when(fcmTokenRepository.findFcmTokensByMemberIds(List.of(7L))).thenReturn(List.of(token("t7", 7L)));
         when(fcmMessageRepository.leaseForRetry(eq(1L), any())).thenReturn(0);
 
-        assertThatThrownBy(() -> fcmRetryService.retry(1L))
+        assertThatThrownBy(() -> fcmRetryService.prepareRetry(1L))
                 .isInstanceOf(MyException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.FCM_RETRY_NOT_ALLOWED);
-
-        verify(fcmAsyncService, never()).retryAsync(
-                anyLong(), any(), any(), any(), any(), any(), any(), anyInt());
     }
 
     @Test
@@ -152,7 +141,7 @@ class FcmRetryServiceTest {
     void retry_rejectsUnknownMessage() {
         when(fcmMessageRepository.findByIdAndAdminMessageTrue(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> fcmRetryService.retry(999L))
+        assertThatThrownBy(() -> fcmRetryService.prepareRetry(999L))
                 .isInstanceOf(MyException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.FCM_MESSAGE_NOT_FOUND);
     }
@@ -170,13 +159,9 @@ class FcmRetryServiceTest {
                 .thenReturn(List.of(FcmMessageType.GENERAL));
         when(fcmMessageRepository.findById(5L)).thenReturn(Optional.of(message));
 
-        fcmRetryService.retry(5L);
+        FcmRetryService.RetryDispatch dispatch = fcmRetryService.prepareRetry(5L);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Long>> tokensCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(fcmAsyncService).retryAsync(
-                eq(5L), tokensCaptor.capture(), any(), any(), any(), any(), any(), eq(0));
-
-        assertThat(tokensCaptor.getValue()).containsOnlyKeys("phone", "tablet");
+        assertThat(dispatch.tokenAndMemberId()).containsOnlyKeys("phone", "tablet");
+        assertThat(dispatch.previousSendCount()).isZero();
     }
 }
