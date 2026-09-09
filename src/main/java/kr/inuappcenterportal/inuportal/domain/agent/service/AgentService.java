@@ -6,7 +6,8 @@ import kr.inuappcenterportal.inuportal.domain.agent.dto.AgentChatRequestDto;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.AgentChatResponseDto;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.AgentToolDecisionDto;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tools.AgentTools;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolRegistry;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatMessageDto;
 import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatRequestDto;
@@ -25,7 +26,7 @@ import java.util.*;
 public class AgentService {
 
     private final VllmService vllmService;
-    private final AgentTools agentTools;
+    private final AgentToolRegistry agentToolRegistry;
     private final ObjectMapper objectMapper;
 
     private String buildRoutingPrompt() {
@@ -49,30 +50,8 @@ public class AgentService {
                   * 특정 월 언급이 없거나 '이번 달'이면 month는 %d를 사용하세요.
                   * '오늘' 학식: day는 %d (1=월~7=일)
                 
-                [조회 도구 (Query Tools)]
-                - WEATHER: 날씨, 기온, 미세먼지, 비, 우산 관련 질문 (params: 없음)
-                - CAFETERIA: 학식, 식당, 메뉴, 밥, 점심, 저녁, 고기 메뉴, 메뉴 추천 관련 질문 (params: {"cafeteria": "전체"|"학생식당"|"제1기숙사식당"|"2기숙사 식당"|"2호관(교직원)식당"|"27호관식당"|"사범대식당", "mealType": "AUTO"|"BREAKFAST"|"LUNCH"|"DINNER", "day": 요일(1=월~7=일)})
-                  * 특정 식당을 지정하지 않고 "학식 뭐야?", "메뉴 추천해줘", "고기 메뉴 나와?", "점심 뭐 먹지?" 등 식당 전반 질문 시 반드시 "cafeteria": "전체"로 설정하세요.
-                  * 아침/조식 언급 시 mealType: "BREAKFAST", 점심/중식 언급 시 mealType: "LUNCH", 저녁/석식 언급 시 mealType: "DINNER", 언급 없으면 "AUTO"로 설정하세요.
-                - BUS: 셔틀버스, 시내버스, 버스 도착 시간, 정류장 관련 질문 (params: {"stopName": "정문"|"공과대"|"자연대"|"송도역" 등})
-                - TIMETABLE: 내 시간표, 오늘 수업, 강의실, 다음 강의 관련 질문 (params: 없음)
-                - SCHEDULE: 학사일정, 시험기간, 수강신청/정정 기간, 학과 일정 관련 질문 (params: {"year": %d, "month": %d})
-                - NOTICE: 장학금, 대회, 행사, 학과공지, 학교 공지사항 검색 질문 (params: {"query": "검색어(2글자 이상)"})
-                - DIRECTORY: 학과사무실, 행정실, 부서 위치, 전화번호, 연락처 질문 (params: {"query": "학과/부서명"})
-                
-                [설정 및 제어 도구 (Action Tools)]
-                - ACTION_CHAT_PUSH: 채팅 푸시 알림 켜기/끄기 설정 (params: {"enabled": true|false})
-                  * 예: "채팅 알림 꺼줘" -> {"enabled": false}, "채팅 알림 켜줘" -> {"enabled": true}
-                - ACTION_DAILY_BRIEF: 아침 데일리 브리프 시간표/학사일정 브리핑 수신 시간 및 알림 설정 (params: {"time": "HH:mm", "enabled": true|false, "scope": "ALL"|"SCHOOL_ONLY"|"DEPT_ONLY"})
-                  * 예: "매일 아침 8시 30분에 브리핑 보내줘" -> {"time": "08:30", "enabled": true, "scope": "ALL"}
-                  * 예: "데일리 브리프 알림 꺼줘" -> {"enabled": false}
-                - ACTION_NOTICE_KEYWORD: 스마트 공지 키워드 알림 등록 (params: {"keyword": "정제된명사키워드", "targetType": "SCHOOL"|"DEPARTMENT", "category": "장학"|"학사"|"모집"|"일반", "isExcluded": false|true})
-                  * 구어체/서술형 발화(예: '나 돈 없는데 학비 지원해주는 공지 뜨면 알려줘', '장학금 공지 알림 등록해줘')는 반드시 '장학금', '근로장학' 등 정제된 단일 공식 명사 키워드로 변환하세요.
-                  * 졸업, 졸업작품, 졸작, 전공종합시험, 학과행사 등 학과 전공 관련은 targetType: "DEPARTMENT", 전교생 대상(등록금, 장학금, 수강신청, 계절학기, 교환학생 등)은 targetType: "SCHOOL"로 설정하세요.
-                  * "~제외하고", "~말고" 등의 제외 요청(예: '외부장학금 말고')은 isExcluded: true로 설정하세요.
-                - ACTION_MY_SETTINGS: 내 알림 설정 현황 및 키워드 목록 조회 (params: 없음)
-                  * 예: "내 알림 설정 보여줘", "내가 등록한 키워드 뭐 있어?"
-                
+                [사용 가능한 도구 카탈로그 (Tool Catalog)]
+%s
                 - GENERAL: 도구 조회가 필요 없는 단순 인사, 잡담, 정체성 질문 (params: 없음)
                 
                 [응답 규칙]
@@ -87,7 +66,7 @@ public class AgentService {
                 (currentMonth % 12) + 1,
                 currentMonth,
                 today.getDayOfWeek().getValue(),
-                currentYear, currentMonth);
+                agentToolRegistry.generateRoutingPromptCatalog());
     }
 
     public AgentChatResponseDto processChat(AgentChatRequestDto requestDto, Member member) {
@@ -113,7 +92,7 @@ public class AgentService {
 
         for (int i = 0; i < effectiveTools.size(); i++) {
             AgentToolDecisionDto.SingleToolCall toolCall = effectiveTools.get(i);
-            AgentTools.ToolResult result = executeTool(toolCall.tool(), toolCall.params(), member);
+            AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolCall.params());
 
             if (result.uiComponent() != null) {
                 uiComponents.add(result.uiComponent());
@@ -204,23 +183,6 @@ public class AgentService {
             });
         }
         return params;
-    }
-
-    private AgentTools.ToolResult executeTool(String tool, Map<String, Object> params, Member member) {
-        return switch (tool.toUpperCase()) {
-            case "WEATHER" -> agentTools.executeWeather();
-            case "CAFETERIA" -> agentTools.executeCafeteria(params);
-            case "BUS" -> agentTools.executeBus(params);
-            case "TIMETABLE" -> agentTools.executeTimeTable(member, params);
-            case "SCHEDULE" -> agentTools.executeSchedule(member, params);
-            case "NOTICE" -> agentTools.executeNotice(params);
-            case "DIRECTORY" -> agentTools.executeDirectory(params);
-            case "ACTION_CHAT_PUSH" -> agentTools.executeActionChatPush(member, params);
-            case "ACTION_DAILY_BRIEF" -> agentTools.executeActionDailyBrief(member, params);
-            case "ACTION_NOTICE_KEYWORD" -> agentTools.executeActionNoticeKeyword(member, params);
-            case "ACTION_MY_SETTINGS" -> agentTools.executeActionMySettings(member);
-            default -> new AgentTools.ToolResult("요청하신 도구를 찾을 수 없습니다.", null, null);
-        };
     }
 
     private String synthesizeAnswer(String userMessage, String toolSummary) {
