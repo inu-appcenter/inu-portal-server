@@ -8,20 +8,29 @@ import kr.inuappcenterportal.inuportal.domain.agent.service.AgentReminderService
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolRegistry;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class AgentReminderTool implements AgentTool {
 
     private final AgentReminderService agentReminderService;
     private final AgentToolRegistry agentToolRegistry;
     private final ObjectMapper objectMapper;
+
+    public AgentReminderTool(
+            @Lazy AgentReminderService agentReminderService,
+            @Lazy AgentToolRegistry agentToolRegistry,
+            ObjectMapper objectMapper
+    ) {
+        this.agentReminderService = agentReminderService;
+        this.agentToolRegistry = agentToolRegistry;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public String getName() {
