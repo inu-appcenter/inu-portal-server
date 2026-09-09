@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "버스 도착 정보 DTO")
 public class BusArrivalItemDto {
+    @Schema(description = "도착 예정 초의 계산 기준 시각 (Unix milliseconds)")
+    private Long observedAt;
 
     @Schema(description = "도착 예정 시간 (초)", example = "360")
     private String arrivalEstimateTime;
