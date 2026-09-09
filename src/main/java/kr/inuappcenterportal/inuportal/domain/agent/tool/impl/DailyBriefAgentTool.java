@@ -27,7 +27,7 @@ public class DailyBriefAgentTool implements AgentTool {
 
     @Override
     public String getDescription() {
-        return "아침 데일리 브리프 시간표/학사일정 브리핑 수신 시간 및 알림 설정 (params: {\"time\": \"HH:mm\", \"enabled\": true|false, \"scope\": \"ALL\"|\"SCHOOL_ONLY\"|\"DEPT_ONLY\"}). 예: '매일 아침 8시 30분에 브리핑 보내줘' -> {\"time\": \"08:30\", \"enabled\": true, \"scope\": \"ALL\"}";
+        return "기본 데일리 브리프(시간표 수업 알림 및 학사일정 브리핑) 수신 시간 및 On/Off 설정 (params: {\"time\": \"HH:mm\", \"enabled\": true|false, \"scope\": \"ALL\"|\"SCHOOL_ONLY\"|\"DEPT_ONLY\"}). (주의: 날씨, 학식, 버스 등 맞춤형 알림 예약은 ACTION_MANAGE_REMINDER를 사용할 것)";
     }
 
     @Override
