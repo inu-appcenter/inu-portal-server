@@ -23,6 +23,13 @@ public class AgentToolRegistry {
         }
     }
 
+    public synchronized void registerDynamicTool(AgentTool tool) {
+        if (tool == null) return;
+        String key = tool.getName().toUpperCase().trim();
+        toolMap.put(key, tool);
+        log.info("[AgentToolRegistry] 동적 도구(OpenAPI) 등록 완료: {}", key);
+    }
+
     public Optional<AgentTool> findTool(String toolName) {
         if (toolName == null) return Optional.empty();
         return Optional.ofNullable(toolMap.get(toolName.toUpperCase().trim()));
