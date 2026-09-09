@@ -50,7 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/buses/**", "/api/buses", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags", "/api/semesters").permitAll()
 
                         // 인증 없이 접근 가능한 POST 설정
-                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**", "/api/agent/**").permitAll()
 
                         // ADMIN 권한 전용 설정
                         .requestMatchers(HttpMethod.POST, "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync", "/api/semesters/sync", "/api/courses/sync", "/api/course-offerings/sync", "/api/course-offerings/legacy").hasRole("ADMIN")
