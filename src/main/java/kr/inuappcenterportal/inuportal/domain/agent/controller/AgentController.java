@@ -14,12 +14,14 @@ import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @RestController
@@ -48,5 +50,17 @@ public class AgentController {
     ) {
         AgentChatResponseDto response = agentService.processChat(requestDto, member);
         return ResponseEntity.ok(ResponseDto.of(response, "AI 에이전트 응답 성공"));
+    }
+
+    @Operation(
+            summary = "AI 에이전트 실시간 SSE 스트리밍 질의응답 (Generative UI)",
+            description = "자연어 질문을 받아 도구 실행 결과(UI 카드)를 선행 이벤트로 전달하고, 자연어 요약 답변을 실시간 토큰 단위로 스트리밍합니다."
+    )
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chatStream(
+            @Valid @RequestBody AgentChatRequestDto requestDto,
+            @AuthenticationPrincipal Member member
+    ) {
+        return agentService.processChatStream(requestDto, member);
     }
 }

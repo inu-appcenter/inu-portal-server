@@ -11,19 +11,30 @@ public record AgentChatResponseDto(
         @Schema(description = "함께 렌더링할 대표 동적 UI 컴포넌트 (없을 경우 null)")
         UiComponentDto uiComponent,
         @Schema(description = "함께 렌더링할 동적 UI 컴포넌트 목록 (다중 도구 실행 시)")
-        List<UiComponentDto> uiComponents
+        List<UiComponentDto> uiComponents,
+        @Schema(description = "상황 맞춤형 능동 추천 액션 칩 목록")
+        List<String> suggestedActions
 ) {
     public static AgentChatResponseDto of(String message, UiComponentDto uiComponent) {
         List<UiComponentDto> list = (uiComponent != null) ? List.of(uiComponent) : Collections.emptyList();
-        return new AgentChatResponseDto(message, uiComponent, list);
+        return new AgentChatResponseDto(message, uiComponent, list, Collections.emptyList());
     }
 
     public static AgentChatResponseDto of(String message, List<UiComponentDto> components) {
         UiComponentDto first = (components != null && !components.isEmpty()) ? components.get(0) : null;
-        return new AgentChatResponseDto(message, first, components != null ? components : Collections.emptyList());
+        return new AgentChatResponseDto(message, first, components != null ? components : Collections.emptyList(), Collections.emptyList());
+    }
+
+    public static AgentChatResponseDto of(String message, List<UiComponentDto> components, List<String> suggestedActions) {
+        UiComponentDto first = (components != null && !components.isEmpty()) ? components.get(0) : null;
+        return new AgentChatResponseDto(message, first, components != null ? components : Collections.emptyList(), suggestedActions != null ? suggestedActions : Collections.emptyList());
     }
 
     public static AgentChatResponseDto textOnly(String message) {
-        return new AgentChatResponseDto(message, null, Collections.emptyList());
+        return new AgentChatResponseDto(message, null, Collections.emptyList(), Collections.emptyList());
+    }
+
+    public static AgentChatResponseDto textOnly(String message, List<String> suggestedActions) {
+        return new AgentChatResponseDto(message, null, Collections.emptyList(), suggestedActions != null ? suggestedActions : Collections.emptyList());
     }
 }
