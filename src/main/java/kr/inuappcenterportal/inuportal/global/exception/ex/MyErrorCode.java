@@ -116,10 +116,13 @@ public enum MyErrorCode {
     HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
     INVALID_EXCEL_EXTENDER(HttpStatus.BAD_REQUEST, "잘못된 확장자입니다."),
 
+    // Suggestion 관련 에러코드
     SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 건의사항입니다."),
     HAS_NOT_SUGGESTION_AUTHORIZATION(HttpStatus.FORBIDDEN, "이 건의사항에 대한 권한이 없습니다."),
     WRONG_SUGGESTION_STATUS(HttpStatus.BAD_REQUEST, "잘못된 형식의 건의사항 상태를 요청했습니다."),
     WRONG_SUGGESTION_CATEGORY(HttpStatus.BAD_REQUEST, "잘못된 형식의 문의 유형을 요청했습니다."),
+    INVALID_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "이미지 파일만 업로드할 수 있습니다."),
+    SUGGESTION_IMAGE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지는 최대 5장까지 첨부할 수 있습니다."),
 
 
     // Chat 관련 에러 코드 추가
