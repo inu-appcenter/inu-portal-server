@@ -37,7 +37,8 @@ public class AgentService {
 
         return String.format("""
                 당신은 인천대학교 포털 서비스 INTIP의 똑똑한 AI 캠퍼스 비서입니다.
-                사용자의 질문을 분석하여 아래 도구 중 가장 적절한 1개를 선택해 반드시 유효한 JSON 형식으로만 응답하세요.
+                사용자의 질문과 요청을 분석하여 아래 도구 목록에서 적합한 도구들을 찾아 반드시 유효한 JSON 형식으로만 응답하세요.
+                사용자의 요청에 여러 가지 작업이 포함되어 있는 경우(예: '오늘 날씨랑 점심 학식 알려줘', '첫 수업 어디고 정문 버스 언제 와?'), 반드시 'tools' 배열에 순서대로 모두 포함하세요.
                 
                 [현재 시점 기준 정보]
                 - 오늘 날짜: %d년 %d월 %d일 (%s)
@@ -48,7 +49,7 @@ public class AgentService {
                   * 특정 월 언급이 없거나 '이번 달'이면 month는 %d를 사용하세요.
                   * '오늘' 학식: day는 %d (1=월~7=일)
                 
-                [사용 가능한 도구]
+                [조회 도구 (Query Tools)]
                 - WEATHER: 날씨, 기온, 미세먼지, 비, 우산 관련 질문 (params: 없음)
                 - CAFETERIA: 학식, 식당, 메뉴, 밥, 점심, 저녁, 고기 메뉴, 메뉴 추천 관련 질문 (params: {"cafeteria": "전체"|"학생식당"|"제1기숙사식당"|"2기숙사 식당"|"2호관(교직원)식당"|"27호관식당"|"사범대식당", "mealType": "AUTO"|"BREAKFAST"|"LUNCH"|"DINNER", "day": 요일(1=월~7=일)})
                   * 특정 식당을 지정하지 않고 "학식 뭐야?", "메뉴 추천해줘", "고기 메뉴 나와?", "점심 뭐 먹지?" 등 식당 전반 질문 시 반드시 "cafeteria": "전체"로 설정하세요.
@@ -58,11 +59,28 @@ public class AgentService {
                 - SCHEDULE: 학사일정, 시험기간, 수강신청/정정 기간, 학과 일정 관련 질문 (params: {"year": %d, "month": %d})
                 - NOTICE: 장학금, 대회, 행사, 학과공지, 학교 공지사항 검색 질문 (params: {"query": "검색어(2글자 이상)"})
                 - DIRECTORY: 학과사무실, 행정실, 부서 위치, 전화번호, 연락처 질문 (params: {"query": "학과/부서명"})
+                
+                [설정 및 제어 도구 (Action Tools)]
+                - ACTION_CHAT_PUSH: 채팅 푸시 알림 켜기/끄기 설정 (params: {"enabled": true|false})
+                  * 예: "채팅 알림 꺼줘" -> {"enabled": false}, "채팅 알림 켜줘" -> {"enabled": true}
+                - ACTION_DAILY_BRIEF: 아침 데일리 브리프 시간표/학사일정 브리핑 수신 시간 및 알림 설정 (params: {"time": "HH:mm", "enabled": true|false, "scope": "ALL"|"SCHOOL_ONLY"|"DEPT_ONLY"})
+                  * 예: "매일 아침 8시 30분에 브리핑 보내줘" -> {"time": "08:30", "enabled": true, "scope": "ALL"}
+                  * 예: "데일리 브리프 알림 꺼줘" -> {"enabled": false}
+                - ACTION_NOTICE_KEYWORD: 스마트 공지 키워드 알림 등록 (params: {"keyword": "정제된명사키워드", "targetType": "SCHOOL"|"DEPARTMENT", "category": "장학"|"학사"|"모집"|"일반", "isExcluded": false|true})
+                  * 구어체/서술형 발화(예: '나 돈 없는데 학비 지원해주는 공지 뜨면 알려줘', '장학금 공지 알림 등록해줘')는 반드시 '장학금', '근로장학' 등 정제된 단일 공식 명사 키워드로 변환하세요.
+                  * 졸업, 졸업작품, 졸작, 전공종합시험, 학과행사 등 학과 전공 관련은 targetType: "DEPARTMENT", 전교생 대상(등록금, 장학금, 수강신청, 계절학기, 교환학생 등)은 targetType: "SCHOOL"로 설정하세요.
+                  * "~제외하고", "~말고" 등의 제외 요청(예: '외부장학금 말고')은 isExcluded: true로 설정하세요.
+                - ACTION_MY_SETTINGS: 내 알림 설정 현황 및 키워드 목록 조회 (params: 없음)
+                  * 예: "내 알림 설정 보여줘", "내가 등록한 키워드 뭐 있어?"
+                
                 - GENERAL: 도구 조회가 필요 없는 단순 인사, 잡담, 정체성 질문 (params: 없음)
                 
                 [응답 규칙]
                 마크다운 백틱(```json) 없이 오직 JSON 텍스트 하나만 출력하세요.
-                {"tool": "도구명", "params": { ... }, "thought": "판단 이유"}
+                단일 작업인 경우에도 'tools' 배열에 담아서 출력하세요:
+                {"tools": [{"tool": "도구명", "params": { ... }}], "thought": "판단 이유"}
+                복합 작업인 경우:
+                {"tools": [{"tool": "도구명1", "params": { ... }}, {"tool": "도구명2", "params": { ... }}], "thought": "판단 이유"}
                 """, currentYear, currentMonth, currentDay, dayOfWeek,
                 currentYear, currentMonth,
                 currentMonth,
@@ -76,21 +94,48 @@ public class AgentService {
         String userMessage = requestDto.message().trim();
         log.info("AI Agent incoming message: '{}', member: {}", userMessage, (member != null ? member.getId() : "GUEST"));
 
-        // 1단계: vLLM(Gemma 4)을 통한 의도 파악 및 도구 라우팅 결정
+        // 1단계: vLLM(Gemma 4)을 통한 의도 파악 및 다중 도구 라우팅 결정
         AgentToolDecisionDto decision = decideTool(userMessage);
-        log.info("AI Agent tool decision: {}, thought: {}", decision.tool(), decision.thought());
+        List<AgentToolDecisionDto.SingleToolCall> effectiveTools = decision.getEffectiveTools();
+        log.info("AI Agent tools decision: {}, count: {}, thought: {}", 
+                effectiveTools.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList(),
+                effectiveTools.size(),
+                decision.thought());
 
-        // 2단계: 도구 실행 또는 일반 대화 처리
-        if ("GENERAL".equalsIgnoreCase(decision.tool())) {
+        // 2단계: 도구가 없는 경우 일반 대화 처리
+        if (effectiveTools.isEmpty()) {
             return handleGeneralConversation(userMessage);
         }
 
-        AgentTools.ToolResult toolResult = executeTool(decision.tool(), decision.params(), member);
+        // 3단계: 도구 실행 (순차 실행 및 결과 수집)
+        List<UiComponentDto> uiComponents = new ArrayList<>();
+        StringBuilder combinedSummaries = new StringBuilder();
 
-        // 3단계: 도구 결과 바탕으로 자연스러운 친절 요약 답변 생성
-        String synthesizedMessage = synthesizeAnswer(userMessage, toolResult.summary());
+        for (int i = 0; i < effectiveTools.size(); i++) {
+            AgentToolDecisionDto.SingleToolCall toolCall = effectiveTools.get(i);
+            AgentTools.ToolResult result = executeTool(toolCall.tool(), toolCall.params(), member);
 
-        return AgentChatResponseDto.of(synthesizedMessage, toolResult.uiComponent());
+            if (result.uiComponent() != null) {
+                uiComponents.add(result.uiComponent());
+            }
+
+            if (result.summary() != null && !result.summary().isBlank()) {
+                if (combinedSummaries.length() > 0) {
+                    combinedSummaries.append("\n\n");
+                }
+                if (effectiveTools.size() > 1) {
+                    combinedSummaries.append(String.format("[도구 %d (%s) 실행 결과]:\n%s", 
+                            i + 1, toolCall.tool(), result.summary()));
+                } else {
+                    combinedSummaries.append(result.summary());
+                }
+            }
+        }
+
+        // 4단계: 다중 도구 결과를 바탕으로 통합 자연어 답변 합성
+        String synthesizedMessage = synthesizeAnswer(userMessage, combinedSummaries.toString());
+
+        return AgentChatResponseDto.of(synthesizedMessage, uiComponents);
     }
 
     private AgentToolDecisionDto decideTool(String userMessage) {
@@ -102,7 +147,7 @@ public class AgentService {
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.1) // 결정론적 도구 분류를 위해 낮은 temperature
-                .maxTokens(200)
+                .maxTokens(350)
                 .stream(false)
                 .build();
 
@@ -114,26 +159,51 @@ public class AgentService {
             }
 
             JsonNode node = objectMapper.readTree(rawJson);
-            String tool = node.path("tool").asText("GENERAL");
             String thought = node.path("thought").asText("");
 
-            Map<String, Object> params = new LinkedHashMap<>();
-            JsonNode paramsNode = node.path("params");
-            if (paramsNode.isObject()) {
-                paramsNode.fields().forEachRemaining(entry -> {
-                    if (entry.getValue().isInt()) {
-                        params.put(entry.getKey(), entry.getValue().asInt());
-                    } else {
-                        params.put(entry.getKey(), entry.getValue().asText());
+            List<AgentToolDecisionDto.SingleToolCall> toolList = new ArrayList<>();
+            JsonNode toolsNode = node.path("tools");
+            if (toolsNode.isArray()) {
+                for (JsonNode tNode : toolsNode) {
+                    String toolName = tNode.path("tool").asText("");
+                    if (!toolName.isBlank() && !"GENERAL".equalsIgnoreCase(toolName)) {
+                        Map<String, Object> params = parseParamsNode(tNode.path("params"));
+                        toolList.add(new AgentToolDecisionDto.SingleToolCall(toolName, params));
                     }
-                });
+                }
             }
 
-            return new AgentToolDecisionDto(tool, params, thought);
+            // 하위 호환: tools 배열 대신 단일 tool/params로 반환된 경우
+            if (toolList.isEmpty() && node.has("tool")) {
+                String singleTool = node.path("tool").asText("");
+                if (!singleTool.isBlank() && !"GENERAL".equalsIgnoreCase(singleTool)) {
+                    Map<String, Object> params = parseParamsNode(node.path("params"));
+                    toolList.add(new AgentToolDecisionDto.SingleToolCall(singleTool, params));
+                }
+            }
+
+            return new AgentToolDecisionDto(toolList, null, null, thought);
         } catch (Exception e) {
-            log.error("도구 라우팅 결정 실패, GENERAL로 대체: {}", e.getMessage(), e);
-            return new AgentToolDecisionDto("GENERAL", Map.of(), "도구 결정 실패");
+            log.error("도구 라우팅 결정 실패, Fallback 규칙으로 대체: {}", e.getMessage(), e);
+            return fallbackRuleBasedDecision(userMessage);
         }
+    }
+
+    private Map<String, Object> parseParamsNode(JsonNode paramsNode) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        if (paramsNode != null && paramsNode.isObject()) {
+            paramsNode.fields().forEachRemaining(entry -> {
+                JsonNode val = entry.getValue();
+                if (val.isBoolean()) {
+                    params.put(entry.getKey(), val.asBoolean());
+                } else if (val.isInt()) {
+                    params.put(entry.getKey(), val.asInt());
+                } else {
+                    params.put(entry.getKey(), val.asText());
+                }
+            });
+        }
+        return params;
     }
 
     private AgentTools.ToolResult executeTool(String tool, Map<String, Object> params, Member member) {
@@ -145,6 +215,10 @@ public class AgentService {
             case "SCHEDULE" -> agentTools.executeSchedule(member, params);
             case "NOTICE" -> agentTools.executeNotice(params);
             case "DIRECTORY" -> agentTools.executeDirectory(params);
+            case "ACTION_CHAT_PUSH" -> agentTools.executeActionChatPush(member, params);
+            case "ACTION_DAILY_BRIEF" -> agentTools.executeActionDailyBrief(member, params);
+            case "ACTION_NOTICE_KEYWORD" -> agentTools.executeActionNoticeKeyword(member, params);
+            case "ACTION_MY_SETTINGS" -> agentTools.executeActionMySettings(member);
             default -> new AgentTools.ToolResult("요청하신 도구를 찾을 수 없습니다.", null, null);
         };
     }
@@ -224,27 +298,46 @@ public class AgentService {
      */
     private AgentToolDecisionDto fallbackRuleBasedDecision(String msg) {
         String lower = msg.toLowerCase();
+        List<AgentToolDecisionDto.SingleToolCall> tools = new ArrayList<>();
+
+        if (lower.contains("채팅") && (lower.contains("알림") || lower.contains("푸시"))) {
+            boolean enabled = !lower.contains("꺼") && !lower.contains("해제") && !lower.contains("비활성");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_CHAT_PUSH", Map.of("enabled", enabled)));
+        } else if (lower.contains("브리프") || (lower.contains("아침") && lower.contains("브리핑"))) {
+            boolean enabled = !lower.contains("꺼") && !lower.contains("해제");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_DAILY_BRIEF", Map.of("enabled", enabled, "time", "08:30")));
+        } else if (lower.contains("키워드") && (lower.contains("알림") || lower.contains("등록") || lower.contains("추가"))) {
+            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_NOTICE_KEYWORD", Map.of("keyword", msg)));
+        } else if (lower.contains("알림 설정") || lower.contains("내 설정") || lower.contains("내 알림")) {
+            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_MY_SETTINGS", Map.of()));
+        }
+
         if (lower.contains("날씨") || lower.contains("비") || lower.contains("우산") || lower.contains("기온") || lower.contains("미세먼지")) {
-            return new AgentToolDecisionDto("WEATHER", Map.of(), "규칙 기반 날씨 매핑");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("WEATHER", Map.of()));
         }
         if (lower.contains("학식") || lower.contains("메뉴") || lower.contains("식당") || lower.contains("밥") || lower.contains("점심") || lower.contains("저녁")) {
-            return new AgentToolDecisionDto("CAFETERIA", Map.of(), "규칙 기반 학식 매핑");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("CAFETERIA", Map.of("cafeteria", "전체", "mealType", "AUTO")));
         }
         if (lower.contains("버스") || lower.contains("셔틀") || lower.contains("정류장") || lower.contains("몇 분")) {
-            return new AgentToolDecisionDto("BUS", Map.of(), "규칙 기반 버스 매핑");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("BUS", Map.of("stopName", "정문")));
         }
         if (lower.contains("시간표") || lower.contains("수업") || lower.contains("강의실")) {
-            return new AgentToolDecisionDto("TIMETABLE", Map.of(), "규칙 기반 시간표 매핑");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("TIMETABLE", Map.of()));
         }
         if (lower.contains("일정") || lower.contains("학사") || lower.contains("시험") || lower.contains("종강") || lower.contains("개강")) {
-            return new AgentToolDecisionDto("SCHEDULE", Map.of(), "규칙 기반 일정 매핑");
+            LocalDate now = LocalDate.now();
+            tools.add(new AgentToolDecisionDto.SingleToolCall("SCHEDULE", Map.of("year", now.getYear(), "month", now.getMonthValue())));
         }
-        if (lower.contains("공지") || lower.contains("장학") || lower.contains("모집") || lower.contains("신청")) {
-            return new AgentToolDecisionDto("NOTICE", Map.of("query", msg), "규칙 기반 공지 매핑");
+        if (lower.contains("공지") || lower.contains("장학") || lower.contains("모집")) {
+            tools.add(new AgentToolDecisionDto.SingleToolCall("NOTICE", Map.of("query", msg)));
         }
         if (lower.contains("전화") || lower.contains("번호") || lower.contains("과사") || lower.contains("사무실") || lower.contains("연락처")) {
-            return new AgentToolDecisionDto("DIRECTORY", Map.of("query", msg), "규칙 기반 연락처 매핑");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("DIRECTORY", Map.of("query", msg)));
         }
-        return AgentToolDecisionDto.general("기본 대화로 전환");
+
+        if (tools.isEmpty()) {
+            return AgentToolDecisionDto.general("기본 대화로 전환");
+        }
+        return new AgentToolDecisionDto(tools, null, null, "규칙 기반 매핑");
     }
 }

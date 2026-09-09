@@ -20,6 +20,14 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableIt
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableMeetingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType;
 import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableService;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.req.DailyBriefSettingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefSettingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.keyword.dto.res.KeywordResponse;
+import kr.inuappcenterportal.inuportal.domain.keyword.service.KeywordService;
+import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.weather.dto.WeatherResponseDto;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
@@ -44,6 +52,9 @@ public class AgentTools {
     private final NoticeService noticeService;
     private final CollegeOfficeContactService collegeOfficeContactService;
     private final DirectoryService directoryService;
+    private final MemberService memberService;
+    private final KeywordService keywordService;
+    private final DailyBriefService dailyBriefService;
 
     private static final List<String> ALL_CAFETERIAS = List.of(
             "학생식당", "제1기숙사식당", "27호관식당", "2호관(교직원)식당", "사범대식당", "2기숙사 식당"
@@ -532,6 +543,229 @@ public class AgentTools {
         } catch (Exception e) {
             log.error("연락처 도구 실행 오류: {}", e.getMessage(), e);
             return new ToolResult("교내 전화번호부를 검색하는 도중 오류가 발생했습니다.", null, null);
+        }
+    }
+
+    /**
+     * 채팅 푸시 알림 설정 액션
+     */
+    public ToolResult executeActionChatPush(Member member, Map<String, Object> params) {
+        if (member == null) {
+            return new ToolResult("채팅 알림 설정을 변경하려면 로그인이 필요합니다.",
+                    UiComponentDto.of("AUTH_REQUIRED", Map.of(), "로그인하기", "/login"), null);
+        }
+
+        try {
+            boolean enabled = true;
+            if (params != null && params.containsKey("enabled")) {
+                Object val = params.get("enabled");
+                if (val instanceof Boolean b) {
+                    enabled = b;
+                } else {
+                    enabled = Boolean.parseBoolean(String.valueOf(val));
+                }
+            }
+            boolean result = memberService.updateChatPush(member.getId(), enabled);
+
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("settingType", "CHAT_PUSH");
+            data.put("title", "채팅 푸시 알림");
+            data.put("enabled", result);
+            data.put("statusText", result ? "알림 켜짐" : "알림 꺼짐");
+            data.put("message", result ? "채팅 푸시 알림이 활성화되었습니다." : "채팅 푸시 알림이 비활성화되었습니다.");
+
+            UiComponentDto component = UiComponentDto.of("SETTING_RESULT", data, "내 정보 / 알림 설정", "/my-page");
+            String summary = result 
+                    ? "채팅 푸시 알림을 성공적으로 켰습니다. 새 메시지가 오면 푸시로 알려드릴게요!"
+                    : "채팅 푸시 알림을 성공적으로 껐습니다. 언제든 다시 켜실 수 있어요.";
+
+            return new ToolResult(summary, component, data);
+        } catch (Exception e) {
+            log.error("채팅 푸시 설정 변경 오류: {}", e.getMessage(), e);
+            return new ToolResult("채팅 푸시 알림 설정을 변경하는 도중 오류가 발생했습니다.", null, null);
+        }
+    }
+
+    /**
+     * 데일리 브리프 알림 설정 액션
+     */
+    public ToolResult executeActionDailyBrief(Member member, Map<String, Object> params) {
+        if (member == null) {
+            return new ToolResult("데일리 브리프 설정을 변경하려면 로그인이 필요합니다.",
+                    UiComponentDto.of("AUTH_REQUIRED", Map.of(), "로그인하기", "/login"), null);
+        }
+
+        try {
+            String time = (params != null && params.get("time") != null && !String.valueOf(params.get("time")).isBlank())
+                    ? String.valueOf(params.get("time")).trim()
+                    : "08:30";
+
+            boolean enabled = true;
+            if (params != null && params.containsKey("enabled")) {
+                Object val = params.get("enabled");
+                if (val instanceof Boolean b) {
+                    enabled = b;
+                } else {
+                    enabled = Boolean.parseBoolean(String.valueOf(val));
+                }
+            }
+
+            ScheduleScope scope = ScheduleScope.ALL;
+            if (params != null && params.get("scope") != null) {
+                try {
+                    scope = ScheduleScope.valueOf(String.valueOf(params.get("scope")).toUpperCase().trim());
+                } catch (Exception ignored) {}
+            }
+
+            DailyBriefSettingRequestDto req = new DailyBriefSettingRequestDto(
+                    enabled, // timetableAlertEnabled
+                    enabled, // timetablePreAlertEnabled
+                    10,      // timetablePreAlertMinutes
+                    enabled, // timetableDailyBriefEnabled
+                    time,    // timetableDailyBriefTime
+                    enabled, // scheduleAlertEnabled
+                    time,    // scheduleDailyBriefTime
+                    scope    // scheduleScope
+            );
+            dailyBriefService.updateSettings(member, req);
+
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("settingType", "DAILY_BRIEF");
+            data.put("title", "데일리 브리프 알림");
+            data.put("enabled", enabled);
+            data.put("time", time);
+            data.put("scope", scope.name());
+            data.put("statusText", enabled ? (time + " 발송 예약") : "알림 꺼짐");
+            data.put("message", enabled
+                    ? String.format("매일 아침 %s에 오늘의 시간표와 학사일정 브리핑을 보내드립니다.", time)
+                    : "데일리 브리프 알림이 해제되었습니다.");
+
+            UiComponentDto component = UiComponentDto.of("SETTING_RESULT", data, "브리프 알림 설정", "/home/calendar");
+            String summary = enabled
+                    ? String.format("데일리 브리프 알림이 매일 아침 %s에 발송되도록 설정되었습니다.", time)
+                    : "데일리 브리프 알림이 꺼졌습니다.";
+
+            return new ToolResult(summary, component, data);
+        } catch (Exception e) {
+            log.error("데일리 브리프 설정 오류: {}", e.getMessage(), e);
+            return new ToolResult("데일리 브리프 설정을 변경하는 도중 오류가 발생했습니다.", null, null);
+        }
+    }
+
+    /**
+     * 공지 키워드 알림 등록 액션
+     */
+    public ToolResult executeActionNoticeKeyword(Member member, Map<String, Object> params) {
+        if (member == null) {
+            return new ToolResult("공지 키워드 알림을 등록하려면 로그인이 필요합니다.",
+                    UiComponentDto.of("AUTH_REQUIRED", Map.of(), "로그인하기", "/login"), null);
+        }
+
+        try {
+            String keyword = (params != null && params.get("keyword") != null)
+                    ? String.valueOf(params.get("keyword")).trim()
+                    : "";
+
+            if (keyword.isBlank()) {
+                return new ToolResult("등록할 알림 키워드를 찾지 못했습니다. 어떤 키워드로 알림을 등록할지 말씀해주세요.", null, null);
+            }
+
+            String targetType = (params != null && params.get("targetType") != null)
+                    ? String.valueOf(params.get("targetType")).toUpperCase().trim()
+                    : "SCHOOL";
+
+            String category = (params != null && params.get("category") != null)
+                    ? String.valueOf(params.get("category")).trim()
+                    : "전체";
+
+            boolean isExcluded = false;
+            if (params != null && params.containsKey("isExcluded")) {
+                Object val = params.get("isExcluded");
+                if (val instanceof Boolean b) {
+                    isExcluded = b;
+                } else {
+                    isExcluded = Boolean.parseBoolean(String.valueOf(val));
+                }
+            }
+
+            Department targetDept = null;
+            if ("DEPARTMENT".equalsIgnoreCase(targetType) || "DEPT".equalsIgnoreCase(targetType)) {
+                targetDept = member.getDepartment();
+            }
+
+            KeywordResponse saved = keywordService.addKeyword(member, keyword, targetDept, category, isExcluded);
+
+            String targetName = (targetDept != null)
+                    ? targetDept.getDepartmentName() + " 학과공지"
+                    : "학교 전체공지 (" + category + ")";
+
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("id", saved.keywordId());
+            data.put("keyword", saved.keyword());
+            data.put("targetType", (targetDept != null) ? "DEPARTMENT" : "SCHOOL");
+            data.put("targetName", targetName);
+            data.put("category", category);
+            data.put("isExcluded", isExcluded);
+            data.put("statusText", isExcluded ? "제외 키워드 등록 완료" : "알림 키워드 등록 완료");
+
+            UiComponentDto component = UiComponentDto.of("KEYWORD_CONFIRM", data, "키워드 알림 목록 관리", "/home/notice");
+
+            String summary = isExcluded
+                    ? String.format("[%s] 키워드가 %s의 알림 제외 키워드로 등록되었습니다. 해당 단어가 포함된 공지는 알림에서 제외됩니다.", keyword, targetName)
+                    : String.format("'%s' 키워드가 %s 알림으로 등록되었습니다! 새로운 공지가 올라오면 바로 푸시를 보내드릴게요.", keyword, targetName);
+
+            return new ToolResult(summary, component, data);
+        } catch (Exception e) {
+            log.error("공지 키워드 등록 오류: {}", e.getMessage(), e);
+            return new ToolResult("공지 키워드를 등록하는 도중 오류가 발생했습니다.", null, null);
+        }
+    }
+
+    /**
+     * 내 알림 및 설정 상태 조회 액션
+     */
+    public ToolResult executeActionMySettings(Member member) {
+        if (member == null) {
+            return new ToolResult("내 알림 설정을 확인하려면 로그인이 필요합니다.",
+                    UiComponentDto.of("AUTH_REQUIRED", Map.of(), "로그인하기", "/login"), null);
+        }
+
+        try {
+            boolean chatPush = Boolean.TRUE.equals(member.getChatPushEnabled());
+            DailyBriefSettingResponseDto brief = dailyBriefService.getSettings(member);
+            List<KeywordResponse> keywords = keywordService.getKeywords(member);
+
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("chatPushEnabled", chatPush);
+            data.put("dailyBrief", brief);
+            data.put("keywordCount", keywords.size());
+            data.put("keywords", keywords);
+
+            UiComponentDto component = UiComponentDto.of("MY_SETTINGS", data, "설정 페이지 가기", "/my-page");
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("현재 회원님의 알림 및 설정 현황입니다:\n");
+            sb.append(String.format("• 채팅 푸시 알림: %s\n", chatPush ? "켜짐 🔔" : "꺼짐 🔕"));
+            sb.append(String.format("• 데일리 브리프: 시간표(%s, %s) / 학사일정(%s, %s)\n",
+                    Boolean.TRUE.equals(brief.timetableDailyBriefEnabled()) ? "켜짐" : "꺼짐",
+                    brief.timetableDailyBriefTime() != null ? brief.timetableDailyBriefTime() : "08:00",
+                    Boolean.TRUE.equals(brief.scheduleAlertEnabled()) ? "켜짐" : "꺼짐",
+                    brief.scheduleDailyBriefTime() != null ? brief.scheduleDailyBriefTime() : "08:30"));
+            sb.append(String.format("• 등록된 공지 알림 키워드: 총 %d개", keywords.size()));
+            if (!keywords.isEmpty()) {
+                sb.append(" (");
+                for (int i = 0; i < Math.min(keywords.size(), 3); i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(keywords.get(i).keyword());
+                }
+                if (keywords.size() > 3) sb.append(String.format(" 외 %d개", keywords.size() - 3));
+                sb.append(")");
+            }
+
+            return new ToolResult(sb.toString().trim(), component, data);
+        } catch (Exception e) {
+            log.error("알림 설정 조회 오류: {}", e.getMessage(), e);
+            return new ToolResult("알림 설정을 조회하는 도중 오류가 발생했습니다.", null, null);
         }
     }
 

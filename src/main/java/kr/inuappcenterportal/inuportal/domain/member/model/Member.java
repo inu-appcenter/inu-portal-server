@@ -170,6 +170,11 @@ public class Member implements UserDetails {
         touchProfileModifiedAt();
     }
 
+    public void setChatPushEnabled(Boolean chatPushEnabled) {
+        this.chatPushEnabled = chatPushEnabled;
+        touchProfileModifiedAt();
+    }
+
     public void updateNearbyVisibility(Boolean nearbyVisibility) {
         this.nearbyVisibility = Boolean.TRUE.equals(nearbyVisibility);
         touchProfileModifiedAt();
