@@ -18,6 +18,8 @@ import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -135,16 +137,40 @@ public class FriendService {
             throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
         }
 
-        friend.accept();
+        // 연타·동시 재시도로 같은 요청이 두 번 들어오면 수락도 "친구 수락" 알림도 두 번 일어난다.
+        // 상태를 읽고 확인하면 두 요청이 모두 PENDING을 읽을 수 있어, 조건부 UPDATE로 한 요청만 통과시킨다.
+        // 그 사이 요청이 취소(삭제)됐어도 0행이라 같은 예외로 막힌다.
+        int updated = friendRepository.updateStatusIfMatches(
+                friendId, FriendStatus.PENDING, FriendStatus.ACCEPTED, LocalDateTime.now());
+        if (updated == 0) {
+            throw new MyException(MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST);
+        }
 
-        fcmAsyncService.sendAsyncTrackedNotification(
-                List.of(friend.getRequester().getId()),
-                friend.getReceiver().getNickname() + "님이 친구 요청을 수락했어요.",
+        Long requesterId = friend.getRequester().getId();
+        String receiverNickname = friend.getReceiver().getNickname();
+        // 커밋된 뒤에 보낸다. 비동기 발송은 별도 스레드·트랜잭션이라, 바로 호출하면 이 수락이
+        // 롤백돼도 알림이 나간다.
+        runAfterCommit(() -> fcmAsyncService.sendAsyncTrackedNotification(
+                List.of(requesterId),
+                receiverNickname + "님이 친구 요청을 수락했어요.",
                 "친구의 시간표를 확인하거나 반가운 인사를 건네보세요!",
                 FcmMessageType.FRIEND,
-                friend.getId(),
+                friendId,
                 "/chat/list?category=친구"
-        );
+        ));
+    }
+
+    private static void runAfterCommit(Runnable task) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            task.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                task.run();
+            }
+        });
     }
 
     @Transactional
