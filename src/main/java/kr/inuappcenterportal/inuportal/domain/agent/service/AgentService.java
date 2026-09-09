@@ -50,7 +50,9 @@ public class AgentService {
                 
                 [사용 가능한 도구]
                 - WEATHER: 날씨, 기온, 미세먼지, 비, 우산 관련 질문 (params: 없음)
-                - CAFETERIA: 학식, 식당, 메뉴, 밥, 점심, 저녁, 기숙사식당 관련 질문 (params: {"cafeteria": "학생식당"|"제1기숙사식당"|"2기숙사 식당"|"2호관(교직원)식당"|"27호관식당"|"사범대식당", "day": 요일(1=월~7=일)})
+                - CAFETERIA: 학식, 식당, 메뉴, 밥, 점심, 저녁, 고기 메뉴, 메뉴 추천 관련 질문 (params: {"cafeteria": "전체"|"학생식당"|"제1기숙사식당"|"2기숙사 식당"|"2호관(교직원)식당"|"27호관식당"|"사범대식당", "mealType": "AUTO"|"BREAKFAST"|"LUNCH"|"DINNER", "day": 요일(1=월~7=일)})
+                  * 특정 식당을 지정하지 않고 "학식 뭐야?", "메뉴 추천해줘", "고기 메뉴 나와?", "점심 뭐 먹지?" 등 식당 전반 질문 시 반드시 "cafeteria": "전체"로 설정하세요.
+                  * 아침/조식 언급 시 mealType: "BREAKFAST", 점심/중식 언급 시 mealType: "LUNCH", 저녁/석식 언급 시 mealType: "DINNER", 언급 없으면 "AUTO"로 설정하세요.
                 - BUS: 셔틀버스, 시내버스, 버스 도착 시간, 정류장 관련 질문 (params: {"stopName": "정문"|"공과대"|"자연대"|"송도역" 등})
                 - TIMETABLE: 내 시간표, 오늘 수업, 강의실, 다음 강의 관련 질문 (params: 없음)
                 - SCHEDULE: 학사일정, 시험기간, 수강신청/정정 기간, 학과 일정 관련 질문 (params: {"year": %d, "month": %d})
