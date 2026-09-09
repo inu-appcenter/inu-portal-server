@@ -1,8 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.agent.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "AI 에이전트 질의 요청 DTO")
 public record AgentChatRequestDto(
         @Schema(description = "사용자 자연어 질문", example = "오늘 학생식당 점심 메뉴 뭐야?")
