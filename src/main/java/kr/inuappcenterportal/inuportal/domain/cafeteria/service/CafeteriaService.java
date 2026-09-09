@@ -42,16 +42,19 @@ public class CafeteriaService {
     private static final int DINNER = 3;
     private static final String NOT_OPERATED = "-";
 
-    /** 생협 식단표의 끼니 행 하나를 어떤 식당의 어떤 끼니 슬롯으로 저장할지. */
-    private record Corner(String rowLabel, String cafeteria, int slot) {}
+    /** 한 끼니 슬롯 안에 나란히 붙는 코너 하나. title 이 있으면 [title] 머리말이 붙는다. */
+    private record Corner(String rowLabel, String title) {}
+
+    /** 한 식당의 한 끼니 슬롯. 코너가 여럿이면 한 값에 모아 저장한다. */
+    private record MealSlot(String cafeteria, int slot, List<Corner> corners) {}
 
     /**
-     * 생협 주간식단 페이지(l 파라미터) 하나와 그 안의 끼니 행 매핑.
+     * 생협 주간식단 페이지(l 파라미터) 하나와 그 안의 끼니 매핑.
      * fixedLunchMenu 는 주간식단 없이 고정 메뉴판으로 운영하는 식당의 중식 메뉴다.
      */
-    private record MenuPage(int pageNo, String name, List<Corner> corners, String fixedLunchMenu) {
-        private MenuPage(int pageNo, String name, List<Corner> corners) {
-            this(pageNo, name, corners, null);
+    private record MenuPage(int pageNo, String name, List<MealSlot> mealSlots, String fixedLunchMenu) {
+        private MenuPage(int pageNo, String name, List<MealSlot> mealSlots) {
+            this(pageNo, name, mealSlots, null);
         }
     }
 
@@ -69,34 +72,37 @@ public class CafeteriaService {
             수육국밥(다대기O) 7,500원(구성원 6,500원)""";
 
     private static final List<MenuPage> MENU_PAGES = List.of(
+            // 학생식당은 코너가 여럿이라 중식 한 값에 코너별 블록으로 모아 담는다.
             new MenuPage(1, "학생식당", List.of(
-                    // 기존 API 호환을 위해 학생식당 = 1코너(백반)을 그대로 유지한다.
-                    new Corner("중식(백반)", "학생식당", LUNCH),
-                    new Corner("석식", "학생식당", DINNER),
-                    new Corner("중식(백반)", "학생식당 1코너(백반)", LUNCH),
-                    new Corner("석식", "학생식당 1코너(백반)", DINNER),
-                    new Corner("중식(일품)", "학생식당 2코너(일품)", LUNCH),
-                    new Corner("국밥", "학생식당 국밥", LUNCH),
-                    new Corner("4코너(뒤쪽)", "학생식당 4코너(일품)", LUNCH),
-                    new Corner("5코너(뒤쪽)", "학생식당 5코너(고급일품)", LUNCH)
+                    new MealSlot("학생식당", LUNCH, List.of(
+                            new Corner("중식(백반)", "1코너(백반)"),
+                            new Corner("중식(일품)", "2코너(일품)"),
+                            new Corner("국밥", "국밥"),
+                            new Corner("4코너(뒤쪽)", "4코너(일품)"),
+                            new Corner("5코너(뒤쪽)", "5코너(고급일품)")
+                    )),
+                    // 석식은 1코너(백반)만 운영한다.
+                    new MealSlot("학생식당", DINNER, List.of(new Corner("석식", null)))
             )),
             new MenuPage(2, "2호관(교직원)식당", List.of(
-                    new Corner("중식", "2호관(교직원)식당", LUNCH),
-                    new Corner("석식", "2호관(교직원)식당", DINNER)
+                    new MealSlot("2호관(교직원)식당", LUNCH, List.of(new Corner("중식", null))),
+                    new MealSlot("2호관(교직원)식당", DINNER, List.of(new Corner("석식", null)))
             )),
             new MenuPage(3, "제1기숙사식당", List.of(
-                    new Corner("조식", "제1기숙사식당", BREAKFAST),
-                    new Corner("중식", "제1기숙사식당", LUNCH),
-                    new Corner("석식", "제1기숙사식당", DINNER)
+                    new MealSlot("제1기숙사식당", BREAKFAST, List.of(new Corner("조식", null))),
+                    new MealSlot("제1기숙사식당", LUNCH, List.of(new Corner("중식", null))),
+                    new MealSlot("제1기숙사식당", DINNER, List.of(new Corner("석식", null)))
             )),
-            // 27호관식당은 상시 메뉴로 운영한다. 주간식단이 다시 올라오면 A코너 행이 이를 덮어쓰고,
-            // B코너 행은 매핑이 없어 경고로 드러난다.
+            // 27호관식당은 상시 메뉴로 운영한다. 주간식단이 다시 올라오면 A/B 코너 행이 이를 덮어쓴다.
             new MenuPage(4, "27호관식당", List.of(
-                    new Corner("A코너 중식", "27호관식당", LUNCH)
+                    new MealSlot("27호관식당", LUNCH, List.of(
+                            new Corner("A코너 중식", "A코너"),
+                            new Corner("B코너 중식", "B코너")
+                    ))
             ), CAFETERIA_27_FIXED_MENU),
             new MenuPage(5, "사범대식당", List.of(
-                    new Corner("중식", "사범대식당", LUNCH),
-                    new Corner("석식", "사범대식당", DINNER)
+                    new MealSlot("사범대식당", LUNCH, List.of(new Corner("중식", null))),
+                    new MealSlot("사범대식당", DINNER, List.of(new Corner("석식", null)))
             ))
     );
 
@@ -163,7 +169,10 @@ public class CafeteriaService {
 
     /** 식단표에 새 코너가 생기면 매핑이 없어 조용히 누락된다. 로그로 드러낸다. */
     private void warnUnmappedRows(MenuPage page, InucoopWeeklyMenu weeklyMenu) {
-        List<String> mapped = page.corners().stream().map(Corner::rowLabel).toList();
+        List<String> mapped = page.mealSlots().stream()
+                .flatMap(mealSlot -> mealSlot.corners().stream())
+                .map(Corner::rowLabel)
+                .toList();
         List<String> unmapped = weeklyMenu.labels().stream()
                 .filter(label -> !mapped.contains(label))
                 .toList();
@@ -184,29 +193,42 @@ public class CafeteriaService {
     }
 
     private Set<String> cafeteriasOf(MenuPage page) {
-        return page.corners().stream()
-                .map(Corner::cafeteria)
+        return page.mealSlots().stream()
+                .map(MealSlot::cafeteria)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    /** 매핑이 없는 끼니는 미운영("-"), 매핑은 있으나 식단표에 행이 없으면 휴무로 저장한다. */
+    /** 매핑이 없는 끼니는 미운영("-")으로 저장한다. */
     private void storeSlot(MenuPage page, InucoopWeeklyMenu weeklyMenu, String cafeteria, int slot) {
-        Optional<Corner> corner = page.corners().stream()
+        Optional<MealSlot> mealSlot = page.mealSlots().stream()
                 .filter(candidate -> candidate.cafeteria().equals(cafeteria) && candidate.slot() == slot)
                 .findFirst();
-        if (corner.isEmpty()) {
+        if (mealSlot.isEmpty()) {
             storeEveryDay(cafeteria, slot, NOT_OPERATED);
             return;
         }
-        Optional<InucoopMenuRow> row = weeklyMenu.findRow(corner.get().rowLabel());
-        if (row.isEmpty()) {
-            log.warn("식단표에서 끼니 행을 찾지 못했습니다. cafeteria={}, 행={}", cafeteria, corner.get().rowLabel());
-            storeEveryDay(cafeteria, slot, InucoopMenuParser.CLOSED_MENU);
-            return;
-        }
         for (int day = 1; day <= DAYS_OF_WEEK; day++) {
-            redisService.storeMeal(cafeteria, day, slot, row.get().menuOf(day));
+            redisService.storeMeal(cafeteria, day, slot, mergeCorners(mealSlot.get(), weeklyMenu, day));
         }
+    }
+
+    /**
+     * 한 끼니의 코너들을 한 값으로 합친다. 코너가 여럿이면 [1코너(백반)]처럼 머리말을 붙이고,
+     * 그날 쉬는 코너는 빼며, 모두 쉬면 휴무로 저장한다.
+     */
+    private String mergeCorners(MealSlot mealSlot, InucoopWeeklyMenu weeklyMenu, int day) {
+        boolean single = mealSlot.corners().size() == 1;
+        List<String> blocks = new ArrayList<>();
+        for (Corner corner : mealSlot.corners()) {
+            String menu = weeklyMenu.findRow(corner.rowLabel())
+                    .map(row -> row.menuOf(day))
+                    .orElse(InucoopMenuParser.CLOSED_MENU);
+            if (menu.equals(InucoopMenuParser.CLOSED_MENU)) {
+                continue;
+            }
+            blocks.add(single || corner.title() == null ? menu : "[%s]\n%s".formatted(corner.title(), menu));
+        }
+        return blocks.isEmpty() ? InucoopMenuParser.CLOSED_MENU : String.join("\n\n", blocks);
     }
 
     private void storeEveryDay(String cafeteria, int slot, String menu) {
