@@ -108,7 +108,11 @@ public class TimeTableImageRecognitionService {
             SemesterTerm term
     ) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("업로드된 시간표 이미지 파일이 비어 있습니다.");
+            throw new MyException(MyErrorCode.TIMETABLE_IMAGE_EMPTY_FILE);
+        }
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.isBlank() && !contentType.startsWith("image/")) {
+            throw new MyException(MyErrorCode.TIMETABLE_IMAGE_UNSUPPORTED_FILE);
         }
 
         Semester semester = resolveSemester(year, term);
@@ -130,7 +134,22 @@ public class TimeTableImageRecognitionService {
                 .stream(false)
                 .build();
 
-        String rawResponse = vllmService.chat(request);
+        String rawResponse;
+        try {
+            rawResponse = vllmService.chat(request);
+        } catch (VllmService.VllmTimeoutException e) {
+            // 클라이언트가 이 시점까지 자체 타임아웃(45s)으로 먼저 끊었을 수도 있지만,
+            // 아직 대기 중이라면 흐리거나 잘못 인식되는 이미지가 아니라 분석 서버
+            // 자체의 응답 지연임을 구분해서 안내한다.
+            log.warn("Timetable image recognition timed out.", e);
+            throw new MyException(MyErrorCode.TIMETABLE_IMAGE_RECOGNITION_TIMEOUT);
+        } catch (RuntimeException e) {
+            // vLLM 호출/응답 파싱 실패(네트워크 오류, 5xx 등) - 구조화되지 않은 500을
+            // 그대로 내려보내면 클라이언트가 다른 실패와 구분할 수 없으므로 여기서
+            // 사용자 안내용 메시지로 감싼다.
+            log.error("Timetable image recognition failed.", e);
+            throw new MyException(MyErrorCode.TIMETABLE_IMAGE_RECOGNITION_FAILED);
+        }
         log.debug("vLLM vision response: {}", rawResponse);
 
         List<ExtractedCourse> extractedCourses = parseVisionResponse(rawResponse);
@@ -191,7 +210,7 @@ public class TimeTableImageRecognitionService {
             return "data:" + contentType + ";base64," + base64;
         } catch (IOException e) {
             log.error("Failed to read image bytes: ", e);
-            throw new RuntimeException("이미지 파일 읽기 실패", e);
+            throw new MyException(MyErrorCode.TIMETABLE_IMAGE_UNSUPPORTED_FILE);
         }
     }
 
