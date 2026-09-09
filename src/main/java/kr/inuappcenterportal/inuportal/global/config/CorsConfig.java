@@ -16,15 +16,14 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowCredentials(true);
-        configuration.setAllowedOrigins(List.of(
+        configuration.setAllowedOriginPatterns(List.of(
                 "https://portal.inuappcenter.kr",
                 "https://portal-dev.inuappcenter.kr",
                 "https://ultimate-sugang-web.inuappcenter.kr",
                 "https://ultimate-sugang-web.pages.dev",
                 "https://intip.inuappcenter.kr",
                 "https://intip-test.pages.dev",
-                "https://hyunjun.intip-test.pages.dev",
-                "https://jayeon.intip-test.pages.dev",
+                "https://*.intip-test.pages.dev",
                 "http://localhost:5173"
         ));
         configuration.addAllowedHeader("*");
