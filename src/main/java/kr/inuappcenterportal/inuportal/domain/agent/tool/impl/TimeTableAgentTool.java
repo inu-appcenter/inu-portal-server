@@ -32,7 +32,7 @@ public class TimeTableAgentTool implements AgentTool {
 
     @Override
     public String getDescription() {
-        return "내 시간표, 오늘 수업, 강의실, 다음 강의 관련 질문 (params: 없음)";
+        return "내 시간표, 특정 일자(오늘, 내일, 모레, 특정 요일) 수업, 강의실, 다음 강의 관련 질문 (params: {\"targetDay\": \"TODAY\"|\"TOMORROW\"|\"AFTER_TOMORROW\"|\"MONDAY\"|\"TUESDAY\"|\"WEDNESDAY\"|\"THURSDAY\"|\"FRIDAY\"|\"SATURDAY\"|\"SUNDAY\"|\"YYYY-MM-DD\"})";
     }
 
     @Override
@@ -59,8 +59,67 @@ public class TimeTableAgentTool implements AgentTool {
 
             TimeTableDetailResponseDto detail = timeTableService.getTimeTableDetail(member.getId(), primary.id());
 
+            // 1. targetDay 파라미터 해석 및 대상 날짜/요일 계산
+            String targetDayParam = "TODAY";
+            if (params != null) {
+                if (params.containsKey("targetDay") && params.get("targetDay") != null) {
+                    targetDayParam = String.valueOf(params.get("targetDay")).trim();
+                } else if (params.containsKey("date") && params.get("date") != null) {
+                    targetDayParam = String.valueOf(params.get("date")).trim();
+                } else if (params.containsKey("day") && params.get("day") != null) {
+                    targetDayParam = String.valueOf(params.get("day")).trim();
+                }
+            }
+
             LocalDate today = LocalDate.now();
-            java.time.DayOfWeek jDay = today.getDayOfWeek();
+            LocalDate targetDate = today;
+            String relativeLabel = "오늘";
+
+            String upper = targetDayParam.toUpperCase();
+            if (upper.equals("TOMORROW") || targetDayParam.contains("내일")) {
+                targetDate = today.plusDays(1);
+                relativeLabel = "내일";
+            } else if (upper.equals("AFTER_TOMORROW") || targetDayParam.contains("모레")) {
+                targetDate = today.plusDays(2);
+                relativeLabel = "모레";
+            } else if (upper.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                try {
+                    targetDate = LocalDate.parse(targetDayParam);
+                    if (targetDate.equals(today)) relativeLabel = "오늘";
+                    else if (targetDate.equals(today.plusDays(1))) relativeLabel = "내일";
+                    else if (targetDate.equals(today.plusDays(2))) relativeLabel = "모레";
+                    else relativeLabel = targetDate.getMonthValue() + "월 " + targetDate.getDayOfMonth() + "일";
+                } catch (Exception ignored) {}
+            } else {
+                java.time.DayOfWeek matchedDow = null;
+                if (upper.contains("MON") || targetDayParam.contains("월")) matchedDow = java.time.DayOfWeek.MONDAY;
+                else if (upper.contains("TUE") || targetDayParam.contains("화")) matchedDow = java.time.DayOfWeek.TUESDAY;
+                else if (upper.contains("WED") || targetDayParam.contains("수")) matchedDow = java.time.DayOfWeek.WEDNESDAY;
+                else if (upper.contains("THU") || targetDayParam.contains("목")) matchedDow = java.time.DayOfWeek.THURSDAY;
+                else if (upper.contains("FRI") || targetDayParam.contains("금")) matchedDow = java.time.DayOfWeek.FRIDAY;
+                else if (upper.contains("SAT") || targetDayParam.contains("토")) matchedDow = java.time.DayOfWeek.SATURDAY;
+                else if (upper.contains("SUN") || targetDayParam.contains("일")) matchedDow = java.time.DayOfWeek.SUNDAY;
+
+                if (matchedDow != null) {
+                    int diff = matchedDow.getValue() - today.getDayOfWeek().getValue();
+                    if (diff < 0) diff += 7;
+                    targetDate = today.plusDays(diff);
+                    if (diff == 0) relativeLabel = "오늘";
+                    else if (diff == 1) relativeLabel = "내일";
+                    else if (diff == 2) relativeLabel = "모레";
+                    else relativeLabel = switch (matchedDow) {
+                        case MONDAY -> "월요일";
+                        case TUESDAY -> "화요일";
+                        case WEDNESDAY -> "수요일";
+                        case THURSDAY -> "목요일";
+                        case FRIDAY -> "금요일";
+                        case SATURDAY -> "토요일";
+                        case SUNDAY -> "일요일";
+                    };
+                }
+            }
+
+            java.time.DayOfWeek jDay = targetDate.getDayOfWeek();
             DayOfWeek targetDay;
             try {
                 targetDay = DayOfWeek.valueOf(jDay.name());
@@ -77,8 +136,9 @@ public class TimeTableAgentTool implements AgentTool {
                 case SATURDAY -> "토";
                 case SUNDAY -> "일";
             };
-            String todayDateText = String.format("%d월 %d일 (%s) 오늘의 시간표",
-                    today.getMonthValue(), today.getDayOfMonth(), dayNameKr);
+
+            String todayDateText = String.format("%d월 %d일 (%s) %s의 시간표",
+                    targetDate.getMonthValue(), targetDate.getDayOfMonth(), dayNameKr, relativeLabel);
 
             List<Map<String, Object>> todayClassList = new ArrayList<>();
             if (detail != null && detail.items() != null && targetDay != null) {
@@ -115,6 +175,7 @@ public class TimeTableAgentTool implements AgentTool {
 
             todayClassList.sort(Comparator.comparing(a -> String.valueOf(a.get("startTime"))));
 
+            boolean isToday = targetDate.equals(today);
             LocalTime now = LocalTime.now();
             int nowMinutes = now.getHour() * 60 + now.getMinute();
             String timetableStatusText;
@@ -125,7 +186,7 @@ public class TimeTableAgentTool implements AgentTool {
                 String startStr = (String) c.get("startTime");
                 String endStr = (String) c.get("endTime");
                 boolean isCurrent = false;
-                if (startStr != null && !startStr.isBlank() && endStr != null && !endStr.isBlank()) {
+                if (isToday && startStr != null && !startStr.isBlank() && endStr != null && !endStr.isBlank()) {
                     try {
                         LocalTime s = LocalTime.parse(startStr);
                         LocalTime e = LocalTime.parse(endStr);
@@ -147,27 +208,31 @@ public class TimeTableAgentTool implements AgentTool {
 
             if (todayClassList.isEmpty()) {
                 timetableStatusText = "등록된 수업 없음";
-            } else if (hasOngoing) {
-                timetableStatusText = "진행 중";
-            } else if (minutesUntilNext != null) {
-                if (minutesUntilNext < 60) {
-                    timetableStatusText = minutesUntilNext + "분 후 시작";
+            } else if (isToday) {
+                if (hasOngoing) {
+                    timetableStatusText = "진행 중";
+                } else if (minutesUntilNext != null) {
+                    if (minutesUntilNext < 60) {
+                        timetableStatusText = minutesUntilNext + "분 후 시작";
+                    } else {
+                        int h = minutesUntilNext / 60;
+                        int m = minutesUntilNext % 60;
+                        timetableStatusText = (m == 0) ? (h + "시간 후 시작") : (h + "시간 " + m + "분 후 시작");
+                    }
                 } else {
-                    int h = minutesUntilNext / 60;
-                    int m = minutesUntilNext % 60;
-                    timetableStatusText = (m == 0) ? (h + "시간 후 시작") : (h + "시간 " + m + "분 후 시작");
+                    timetableStatusText = "오늘 수업 끝";
                 }
             } else {
-                timetableStatusText = "오늘 수업 끝";
+                timetableStatusText = String.format("총 %d개 수업", todayClassList.size());
             }
 
             StringBuilder summary = new StringBuilder();
             if (todayClassList.isEmpty()) {
-                summary.append(String.format("오늘(%s)은 '%s' 시간표에 등록된 수업이 없습니다! (상태: %s)",
-                        dayNameKr, primary.timeTableName(), timetableStatusText));
+                summary.append(String.format("%s(%s, %s)은 '%s' 시간표에 등록된 수업이 없습니다! (공강)",
+                        relativeLabel, dayNameKr, targetDate, primary.timeTableName()));
             } else {
-                summary.append(String.format("오늘(%s) '%s' 시간표의 강의 일정입니다 (상태: %s):\n",
-                        dayNameKr, primary.timeTableName(), timetableStatusText));
+                summary.append(String.format("%s(%s) '%s' 시간표의 강의 일정입니다 (상태: %s):\n",
+                        relativeLabel, dayNameKr, primary.timeTableName(), timetableStatusText));
                 for (Map<String, Object> c : todayClassList) {
                     String currentTag = Boolean.TRUE.equals(c.get("isCurrent")) ? " [현재 진행 중]" : "";
                     summary.append(String.format("• [%s ~ %s] %s (강의실: %s%s)%s\n",
@@ -184,6 +249,8 @@ public class TimeTableAgentTool implements AgentTool {
             data.put("year", primary.year());
             data.put("term", primary.term());
             data.put("todayDateText", todayDateText);
+            data.put("relativeLabel", relativeLabel);
+            data.put("targetDate", targetDate.toString());
             data.put("statusText", timetableStatusText);
             data.put("todayClasses", todayClassList);
 
