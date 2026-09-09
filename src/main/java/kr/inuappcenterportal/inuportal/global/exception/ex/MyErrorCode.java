@@ -14,6 +14,7 @@ public enum MyErrorCode {
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩하지 않은 게시물입니다."),
     FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 스크랩폴더입니다."),
     FOLDER_OR_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩폴더나 게시글이 존재하지 않습니다."),
+    HAS_NOT_FOLDER_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 스크랩폴더에 접근할 권한이 없습니다."),
     USER_OR_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "유저나 게시글이 존재하지 않습니다."),
     USER_OR_REPLY_NOT_FOUND(HttpStatus.NOT_FOUND, "유저나 댓글이 존재하지 않습니다."),
     NOT_REPLY_ON_REREPLY(HttpStatus.BAD_REQUEST, "대댓글에 댓글을 작성할 수 없습니다."),
