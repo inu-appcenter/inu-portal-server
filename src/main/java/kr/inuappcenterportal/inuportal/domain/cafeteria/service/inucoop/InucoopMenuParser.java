@@ -35,6 +35,8 @@ public class InucoopMenuParser {
     private static final Pattern KCAL_LINE = Pattern.compile("^([\\d,]+(?:\\s*/\\s*[\\d,]+)*)\\s*kcal", Pattern.CASE_INSENSITIVE);
     /** nbsp, 제로폭공백, 전각공백처럼 눈에 안 보이는 공백. */
     private static final Pattern BLANK_CHARACTERS = Pattern.compile("[\\u00A0\\u200B\\u200C\\u200D\\u3000\\uFEFF]");
+    /** "*08:00~09:30*", "****여름방학****", "<천원의아침밥>" 처럼 메뉴가 아닌 안내 줄. */
+    private static final Pattern NOTICE_LINE = Pattern.compile("^(\\*+.*\\*+|<.*>)$");
     private static final Pattern WEEK_RANGE = Pattern.compile("\\d{4}-\\d{2}-\\d{2}\\s*~\\s*\\d{4}-\\d{2}-\\d{2}");
 
     public InucoopWeeklyMenu parse(Document document) {
@@ -110,6 +112,7 @@ public class InucoopMenuParser {
         copy.select("br").before(LINE_BREAK_TOKEN);
         return Arrays.stream(copy.text().split(Pattern.quote(LINE_BREAK_TOKEN), -1))
                 .map(line -> BLANK_CHARACTERS.matcher(line).replaceAll(" ").trim())
+                .filter(line -> !NOTICE_LINE.matcher(line).matches())
                 .toList();
     }
 
