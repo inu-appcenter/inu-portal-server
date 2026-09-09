@@ -111,6 +111,35 @@ class FriendServiceTest {
     }
 
     @Test
+    @DisplayName("이미 처리된(ACCEPTED) 친구 요청을 다시 수락하면 예외가 발생하고 FCM 알림이 중복 발송되지 않는다")
+    void acceptFriend_alreadyAccepted_throwsAndDoesNotResendNotification() {
+        Member requester = Member.builder().studentId("202000001").roles(List.of("ROLE_USER")).build();
+        requester.updateNicknameAndFire("requester", 1L);
+        ReflectionTestUtils.setField(requester, "id", 1L);
+
+        Member receiver = Member.builder().studentId("202000002").roles(List.of("ROLE_USER")).build();
+        receiver.updateNicknameAndFire("receiver", 2L);
+        ReflectionTestUtils.setField(receiver, "id", 2L);
+
+        Friend friend = Friend.builder().requester(requester).receiver(receiver).status(FriendStatus.ACCEPTED).build();
+        ReflectionTestUtils.setField(friend, "id", 100L);
+
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(friend));
+
+        kr.inuappcenterportal.inuportal.global.exception.ex.MyException ex =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        kr.inuappcenterportal.inuportal.global.exception.ex.MyException.class,
+                        () -> friendService.acceptFriend(2L, 100L)
+                );
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST,
+                ex.getErrorCode()
+        );
+        org.mockito.Mockito.verifyNoInteractions(fcmAsyncService);
+    }
+
+    @Test
     @DisplayName("친구 거절 시 FCM 알림에 correct path (/chat/list?category=친구)가 전달되어야 한다")
     void deleteFriend_reject_sendsFcmNotificationWithCorrectPath() {
         Member requester = Member.builder().studentId("202000001").roles(List.of("ROLE_USER")).build();
