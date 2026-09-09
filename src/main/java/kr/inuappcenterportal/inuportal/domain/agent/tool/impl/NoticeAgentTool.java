@@ -2,17 +2,21 @@ package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
+import kr.inuappcenterportal.inuportal.domain.notice.model.DepartmentNotice;
+import kr.inuappcenterportal.inuportal.domain.notice.repository.DepartmentNoticeRepository;
 import kr.inuappcenterportal.inuportal.domain.notice.service.NoticeService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -20,6 +24,8 @@ import java.util.Map;
 public class NoticeAgentTool implements AgentTool {
 
     private final NoticeService noticeService;
+    private final DepartmentNoticeRepository departmentNoticeRepository;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     @Override
     public String getName() {
@@ -39,36 +45,112 @@ public class NoticeAgentTool implements AgentTool {
                 query = String.valueOf(params.get("query")).trim();
             }
 
-            ListResponseDto<NoticeListResponseDto> noticeResult;
+            Department userDept = (member != null) ? member.getDepartment() : null;
+            String deptName = (userDept != null) ? userDept.getDepartmentName() : "학과";
+
+            List<NoticeListResponseDto> schoolNotices = Collections.emptyList();
+            long schoolTotal = 0;
+
+            List<DepartmentNotice> deptNotices = Collections.emptyList();
+            long deptTotal = 0;
+
             if (query.length() >= 2) {
-                noticeResult = noticeService.searchNotice(query, null, 1);
+                ListResponseDto<NoticeListResponseDto> schoolResult = noticeService.searchNotice(query, null, 1);
+                if (schoolResult != null && schoolResult.getContents() != null) {
+                    schoolNotices = schoolResult.getContents();
+                    schoolTotal = schoolResult.getTotal();
+                }
+
+                Page<DepartmentNotice> deptPage = departmentNoticeRepository.searchDepartmentNotices(
+                        userDept, query, PageRequest.of(0, 4));
+                if (deptPage != null) {
+                    deptNotices = deptPage.getContent();
+                    deptTotal = deptPage.getTotalElements();
+                }
             } else {
-                List<NoticeListResponseDto> topNotices = noticeService.getTop();
-                noticeResult = ListResponseDto.of(topNotices.size(), 1, topNotices);
+                schoolNotices = noticeService.getTop();
+                schoolTotal = schoolNotices != null ? schoolNotices.size() : 0;
+
+                if (userDept != null) {
+                    Page<DepartmentNotice> deptPage = departmentNoticeRepository.findAllByDepartment(
+                            userDept, PageRequest.of(0, 4));
+                    if (deptPage != null) {
+                        deptNotices = deptPage.getContent();
+                        deptTotal = deptPage.getTotalElements();
+                    }
+                }
             }
 
-            List<NoticeListResponseDto> notices = noticeResult.getContents() != null
-                    ? noticeResult.getContents()
-                    : Collections.emptyList();
+            // 통합 UI 카드 데이터 구성
+            List<Map<String, Object>> combinedList = new ArrayList<>();
 
-            UiComponentDto component = UiComponentDto.of("NOTICE_LIST", notices, "공지사항 전체보기", "/home/notice");
+            if (schoolNotices != null) {
+                for (NoticeListResponseDto sn : schoolNotices) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", sn.getId());
+                    item.put("title", sn.getTitle());
+                    item.put("category", sn.getCategory() != null ? sn.getCategory() : "학교");
+                    item.put("subCategory", sn.getSubCategory());
+                    item.put("writer", sn.getWriter());
+                    item.put("createDate", sn.getCreateDate());
+                    item.put("url", sn.getUrl());
+                    item.put("isDepartment", false);
+                    combinedList.add(item);
+                }
+            }
+
+            if (deptNotices != null) {
+                for (DepartmentNotice dn : deptNotices) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", dn.getId());
+                    item.put("title", dn.getTitle());
+                    item.put("category", dn.getDepartment() != null ? dn.getDepartment().getDepartmentName() : deptName);
+                    item.put("subCategory", "학과공지");
+                    item.put("writer", dn.getDepartment() != null ? dn.getDepartment().getDepartmentName() : "");
+                    item.put("createDate", dn.getCreateDate() != null ? dn.getCreateDate().format(DATE_FORMATTER) : "");
+                    item.put("url", dn.getUrl());
+                    item.put("views", dn.getView());
+                    item.put("isDepartment", true);
+                    item.put("department", dn.getDepartment() != null ? dn.getDepartment().name() : null);
+                    combinedList.add(item);
+                }
+            }
+
+            UiComponentDto component = UiComponentDto.of("NOTICE_LIST", combinedList, "공지사항 전체보기", "/home/notice");
 
             StringBuilder sb = new StringBuilder();
             if (query.length() >= 2) {
-                sb.append(String.format("'%s' 검색 결과 공지사항 %d건을 찾았습니다:\n", query, noticeResult.getTotal()));
+                sb.append(String.format("'%s' 검색 결과입니다.\n\n", query));
             } else {
-                sb.append("최신 학교 공지사항 목록입니다:\n");
+                sb.append("최신 학교 및 학과 공지사항 목록입니다.\n\n");
             }
-            if (notices.isEmpty()) {
-                sb.append("검색된 공지사항이 없습니다.");
-            } else {
-                for (int i = 0; i < Math.min(notices.size(), 3); i++) {
-                    NoticeListResponseDto n = notices.get(i);
+
+            boolean hasResults = false;
+            if (schoolNotices != null && !schoolNotices.isEmpty()) {
+                hasResults = true;
+                sb.append(String.format("[학교 공지사항] (%d건)\n", schoolTotal));
+                for (int i = 0; i < Math.min(schoolNotices.size(), 3); i++) {
+                    NoticeListResponseDto n = schoolNotices.get(i);
                     sb.append(String.format("• [%s] %s (%s)\n", n.getCategory(), n.getTitle(), n.getCreateDate()));
                 }
             }
 
-            return new ToolResult(sb.toString().trim(), component, notices);
+            if (deptNotices != null && !deptNotices.isEmpty()) {
+                if (hasResults) sb.append("\n");
+                hasResults = true;
+                sb.append(String.format("[%s 학과공지] (%d건)\n", deptName, deptTotal));
+                for (int i = 0; i < Math.min(deptNotices.size(), 3); i++) {
+                    DepartmentNotice dn = deptNotices.get(i);
+                    String dateStr = dn.getCreateDate() != null ? dn.getCreateDate().format(DATE_FORMATTER) : "";
+                    sb.append(String.format("• %s (%s)\n", dn.getTitle(), dateStr));
+                }
+            }
+
+            if (!hasResults) {
+                sb.append("검색된 학교 및 학과 공지사항이 없습니다.");
+            }
+
+            return new ToolResult(sb.toString().trim(), component, combinedList);
         } catch (Exception e) {
             log.error("공지사항 도구 실행 오류: {}", e.getMessage(), e);
             return new ToolResult("공지사항을 검색하는 도중 오류가 발생했습니다.", null, null);
