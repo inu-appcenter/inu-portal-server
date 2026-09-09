@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.*;
 
 @Slf4j
@@ -27,24 +28,47 @@ public class AgentService {
     private final AgentTools agentTools;
     private final ObjectMapper objectMapper;
 
-    private static final String SYSTEM_ROUTING_PROMPT = """
-            당신은 인천대학교 포털 서비스 INTIP의 똑똑한 AI 캠퍼스 비서입니다.
-            사용자의 질문을 분석하여 아래 도구 중 가장 적절한 1개를 선택해 반드시 유효한 JSON 형식으로만 응답하세요.
-            
-            [사용 가능한 도구]
-            - WEATHER: 날씨, 기온, 미세먼지, 비, 우산 관련 질문 (params: 없음)
-            - CAFETERIA: 학식, 식당, 메뉴, 밥, 점심, 저녁, 기숙사식당 관련 질문 (params: {"cafeteria": "학생식당"|"제1기숙사식당"|"2기숙사 식당"|"2호관(교직원)식당"|"27호관식당"|"사범대식당", "day": 요일(1=월~7=일)})
-            - BUS: 셔틀버스, 시내버스, 버스 도착 시간, 정류장 관련 질문 (params: {"stopName": "정문"|"공과대"|"자연대"|"송도역" 등})
-            - TIMETABLE: 내 시간표, 오늘 수업, 강의실, 다음 강의 관련 질문 (params: 없음)
-            - SCHEDULE: 학사일정, 시험기간, 수강신청/정정 기간, 학과 일정 관련 질문 (params: {"month": 월숫자(1~12)})
-            - NOTICE: 장학금, 대회, 행사, 학과공지, 학교 공지사항 검색 질문 (params: {"query": "검색어(2글자 이상)"})
-            - DIRECTORY: 학과사무실, 행정실, 부서 위치, 전화번호, 연락처 질문 (params: {"query": "학과/부서명"})
-            - GENERAL: 도구 조회가 필요 없는 단순 인사, 잡담, 정체성 질문 (params: 없음)
-            
-            [응답 규칙]
-            마크다운 백틱(```json) 없이 오직 JSON 텍스트 하나만 출력하세요.
-            {"tool": "도구명", "params": { ... }, "thought": "판단 이유"}
-            """;
+    private String buildRoutingPrompt() {
+        LocalDate today = LocalDate.now();
+        int currentYear = today.getYear();
+        int currentMonth = today.getMonthValue();
+        int currentDay = today.getDayOfMonth();
+        String dayOfWeek = today.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.KOREAN);
+
+        return String.format("""
+                당신은 인천대학교 포털 서비스 INTIP의 똑똑한 AI 캠퍼스 비서입니다.
+                사용자의 질문을 분석하여 아래 도구 중 가장 적절한 1개를 선택해 반드시 유효한 JSON 형식으로만 응답하세요.
+                
+                [현재 시점 기준 정보]
+                - 오늘 날짜: %d년 %d월 %d일 (%s)
+                - 현재 연도: %d년, 현재 월: %d월
+                - 사용자가 '오늘', '이번 달', '다음 달', '내일' 등을 언급할 때는 반드시 위 현재 시점을 기준으로 계산하세요.
+                  * '이번 달' 학사일정: month는 %d (현재 월)
+                  * '다음 달' 학사일정: month는 %d
+                  * 특정 월 언급이 없거나 '이번 달'이면 month는 %d를 사용하세요.
+                  * '오늘' 학식: day는 %d (1=월~7=일)
+                
+                [사용 가능한 도구]
+                - WEATHER: 날씨, 기온, 미세먼지, 비, 우산 관련 질문 (params: 없음)
+                - CAFETERIA: 학식, 식당, 메뉴, 밥, 점심, 저녁, 기숙사식당 관련 질문 (params: {"cafeteria": "학생식당"|"제1기숙사식당"|"2기숙사 식당"|"2호관(교직원)식당"|"27호관식당"|"사범대식당", "day": 요일(1=월~7=일)})
+                - BUS: 셔틀버스, 시내버스, 버스 도착 시간, 정류장 관련 질문 (params: {"stopName": "정문"|"공과대"|"자연대"|"송도역" 등})
+                - TIMETABLE: 내 시간표, 오늘 수업, 강의실, 다음 강의 관련 질문 (params: 없음)
+                - SCHEDULE: 학사일정, 시험기간, 수강신청/정정 기간, 학과 일정 관련 질문 (params: {"year": %d, "month": %d})
+                - NOTICE: 장학금, 대회, 행사, 학과공지, 학교 공지사항 검색 질문 (params: {"query": "검색어(2글자 이상)"})
+                - DIRECTORY: 학과사무실, 행정실, 부서 위치, 전화번호, 연락처 질문 (params: {"query": "학과/부서명"})
+                - GENERAL: 도구 조회가 필요 없는 단순 인사, 잡담, 정체성 질문 (params: 없음)
+                
+                [응답 규칙]
+                마크다운 백틱(```json) 없이 오직 JSON 텍스트 하나만 출력하세요.
+                {"tool": "도구명", "params": { ... }, "thought": "판단 이유"}
+                """, currentYear, currentMonth, currentDay, dayOfWeek,
+                currentYear, currentMonth,
+                currentMonth,
+                (currentMonth % 12) + 1,
+                currentMonth,
+                today.getDayOfWeek().getValue(),
+                currentYear, currentMonth);
+    }
 
     public AgentChatResponseDto processChat(AgentChatRequestDto requestDto, Member member) {
         String userMessage = requestDto.message().trim();
@@ -69,7 +93,7 @@ public class AgentService {
 
     private AgentToolDecisionDto decideTool(String userMessage) {
         List<VllmChatMessageDto> messages = List.of(
-                VllmChatMessageDto.system(SYSTEM_ROUTING_PROMPT),
+                VllmChatMessageDto.system(buildRoutingPrompt()),
                 VllmChatMessageDto.user(userMessage)
         );
 
@@ -105,8 +129,8 @@ public class AgentService {
 
             return new AgentToolDecisionDto(tool, params, thought);
         } catch (Exception e) {
-            log.warn("도구 결정 JSON 파싱 실패, Fallback 규칙 적용: {}", e.getMessage());
-            return fallbackRuleBasedDecision(userMessage);
+            log.error("도구 라우팅 결정 실패, GENERAL로 대체: {}", e.getMessage(), e);
+            return new AgentToolDecisionDto("GENERAL", Map.of(), "도구 결정 실패");
         }
     }
 
@@ -119,23 +143,28 @@ public class AgentService {
             case "SCHEDULE" -> agentTools.executeSchedule(member, params);
             case "NOTICE" -> agentTools.executeNotice(params);
             case "DIRECTORY" -> agentTools.executeDirectory(params);
-            default -> new AgentTools.ToolResult("요청하신 내용을 처리하지 못했습니다.", null, null);
+            default -> new AgentTools.ToolResult("요청하신 도구를 찾을 수 없습니다.", null, null);
         };
     }
 
     private String synthesizeAnswer(String userMessage, String toolSummary) {
         if (toolSummary == null || toolSummary.isBlank()) {
-            return "요청하신 정보를 조회했습니다.";
+            return "조회된 정보가 없습니다.";
         }
+
+        LocalDate today = LocalDate.now();
+        String dateHeader = String.format("현재 시점: %d년 %d월 %d일", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
 
         String prompt = String.format("""
                 당신은 인천대학교 포털 INTIP의 다정하고 스마트한 AI 캠퍼스 비서입니다.
+                [%s]
                 아래 사용자 질문과 시스템 조회 데이터를 참고하여, 학생에게 친절하고 자연스러운 구어체로 1~3문장 요약 답변을 작성하세요.
+                반드시 주어진 시스템 데이터의 실제 날짜와 내용을 바탕으로 답변해야 하며, 다른 날짜나 임의의 월을 지어내지 마세요.
                 관련 이모지를 적절히 활용하세요.
                 
                 [사용자 질문]: %s
                 [시스템 데이터 요약]: %s
-                """, userMessage, toolSummary);
+                """, dateHeader, userMessage, toolSummary);
 
         List<VllmChatMessageDto> messages = List.of(
                 VllmChatMessageDto.user(prompt)

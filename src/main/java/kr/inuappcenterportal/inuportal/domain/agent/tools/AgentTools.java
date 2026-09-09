@@ -206,9 +206,18 @@ public class AgentTools {
             int year = now.getYear();
             int month = now.getMonthValue();
 
+            if (params != null && params.containsKey("year") && params.get("year") != null) {
+                try {
+                    year = Integer.parseInt(String.valueOf(params.get("year")));
+                } catch (NumberFormatException ignored) {}
+            }
+
             if (params != null && params.containsKey("month") && params.get("month") != null) {
                 try {
-                    month = Integer.parseInt(String.valueOf(params.get("month")));
+                    int paramMonth = Integer.parseInt(String.valueOf(params.get("month")));
+                    if (paramMonth >= 1 && paramMonth <= 12) {
+                        month = paramMonth;
+                    }
                 } catch (NumberFormatException ignored) {}
             }
 
