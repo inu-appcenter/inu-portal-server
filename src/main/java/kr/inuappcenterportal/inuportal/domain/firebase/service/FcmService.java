@@ -17,10 +17,12 @@ import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotification
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationReadStats;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationSubFilter;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.AdminNotificationTargetType;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.NotificationReadSource;
 import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
@@ -85,6 +87,7 @@ public class FcmService {
     private final FcmDispatchGate fcmDispatchGate;
     private final FcmFailedTargetService fcmFailedTargetService;
     private final FcmMessageFailedTargetRepository fcmMessageFailedTargetRepository;
+    private final NotificationReadStatsReader notificationReadStatsReader;
     private final ApplicationEventPublisher eventPublisher;
 
     /** 청크 간 최소 간격. 게이트가 동시성을 막고, 이 값은 버스트를 한 번 더 눕히는 용도다. */
@@ -702,10 +705,13 @@ public class FcmService {
 
         List<Long> ids = fcmMessages.stream().map(FcmMessage::getId).toList();
         Map<Long, Integer> retryableCounts = countRetryableTargets(ids);
+        Map<Long, NotificationReadStats> readStats = notificationReadStatsReader.findAll(ids);
 
         return fcmMessages.stream()
                 .map(message -> AdminNotificationResponse.of(
-                        message, retryableCounts.getOrDefault(message.getId(), 0)))
+                        message,
+                        retryableCounts.getOrDefault(message.getId(), 0),
+                        readStats.getOrDefault(message.getId(), NotificationReadStats.empty())))
                 .toList();
     }
 
@@ -714,8 +720,11 @@ public class FcmService {
         FcmMessage fcmMessage = fcmMessageRepository.findByIdAndAdminMessageTrue(fcmMessageId)
                 .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
         return AdminNotificationResponse.of(
-                fcmMessage, fcmMessageFailedTargetRepository.countByFcmMessageId(fcmMessageId));
+                fcmMessage,
+                fcmMessageFailedTargetRepository.countByFcmMessageId(fcmMessageId),
+                notificationReadStatsReader.findOne(fcmMessageId));
     }
+
 
     private Map<Long, Integer> countRetryableTargets(List<Long> fcmMessageIds) {
         if (fcmMessageIds.isEmpty()) {
@@ -765,7 +774,7 @@ public class FcmService {
         }
         MemberFcmMessage message = memberFcmMessageRepository.findByIdAndMemberId(memberFcmMessageId, member.getId())
                 .orElseThrow(() -> new MyException(MyErrorCode.MESSAGE_NOT_FOUND));
-        message.markAsRead();
+        message.markAsRead(NotificationReadSource.INBOX);
     }
 
     /**
@@ -785,7 +794,7 @@ public class FcmService {
         if (messages.isEmpty()) {
             throw new MyException(MyErrorCode.MESSAGE_NOT_FOUND);
         }
-        messages.forEach(MemberFcmMessage::markAsRead);
+        messages.forEach(message -> message.markAsRead(NotificationReadSource.PUSH));
     }
 
     /**
@@ -798,7 +807,7 @@ public class FcmService {
         }
         Pageable pageable = PageRequest.of(page > 0 ? --page : page, 10, Sort.by(Sort.Direction.DESC, "id"));
         memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable)
-                .forEach(MemberFcmMessage::markAsRead);
+                .forEach(message -> message.markAsRead(NotificationReadSource.BULK));
     }
 
     /**

@@ -87,11 +87,18 @@ public interface FcmApiSpecification {
     ResponseEntity<ResponseDto<Void>> cancelScheduledNotification(Long scheduledNotificationId);
 
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 성공 횟수 조회",
-            description = "관리자가 전송한 FCM 메세지들의 총 성공 횟수를 조회합니다.")
+            description = "관리자가 전송한 FCM 메세지들의 총 성공 횟수를 조회합니다. <br><br>" +
+                    "각 건에는 읽음/클릭 집계(recipientCount, readCount, clickCount, pushReadCount, " +
+                    "inboxReadCount)가 함께 담깁니다. 클릭율은 clickCount ÷ recipientCount로 계산합니다. " +
+                    "targetCount/sendCount는 토큰(기기) 단위라 분모로 쓰면 안 됩니다.")
     ResponseEntity<ResponseDto<List<AdminNotificationResponse>>> countAdminFcmMessagesSuccess(@Min(1) int page);
 
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 결과 조회",
-            description = "관리자가 전송한 FCM 메시지의 발송 결과를 조회합니다.")
+            description = "관리자가 전송한 FCM 메시지의 발송 결과를 조회합니다. <br><br>" +
+                    "읽음/클릭 집계도 함께 내려갑니다. clickCount는 푸시를 탭했거나(pushReadCount) " +
+                    "알림함에서 개별 알림을 연(inboxReadCount) 수만 세며, 전체 읽음·조회수 기반 자동 " +
+                    "읽음은 readCount에만 포함됩니다. read_source 컬럼 도입 이전 발송 건은 경로를 알 수 " +
+                    "없어 clickCount가 0으로 나옵니다.")
     ResponseEntity<ResponseDto<AdminNotificationResponse>> getAdminFcmMessageResult(Long fcmMessageId);
 
     @Operation(summary = "(관리자 전용) 실패한 관리자 알림 재발송",
