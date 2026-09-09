@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationReadStats;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmSendStatus;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
@@ -46,6 +47,9 @@ class FcmRetryServiceTest {
     @Mock
     private FcmTokenRepository fcmTokenRepository;
 
+    @Mock
+    private NotificationReadStatsReader notificationReadStatsReader;
+
     @InjectMocks
     private FcmRetryService fcmRetryService;
 
@@ -77,6 +81,8 @@ class FcmRetryServiceTest {
         when(memberFcmMessageRepository.findDistinctTypesByFcmMessageId(13030L))
                 .thenReturn(List.of(FcmMessageType.GENERAL));
         when(fcmMessageRepository.findById(13030L)).thenReturn(Optional.of(message));
+        when(notificationReadStatsReader.findOne(13030L))
+                .thenReturn(new NotificationReadStats(1149, 300, 200, 100));
 
         FcmRetryService.RetryDispatch dispatch = fcmRetryService.prepareRetry(13030L);
 
@@ -90,6 +96,10 @@ class FcmRetryServiceTest {
         assertThat(dispatch.title()).isEqualTo("공지");
         assertThat(dispatch.body()).isEqualTo("본문");
         assertThat(dispatch.response().retryableCount()).isEqualTo(2);
+        assertThat(dispatch.response().clickCount())
+                .as("재발송 응답에도 이미 쌓인 클릭 집계가 실려야 화면이 0으로 덮어쓰지 않는다")
+                .isEqualTo(300);
+        assertThat(dispatch.response().recipientCount()).isEqualTo(1149);
     }
 
     @Test
@@ -158,6 +168,7 @@ class FcmRetryServiceTest {
         when(memberFcmMessageRepository.findDistinctTypesByFcmMessageId(5L))
                 .thenReturn(List.of(FcmMessageType.GENERAL));
         when(fcmMessageRepository.findById(5L)).thenReturn(Optional.of(message));
+        when(notificationReadStatsReader.findOne(5L)).thenReturn(NotificationReadStats.empty());
 
         FcmRetryService.RetryDispatch dispatch = fcmRetryService.prepareRetry(5L);
 
