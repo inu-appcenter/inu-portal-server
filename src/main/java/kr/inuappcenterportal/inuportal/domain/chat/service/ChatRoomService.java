@@ -358,6 +358,7 @@ public class ChatRoomService {
                     String lastMessageContent = "아직 대화가 없습니다.";
                     String friendAlias = null;
 
+                    List<Long> participantProfileImageNumbers = new ArrayList<>();
                     // 개인 채팅방 처리
                     if (room.getType() == ChatRoomType.PERSONAL) {
                         if (room.isOfficial() && !member.getRoles().contains("ROLE_ADMIN")) {
@@ -365,6 +366,14 @@ public class ChatRoomService {
                         } else {
                             List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
                                     ChatMemberStatus.JOINED);
+                            
+                            // 참여자들 중 본인을 제외한 멤버들의 프로필 이미지 번호 추출 (최대 4개)
+                            participantProfileImageNumbers = roomMembers.stream()
+                                    .filter(orm -> !orm.getMember().getId().equals(memberId))
+                                    .map(orm -> orm.getMember().getFireId())
+                                    .limit(4)
+                                    .collect(Collectors.toList());
+
                             // 1:1 채팅방(참여 인원 2명)인 경우 항상 상대방 정보 사용
                             if (roomMembers.size() == 2) {
                                 Optional<ChatRoomMember> otherMemberOpt = roomMembers.stream()
@@ -421,6 +430,7 @@ public class ChatRoomService {
                             .unreadCount(unreadCount)
                             .senderName(senderName)
                             .senderProfileImageNumber(senderProfileImageNumber)
+                            .participantProfileImageNumbers(participantProfileImageNumbers)
                             .isOwner(room.getCreator().getId().equals(memberId))
                             .isOfficial(room.isOfficial())
                             .currentParticipants(memberCount)
