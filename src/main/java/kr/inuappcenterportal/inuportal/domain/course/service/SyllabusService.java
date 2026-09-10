@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.course.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.course.dto.SyllabusContent;
+import kr.inuappcenterportal.inuportal.domain.course.dto.syllabus.SyllabusResponseDto;
 import kr.inuappcenterportal.inuportal.domain.course.model.CourseOffering;
 import kr.inuappcenterportal.inuportal.domain.course.model.Syllabus;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
@@ -37,6 +38,23 @@ public class SyllabusService {
     private final ObjectMapper objectMapper;
     private final PlatformTransactionManager transactionManager;
 
+
+    /**
+     * 강의 계획서 조회 메서드
+     */
+    public SyllabusResponseDto getSyllabus(
+            Long courseOfferingId
+    ) {
+        Syllabus syllabus = syllabusRepository.findByCourseOfferingId(courseOfferingId)
+                .orElseThrow(() -> new MyException(MyErrorCode.SYLLABUS_NOT_FOUND));
+
+        return SyllabusResponseDto.from(syllabus);
+    }
+
+
+    /**
+     * 강의계획서 JSON 업로드
+     */
     public void importFromJson(MultipartFile file) {
         List<SyllabusContent> contents = parse(file);
 
