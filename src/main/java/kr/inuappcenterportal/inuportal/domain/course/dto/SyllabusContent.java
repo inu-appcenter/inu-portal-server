@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record SyllabusContent(
         @JsonProperty("년도")
         Integer year,
@@ -98,7 +99,7 @@ public record SyllabusContent(
         List<WeeklyPlan> weeklyPlans,
 
         @JsonProperty("과제")
-        String assignments,
+        List<Assignment> assignments,
 
         @JsonProperty("장애학생학습지원")
         String disabilitySupport,
@@ -107,11 +108,24 @@ public record SyllabusContent(
         Map<String, Integer> coreCompetencyWeights,
 
         @JsonProperty("전공능력가중치")
-        Map<String, Integer> majorCompetencyWeights,
+        List<MajorCompetencyWeight> majorCompetencyWeights,
 
         @JsonProperty("_sections")
-        List<Integer> sections
+        List<Integer> sections,
+
+        @JsonProperty("_pages")
+        List<Integer> pages
 ) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record MajorCompetencyWeight(
+            @JsonProperty("전공능력")
+            String competency,
+
+            @JsonProperty("가중치")
+            Integer weight
+    ) {
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Textbooks(
             @JsonProperty("주교재")
@@ -120,8 +134,9 @@ public record SyllabusContent(
             @JsonProperty("참고서적")
             List<Book> reference,
 
+            // 원본에서 이 필드만 구조화된 목록이 아니라 자유 서술(문자열)로 온다
             @JsonProperty("기타서적")
-            List<Book> etc
+            String etc
     ) {
     }
 
@@ -148,6 +163,28 @@ public record SyllabusContent(
 
             @JsonProperty("내용")
             String content
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Assignment(
+            @JsonProperty("번호")
+            Integer number,
+
+            @JsonProperty("과제명")
+            String title,
+
+            @JsonProperty("제출일")
+            String dueDate,
+
+            @JsonProperty("목표")
+            String goal,
+
+            @JsonProperty("진행방법및유의사항")
+            String instructions,
+
+            @JsonProperty("참고자료")
+            String reference
     ) {
     }
 }
