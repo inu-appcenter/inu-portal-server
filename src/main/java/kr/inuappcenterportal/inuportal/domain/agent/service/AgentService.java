@@ -700,6 +700,15 @@ public class AgentService {
             }
             tools.add(new AgentToolDecisionDto.SingleToolCall("LIBRARY", Map.of("target", target)));
         }
+        if (lower.contains("lms") || lower.contains("과제") || lower.contains("사이버캠퍼스") || lower.contains("레포트") || lower.contains("숙제") || lower.contains("온라인 강의") || lower.contains("인강") || lower.contains("진도율") || lower.contains("동영상 강의")) {
+            String target = "ASSIGNMENTS";
+            if (lower.contains("강좌") || lower.contains("과목") || lower.contains("수강")) {
+                target = "COURSES";
+            } else if (lower.contains("마감") || lower.contains("다가오는") || lower.contains("남은")) {
+                target = "UPCOMING";
+            }
+            tools.add(new AgentToolDecisionDto.SingleToolCall("LMS", Map.of("target", target)));
+        }
 
         if (tools.isEmpty()) {
             return AgentToolDecisionDto.general("기본 대화로 전환");
