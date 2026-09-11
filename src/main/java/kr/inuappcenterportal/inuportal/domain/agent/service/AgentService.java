@@ -108,33 +108,20 @@ public class AgentService {
             return handleGeneralConversation(userMessage, history);
         }
 
-        // 3단계: 1차 도구 실행
+        // 3단계: ReAct 다단계 자율 실행 루프 (최대 4회차 반복 탐색)
         List<UiComponentDto> uiComponents = new ArrayList<>();
         StringBuilder combinedSummaries = new StringBuilder();
         Set<String> executedToolNames = new HashSet<>();
 
-        for (int i = 0; i < effectiveTools.size(); i++) {
-            AgentToolDecisionDto.SingleToolCall toolCall = effectiveTools.get(i);
-            executedToolNames.add(toolCall.tool().toUpperCase());
-            AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolCall.params());
+        List<AgentToolDecisionDto.SingleToolCall> currentBatch = effectiveTools;
+        final int MAX_REACT_HOPS = 4;
+        int currentHop = 1;
 
-            if (result.uiComponent() != null) {
-                uiComponents.add(result.uiComponent());
-            }
-            if (result.summary() != null && !result.summary().isBlank()) {
-                if (combinedSummaries.length() > 0) combinedSummaries.append("\n\n");
-                combinedSummaries.append(result.summary());
-            }
-        }
+        while (!currentBatch.isEmpty() && currentHop <= MAX_REACT_HOPS) {
+            log.info("AI Agent ReAct hop {} executing tools: {}", currentHop,
+                    currentBatch.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList());
 
-        // 4단계: ReAct 다단계 자율 체이닝 (2차 연계 도구 결정)
-        List<AgentToolDecisionDto.SingleToolCall> secondaryTools =
-                decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
-
-        if (!secondaryTools.isEmpty()) {
-            log.info("AI Agent ReAct hop 2 chained tools: {}",
-                    secondaryTools.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList());
-            for (AgentToolDecisionDto.SingleToolCall toolCall : secondaryTools) {
+            for (AgentToolDecisionDto.SingleToolCall toolCall : currentBatch) {
                 executedToolNames.add(toolCall.tool().toUpperCase());
                 AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolCall.params());
 
@@ -146,9 +133,13 @@ public class AgentService {
                     combinedSummaries.append(result.summary());
                 }
             }
+
+            // 다음 홉에서 추가로 실행해야 할 도구가 있는지 자율 판단 (ReAct Self-Correction)
+            currentBatch = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
+            currentHop++;
         }
 
-        // 5단계: 최종 자연어 요약 및 능동 추천 칩 합성
+        // 4단계: 최종 자연어 요약 및 능동 추천 칩 합성
         SynthesizedResult synthesized = synthesizeAnswer(userMessage, history, combinedSummaries.toString());
 
         return AgentChatResponseDto.of(synthesized.cleanMessage(), uiComponents, synthesized.suggestedActions());
@@ -189,26 +180,17 @@ public class AgentService {
                 StringBuilder combinedSummaries = new StringBuilder();
                 Set<String> executedToolNames = new HashSet<>();
 
-                for (AgentToolDecisionDto.SingleToolCall toolCall : effectiveTools) {
-                    executedToolNames.add(toolCall.tool().toUpperCase());
-                    AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolCall.params());
+                List<AgentToolDecisionDto.SingleToolCall> currentBatch = effectiveTools;
+                final int MAX_REACT_HOPS = 4;
+                int currentHop = 1;
 
-                    if (result.uiComponent() != null) {
-                        uiComponents.add(result.uiComponent());
+                while (!currentBatch.isEmpty() && currentHop <= MAX_REACT_HOPS) {
+                    if (currentHop > 1) {
+                        sendSse(emitter, "status", AgentStreamDto.status("CHAINING",
+                                String.format("연계 정보(%d단계)를 추가로 자율 탐색하고 있습니다...", currentHop)));
                     }
-                    if (result.summary() != null && !result.summary().isBlank()) {
-                        if (combinedSummaries.length() > 0) combinedSummaries.append("\n\n");
-                        combinedSummaries.append(result.summary());
-                    }
-                }
 
-                // 3. ReAct 2차 도구 연계 검사
-                List<AgentToolDecisionDto.SingleToolCall> secondaryTools =
-                        decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
-
-                if (!secondaryTools.isEmpty()) {
-                    sendSse(emitter, "status", AgentStreamDto.status("CHAINING", "연계 정보를 추가 조회하고 있습니다..."));
-                    for (AgentToolDecisionDto.SingleToolCall toolCall : secondaryTools) {
+                    for (AgentToolDecisionDto.SingleToolCall toolCall : currentBatch) {
                         executedToolNames.add(toolCall.tool().toUpperCase());
                         AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolCall.params());
 
@@ -220,6 +202,10 @@ public class AgentService {
                             combinedSummaries.append(result.summary());
                         }
                     }
+
+                    // ReAct 다음 단계 자율 판단
+                    currentBatch = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
+                    currentHop++;
                 }
 
                 // 4. GENERATIVE UI 카드 즉시 선행 전달 (화면에 카드 먼저 렌더링!)
@@ -289,54 +275,51 @@ public class AgentService {
     }
 
     /**
-     * ReAct 2차 도구 연계 자율 판단 (1차 조회 결과를 바탕으로 후속 도구 동적 결정)
+     * ReAct 다단계 자율 체이닝 판단:
+     * 1차(또는 이전 홉) 도구 실행 결과를 관찰(Observation)한 후,
+     * 사용자의 목표를 완수하거나 부족한 정보/대안을 찾기 위해 추가로 실행해야 할 후속 도구를 동적으로 결정합니다.
      */
     private List<AgentToolDecisionDto.SingleToolCall> decideSecondaryTool(
             String userMessage,
             List<ChatMessageDto> history,
-            String hop1Summary,
+            String previousSummary,
             Set<String> executedToolNames
     ) {
-        String lower = userMessage.toLowerCase();
-        boolean mayNeedChain = false;
-        if (!executedToolNames.contains("BUS") && (lower.contains("버스") || lower.contains("집") || lower.contains("정류장") || lower.contains("하교") || lower.contains("막차"))) {
-            mayNeedChain = true;
-        }
-        if (!executedToolNames.contains("CAFETERIA") && (lower.contains("학식") || lower.contains("밥") || lower.contains("점심") || lower.contains("저녁") || lower.contains("식당") || lower.contains("먹을"))) {
-            mayNeedChain = true;
-        }
-        if (!executedToolNames.contains("TIMETABLE_GAP") && (lower.contains("공강") || lower.contains("쉬는 시간") || lower.contains("여유"))) {
-            mayNeedChain = true;
-        }
-
-        if (!mayNeedChain || hop1Summary.isBlank()) {
+        if (previousSummary == null || previousSummary.isBlank()) {
             return Collections.emptyList();
         }
 
         String prompt = String.format("""
-                사용자가 다음과 같은 질문을 했습니다: "%s"
-                이미 1차 도구 실행을 통해 다음 정보를 얻었습니다:
-                [1차 조회 결과]:
+                당신은 인천대학교 포털 INTIP의 자율 ReAct AI 캠퍼스 비서입니다.
+                [사용자 질문]: "%s"
+                
+                [현재까지 수집된 도구 실행 결과 (Observation)]:
                 %s
                 
-                위 1차 결과의 장소나 시간 정보(예: 마지막 강의 건물이나 종료 시간, 공강 여부)를 참고하여, 사용자의 요청을 완수하기 위해 추가로 실행해야 할 2차 도구와 파라미터를 JSON으로 응답하세요.
-                이미 실행된 도구(%s)는 절대 다시 호출하지 마세요.
-                추가 도구가 필요 없다면 {"tools": []}로 응답하세요.
-                마크다운 백틱 없이 유효한 JSON 형식만 응답하세요:
-                {"tools": [{"tool": "도구명", "params": { ... }}]}
+                [이미 실행된 도구 목록]: %s
                 
-                도구 목록:
-                - BUS (params: {"stopName": "정문"|"공과대"|"자연대"|"송도역" 등})
-                - CAFETERIA (params: {"cafeteria": "전체"|"학생식당"|"2호관(교직원)식당"|"27호관식당" 등, "mealType": "LUNCH"|"DINNER"})
-                - TIMETABLE_GAP (params: {"day": 1~7})
-                - DIRECTORY (params: {"query": "부서명/건물명"})
-                """, userMessage, hop1Summary, String.join(", ", executedToolNames));
+                위 관찰 결과(Observation)를 바탕으로, 사용자의 질문에 완벽히 답하기 위해 추가로 실행해야 할 후속 도구가 있는지 판단하세요.
+                - 이전 도구에서 원하는 정보가 나오지 않았거나 대안이 필요한 경우(예: 특정 열람실 만석 시 다른 열람실 조회, 과제 미존재 시 강좌 공지 확인 등) 다른 적절한 도구를 호출할 수 있습니다.
+                - 이미 충분한 정보가 수집되어 바로 사용자에게 최종 답변을 할 수 있다면 반드시 {"tools": []}로 응답하세요.
+                - 이미 실행된 도구(%s)는 중복 호출하지 마세요.
+                
+                [사용 가능한 도구 카탈로그]:
+                %s
+                
+                마크다운 백틱 없이 반드시 유효한 JSON 형식으로만 응답하세요:
+                {"tools": [{"tool": "도구명", "params": { ... }}], "thought": "판단 및 다음 행동 이유"}
+                """,
+                userMessage,
+                previousSummary,
+                String.join(", ", executedToolNames),
+                String.join(", ", executedToolNames),
+                agentToolRegistry.generateRoutingPromptCatalog());
 
         List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.1)
-                .maxTokens(200)
+                .maxTokens(250)
                 .stream(false)
                 .build();
 
@@ -350,7 +333,7 @@ public class AgentService {
             List<AgentToolDecisionDto.SingleToolCall> secondaryList = new ArrayList<>();
             if (toolsNode.isArray()) {
                 for (JsonNode tNode : toolsNode) {
-                    String toolName = tNode.path("tool").asText("").toUpperCase();
+                    String toolName = tNode.path("tool").asText("").toUpperCase().trim();
                     if (!toolName.isBlank() && !executedToolNames.contains(toolName) && !"GENERAL".equalsIgnoreCase(toolName)) {
                         Map<String, Object> params = parseParamsNode(tNode.path("params"));
                         secondaryList.add(new AgentToolDecisionDto.SingleToolCall(toolName, params));
@@ -359,10 +342,11 @@ public class AgentService {
             }
             return secondaryList;
         } catch (Exception e) {
-            log.debug("ReAct 2차 도구 연계 추론 생략: {}", e.getMessage());
+            log.debug("ReAct 자율 연계 추론 생략: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
+
 
     private Map<String, Object> parseParamsNode(JsonNode paramsNode) {
         Map<String, Object> params = new LinkedHashMap<>();
