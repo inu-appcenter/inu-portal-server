@@ -41,12 +41,14 @@ public class SuggestionResponse {
     private Long memberId;
     @Schema(description = "작성자 닉네임")
     private String memberNickname;
+    @Schema(description = "첨부된 이미지 개수. 각 이미지는 GET /api/suggestions/{건의사항 id}/images/{순번} 으로 조회하며 순번은 1부터 이 값까지입니다. 0이면 첨부 이미지 없음.", example = "2")
+    private Integer imageCount;
 
     @Builder
     private SuggestionResponse(Long id, String content, String cheerMessage, String category, String appVersion,
                                    String osType, String osVersion, String deviceModel, String status,
                                    String createDate, String modifiedDate,
-                                   Long memberId, String memberNickname) {
+                                   Long memberId, String memberNickname, Integer imageCount) {
         this.id = id;
         this.content = content;
         this.cheerMessage = cheerMessage;
@@ -60,6 +62,7 @@ public class SuggestionResponse {
         this.modifiedDate = modifiedDate;
         this.memberId = memberId;
         this.memberNickname = memberNickname;
+        this.imageCount = imageCount;
     }
 
     public static SuggestionResponse of(Suggestion suggestion) {
@@ -77,6 +80,7 @@ public class SuggestionResponse {
                 .modifiedDate(suggestion.getModifiedDate().format(DATE_TIME_FORMATTER))
                 .memberId(suggestion.getMember().getId())
                 .memberNickname(suggestion.getMember().getNickname())
+                .imageCount(suggestion.getImageCount())
                 .build();
     }
 }
