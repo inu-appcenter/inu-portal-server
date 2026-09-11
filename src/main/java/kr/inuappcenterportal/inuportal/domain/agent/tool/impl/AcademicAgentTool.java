@@ -35,7 +35,7 @@ public class AcademicAgentTool implements AgentTool {
                 "PORTAL_AUTH_REQUIRED",
                 Map.of("action", "FETCH_ACADEMIC_INFO", "message", "포털 보안 연동 필요"),
                 "포털 학적 정보 연동",
-                "/academic"
+                "/labs/portal/basic-info"
         );
 
         String summary = "학적 정보 및 취득 학점 조회를 위해 학교 포털 보안 세션에 연결을 준비합니다. 스마트폰 INTIP 앱의 보안 영역에서 안전하게 직접 조회됩니다.";

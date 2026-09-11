@@ -53,7 +53,7 @@ public class MySettingsAgentTool implements AgentTool {
             data.put("keywordCount", keywords.size());
             data.put("keywords", keywords);
 
-            UiComponentDto component = UiComponentDto.of("MY_SETTINGS", data, "설정 페이지 가기", "/my-page");
+            UiComponentDto component = UiComponentDto.of("MY_SETTINGS", data, "설정 페이지 가기", "/mypage");
 
             StringBuilder sb = new StringBuilder();
             sb.append("현재 회원님의 알림 및 설정 현황입니다:\n");

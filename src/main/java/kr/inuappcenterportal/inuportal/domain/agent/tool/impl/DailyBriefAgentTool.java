@@ -82,7 +82,7 @@ public class DailyBriefAgentTool implements AgentTool {
                     ? String.format("매일 아침 %s에 오늘의 시간표와 학사일정 브리핑을 보내드립니다.", time)
                     : "데일리 브리프 알림이 해제되었습니다.");
 
-            UiComponentDto component = UiComponentDto.of("SETTING_RESULT", data, "브리프 알림 설정", "/home/calendar");
+            UiComponentDto component = UiComponentDto.of("SETTING_RESULT", data, "브리프 알림 설정", "/mypage/notification/daily-brief");
             String summary = enabled
                     ? String.format("데일리 브리프 알림이 매일 아침 %s에 발송되도록 설정되었습니다.", time)
                     : "데일리 브리프 알림이 꺼졌습니다.";

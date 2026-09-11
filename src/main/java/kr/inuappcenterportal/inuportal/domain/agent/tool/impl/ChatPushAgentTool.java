@@ -54,7 +54,7 @@ public class ChatPushAgentTool implements AgentTool {
             data.put("statusText", result ? "알림 켜짐" : "알림 꺼짐");
             data.put("message", result ? "채팅 푸시 알림이 활성화되었습니다." : "채팅 푸시 알림이 비활성화되었습니다.");
 
-            UiComponentDto component = UiComponentDto.of("SETTING_RESULT", data, "내 정보 / 알림 설정", "/my-page");
+            UiComponentDto component = UiComponentDto.of("SETTING_RESULT", data, "내 정보 / 알림 설정", "/mypage");
             String summary = result 
                     ? "채팅 푸시 알림을 성공적으로 켰습니다. 새 메시지가 오면 푸시로 알려드릴게요!"
                     : "채팅 푸시 알림을 성공적으로 껐습니다. 언제든 다시 켜실 수 있어요.";

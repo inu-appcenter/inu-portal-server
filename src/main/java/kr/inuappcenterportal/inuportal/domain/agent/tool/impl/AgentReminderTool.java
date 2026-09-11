@@ -69,7 +69,7 @@ public class AgentReminderTool implements AgentTool {
                             i + 1, r.title(), r.targetTime(), r.repeatTypeDesc(), r.enabled() ? "켜짐" : "꺼짐"));
                 }
                 Map<String, Object> data = Map.of("reminders", list);
-                UiComponentDto ui = UiComponentDto.of("REMINDER_LIST", data, "알림 설정 관리", "/mobile/daily-brief?tab=agent");
+                UiComponentDto ui = UiComponentDto.of("REMINDER_LIST", data, "알림 설정 관리", "/mypage/notification/daily-brief?tab=agent");
                 return new ToolResult(sb.toString().trim(), ui, data);
             }
 
@@ -92,7 +92,7 @@ public class AgentReminderTool implements AgentTool {
                             null, Map.of("deletedId", match.get().id()));
                 } else {
                     return new ToolResult("삭제할 알림을 찾지 못했습니다. 데일리 브리프 설정 페이지에서 목록을 확인해 주세요.",
-                            UiComponentDto.of("LINK", Map.of("url", "/mobile/daily-brief?tab=agent"), "알림 관리 이동", "/mobile/daily-brief?tab=agent"), null);
+                            UiComponentDto.of("LINK", Map.of("url", "/mypage/notification/daily-brief?tab=agent"), "알림 관리 이동", "/mypage/notification/daily-brief?tab=agent"), null);
                 }
             }
 
@@ -178,7 +178,7 @@ public class AgentReminderTool implements AgentTool {
                     "REMINDER_SETTING_RESULT",
                     cardData,
                     "맞춤 알림 관리",
-                    "/mobile/daily-brief?tab=agent"
+                    "/mypage/notification/daily-brief?tab=agent"
             );
 
             String summary = String.format("%s %s에 '%s'이(가) 발송되도록 예약해 드렸어요! 🔔",
