@@ -42,28 +42,31 @@ public class FolderService {
     }
 
     @Transactional
-    public Long updateFolder(Long folderId, FolderDto folderDto){
+    public Long updateFolder(Member member, Long folderId, FolderDto folderDto){
         Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyException(MyErrorCode.FOLDER_NOT_FOUND));
+        validateOwner(member, folder);
         folder.update(folderDto.getName());
         return folderId;
     }
 
     @Transactional
-    public void deleteFolder(Long folderId){
+    public void deleteFolder(Member member, Long folderId){
         Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyException(MyErrorCode.FOLDER_NOT_FOUND));
+        validateOwner(member, folder);
         folderRepository.delete(folder);
     }
 
     @Transactional
-    public Long insertInFolder(Long folderId, FolderPostDto folderPostDto){
+    public Long insertInFolder(Member member, Long folderId, FolderPostDto folderPostDto){
         if(folderPostDto.getPostId().isEmpty()){
             throw new MyException(MyErrorCode.POST_SCRAP_LIST_NOT_FOUND);
         }
         Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyException(MyErrorCode.FOLDER_NOT_FOUND));
-        Member member =memberRepository.findById(folder.getMember().getId()).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
+        validateOwner(member, folder);
+        Member owner =memberRepository.findById(folder.getMember().getId()).orElseThrow(()->new MyException(MyErrorCode.USER_NOT_FOUND));
         for(Long id:folderPostDto.getPostId()){
             Post post = postRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
-            Scrap scrap = scrapRepository.findByMemberAndPost(member,post).orElseThrow(()->new MyException(MyErrorCode.SCRAP_NOT_FOUND));
+            Scrap scrap = scrapRepository.findByMemberAndPost(owner,post).orElseThrow(()->new MyException(MyErrorCode.SCRAP_NOT_FOUND));
             if(folderPostRepository.existsByFolderAndPost(folder,post)){
                 throw new MyException(MyErrorCode.POST_DUPLICATE_FOLDER);
             }
@@ -73,11 +76,12 @@ public class FolderService {
     }
 
     @Transactional
-    public void deleteInFolder(Long folderId, FolderPostDto folderPostDto){
+    public void deleteInFolder(Member member, Long folderId, FolderPostDto folderPostDto){
         if(folderPostDto.getPostId().isEmpty()){
             throw new MyException(MyErrorCode.POST_SCRAP_LIST_NOT_FOUND);
         }
         Folder folder = folderRepository.findById(folderId).orElseThrow(()->new MyException(MyErrorCode.FOLDER_NOT_FOUND));
+        validateOwner(member, folder);
         for(Long id:folderPostDto.getPostId()){
             Post post = postRepository.findById(id).orElseThrow(()->new MyException(MyErrorCode.POST_NOT_FOUND));
             folderPostRepository.delete(folderPostRepository.findByFolderAndPost(folder,post).orElseThrow(()->new MyException(MyErrorCode.FOLDER_OR_POST_NOT_FOUND)));
@@ -90,17 +94,29 @@ public class FolderService {
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto<PostListResponseDto> getPostInFolder(Long folderId, String sort, int page) {
+    public ListResponseDto<PostListResponseDto> getPostInFolder(Member member, Long folderId, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
+        validateOwner(member, folder);
         List<PostListResponseDto> folderDto = folderPostRepository.findAllByFolder(folder,postService.sortFetchJoin(sort)).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         return postService.pagingFetchJoin(page,folderDto);
     }
 
     @Transactional(readOnly = true)
-    public ListResponseDto<PostListResponseDto> searchPostInFolder(Long folderId, String query, String sort, int page) {
+    public ListResponseDto<PostListResponseDto> searchPostInFolder(Member member, Long folderId, String query, String sort, int page) {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new MyException(MyErrorCode.FOLDER_NOT_FOUND));
+        validateOwner(member, folder);
         List<PostListResponseDto> folderDto = folderPostRepository.searchInFolder(folder,query,postService.sortFetchJoin(sort)).stream().map(file -> postService.getPostListResponseDto(file.getPost())).collect(Collectors.toList());
         return postService.pagingFetchJoin(page,folderDto);
+    }
+
+    /**
+     * 스크랩폴더 소유권 검증 메서드 - URL의 folderId만으로 다른 회원의 스크랩폴더를
+     * 조회/수정/삭제(IDOR)하지 못하도록 요청자가 폴더의 주인인지 확인한다.
+     */
+    private void validateOwner(Member member, Folder folder){
+        if(!folder.getMember().getId().equals(member.getId())){
+            throw new MyException(MyErrorCode.HAS_NOT_FOLDER_AUTHORIZATION);
+        }
     }
 
 

@@ -14,6 +14,7 @@ public enum MyErrorCode {
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩하지 않은 게시물입니다."),
     FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 스크랩폴더입니다."),
     FOLDER_OR_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩폴더나 게시글이 존재하지 않습니다."),
+    HAS_NOT_FOLDER_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 스크랩폴더에 접근할 권한이 없습니다."),
     USER_OR_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "유저나 게시글이 존재하지 않습니다."),
     USER_OR_REPLY_NOT_FOUND(HttpStatus.NOT_FOUND, "유저나 댓글이 존재하지 않습니다."),
     NOT_REPLY_ON_REREPLY(HttpStatus.BAD_REQUEST, "대댓글에 댓글을 작성할 수 없습니다."),
@@ -115,6 +116,7 @@ public enum MyErrorCode {
     DUPLICATE_GRADE_RECORD(HttpStatus.BAD_REQUEST, "동일한 과목(과목코드+과목명)의 성적이 중복 입력되었습니다."),
     HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
     INVALID_EXCEL_EXTENDER(HttpStatus.BAD_REQUEST, "잘못된 확장자입니다."),
+    SYLLABUS_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강의계획서입니다."),
 
     SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 건의사항입니다."),
     HAS_NOT_SUGGESTION_AUTHORIZATION(HttpStatus.FORBIDDEN, "이 건의사항에 대한 권한이 없습니다."),

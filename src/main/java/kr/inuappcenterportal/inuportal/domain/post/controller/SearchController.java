@@ -63,8 +63,8 @@ public class SearchController {
             @ApiResponse(responseCode = "404",description = "존재하지 않는 스크랩폴더입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @GetMapping("/folder/{folderId}")
-    public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> searchInFolder(@RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
+    public ResponseEntity<ResponseDto<ListResponseDto<PostListResponseDto>>> searchInFolder(@AuthenticationPrincipal Member member, @RequestParam @NotBlank(message = "공백일 수 없습니다.") @Size(min = 2,message = "2글자 이상 입력해야 합니다.") String query, @RequestParam(required = false) String sort
             , @RequestParam(required = false,defaultValue = "1") @Min(1) int page, @PathVariable Long folderId){
-        return ResponseEntity.ok(ResponseDto.of(folderService.searchPostInFolder(folderId,query,sort,page),"스크랩 폴더에서 게시글 검색 성공"));
+        return ResponseEntity.ok(ResponseDto.of(folderService.searchPostInFolder(member,folderId,query,sort,page),"스크랩 폴더에서 게시글 검색 성공"));
     }
 }
