@@ -674,6 +674,11 @@ public class AgentService {
             tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_DAILY_BRIEF", Map.of("enabled", enabled, "time", "08:30")));
         } else if (lower.contains("키워드") && (lower.contains("알림") || lower.contains("등록") || lower.contains("추가"))) {
             tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_NOTICE_KEYWORD", Map.of("keyword", msg)));
+        } else if (lower.contains("빈자리") || ((lower.contains("힐링존") || lower.contains("수면실") || lower.contains("열람실")) && (lower.contains("자리 나면") || lower.contains("자리 생기면") || lower.contains("알려줘")))) {
+            String target = lower.contains("힐링존") ? "힐링존" : (lower.contains("수면실") ? "수면실" : "제1열람실");
+            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_CAMPUS_WATCH", Map.of("action", "WATCH", "targetName", target, "durationMinutes", 90)));
+        } else if (lower.contains("감시") && (lower.contains("목록") || lower.contains("조회") || lower.contains("현황"))) {
+            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_CAMPUS_WATCH", Map.of("action", "LIST")));
         } else if (lower.contains("알림 설정") || lower.contains("내 설정") || lower.contains("내 알림")) {
             tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_MY_SETTINGS", Map.of()));
         }
