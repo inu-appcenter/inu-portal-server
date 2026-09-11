@@ -684,6 +684,22 @@ public class AgentService {
         if (lower.contains("전화") || lower.contains("번호") || lower.contains("과사") || lower.contains("사무실") || lower.contains("연락처")) {
             tools.add(new AgentToolDecisionDto.SingleToolCall("DIRECTORY", Map.of("query", msg)));
         }
+        if (lower.contains("학적") || lower.contains("취득 학점") || lower.contains("취득학점") || lower.contains("이수 학점") || lower.contains("이수학점") || lower.contains("내 학점") || lower.contains("gpa") || lower.contains("평점")) {
+            tools.add(new AgentToolDecisionDto.SingleToolCall("ACADEMIC", Map.of()));
+        }
+        if (lower.contains("도서관") || lower.contains("열람실") || lower.contains("노트북실") || lower.contains("스터디룸") || lower.contains("자리") || lower.contains("좌석") || lower.contains("세미나실")) {
+            String target = "SEATS";
+            if (lower.contains("스터디룸") || lower.contains("세미나실") || lower.contains("공간")) {
+                target = "STUDY_ROOMS";
+            } else if (lower.contains("연장")) {
+                target = "RENEW";
+            } else if (lower.contains("반납") || lower.contains("퇴실")) {
+                target = "RETURN";
+            } else if (lower.contains("내 자리") || lower.contains("내 좌석") || lower.contains("현재 좌석")) {
+                target = "MY_SEAT";
+            }
+            tools.add(new AgentToolDecisionDto.SingleToolCall("LIBRARY", Map.of("target", target)));
+        }
 
         if (tools.isEmpty()) {
             return AgentToolDecisionDto.general("기본 대화로 전환");
