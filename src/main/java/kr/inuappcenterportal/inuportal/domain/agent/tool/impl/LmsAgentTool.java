@@ -43,20 +43,19 @@ public class LmsAgentTool implements AgentTool {
 
         log.info("[LmsAgentTool] execute target: {}, courseName: {}", target, courseName);
 
-        // 클라이언트 단말에서 안전하게 LMS REST API(Moodle WebService)를 직접 호출하도록 지시
+        // 클라이언트 단말에서 안전하게 LMS REST API(Moodle WebService)를 직접 호출하도록 안내 및 모달 연결
         UiComponentDto ui = UiComponentDto.of(
-                "LMS_ACTION",
+                "LMS_AUTH_REQUIRED",
                 Map.of(
                         "target", target,
                         "courseName", courseName,
-                        "message", "사이버캠퍼스(LMS) 실시간 과제 및 강의 연동"
+                        "message", "사이버캠퍼스(LMS) 계정 연동 필요"
                 ),
-                "사이버캠퍼스 바로가기",
-                "https://lms.inu.ac.kr"
+                "LMS 계정 연동하기",
+                "openLmsAccountModal"
         );
 
-        String summary = String.format("사이버캠퍼스(LMS)의 %s 정보를 확인하기 위해 안전한 연동 세션을 연결합니다. 학생 스마트폰 앱의 보안 영역에서 과제 마감 및 수강 현황이 직접 조회됩니다.",
-                "COURSES".equalsIgnoreCase(target) ? "수강 강좌" : (!courseName.isBlank() ? courseName + " 과제" : "다가오는 과제 마감 일정"));
+        String summary = "사이버캠퍼스(LMS) 과제 마감 일정 및 강좌 조회를 위해 LMS 계정 연동이 필요합니다. 아래 연동 카드를 통해 학번과 비밀번호를 1회 등록하시면 실시간으로 과제와 일정을 바로 확인하실 수 있습니다.";
 
         return new ToolResult(summary, ui, Map.of(
                 "clientAction", "EXECUTE_LMS_ACTION",
