@@ -1,5 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -7,15 +9,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.*;
 
 /**
- * 인천대학교 학산도서관 열람실 좌석 및 스터디룸/공간 예약 Agent Tool (Client-Side Action 연동)
+ * 인천대학교 학산도서관 열람실 좌석 및 스터디룸/공간 예약 Agent Tool (실시간 pyxis-api 연동)
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class LibraryAgentTool implements AgentTool {
+
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(4))
+            .build();
+
+    private static final String SEAT_ROOMS_URL = "https://lib.inu.ac.kr/pyxis-api/1/seat-rooms?branchGroupId=1&smufMethodCode=PC";
 
     @Override
     public String getName() {
@@ -43,25 +57,81 @@ public class LibraryAgentTool implements AgentTool {
 
         log.info("[LibraryAgentTool] execute target: {}, roomName: {}", target, roomName);
 
-        // 클라이언트 단말에서 안전하게 도서관 API(pyxis-api)를 직접 호출할 수 있도록 액션 카드와 명령 전달
+        if ("STUDY_ROOMS".equalsIgnoreCase(target)) {
+            UiComponentDto ui = UiComponentDto.of(
+                    "LIBRARY_ACTION",
+                    Map.of("target", "STUDY_ROOMS", "message", "학산도서관 스터디룸 및 세미나실 예약"),
+                    "스터디룸 예약 바로가기",
+                    "https://lib.inu.ac.kr/#/facility/study-room"
+            );
+            String summary = "학산도서관 스터디룸 및 세미나실은 도서관 시설예약 시스템을 통해 사전 신청 및 배정이 가능합니다. 상세 예약 페이지로 이동할 수 있는 링크를 제공합니다.";
+            return new ToolResult(summary, ui, Map.of("target", target));
+        }
+
+        // 실시간 열람실 좌석 조회 (lib.inu.ac.kr 공개 API 직접 호출)
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(SEAT_ROOMS_URL))
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) INTIP-Agent/1.0")
+                    .header("Accept", "application/json")
+                    .timeout(Duration.ofSeconds(4))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200 && response.body() != null) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode listNode = root.path("data").path("list");
+
+                if (listNode.isArray() && !listNode.isEmpty()) {
+                    List<Map<String, Object>> roomList = new ArrayList<>();
+                    StringBuilder summaryBuilder = new StringBuilder("현재 학산도서관 실시간 열람실 잔여 좌석 현황입니다:\n");
+
+                    for (JsonNode rNode : listNode) {
+                        String name = rNode.path("name").asText();
+                        int total = rNode.path("seats").path("total").asInt();
+                        int occupied = rNode.path("seats").path("occupied").asInt();
+                        int available = rNode.path("seats").path("available").asInt();
+
+                        Map<String, Object> roomMap = new LinkedHashMap<>();
+                        roomMap.put("id", rNode.path("id").asInt());
+                        roomMap.put("name", name);
+                        roomMap.put("seats", Map.of(
+                                "total", total,
+                                "occupied", occupied,
+                                "available", available
+                        ));
+                        roomList.add(roomMap);
+
+                        if (roomName.isBlank() || name.contains(roomName)) {
+                            summaryBuilder.append(String.format("- %s: 잔여 %d석 / 전체 %d석 (이용률 %d%%)\n",
+                                    name, available, total, total > 0 ? (occupied * 100 / total) : 0));
+                        }
+                    }
+
+                    UiComponentDto ui = UiComponentDto.of(
+                            "LIBRARY_ROOMS",
+                            Map.of("rooms", roomList),
+                            "학산도서관 좌석 배정",
+                            "https://lib.inu.ac.kr"
+                    );
+
+                    return new ToolResult(summaryBuilder.toString().trim(), ui, Map.of("rooms", roomList));
+                }
+            }
+        } catch (Exception e) {
+            log.error("[LibraryAgentTool] 도서관 좌석 API 호출 실패: {}", e.getMessage(), e);
+        }
+
+        // Fallback
         UiComponentDto ui = UiComponentDto.of(
                 "LIBRARY_ACTION",
-                Map.of(
-                        "target", target,
-                        "roomName", roomName,
-                        "message", "학산도서관 실시간 좌석 및 공간 정보 연동"
-                ),
+                Map.of("target", target, "roomName", roomName),
                 "도서관 바로가기",
-                "/library"
+                "https://lib.inu.ac.kr"
         );
-
-        String summary = String.format("학산도서관 %s 정보를 조회하기 위해 도서관 연동 세션을 연결합니다. 모바일 앱 환경에서 실시간 좌석 및 예약 현황이 직접 조회됩니다.",
-                "STUDY_ROOMS".equalsIgnoreCase(target) ? "스터디룸/공간" : (!roomName.isBlank() ? roomName : "열람실 잔여 좌석"));
-
-        return new ToolResult(summary, ui, Map.of(
-                "clientAction", "EXECUTE_LIBRARY_ACTION",
-                "target", target,
-                "roomName", roomName
-        ));
+        String fallbackSummary = "현재 학산도서관 실시간 좌석 정보를 직접 조회하는 중 일시적인 연결 오류가 발생했습니다. 학산도서관 공식 사이트에서 좌석 현황을 확인하실 수 있습니다.";
+        return new ToolResult(fallbackSummary, ui, Map.of("target", target));
     }
 }
