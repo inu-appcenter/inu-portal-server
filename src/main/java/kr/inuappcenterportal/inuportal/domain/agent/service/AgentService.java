@@ -135,7 +135,8 @@ public class AgentService {
             }
 
             // 다음 홉에서 추가로 실행해야 할 도구가 있는지 자율 판단 (ReAct Self-Correction)
-            currentBatch = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
+            SecondaryDecision secondaryDecision = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
+            currentBatch = secondaryDecision.tools();
             currentHop++;
         }
 
@@ -174,7 +175,17 @@ public class AgentService {
                     return;
                 }
 
-                // 2. 1차 도구 실행
+                // 2. 1차 의도 및 탐색 계획 추론(Thought) 방출
+                String initialThought = (decision.thought() != null && !decision.thought().isBlank())
+                        ? decision.thought()
+                        : "사용자의 질문을 해결하기 위해 필요한 캠퍼스 도구를 선별했습니다.";
+                sendSse(emitter, "thought", AgentStreamDto.thought(
+                        1,
+                        initialThought,
+                        effectiveTools.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList()
+                ));
+
+                // 3. ReAct 다단계 자율 실행 및 체이닝
                 sendSse(emitter, "status", AgentStreamDto.status("EXECUTING", "필요한 캠퍼스 정보를 조회하고 있습니다..."));
                 List<UiComponentDto> uiComponents = new ArrayList<>();
                 StringBuilder combinedSummaries = new StringBuilder();
@@ -204,7 +215,25 @@ public class AgentService {
                     }
 
                     // ReAct 다음 단계 자율 판단
-                    currentBatch = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
+                    SecondaryDecision secDecision = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
+                    currentBatch = secDecision.tools();
+
+                    if (!currentBatch.isEmpty() && currentHop < MAX_REACT_HOPS) {
+                        String hopThought = (secDecision.thought() != null && !secDecision.thought().isBlank())
+                                ? secDecision.thought()
+                                : String.format("%d단계 조회 결과를 분석한 후, 후속 연계 작업을 결정했습니다.", currentHop);
+                        sendSse(emitter, "thought", AgentStreamDto.thought(
+                                currentHop + 1,
+                                hopThought,
+                                currentBatch.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList()
+                        ));
+                    } else if (secDecision.thought() != null && !secDecision.thought().isBlank()) {
+                        sendSse(emitter, "thought", AgentStreamDto.thought(
+                                currentHop,
+                                secDecision.thought(),
+                                Collections.emptyList()
+                        ));
+                    }
                     currentHop++;
                 }
 
@@ -274,19 +303,24 @@ public class AgentService {
         }
     }
 
+    public record SecondaryDecision(
+            List<AgentToolDecisionDto.SingleToolCall> tools,
+            String thought
+    ) {}
+
     /**
      * ReAct 다단계 자율 체이닝 판단:
      * 1차(또는 이전 홉) 도구 실행 결과를 관찰(Observation)한 후,
      * 사용자의 목표를 완수하거나 부족한 정보/대안을 찾기 위해 추가로 실행해야 할 후속 도구를 동적으로 결정합니다.
      */
-    private List<AgentToolDecisionDto.SingleToolCall> decideSecondaryTool(
+    private SecondaryDecision decideSecondaryTool(
             String userMessage,
             List<ChatMessageDto> history,
             String previousSummary,
             Set<String> executedToolNames
     ) {
         if (previousSummary == null || previousSummary.isBlank()) {
-            return Collections.emptyList();
+            return new SecondaryDecision(Collections.emptyList(), null);
         }
 
         String prompt = String.format("""
@@ -329,6 +363,7 @@ public class AgentService {
                 rawJson = rawJson.replaceAll("^```[a-zA-Z]*\\s*", "").replaceAll("\\s*```$", "").trim();
             }
             JsonNode node = objectMapper.readTree(rawJson);
+            String thought = node.path("thought").asText("");
             JsonNode toolsNode = node.path("tools");
             List<AgentToolDecisionDto.SingleToolCall> secondaryList = new ArrayList<>();
             if (toolsNode.isArray()) {
@@ -340,10 +375,10 @@ public class AgentService {
                     }
                 }
             }
-            return secondaryList;
+            return new SecondaryDecision(secondaryList, thought);
         } catch (Exception e) {
             log.debug("ReAct 자율 연계 추론 생략: {}", e.getMessage());
-            return Collections.emptyList();
+            return new SecondaryDecision(Collections.emptyList(), null);
         }
     }
 

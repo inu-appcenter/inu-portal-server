@@ -8,7 +8,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "SSE 스트리밍 응답 패킷 DTO")
 public record AgentStreamDto(
-        @Schema(description = "이벤트 상태 (ROUTING, TOOLS, DELTA, DONE, ERROR)", example = "DELTA")
+        @Schema(description = "이벤트 상태 (ROUTING, TOOLS, DELTA, DONE, ERROR, THOUGHT)", example = "DELTA")
         String status,
 
         @Schema(description = "진행 상태 안내 문구", example = "도구를 실행하고 있습니다...")
@@ -27,25 +27,36 @@ public record AgentStreamDto(
         List<String> suggestedActions,
 
         @Schema(description = "스트림 종료 사유", example = "stop")
-        String finishReason
+        String finishReason,
+
+        @Schema(description = "AI 추론 과정/생각 내용", example = "수업 종료 시간을 확인하기 위해 시간표를 먼저 조회합니다.")
+        String thought,
+
+        @Schema(description = "현재 자율 탐색 홉(Hop) 단계", example = "1")
+        Integer hop
 ) {
     public static AgentStreamDto status(String status, String message) {
-        return new AgentStreamDto(status, message, null, null, null, null, null);
+        return new AgentStreamDto(status, message, null, null, null, null, null, null, null);
+    }
+
+    public static AgentStreamDto thought(int hop, String thought, List<String> tools) {
+        return new AgentStreamDto("THOUGHT", thought, tools, null, null, null, null, thought, hop);
     }
 
     public static AgentStreamDto tools(List<String> tools, List<UiComponentDto> uiComponents) {
-        return new AgentStreamDto("TOOLS", null, tools, uiComponents, null, null, null);
+        return new AgentStreamDto("TOOLS", null, tools, uiComponents, null, null, null, null, null);
     }
 
     public static AgentStreamDto delta(String delta) {
-        return new AgentStreamDto("DELTA", null, null, null, delta, null, null);
+        return new AgentStreamDto("DELTA", null, null, null, delta, null, null, null, null);
     }
 
     public static AgentStreamDto done(List<String> suggestedActions) {
-        return new AgentStreamDto("DONE", null, null, null, null, suggestedActions, "stop");
+        return new AgentStreamDto("DONE", null, null, null, null, suggestedActions, "stop", null, null);
     }
 
     public static AgentStreamDto error(String message) {
-        return new AgentStreamDto("ERROR", message, null, null, null, null, "error");
+        return new AgentStreamDto("ERROR", message, null, null, null, null, "error", null, null);
     }
 }
+
