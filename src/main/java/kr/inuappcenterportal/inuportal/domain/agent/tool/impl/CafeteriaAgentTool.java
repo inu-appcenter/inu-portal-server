@@ -72,10 +72,14 @@ public class CafeteriaAgentTool implements AgentTool {
                 slotIndex = 2;
                 mealName = "석식(저녁)";
             } else {
-                if (now.isBefore(LocalTime.of(9, 30))) {
+                // 심야/새벽(08:00 이전)은 조식 미운영 식당이 많고 학생들의 주 관심사가 당일 점심이므로 기본 중식으로 매칭
+                if (now.isBefore(LocalTime.of(8, 0))) {
+                    slotIndex = 1;
+                    mealName = "중식(점심)";
+                } else if (now.isBefore(LocalTime.of(10, 0))) {
                     slotIndex = 0;
                     mealName = "조식(아침)";
-                } else if (now.isBefore(LocalTime.of(14, 0))) {
+                } else if (now.isBefore(LocalTime.of(14, 30))) {
                     slotIndex = 1;
                     mealName = "중식(점심)";
                 } else {
@@ -85,9 +89,30 @@ public class CafeteriaAgentTool implements AgentTool {
             }
 
             if (isAll) {
+                // 아침 시간대(08:00~10:00)라도 조식 운영 식당이 전혀 없으면 중식으로 자동 폴백 검사
+                if (slotIndex == 0 && "AUTO".equals(mealTypeParam)) {
+                    boolean anyBreakfastOperated = false;
+                    for (String name : ALL_CAFETERIAS) {
+                        List<String> menus = cafeteriaService.getCafeteria(name, dayOfWeek);
+                        if (!menus.isEmpty()) {
+                            String m = menus.get(0);
+                            if (!"-".equals(m) && !m.isBlank() && !m.contains("쉬는 날") && !m.contains("오늘은 쉽니다")) {
+                                anyBreakfastOperated = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!anyBreakfastOperated) {
+                        slotIndex = 1;
+                        mealName = "중식(점심)";
+                    }
+                }
+
                 List<Map<String, Object>> cafeteriaList = new ArrayList<>();
                 StringBuilder summary = new StringBuilder();
                 summary.append(String.format("[현재 시간대 기준: %s] 전 캠퍼스 식당 메뉴 현황:\n", mealName));
+
+                String firstOperatedCafeteria = null;
 
                 for (String name : ALL_CAFETERIAS) {
                     List<String> menus = cafeteriaService.getCafeteria(name, dayOfWeek);
@@ -101,13 +126,23 @@ public class CafeteriaAgentTool implements AgentTool {
                     cafeteriaList.add(item);
 
                     if (isOperated) {
+                        if (firstOperatedCafeteria == null) {
+                            firstOperatedCafeteria = name;
+                        }
                         String cleanMenu = menu.replaceAll("\\n+", " | ").trim();
                         summary.append(String.format("• [%s]: %s\n", name, cleanMenu));
                     }
                 }
 
+                // 만약 현재 끼니에 운영하는 식당이 전혀 없으면 학생식당을 기본값으로 유지
+                if (firstOperatedCafeteria == null) {
+                    firstOperatedCafeteria = "학생식당";
+                }
+
                 Map<String, Object> cafeteriaData = new LinkedHashMap<>();
                 cafeteriaData.put("isAllCafeterias", true);
+                cafeteriaData.put("cafeteria", firstOperatedCafeteria);
+                cafeteriaData.put("targetMeal", slotIndex == 0 ? "조식" : (slotIndex == 2 ? "석식" : "중식"));
                 cafeteriaData.put("mealLabel", mealName);
                 cafeteriaData.put("dayOfWeek", dayOfWeek);
                 cafeteriaData.put("cafeterias", cafeteriaList);
@@ -120,6 +155,7 @@ public class CafeteriaAgentTool implements AgentTool {
                 Map<String, Object> cafeteriaData = new LinkedHashMap<>();
                 cafeteriaData.put("isAllCafeterias", false);
                 cafeteriaData.put("cafeteria", cafeteria);
+                cafeteriaData.put("targetMeal", slotIndex == 0 ? "조식" : (slotIndex == 2 ? "석식" : "중식"));
                 cafeteriaData.put("dayOfWeek", dayOfWeek);
                 cafeteriaData.put("currentMealLabel", mealName);
                 cafeteriaData.put("breakfast", menuList.size() > 0 ? menuList.get(0) : "-");
