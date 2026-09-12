@@ -72,6 +72,9 @@ public class AgentService {
                 
                 [도구 선택 시 핵심 지침 (빅스비 연합 에이전트 원칙)]
                 - 학교 공식 학칙, 규정(졸업 요건, 복수전공/전과 기준, 조기졸업, 휴학/복학 연한, 학사경고, 성적 장학금 선발 규정 등), 대학 행정 절차 및 규정 해석 질문은 반드시 'INU_AI_KNOWLEDGE' 도구를 사용하세요.
+                - [멀티턴 후속 질문 처리]: 직전 대화에서 학칙/졸업요건/규정 등을 묻고 난 뒤, 사용자가 '나는 20학번이야', '2020학번은?', '소프트웨어학과는?', '복수전공할 때는?'과 같이 학번/학과/상황을 좁히는 후속 발화를 한 경우:
+                  * 절대로 GENERAL로 넘기지 말고, 이전 문맥과 합쳐서 반드시 'INU_AI_KNOWLEDGE'를 호출하세요.
+                  * 예: 직전 질문이 '컴공 졸업요건'이고 현재 질문이 '나는 2020학번이야'라면 -> params: {"question": "2020학번 컴퓨터공학부 졸업 요건"}
                 - 단순 게시판 공지 목록/최근 행사 안내 검색은 'NOTICE' 도구를 사용하세요.
                 - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태 확인은 'ACADEMIC' 도구를 사용하세요.
                 - 복합 질문(예: '나 취득학점이랑 졸업 요건 알려줘')은 ACADEMIC과 INU_AI_KNOWLEDGE를 순서대로 모두 포함하세요.
@@ -330,7 +333,7 @@ public class AgentService {
             return new AgentToolDecisionDto(toolList, null, null, thought);
         } catch (Exception e) {
             log.error("도구 라우팅 결정 실패, Fallback 규칙으로 대체: {}", e.getMessage(), e);
-            return fallbackRuleBasedDecision(userMessage);
+            return fallbackRuleBasedDecision(userMessage, history);
         }
     }
 
@@ -491,7 +494,7 @@ public class AgentService {
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.7)
-                .maxTokens(containsInuAi ? 500 : 350)
+                .maxTokens(1200)
                 .stream(false)
                 .build();
 
@@ -535,7 +538,7 @@ public class AgentService {
                 [작성 가이드]:
                 1. [학사/규정 지식]: 학칙, 졸업요건, 신청기한 등 학사 정보는 핵심 조항이나 수치를 왜곡·축약하지 말고 원문의 핵심 내용을 충실히 유지하세요.
                 2. [캠퍼스 생활 정보]: 시간표, 학식, 버스 등 다른 캠퍼스 정보는 1~2문장으로 간결하고 명확하게 결합하세요.
-                3. [간결성 및 최적화]: 전체 답변이 지나치게 길어지거나 늘어지지 않도록, 불필요한 미사여구는 줄이고 핵심 위주로 명확하게 답변하세요.
+                3. [간결성 및 최적화]: 전체 답변이 지나치게 늘어지지 않도록 불필요한 사족은 줄이되, 핵심 요건(학점, 시험, 인증 등)이 중간에 끊기지 않고 완전한 문장으로 마무리되도록 하세요.
                 """ : """
                 [작성 가이드]:
                 1. 학생에게 친절하고 자연스러운 구어체로 1~3문장 요약 답변을 작성하세요.
@@ -562,7 +565,7 @@ public class AgentService {
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.7)
-                .maxTokens(containsInuAi ? 500 : 350)
+                .maxTokens(1200)
                 .stream(true)
                 .build();
 
@@ -655,7 +658,7 @@ public class AgentService {
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.7)
-                .maxTokens(400)
+                .maxTokens(1000)
                 .stream(false)
                 .build();
 
@@ -696,7 +699,7 @@ public class AgentService {
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.7)
-                .maxTokens(400)
+                .maxTokens(1000)
                 .stream(true)
                 .build();
 
@@ -856,9 +859,35 @@ public class AgentService {
 
     private record SynthesizedResult(String cleanMessage, List<String> suggestedActions) {}
 
-    private AgentToolDecisionDto fallbackRuleBasedDecision(String msg) {
+    private AgentToolDecisionDto fallbackRuleBasedDecision(String msg, List<ChatMessageDto> history) {
         String lower = msg.toLowerCase();
         List<AgentToolDecisionDto.SingleToolCall> tools = new ArrayList<>();
+
+        // 멀티턴 맥락 확인: 이전 대화가 학사/규정/졸업 관련이었고, 사용자가 학번/학과 등으로 조건을 좁힌 경우
+        if (history != null && !history.isEmpty()) {
+            boolean prevWasAcademicKnowledge = false;
+            String prevUserQuery = "";
+            for (int i = history.size() - 1; i >= 0; i--) {
+                ChatMessageDto h = history.get(i);
+                if ("user".equalsIgnoreCase(h.role())) {
+                    String pLower = h.content().toLowerCase();
+                    if (pLower.contains("졸업") || pLower.contains("학칙") || pLower.contains("규정") || pLower.contains("이수") || pLower.contains("요건")) {
+                        prevWasAcademicKnowledge = true;
+                        prevUserQuery = h.content();
+                        break;
+                    }
+                }
+            }
+
+            if (prevWasAcademicKnowledge) {
+                // 학번 패턴 (예: 2020학번, 20학번, 24학번 등)
+                if (lower.matches(".*\\d{2,4}\\s*학번.*")) {
+                    String rewrittenQuery = msg + " " + prevUserQuery;
+                    tools.add(new AgentToolDecisionDto.SingleToolCall("INU_AI_KNOWLEDGE", Map.of("question", rewrittenQuery.trim())));
+                    return new AgentToolDecisionDto(tools, null, null, "멀티턴 이전 학사 맥락과 결합하여 학칙 RAG 질의");
+                }
+            }
+        }
 
         if (lower.contains("채팅") && (lower.contains("알림") || lower.contains("푸시"))) {
             boolean enabled = !lower.contains("꺼") && !lower.contains("해제") && !lower.contains("비활성");
