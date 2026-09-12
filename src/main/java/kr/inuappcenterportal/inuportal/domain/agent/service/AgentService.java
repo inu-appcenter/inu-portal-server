@@ -70,6 +70,12 @@ public class AgentService {
 %s
                 - GENERAL: 도구 조회가 필요 없는 단순 인사, 잡담, 정체성 질문 (params: 없음)
                 
+                [도구 선택 시 핵심 지침 (빅스비 연합 에이전트 원칙)]
+                - 학교 공식 학칙, 규정(졸업 요건, 복수전공/전과 기준, 조기졸업, 휴학/복학 연한, 학사경고, 성적 장학금 선발 규정 등), 대학 행정 절차 및 규정 해석 질문은 반드시 'INU_AI_KNOWLEDGE' 도구를 사용하세요.
+                - 단순 게시판 공지 목록/최근 행사 안내 검색은 'NOTICE' 도구를 사용하세요.
+                - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태 확인은 'ACADEMIC' 도구를 사용하세요.
+                - 복합 질문(예: '나 취득학점이랑 졸업 요건 알려줘')은 ACADEMIC과 INU_AI_KNOWLEDGE를 순서대로 모두 포함하세요.
+                
                 [응답 규칙]
                 마크다운 백틱(```json) 없이 오직 JSON 텍스트 하나만 출력하세요.
                 단일 작업인 경우에도 'tools' 배열에 담아서 출력하세요:
@@ -740,6 +746,9 @@ public class AgentService {
                 target = "UPCOMING";
             }
             tools.add(new AgentToolDecisionDto.SingleToolCall("LMS", Map.of("target", target)));
+        }
+        if (lower.contains("학칙") || lower.contains("규정") || lower.contains("졸업 요건") || lower.contains("졸업요건") || lower.contains("조기졸업") || lower.contains("조기 졸업") || lower.contains("휴학") || lower.contains("복학") || lower.contains("복수전공") || lower.contains("부전공") || lower.contains("전과") || lower.contains("학사경고") || lower.contains("공학인증")) {
+            tools.add(new AgentToolDecisionDto.SingleToolCall("INU_AI_KNOWLEDGE", Map.of("question", msg)));
         }
 
         if (tools.isEmpty()) {
