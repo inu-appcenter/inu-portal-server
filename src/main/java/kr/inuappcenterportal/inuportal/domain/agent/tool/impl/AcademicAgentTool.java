@@ -29,16 +29,54 @@ public class AcademicAgentTool implements AgentTool {
 
     @Override
     public ToolResult execute(Member member, Map<String, Object> params) {
-        // [클라이언트 사이드 위임]: 개인정보보호법 준수를 위해 서버에 비밀번호를 저장하지 않고,
-        // 모바일 기기 하드웨어 보안 영역(KeyStore)에서 학교 포털을 직접 조회하도록 클라이언트 액션 카드 전달
+        // 클라이언트 기기(SSO)에서 제공된 실제 학적 컨텍스트가 존재하는지 확인
+        if (params != null && params.containsKey("_clientContext")) {
+            Object clientCtxObj = params.get("_clientContext");
+            if (clientCtxObj instanceof Map<?, ?> rawCtx) {
+                Object academicObj = rawCtx.get("academic");
+                if (academicObj instanceof Map<?, ?> rawAcademic && !rawAcademic.isEmpty()) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> academicData = (Map<String, Object>) rawAcademic;
+                    String name = academicData.get("koreanName") != null ? String.valueOf(academicData.get("koreanName")) : "학우";
+                    String dept = academicData.get("departmentName") != null ? String.valueOf(academicData.get("departmentName")) : "소속";
+                    String status = academicData.get("enrollmentStatus") != null ? String.valueOf(academicData.get("enrollmentStatus")) : "재학";
+                    String credits = academicData.get("acquiredCredits") != null ? String.valueOf(academicData.get("acquiredCredits")) : "0";
+                    String gpa = academicData.get("gradeAverage") != null ? String.valueOf(academicData.get("gradeAverage")) : "-";
+                    String advisor = academicData.get("advisorProfessorName") != null ? String.valueOf(academicData.get("advisorProfessorName")) : "";
+                    String semesters = academicData.get("completedSemesterCount") != null ? String.valueOf(academicData.get("completedSemesterCount")) : "";
+
+                    UiComponentDto ui = UiComponentDto.of(
+                            "ACADEMIC_INFO",
+                            academicData,
+                            "학적 정보 상세보기",
+                            "/mypage"
+                    );
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(String.format("학생 학적 데이터: 이름 %s, 소속 %s, 상태 %s, 취득학점 %s학점, 평점평균(GPA) %s",
+                            name, dept, status, credits, gpa));
+                    if (!advisor.isBlank()) {
+                        sb.append(String.format(", 지도교수 %s", advisor));
+                    }
+                    if (!semesters.isBlank()) {
+                        sb.append(String.format(", 이수학기 %s학기", semesters));
+                    }
+                    sb.append(" (기기 보안영역 연동 실시간 조회 성공)");
+
+                    return new ToolResult(sb.toString(), ui, Map.of("academic", academicData));
+                }
+            }
+        }
+
+        // 클라이언트 단말 세션 정보가 없을 경우 연동 유도 카드 전달
         UiComponentDto ui = UiComponentDto.of(
                 "PORTAL_AUTH_REQUIRED",
                 Map.of("action", "FETCH_ACADEMIC_INFO", "message", "포털 보안 연동 필요"),
                 "포털 학적 정보 연동",
-                "/labs/portal/basic-info"
+                "openPortalAccountModal"
         );
 
-        String summary = "학적 정보 및 취득 학점 조회를 위해 학교 포털 보안 세션에 연결을 준비합니다. 스마트폰 INTIP 앱의 보안 영역에서 안전하게 직접 조회됩니다.";
+        String summary = "학적 정보 및 취득 학점 조회를 위해 학교 포털 계정 연동이 필요합니다. 모바일 앱 환경에서 1회 연동하시면 실시간 학점과 학적이 바로 표시됩니다.";
         return new ToolResult(summary, ui, Map.of("clientAction", "FETCH_ACADEMIC_INFO"));
     }
 }

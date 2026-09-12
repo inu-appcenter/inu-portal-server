@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,7 +45,47 @@ public class LmsAgentTool implements AgentTool {
 
         log.info("[LmsAgentTool] execute target: {}, courseName: {}", target, courseName);
 
-        // 클라이언트 단말에서 안전하게 LMS REST API(Moodle WebService)를 직접 호출하도록 안내 및 모달 연결
+        // 클라이언트 기기(SSO)에서 제공된 실제 LMS 과제/강좌 컨텍스트가 존재하는지 확인
+        if (params != null && params.containsKey("_clientContext")) {
+            Object clientCtxObj = params.get("_clientContext");
+            if (clientCtxObj instanceof Map<?, ?> clientCtx) {
+                Object lmsObj = clientCtx.get("lms");
+                if (lmsObj instanceof Map<?, ?> lmsData && !lmsData.isEmpty()) {
+                    List<?> events = (lmsData.get("events") instanceof List<?>) ? (List<?>) lmsData.get("events") : Collections.emptyList();
+                    List<?> courses = (lmsData.get("courses") instanceof List<?>) ? (List<?>) lmsData.get("courses") : Collections.emptyList();
+
+                    UiComponentDto ui = UiComponentDto.of(
+                            "LMS_ASSIGNMENTS",
+                            lmsData,
+                            "사이버캠퍼스 바로가기",
+                            "https://lms.inu.ac.kr"
+                    );
+
+                    StringBuilder sb = new StringBuilder();
+                    if (!events.isEmpty()) {
+                        sb.append(String.format("사이버캠퍼스(LMS) 마감 예정 과제 및 일정 %d건 조회 성공:\n", events.size()));
+                        int count = 0;
+                        for (Object evObj : events) {
+                            if (evObj instanceof Map<?, ?> ev) {
+                                String evName = ev.get("name") != null ? String.valueOf(ev.get("name")) : "과제";
+                                Object courseObj = ev.get("course");
+                                String cName = (courseObj instanceof Map<?, ?> cm && cm.get("fullname") != null) ? String.valueOf(cm.get("fullname")) : "";
+                                sb.append(String.format("- %s%s\n", cName.isBlank() ? "" : "[" + cName + "] ", evName));
+                                if (++count >= 5) break;
+                            }
+                        }
+                    } else if (!courses.isEmpty()) {
+                        sb.append(String.format("현재 마감 예정 과제는 없으며, 수강 중인 강좌 %d과목이 조회되었습니다.\n", courses.size()));
+                    } else {
+                        sb.append("현재 2주 이내에 마감 예정인 사이버캠퍼스(LMS) 과제나 일정이 없습니다.\n");
+                    }
+
+                    return new ToolResult(sb.toString().trim(), ui, Map.of("lms", lmsData));
+                }
+            }
+        }
+
+        // 클라이언트 단말 세션 정보가 없을 경우 연동 유도 카드 전달
         UiComponentDto ui = UiComponentDto.of(
                 "LMS_AUTH_REQUIRED",
                 Map.of(

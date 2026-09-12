@@ -123,7 +123,11 @@ public class AgentService {
 
             for (AgentToolDecisionDto.SingleToolCall toolCall : currentBatch) {
                 executedToolNames.add(toolCall.tool().toUpperCase());
-                AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolCall.params());
+                Map<String, Object> toolParams = new LinkedHashMap<>(toolCall.params() != null ? toolCall.params() : Map.of());
+                if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
+                    toolParams.put("_clientContext", requestDto.clientContext());
+                }
+                AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolParams);
 
                 if (result.uiComponent() != null) {
                     uiComponents.add(result.uiComponent());
@@ -203,7 +207,11 @@ public class AgentService {
 
                     for (AgentToolDecisionDto.SingleToolCall toolCall : currentBatch) {
                         executedToolNames.add(toolCall.tool().toUpperCase());
-                        AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolCall.params());
+                        Map<String, Object> toolParams = new LinkedHashMap<>(toolCall.params() != null ? toolCall.params() : Map.of());
+                        if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
+                            toolParams.put("_clientContext", requestDto.clientContext());
+                        }
+                        AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolParams);
 
                         if (result.uiComponent() != null) {
                             uiComponents.add(result.uiComponent());
