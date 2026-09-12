@@ -77,7 +77,7 @@ public class AgentService {
                   * 예: 직전 질문이 '컴공 졸업요건'이고 현재 질문이 '나는 2020학번이야'라면 -> params: {"question": "2020학번 컴퓨터공학부 졸업 요건"}
                 - 단순 게시판 공지 목록/최근 행사 안내 검색은 'NOTICE' 도구를 사용하세요.
                 - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태 확인은 'ACADEMIC' 도구를 사용하세요.
-                - '내 학점으로 졸업 가능한지 봐줘', '내 취득학점으로 컴공 졸업 요건 되는지'처럼 본인 학점/학적 상태를 바탕으로 학칙/졸업요건 판정이 필요한 질문은 반드시 'ACADEMIC'과 'INU_AI_KNOWLEDGE'를 순서대로 모두 포함하세요.
+                - [1인칭 졸업/학사 판정 질의]: '나 졸업 가능해?', '나 졸업 요건 돼?', '나 이번에 졸업할 수 있어?', '졸업 언제 할 수 있어?'처럼 1인칭 주어('나', '내', '저')로 본인의 졸업/수료/학점 가능 여부를 묻는 질문은, 학생 본인의 학적 상태(소속 학과, 취득 학점) 파악이 필수적이므로 반드시 'ACADEMIC'과 'INU_AI_KNOWLEDGE'를 순서대로 모두 포함하세요. (절대로 INU_AI_KNOWLEDGE만 단독 호출하지 마세요)
                 - 복합 질문(예: '나 취득학점이랑 졸업 요건 알려줘', '졸업 요건이랑 오늘 학식 알려줘')은 해당하는 도구들을 순서대로 모두 포함하세요.
                 
                 [응답 규칙]
@@ -1212,7 +1212,9 @@ public class AgentService {
         if (lower.contains("전화") || lower.contains("번호") || lower.contains("과사") || lower.contains("사무실") || lower.contains("연락처")) {
             tools.add(new AgentToolDecisionDto.SingleToolCall("DIRECTORY", Map.of("query", msg)));
         }
-        if (lower.contains("학적") || lower.contains("취득 학점") || lower.contains("취득학점") || lower.contains("이수 학점") || lower.contains("이수학점") || lower.contains("내 학점") || lower.contains("gpa") || lower.contains("평점")) {
+        boolean isFirstPersonAcademic = (lower.contains("나 ") || lower.startsWith("나") || lower.contains("내 ") || lower.startsWith("내") || lower.contains("저 ")) &&
+                (lower.contains("졸업") || lower.contains("수료") || lower.contains("이수") || lower.contains("학점"));
+        if (isFirstPersonAcademic || lower.contains("학적") || lower.contains("취득 학점") || lower.contains("취득학점") || lower.contains("이수 학점") || lower.contains("이수학점") || lower.contains("내 학점") || lower.contains("gpa") || lower.contains("평점")) {
             tools.add(new AgentToolDecisionDto.SingleToolCall("ACADEMIC", Map.of()));
         }
         if (lower.contains("도서관") || lower.contains("열람실") || lower.contains("노트북실") || lower.contains("스터디룸") || lower.contains("자리") || lower.contains("좌석") || lower.contains("세미나실")) {
@@ -1237,7 +1239,7 @@ public class AgentService {
             }
             tools.add(new AgentToolDecisionDto.SingleToolCall("LMS", Map.of("target", target)));
         }
-        if (lower.contains("학칙") || lower.contains("규정") || lower.contains("졸업 요건") || lower.contains("졸업요건") || lower.contains("조기졸업") || lower.contains("조기 졸업") || lower.contains("휴학") || lower.contains("복학") || lower.contains("복수전공") || lower.contains("부전공") || lower.contains("전과") || lower.contains("학사경고") || lower.contains("공학인증") || (lower.contains("졸업") && (lower.contains("가능") || lower.contains("봐줘") || lower.contains("요건")))) {
+        if (lower.contains("학칙") || lower.contains("규정") || lower.contains("졸업 요건") || lower.contains("졸업요건") || lower.contains("조기졸업") || lower.contains("조기 졸업") || lower.contains("휴학") || lower.contains("복학") || lower.contains("복수전공") || lower.contains("부전공") || lower.contains("전과") || lower.contains("학사경고") || lower.contains("공학인증") || (lower.contains("졸업") && (lower.contains("가능") || lower.contains("봐줘") || lower.contains("요건") || lower.contains("할 수") || lower.contains("돼")))) {
             tools.add(new AgentToolDecisionDto.SingleToolCall("INU_AI_KNOWLEDGE", Map.of("question", msg)));
         }
 
