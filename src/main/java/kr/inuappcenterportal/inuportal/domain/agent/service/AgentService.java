@@ -150,7 +150,17 @@ public class AgentService {
             currentHop++;
         }
 
-        // 4단계: 최종 자연어 요약 및 능동 추천 칩 합성
+        // 단일 학사 질의(INU_AI_KNOWLEDGE)인 경우: inuai RAG 원문을 왜곡/축약 없이 즉시 반환 (지연 시간 및 정보 손실 방지)
+        if (isPureInuAiQuery(executedToolNames)) {
+            List<String> chips = extractChips(combinedSummaries.toString());
+            if (chips.isEmpty()) {
+                chips = getDefaultAcademicSuggestedActions();
+            }
+            String cleanAnswer = cleanChipsText(combinedSummaries.toString());
+            return AgentChatResponseDto.of(cleanAnswer, uiComponents, chips);
+        }
+
+        // 4단계: 최종 자연어 요약 및 능동 추천 칩 합성 (복합 질의 시 inuai 학칙 원문 최대한 보존)
         SynthesizedResult synthesized = synthesizeAnswer(userMessage, history, combinedSummaries.toString());
 
         return AgentChatResponseDto.of(synthesized.cleanMessage(), uiComponents, synthesized.suggestedActions());
@@ -254,7 +264,14 @@ public class AgentService {
                 // 4. GENERATIVE UI 카드 즉시 선행 전달 (화면에 카드 먼저 렌더링!)
                 sendSse(emitter, "tools", AgentStreamDto.tools(new ArrayList<>(executedToolNames), uiComponents));
 
-                // 5. 자연어 요약 스트리밍 및 추천 칩 전달
+                // 단일 학사 질의(INU_AI_KNOWLEDGE)인 경우: inuai 원문 즉시 스트리밍 방출 (vLLM 재호출 생략으로 지연시간 2초 절감 & 원문 완벽 보존)
+                if (isPureInuAiQuery(executedToolNames)) {
+                    sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "학사 규정 답변을 전달하고 있습니다..."));
+                    streamInuAiDirect(emitter, combinedSummaries.toString());
+                    return;
+                }
+
+                // 5. 복합 질의 자연어 요약 스트리밍 및 추천 칩 전달 (inuai 지식 충실 보존 프롬프트 적용)
                 sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "답변을 정리하고 있습니다..."));
                 streamSynthesisAnswer(emitter, userMessage, history, combinedSummaries.toString());
 
@@ -433,13 +450,34 @@ public class AgentService {
             }
         }
 
+        boolean containsInuAi = toolSummary != null && (
+                toolSummary.contains("[INU_AI") ||
+                toolSummary.contains("학칙") ||
+                toolSummary.contains("규정") ||
+                toolSummary.contains("졸업") ||
+                toolSummary.contains("휴학") ||
+                toolSummary.contains("복학")
+        );
+
+        String styleGuideline = containsInuAi ? """
+                [작성 가이드]:
+                1. [학사/규정 지식]: 학칙, 졸업요건, 신청기한 등 학사 정보는 핵심 조항이나 수치를 왜곡·축약하지 말고 원문의 핵심 내용을 충실히 유지하세요.
+                2. [캠퍼스 생활 정보]: 시간표, 학식, 버스 등 다른 캠퍼스 정보는 1~2문장으로 간결하고 명확하게 결합하세요.
+                3. [간결성 및 최적화]: 전체 답변이 지나치게 길어지거나 늘어지지 않도록, 불필요한 미사여구는 줄이고 핵심 위주로 명확하게 답변하세요.
+                """ : """
+                [작성 가이드]:
+                1. 학생에게 친절하고 자연스러운 구어체로 1~3문장 요약 답변을 작성하세요.
+                2. 답변이 불필요하게 늘어지지 않도록 핵심 위주로 작성하세요.
+                """;
+
         String prompt = String.format("""
                 당신은 인천대학교 포털 INTIP의 다정하고 스마트한 AI 캠퍼스 비서입니다.
                 [%s]
                 %s
-                아래 사용자 질문과 시스템 조회 데이터를 참고하여, 학생에게 친절하고 자연스러운 구어체로 1~3문장 요약 답변을 작성하세요.
+                아래 사용자 질문과 시스템 조회 데이터를 참고하여 답변을 작성하세요.
                 반드시 주어진 시스템 데이터의 실제 날짜와 내용을 바탕으로 답변해야 하며, 다른 날짜나 임의의 사실을 지어내지 마세요.
-                [정직성 원칙]: 사용자가 요청한 내용 중 시스템에서 지원하지 않거나 불가능하다고 보고된 사항은 절대로 된 것처럼 거짓말하지 말고, 솔직하게 안 되는 이유와 현재 가능한 대안을 친절하게 설명하세요.
+                [정직성 원칙]: 사용자가 요청한 내용 중 시스템에서 지원하지 않거나 불가능하다고 보고된 사항은 절대로 된 것처럼 거짓말하지 말고 솔직하고 친절하게 설명하세요.
+                %s
                 관련 이모지를 적절히 활용하세요.
                 
                 답변 마지막 줄에 사용자가 이어서 누를 만한 유용한 후속 추천 질문 칩 2~3개를 다음 형식으로 반드시 포함하세요:
@@ -447,13 +485,13 @@ public class AgentService {
                 
                 [사용자 질문]: %s
                 [시스템 데이터 요약]: %s
-                """, dateHeader, historyContext.toString(), userMessage, toolSummary);
+                """, dateHeader, historyContext.toString(), styleGuideline, userMessage, toolSummary);
 
         List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.7)
-                .maxTokens(350)
+                .maxTokens(containsInuAi ? 500 : 350)
                 .stream(false)
                 .build();
 
@@ -484,12 +522,33 @@ public class AgentService {
             }
         }
 
+        boolean containsInuAi = toolSummary != null && (
+                toolSummary.contains("[INU_AI") ||
+                toolSummary.contains("학칙") ||
+                toolSummary.contains("규정") ||
+                toolSummary.contains("졸업") ||
+                toolSummary.contains("휴학") ||
+                toolSummary.contains("복학")
+        );
+
+        String styleGuideline = containsInuAi ? """
+                [작성 가이드]:
+                1. [학사/규정 지식]: 학칙, 졸업요건, 신청기한 등 학사 정보는 핵심 조항이나 수치를 왜곡·축약하지 말고 원문의 핵심 내용을 충실히 유지하세요.
+                2. [캠퍼스 생활 정보]: 시간표, 학식, 버스 등 다른 캠퍼스 정보는 1~2문장으로 간결하고 명확하게 결합하세요.
+                3. [간결성 및 최적화]: 전체 답변이 지나치게 길어지거나 늘어지지 않도록, 불필요한 미사여구는 줄이고 핵심 위주로 명확하게 답변하세요.
+                """ : """
+                [작성 가이드]:
+                1. 학생에게 친절하고 자연스러운 구어체로 1~3문장 요약 답변을 작성하세요.
+                2. 답변이 불필요하게 늘어지지 않도록 핵심 위주로 작성하세요.
+                """;
+
         String prompt = String.format("""
                 당신은 인천대학교 포털 INTIP의 다정하고 스마트한 AI 캠퍼스 비서입니다.
                 [%s]
                 %s
-                아래 사용자 질문과 시스템 조회 데이터를 참고하여, 학생에게 친절하고 자연스러운 구어체로 1~3문장 요약 답변을 작성하세요.
+                아래 사용자 질문과 시스템 조회 데이터를 참고하여 답변을 작성하세요.
                 반드시 주어진 시스템 데이터의 실제 날짜와 내용을 바탕으로 답변해야 하며, 다른 날짜나 임의의 월을 지어내지 마세요.
+                %s
                 관련 이모지를 적절히 활용하세요.
                 
                 답변 마지막 줄에 사용자가 이어서 누를 만한 유용한 후속 추천 질문 칩 2~3개를 다음 형식으로 반드시 포함하세요:
@@ -497,13 +556,13 @@ public class AgentService {
                 
                 [사용자 질문]: %s
                 [시스템 데이터 요약]: %s
-                """, dateHeader, historyContext.toString(), userMessage, toolSummary);
+                """, dateHeader, historyContext.toString(), styleGuideline, userMessage, toolSummary);
 
         List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.7)
-                .maxTokens(350)
+                .maxTokens(containsInuAi ? 500 : 350)
                 .stream(true)
                 .build();
 
@@ -744,6 +803,55 @@ public class AgentService {
 
     private List<String> getDefaultSuggestedActions() {
         return List.of("오늘 학식 메뉴 추천", "정문 버스 도착 정보", "오늘 시간표 및 공강 확인");
+    }
+
+    private List<String> getDefaultAcademicSuggestedActions() {
+        return List.of("학사일정 확인하기", "도서관 열람실 좌석", "오늘의 학식");
+    }
+
+    private boolean isPureInuAiQuery(Set<String> executedToolNames) {
+        return executedToolNames != null &&
+                executedToolNames.size() == 1 &&
+                executedToolNames.contains("INU_AI_KNOWLEDGE");
+    }
+
+    private String cleanChipsText(String text) {
+        if (text == null) return "";
+        return text.replaceAll("(?i)\\[\\s*CHIPS[\\s\\S]*$", "")
+                   .replaceAll("(?i)\\[CHIPS:[^\\]]*\\]?", "")
+                   .trim();
+    }
+
+    private void streamInuAiDirect(SseEmitter emitter, String rawAnswer) {
+        if (rawAnswer == null || rawAnswer.isBlank()) {
+            sendSse(emitter, "delta", AgentStreamDto.delta("학사 규정 답변을 불러오지 못했습니다."));
+            sendSse(emitter, "done", AgentStreamDto.done(getDefaultAcademicSuggestedActions()));
+            emitter.complete();
+            return;
+        }
+
+        List<String> chips = extractChips(rawAnswer);
+        if (chips.isEmpty()) {
+            chips = getDefaultAcademicSuggestedActions();
+        }
+        String cleanAnswer = cleanChipsText(rawAnswer);
+
+        // 사용자가 자연스럽게 읽을 수 있도록 40자 단위 청크로 빠르게 방출
+        int chunkSize = 40;
+        int len = cleanAnswer.length();
+        for (int i = 0; i < len; i += chunkSize) {
+            String chunk = cleanAnswer.substring(i, Math.min(len, i + chunkSize));
+            sendSse(emitter, "delta", AgentStreamDto.delta(chunk));
+            try {
+                Thread.sleep(15);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        sendSse(emitter, "done", AgentStreamDto.done(chips));
+        emitter.complete();
     }
 
     private record SynthesizedResult(String cleanMessage, List<String> suggestedActions) {}
