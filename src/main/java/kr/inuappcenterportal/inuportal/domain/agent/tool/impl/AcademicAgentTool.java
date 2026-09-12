@@ -37,6 +37,15 @@ public class AcademicAgentTool implements AgentTool {
                 if (academicObj instanceof Map<?, ?> rawAcademic && !rawAcademic.isEmpty()) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> academicData = (Map<String, Object>) rawAcademic;
+                    // 전체 ERP 필드는 인증된 사용자 카드에만 사용한다. INUChat 도구는
+                    // academic(비식별 요약)만 선별해 읽으므로 academicDisplay를 외부로 전달하지 않는다.
+                    Map<String, Object> displayData = academicData;
+                    Object displayObj = rawCtx.get("academicDisplay");
+                    if (displayObj instanceof Map<?, ?> rawDisplay && !rawDisplay.isEmpty()) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> typedDisplay = (Map<String, Object>) rawDisplay;
+                        displayData = typedDisplay;
+                    }
                     String name = academicData.get("koreanName") != null ? String.valueOf(academicData.get("koreanName")) : "학우";
                     String dept = academicData.get("departmentName") != null ? String.valueOf(academicData.get("departmentName")) : "소속";
                     String status = academicData.get("enrollmentStatus") != null ? String.valueOf(academicData.get("enrollmentStatus")) : "재학";
@@ -47,7 +56,7 @@ public class AcademicAgentTool implements AgentTool {
 
                     UiComponentDto ui = UiComponentDto.of(
                             "ACADEMIC_INFO",
-                            academicData,
+                            displayData,
                             "학적 정보 상세보기",
                             "/mypage"
                     );
