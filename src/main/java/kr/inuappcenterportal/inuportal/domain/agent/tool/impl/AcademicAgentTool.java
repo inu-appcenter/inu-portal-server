@@ -65,6 +65,26 @@ public class AcademicAgentTool implements AgentTool {
 
                     return new ToolResult(sb.toString(), ui, Map.of("academic", academicData));
                 }
+
+                // Credentials exist on the device, but the portal/ERP lookup
+                // did not produce academic data. Do not tell the user to link
+                // the same account again: that hides the real failure state.
+                Object portalObj = rawCtx.get("portal");
+                if (portalObj instanceof Map<?, ?> portalData
+                        && Boolean.TRUE.equals(portalData.get("linked"))) {
+                    String errorMessage = portalData.get("academicErrorMessage") != null
+                            ? String.valueOf(portalData.get("academicErrorMessage"))
+                            : "포털 학적 정보를 가져오지 못했습니다.";
+                    UiComponentDto ui = UiComponentDto.of(
+                            "ACADEMIC_FETCH_FAILED",
+                            Map.of("message", errorMessage)
+                    );
+                    return new ToolResult(
+                            "포털 계정은 연동되어 있지만 학적 정보 조회에 실패했습니다. 잠시 후 다시 시도해주세요.",
+                            ui,
+                            Map.of("clientAction", "RETRY_FETCH_ACADEMIC_INFO")
+                    );
+                }
             }
         }
 
