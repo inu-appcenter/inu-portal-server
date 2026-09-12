@@ -156,4 +156,28 @@ public class LibraryAgentTool implements AgentTool {
         String fallbackSummary = "현재 학산도서관 실시간 좌석 정보를 직접 조회하는 중 일시적인 연결 오류가 발생했습니다. 학산도서관 공식 사이트에서 좌석 현황을 확인하실 수 있습니다.";
         return new ToolResult(fallbackSummary, ui, Map.of("target", target));
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("도서관") || lower.contains("열람실") || lower.contains("노트북실") || lower.contains("스터디룸") || lower.contains("자리") || lower.contains("좌석") || lower.contains("세미나실");
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null) return Map.of("target", "SEATS");
+        String lower = message.toLowerCase();
+        String target = "SEATS";
+        if (lower.contains("스터디룸") || lower.contains("세미나실") || lower.contains("공간")) {
+            target = "STUDY_ROOMS";
+        } else if (lower.contains("연장")) {
+            target = "RENEW";
+        } else if (lower.contains("반납") || lower.contains("퇴실")) {
+            target = "RETURN";
+        } else if (lower.contains("내 자리") || lower.contains("내 좌석") || lower.contains("현재 좌석")) {
+            target = "MY_SEAT";
+        }
+        return Map.of("target", target);
+    }
 }

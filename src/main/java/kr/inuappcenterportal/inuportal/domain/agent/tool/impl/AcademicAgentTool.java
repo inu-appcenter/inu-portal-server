@@ -79,4 +79,14 @@ public class AcademicAgentTool implements AgentTool {
         String summary = "학적 정보 및 취득 학점 조회를 위해 학교 포털 계정 연동이 필요합니다. 모바일 앱 환경에서 1회 연동하시면 실시간 학점과 학적이 바로 표시됩니다.";
         return new ToolResult(summary, ui, Map.of("clientAction", "FETCH_ACADEMIC_INFO"));
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        boolean isFirstPersonAcademic = (lower.contains("나 ") || lower.startsWith("나") || lower.contains("내 ") || lower.startsWith("내") || lower.contains("저 ")) &&
+                (lower.contains("졸업") || lower.contains("수료") || lower.contains("이수") || lower.contains("학점"));
+        return isFirstPersonAcademic || lower.contains("학적") || lower.contains("취득 학점") || lower.contains("취득학점") ||
+                lower.contains("이수 학점") || lower.contains("이수학점") || lower.contains("내 학점") || lower.contains("gpa") || lower.contains("평점");
+    }
 }

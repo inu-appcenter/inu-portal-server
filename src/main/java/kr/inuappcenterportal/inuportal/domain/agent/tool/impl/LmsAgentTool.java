@@ -105,4 +105,24 @@ public class LmsAgentTool implements AgentTool {
                 "courseName", courseName
         ));
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("lms") || lower.contains("과제") || lower.contains("사이버캠퍼스") || lower.contains("레포트") || lower.contains("숙제") || lower.contains("온라인 강의") || lower.contains("인강") || lower.contains("진도율") || lower.contains("동영상 강의");
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null) return Map.of("target", "ASSIGNMENTS");
+        String lower = message.toLowerCase();
+        String target = "ASSIGNMENTS";
+        if (lower.contains("강좌") || lower.contains("과목") || lower.contains("수강")) {
+            target = "COURSES";
+        } else if (lower.contains("마감") || lower.contains("다가오는") || lower.contains("남은")) {
+            target = "UPCOMING";
+        }
+        return Map.of("target", target);
+    }
 }

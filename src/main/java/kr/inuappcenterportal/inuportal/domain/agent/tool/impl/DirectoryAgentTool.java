@@ -67,4 +67,16 @@ public class DirectoryAgentTool implements AgentTool {
             return new ToolResult("교내 전화번호부를 검색하는 도중 오류가 발생했습니다.", null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("전화") || lower.contains("번호") || lower.contains("과사") || lower.contains("사무실") || lower.contains("연락처");
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        return Map.of("query", message != null ? message.trim() : "");
+    }
 }

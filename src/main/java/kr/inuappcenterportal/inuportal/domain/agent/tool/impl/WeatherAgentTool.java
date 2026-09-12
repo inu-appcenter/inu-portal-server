@@ -41,4 +41,11 @@ public class WeatherAgentTool implements AgentTool {
             return new ToolResult("날씨 정보를 가져오는 데 실패했습니다.", null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("날씨") || lower.contains("비") || lower.contains("우산") || lower.contains("기온") || lower.contains("미세먼지");
+    }
 }

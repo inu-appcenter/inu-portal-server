@@ -80,4 +80,11 @@ public class MySettingsAgentTool implements AgentTool {
             return new ToolResult("알림 설정을 조회하는 도중 오류가 발생했습니다.", null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("알림 설정") || lower.contains("내 설정") || lower.contains("내 알림");
+    }
 }

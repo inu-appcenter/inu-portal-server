@@ -27,6 +27,21 @@ public interface AgentTool {
      */
     ToolResult execute(Member member, Map<String, Object> params);
 
+    /**
+     * LLM 라우팅 장애(vLLM 타임아웃/오류) 시 작동하는 규칙 기반 Fallback 매칭 조건
+     * 각 도구가 자신이 대응할 수 있는 키워드나 질문 패턴인지 스스로 판단합니다.
+     */
+    default boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        return false;
+    }
+
+    /**
+     * Fallback 매칭 시 도구에 전달할 기본 파라미터 생성
+     */
+    default Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        return java.util.Collections.emptyMap();
+    }
+
     record ToolResult(
             String summary,
             UiComponentDto uiComponent,

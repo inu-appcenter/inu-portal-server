@@ -1141,106 +1141,11 @@ public class AgentService {
     private record SynthesizedResult(String cleanMessage, List<String> suggestedActions) {}
 
     private AgentToolDecisionDto fallbackRuleBasedDecision(String msg, List<ChatMessageDto> history) {
-        String lower = msg.toLowerCase();
         List<AgentToolDecisionDto.SingleToolCall> tools = new ArrayList<>();
-
-        // 멀티턴 맥락 확인: 이전 대화가 학사/규정/졸업 관련이었고, 사용자가 학번/학과 등으로 조건을 좁힌 경우
-        if (history != null && !history.isEmpty()) {
-            boolean prevWasAcademicKnowledge = false;
-            String prevUserQuery = "";
-            for (int i = history.size() - 1; i >= 0; i--) {
-                ChatMessageDto h = history.get(i);
-                if ("user".equalsIgnoreCase(h.role())) {
-                    String pLower = h.content().toLowerCase();
-                    if (pLower.contains("졸업") || pLower.contains("학칙") || pLower.contains("규정") || pLower.contains("이수") || pLower.contains("요건")) {
-                        prevWasAcademicKnowledge = true;
-                        prevUserQuery = h.content();
-                        break;
-                    }
-                }
+        for (AgentTool tool : agentToolRegistry.getAllTools()) {
+            if (tool.supportsFallback(msg, history)) {
+                tools.add(new AgentToolDecisionDto.SingleToolCall(tool.getName(), tool.createFallbackParams(msg, history)));
             }
-
-            if (prevWasAcademicKnowledge) {
-                // 학번 패턴 (예: 2020학번, 20학번, 24학번 등)
-                if (lower.matches(".*\\d{2,4}\\s*학번.*")) {
-                    String rewrittenQuery = msg + " " + prevUserQuery;
-                    tools.add(new AgentToolDecisionDto.SingleToolCall("INU_AI_KNOWLEDGE", Map.of("question", rewrittenQuery.trim())));
-                    return new AgentToolDecisionDto(tools, null, null, "멀티턴 이전 학사 맥락과 결합하여 학칙 RAG 질의");
-                }
-            }
-        }
-
-        if (lower.contains("채팅") && (lower.contains("알림") || lower.contains("푸시"))) {
-            boolean enabled = !lower.contains("꺼") && !lower.contains("해제") && !lower.contains("비활성");
-            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_CHAT_PUSH", Map.of("enabled", enabled)));
-        } else if (lower.contains("브리프") || (lower.contains("아침") && lower.contains("브리핑"))) {
-            boolean enabled = !lower.contains("꺼") && !lower.contains("해제");
-            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_DAILY_BRIEF", Map.of("enabled", enabled, "time", "08:30")));
-        } else if (lower.contains("키워드") && (lower.contains("알림") || lower.contains("등록") || lower.contains("추가"))) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_NOTICE_KEYWORD", Map.of("keyword", msg)));
-        } else if (lower.contains("빈자리") || ((lower.contains("힐링존") || lower.contains("수면실") || lower.contains("열람실")) && (lower.contains("자리 나면") || lower.contains("자리 생기면") || lower.contains("알려줘")))) {
-            String target = lower.contains("힐링존") ? "힐링존" : (lower.contains("수면실") ? "수면실" : "제1열람실");
-            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_CAMPUS_WATCH", Map.of("action", "WATCH", "targetName", target, "durationMinutes", 90)));
-        } else if (lower.contains("감시") && (lower.contains("목록") || lower.contains("조회") || lower.contains("현황"))) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_CAMPUS_WATCH", Map.of("action", "LIST")));
-        } else if (lower.contains("알림 설정") || lower.contains("내 설정") || lower.contains("내 알림")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("ACTION_MY_SETTINGS", Map.of()));
-        }
-
-        if (lower.contains("공강") || lower.contains("쉬는 시간") || lower.contains("우주공강") || lower.contains("여유 시간")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("TIMETABLE_GAP", Map.of()));
-        }
-        if (lower.contains("날씨") || lower.contains("비") || lower.contains("우산") || lower.contains("기온") || lower.contains("미세먼지")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("WEATHER", Map.of()));
-        }
-        if (lower.contains("학식") || lower.contains("메뉴") || lower.contains("식당") || lower.contains("밥") || lower.contains("점심") || lower.contains("저녁")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("CAFETERIA", Map.of("cafeteria", "전체", "mealType", "AUTO")));
-        }
-        if (lower.contains("버스") || lower.contains("셔틀") || lower.contains("정류장") || lower.contains("몇 분")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("BUS", Map.of("stopName", "정문")));
-        }
-        if (lower.contains("시간표") || lower.contains("수업") || lower.contains("강의실")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("TIMETABLE", Map.of()));
-        }
-        if (lower.contains("일정") || lower.contains("학사") || lower.contains("시험") || lower.contains("종강") || lower.contains("개강")) {
-            LocalDate now = LocalDate.now();
-            tools.add(new AgentToolDecisionDto.SingleToolCall("SCHEDULE", Map.of("year", now.getYear(), "month", now.getMonthValue())));
-        }
-        if (lower.contains("공지") || lower.contains("장학") || lower.contains("모집")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("NOTICE", Map.of("query", msg)));
-        }
-        if (lower.contains("전화") || lower.contains("번호") || lower.contains("과사") || lower.contains("사무실") || lower.contains("연락처")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("DIRECTORY", Map.of("query", msg)));
-        }
-        boolean isFirstPersonAcademic = (lower.contains("나 ") || lower.startsWith("나") || lower.contains("내 ") || lower.startsWith("내") || lower.contains("저 ")) &&
-                (lower.contains("졸업") || lower.contains("수료") || lower.contains("이수") || lower.contains("학점"));
-        if (isFirstPersonAcademic || lower.contains("학적") || lower.contains("취득 학점") || lower.contains("취득학점") || lower.contains("이수 학점") || lower.contains("이수학점") || lower.contains("내 학점") || lower.contains("gpa") || lower.contains("평점")) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("ACADEMIC", Map.of()));
-        }
-        if (lower.contains("도서관") || lower.contains("열람실") || lower.contains("노트북실") || lower.contains("스터디룸") || lower.contains("자리") || lower.contains("좌석") || lower.contains("세미나실")) {
-            String target = "SEATS";
-            if (lower.contains("스터디룸") || lower.contains("세미나실") || lower.contains("공간")) {
-                target = "STUDY_ROOMS";
-            } else if (lower.contains("연장")) {
-                target = "RENEW";
-            } else if (lower.contains("반납") || lower.contains("퇴실")) {
-                target = "RETURN";
-            } else if (lower.contains("내 자리") || lower.contains("내 좌석") || lower.contains("현재 좌석")) {
-                target = "MY_SEAT";
-            }
-            tools.add(new AgentToolDecisionDto.SingleToolCall("LIBRARY", Map.of("target", target)));
-        }
-        if (lower.contains("lms") || lower.contains("과제") || lower.contains("사이버캠퍼스") || lower.contains("레포트") || lower.contains("숙제") || lower.contains("온라인 강의") || lower.contains("인강") || lower.contains("진도율") || lower.contains("동영상 강의")) {
-            String target = "ASSIGNMENTS";
-            if (lower.contains("강좌") || lower.contains("과목") || lower.contains("수강")) {
-                target = "COURSES";
-            } else if (lower.contains("마감") || lower.contains("다가오는") || lower.contains("남은")) {
-                target = "UPCOMING";
-            }
-            tools.add(new AgentToolDecisionDto.SingleToolCall("LMS", Map.of("target", target)));
-        }
-        if (lower.contains("학칙") || lower.contains("규정") || lower.contains("졸업 요건") || lower.contains("졸업요건") || lower.contains("조기졸업") || lower.contains("조기 졸업") || lower.contains("휴학") || lower.contains("복학") || lower.contains("복수전공") || lower.contains("부전공") || lower.contains("전과") || lower.contains("학사경고") || lower.contains("공학인증") || (lower.contains("졸업") && (lower.contains("가능") || lower.contains("봐줘") || lower.contains("요건") || lower.contains("할 수") || lower.contains("돼")))) {
-            tools.add(new AgentToolDecisionDto.SingleToolCall("INU_AI_KNOWLEDGE", Map.of("question", msg)));
         }
 
         if (tools.isEmpty()) {

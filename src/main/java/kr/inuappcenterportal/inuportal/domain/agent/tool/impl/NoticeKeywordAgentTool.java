@@ -198,4 +198,16 @@ public class NoticeKeywordAgentTool implements AgentTool {
         }
         return null;
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("키워드") && (lower.contains("알림") || lower.contains("등록") || lower.contains("추가"));
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        return Map.of("keyword", message != null ? message.trim() : "");
+    }
 }

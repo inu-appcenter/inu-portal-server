@@ -156,4 +156,16 @@ public class NoticeAgentTool implements AgentTool {
             return new ToolResult("공지사항을 검색하는 도중 오류가 발생했습니다.", null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("공지") || lower.contains("장학") || lower.contains("모집");
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        return Map.of("query", message != null ? message.trim() : "");
+    }
 }

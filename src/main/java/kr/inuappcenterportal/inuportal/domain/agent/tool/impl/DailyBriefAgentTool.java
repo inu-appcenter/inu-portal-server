@@ -93,4 +93,19 @@ public class DailyBriefAgentTool implements AgentTool {
             return new ToolResult("데일리 브리프 설정을 변경하는 도중 오류가 발생했습니다.", null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("브리프") || (lower.contains("아침") && lower.contains("브리핑"));
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null) return Map.of("enabled", true, "time", "08:30");
+        String lower = message.toLowerCase();
+        boolean enabled = !lower.contains("꺼") && !lower.contains("해제");
+        return Map.of("enabled", enabled, "time", "08:30");
+    }
 }

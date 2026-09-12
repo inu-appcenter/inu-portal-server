@@ -261,4 +261,11 @@ public class TimeTableAgentTool implements AgentTool {
             return new ToolResult("시간표 정보를 조회하는 도중 오류가 발생했습니다.", null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("시간표") || lower.contains("수업") || lower.contains("강의실");
+    }
 }

@@ -122,4 +122,24 @@ public class CampusWatchAgentTool implements AgentTool {
             return new ToolResult("빈자리 감시 처리 중 오류가 발생했습니다: " + e.getMessage(), null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        boolean isWatchTarget = lower.contains("빈자리") || ((lower.contains("힐링존") || lower.contains("수면실") || lower.contains("열람실")) && (lower.contains("자리 나면") || lower.contains("자리 생기면") || lower.contains("알려줘")));
+        boolean isWatchList = lower.contains("감시") && (lower.contains("목록") || lower.contains("조회") || lower.contains("현황"));
+        return isWatchTarget || isWatchList;
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null) return Map.of("action", "LIST");
+        String lower = message.toLowerCase();
+        if (lower.contains("감시") && (lower.contains("목록") || lower.contains("조회") || lower.contains("현황"))) {
+            return Map.of("action", "LIST");
+        }
+        String target = lower.contains("힐링존") ? "힐링존" : (lower.contains("수면실") ? "수면실" : "제1열람실");
+        return Map.of("action", "WATCH", "targetName", target, "durationMinutes", 90);
+    }
 }

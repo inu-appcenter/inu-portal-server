@@ -249,4 +249,16 @@ public class BusAgentTool implements AgentTool {
             return new ToolResult("버스 도착 정보를 가져오는 데 실패했습니다.", null, null);
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("버스") || lower.contains("셔틀") || lower.contains("정류장") || lower.contains("몇 분");
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        return Map.of("stopName", "정문");
+    }
 }

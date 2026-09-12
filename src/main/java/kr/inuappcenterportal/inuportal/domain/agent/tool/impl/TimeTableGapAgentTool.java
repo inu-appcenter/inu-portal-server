@@ -238,4 +238,11 @@ public class TimeTableGapAgentTool implements AgentTool {
             return (endTime.getHour() * 60 + endTime.getMinute()) - (startTime.getHour() * 60 + startTime.getMinute());
         }
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("공강") || lower.contains("쉬는 시간") || lower.contains("우주공강") || lower.contains("여유 시간");
+    }
 }

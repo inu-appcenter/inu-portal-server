@@ -141,4 +141,53 @@ public class InuAiAgentTool implements AgentTool {
 
         return citations;
     }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+
+        // 1. 멀티턴 학사 맥락 확인 (직전 질문이 학칙/규정/졸업이고 학번 입력인 경우)
+        if (history != null && !history.isEmpty()) {
+            boolean prevWasAcademic = false;
+            for (int i = history.size() - 1; i >= 0; i--) {
+                kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto h = history.get(i);
+                if ("user".equalsIgnoreCase(h.role())) {
+                    String pLower = h.content().toLowerCase();
+                    if (pLower.contains("졸업") || pLower.contains("학칙") || pLower.contains("규정") || pLower.contains("이수") || pLower.contains("요건")) {
+                        prevWasAcademic = true;
+                        break;
+                    }
+                }
+            }
+            if (prevWasAcademic && lower.matches(".*\\d{2,4}\\s*학번.*")) {
+                return true;
+            }
+        }
+
+        // 2. 일반 학칙, 규정 키워드
+        return lower.contains("학칙") || lower.contains("규정") || lower.contains("졸업 요건") || lower.contains("졸업요건") ||
+                lower.contains("조기졸업") || lower.contains("조기 졸업") || lower.contains("휴학") || lower.contains("복학") ||
+                lower.contains("복수전공") || lower.contains("부전공") || lower.contains("전과") || lower.contains("학사경고") ||
+                lower.contains("공학인증") || (lower.contains("졸업") && (lower.contains("가능") || lower.contains("봐줘") || lower.contains("요건") || lower.contains("할 수") || lower.contains("돼")));
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null) return Map.of();
+        String lower = message.toLowerCase();
+
+        if (history != null && !history.isEmpty() && lower.matches(".*\\d{2,4}\\s*학번.*")) {
+            for (int i = history.size() - 1; i >= 0; i--) {
+                kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto h = history.get(i);
+                if ("user".equalsIgnoreCase(h.role())) {
+                    String pLower = h.content().toLowerCase();
+                    if (pLower.contains("졸업") || pLower.contains("학칙") || pLower.contains("규정") || pLower.contains("이수") || pLower.contains("요건")) {
+                        return Map.of("question", (message + " " + h.content()).trim());
+                    }
+                }
+            }
+        }
+        return Map.of("question", message.trim());
+    }
 }
