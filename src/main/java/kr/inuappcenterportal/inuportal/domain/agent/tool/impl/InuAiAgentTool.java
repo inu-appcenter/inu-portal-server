@@ -50,7 +50,7 @@ public class InuAiAgentTool implements AgentTool {
 
         try {
             // inuai RAG 엔진 호출 (최대 25초 타임아웃)
-            String rawAnswer = inuChatAiService.requestChat(memberId, question, null)
+            String rawAnswer = inuChatAiService.requestChat(memberId, question, null, selectAcademicContext(question, params))
                     .block(Duration.ofSeconds(25));
 
             if (rawAnswer == null || rawAnswer.isBlank()) {
@@ -106,6 +106,32 @@ public class InuAiAgentTool implements AgentTool {
             }
         }
         return "";
+    }
+
+    /** 질문에 필요한 비식별 학적 정보만 외부 INUChat에 전달한다. */
+    private Map<String, Object> selectAcademicContext(String question, Map<String, Object> params) {
+        if (params == null || !(params.get("_clientContext") instanceof Map<?, ?> client)
+                || !(client.get("academic") instanceof Map<?, ?> academic)) return Map.of();
+
+        String lower = question.toLowerCase();
+        boolean graduation = lower.contains("졸업") || lower.contains("수료") || lower.contains("이수") || lower.contains("학점");
+        boolean status = lower.contains("휴학") || lower.contains("복학") || lower.contains("전과") || lower.contains("학적");
+        boolean scholarship = lower.contains("장학");
+        if (!graduation && !status && !scholarship) return Map.of();
+
+        Map<String, Object> selected = new LinkedHashMap<>();
+        copyIfPresent(academic, selected, "entryYear", "departmentName", "collegeName", "enrollmentStatus");
+        if (graduation || scholarship) {
+            copyIfPresent(academic, selected, "completedSemesterCount", "acquiredCredits", "gradeAverage");
+        }
+        return selected;
+    }
+
+    private void copyIfPresent(Map<?, ?> source, Map<String, Object> target, String... keys) {
+        for (String key : keys) {
+            Object value = source.get(key);
+            if (value != null && !String.valueOf(value).isBlank()) target.put(key, value);
+        }
     }
 
     private List<Map<String, String>> extractCitations(String answer) {

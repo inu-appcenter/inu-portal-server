@@ -13,6 +13,7 @@ import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -37,15 +38,20 @@ public class InuChatAiService {
     private long timeoutSeconds;
 
     public Mono<String> requestChat(Long memberId, String question, List<Object> history) {
+        return requestChat(memberId, question, history, null);
+    }
+
+    public Mono<String> requestChat(Long memberId, String question, List<Object> history, Map<String, Object> academicContext) {
         String deviceId = memberId != null ? "intip-" + memberId : "intip-" + UUID.randomUUID();
         // INUChat은 외부 AI 서비스이므로 개인 식별자는 전달하지 않는다. 학번은
         // 입학연도(예: 2020학번)만 남기며, 대화 이력은 원문 PII가 섞일 수 있어 넘기지 않는다.
         String safeQuestion = anonymizeForInuChat(question);
-        InuChatRequestDto requestDto = InuChatRequestDto.of(safeQuestion, List.of());
+        String questionWithContext = safeQuestion + formatAcademicContext(academicContext);
+        InuChatRequestDto requestDto = InuChatRequestDto.of(questionWithContext, List.of());
         String fullUrl = trimTrailingSlash(baseUrl) + (chatPath.startsWith("/") ? chatPath : "/" + chatPath);
 
         log.info("InuChat AI 요청 시작: memberId={}, deviceId={}, url={}, question={}",
-                memberId, deviceId, fullUrl, safeQuestion);
+                memberId, deviceId, fullUrl, questionWithContext);
 
         HttpClient httpClient = HttpClient.create()
                 .responseTimeout(Duration.ofSeconds(timeoutSeconds));
@@ -85,5 +91,24 @@ public class InuChatAiService {
         String sanitized = STUDENT_ID_PATTERN.matcher(question).replaceAll("$1학번");
         sanitized = EMAIL_PATTERN.matcher(sanitized).replaceAll("[이메일 제외]");
         return PHONE_PATTERN.matcher(sanitized).replaceAll("[전화번호 제외]");
+    }
+
+    /** 기존 INUChat question 계약을 유지하며 허용된 비식별 필드만 덧붙인다. */
+    private String formatAcademicContext(Map<String, Object> context) {
+        if (context == null || context.isEmpty()) return "";
+        List<String> parts = new java.util.ArrayList<>();
+        appendContext(parts, context, "entryYear", "입학연도");
+        appendContext(parts, context, "departmentName", "학과");
+        appendContext(parts, context, "collegeName", "단과대");
+        appendContext(parts, context, "enrollmentStatus", "학적상태");
+        appendContext(parts, context, "completedSemesterCount", "이수학기");
+        appendContext(parts, context, "acquiredCredits", "취득학점");
+        appendContext(parts, context, "gradeAverage", "평점평균");
+        return parts.isEmpty() ? "" : "\n\n[비식별 학적 참고정보: " + String.join(", ", parts) + "]";
+    }
+
+    private void appendContext(List<String> parts, Map<String, Object> context, String key, String label) {
+        Object value = context.get(key);
+        if (value != null && !String.valueOf(value).isBlank()) parts.add(label + "=" + value);
     }
 }
