@@ -29,9 +29,10 @@ public class CampusWatchAgentTool implements AgentTool {
 
     @Override
     public String getDescription() {
-        return "학산도서관 힐링존, 수면실, 열람실 실시간 빈자리 감시(스나이퍼)를 등록하거나 현재 감시 목록을 조회/취소합니다. "
-                + "(params: {\"action\": \"WATCH\"|\"LIST\"|\"CANCEL\", \"targetName\": \"힐링존\"|\"제1열람실\"|\"노트북실\", \"durationMinutes\": 90}). "
-                + "예: '힐링존 자리 나면 알려줘' -> {\"action\": \"WATCH\", \"targetName\": \"힐링존\", \"durationMinutes\": 90}";
+        return "학산도서관 열람실/노트북실/힐링존 실시간 빈자리 감시(스나이퍼) 또는 스터디룸 희망 시간대 취소표 감시를 등록하거나 현재 감시 목록을 조회/취소합니다. "
+                + "(params: {\"action\": \"WATCH\"|\"LIST\"|\"CANCEL\", \"domain\": \"LIBRARY_SEAT\"|\"STUDY_ROOM\", \"targetName\": \"제1열람실\"|\"205호\", \"seatNo\": \"43\", \"hopeDate\": \"YYYY-MM-DD\", \"targetHour\": 15, \"durationMinutes\": 90}). "
+                + "예: '제1열람실 43번 좌석 비면 알려줘' -> {\"action\": \"WATCH\", \"domain\": \"LIBRARY_SEAT\", \"targetName\": \"제1열람실\", \"seatNo\": \"43\"}, "
+                + "'내일 3시 스터디룸 205호 자리 나면 알려줘' -> {\"action\": \"WATCH\", \"domain\": \"STUDY_ROOM\", \"targetName\": \"205호\", \"targetHour\": 15}";
     }
 
     @Override
@@ -63,7 +64,19 @@ public class CampusWatchAgentTool implements AgentTool {
             // 기본: 감시 등록
             String targetName = (params != null && params.get("targetName") != null)
                     ? String.valueOf(params.get("targetName")).trim()
-                    : "힐링존";
+                    : "제1열람실";
+
+            String seatNo = (params != null && params.get("seatNo") != null)
+                    ? String.valueOf(params.get("seatNo")).trim()
+                    : null;
+
+            String domainStr = (params != null && params.get("domain") != null)
+                    ? String.valueOf(params.get("domain")).toUpperCase().trim()
+                    : (targetName.contains("호") || targetName.contains("스터디") ? "STUDY_ROOM" : "LIBRARY_SEAT");
+
+            CampusWatchDomain domain = "STUDY_ROOM".equals(domainStr)
+                    ? CampusWatchDomain.STUDY_ROOM
+                    : CampusWatchDomain.LIBRARY_SEAT;
 
             int duration = 90;
             if (params != null && params.get("durationMinutes") != null) {
@@ -72,10 +85,14 @@ public class CampusWatchAgentTool implements AgentTool {
                 } catch (Exception ignored) {}
             }
 
+            String fullTargetName = (seatNo != null && !seatNo.isBlank())
+                    ? String.format("%s %s번 좌석", targetName, seatNo)
+                    : targetName;
+
             CampusWatchCreateRequestDto req = new CampusWatchCreateRequestDto(
-                    CampusWatchDomain.LIBRARY_SEAT,
-                    targetName,
-                    targetName,
+                    domain,
+                    fullTargetName,
+                    fullTargetName,
                     duration
             );
 
@@ -85,7 +102,8 @@ public class CampusWatchAgentTool implements AgentTool {
                     "CAMPUS_WATCH_RESULT",
                     Map.of(
                             "job", job,
-                            "targetName", targetName,
+                            "targetName", fullTargetName,
+                            "domain", domain.name(),
                             "remainingMinutes", job.remainingMinutes()
                     ),
                     "감시 현황 확인하기",
@@ -93,8 +111,8 @@ public class CampusWatchAgentTool implements AgentTool {
             );
 
             String summary = String.format(
-                    "학산도서관 %s 빈자리 감시를 시작했습니다! 🎯\n최대 %d분 동안 45초마다 안전하게 감시하며, 빈자리가 생기는 즉시 푸시 알림으로 알려드릴게요.",
-                    targetName, duration
+                    "학산도서관 [%s] 실시간 감시를 시작했습니다! 🎯\n최대 %d분 동안 안전하게 감시하며, 이용이 가능해지는 즉시 푸시 알림으로 알려드릴게요.",
+                    fullTargetName, duration
             );
 
             return new ToolResult(summary, ui, Map.of("job", job));
