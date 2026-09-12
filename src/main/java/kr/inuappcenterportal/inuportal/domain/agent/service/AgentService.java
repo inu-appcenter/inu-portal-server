@@ -77,7 +77,8 @@ public class AgentService {
                   * 예: 직전 질문이 '컴공 졸업요건'이고 현재 질문이 '나는 2020학번이야'라면 -> params: {"question": "2020학번 컴퓨터공학부 졸업 요건"}
                 - 단순 게시판 공지 목록/최근 행사 안내 검색은 'NOTICE' 도구를 사용하세요.
                 - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태 확인은 'ACADEMIC' 도구를 사용하세요.
-                - 복합 질문(예: '나 취득학점이랑 졸업 요건 알려줘')은 ACADEMIC과 INU_AI_KNOWLEDGE를 순서대로 모두 포함하세요.
+                - '내 학점으로 졸업 가능한지 봐줘', '내 취득학점으로 컴공 졸업 요건 되는지'처럼 본인 학점/학적 상태를 바탕으로 학칙/졸업요건 판정이 필요한 질문은 반드시 'ACADEMIC'과 'INU_AI_KNOWLEDGE'를 순서대로 모두 포함하세요.
+                - 복합 질문(예: '나 취득학점이랑 졸업 요건 알려줘', '졸업 요건이랑 오늘 학식 알려줘')은 해당하는 도구들을 순서대로 모두 포함하세요.
                 
                 [응답 규칙]
                 마크다운 백틱(```json) 없이 오직 JSON 텍스트 하나만 출력하세요.
@@ -122,7 +123,11 @@ public class AgentService {
         StringBuilder combinedSummaries = new StringBuilder();
         Set<String> executedToolNames = new HashSet<>();
 
-        List<AgentToolDecisionDto.SingleToolCall> currentBatch = effectiveTools;
+        String lastAcademicSummary = null;
+        String inuAiSummary = null;
+        StringBuilder campusSummaries = new StringBuilder();
+
+        List<AgentToolDecisionDto.SingleToolCall> currentBatch = sortToolCalls(effectiveTools);
         final int MAX_REACT_HOPS = 4;
         int currentHop = 1;
 
@@ -131,11 +136,25 @@ public class AgentService {
                     currentBatch.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList());
 
             for (AgentToolDecisionDto.SingleToolCall toolCall : currentBatch) {
-                executedToolNames.add(toolCall.tool().toUpperCase());
+                String toolName = toolCall.tool().toUpperCase();
+                executedToolNames.add(toolName);
                 Map<String, Object> toolParams = new LinkedHashMap<>(toolCall.params() != null ? toolCall.params() : Map.of());
                 if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
                     toolParams.put("_clientContext", requestDto.clientContext());
                 }
+
+                // INU_AI_KNOWLEDGE 호출 시, 이전에 조회된 학생 학적 요약이 있다면 question 파라미터에 컨텍스트 주입!
+                if ("INU_AI_KNOWLEDGE".equals(toolName) && lastAcademicSummary != null && !lastAcademicSummary.isBlank()) {
+                    String origQuestion = toolParams.containsKey("question") && toolParams.get("question") != null
+                            ? String.valueOf(toolParams.get("question")).trim()
+                            : userMessage;
+                    if (!origQuestion.contains("학적") && !origQuestion.contains("취득학점")) {
+                        String enrichedQuestion = String.format("[학생 학적 현황: %s]\n%s", lastAcademicSummary, origQuestion);
+                        toolParams.put("question", enrichedQuestion);
+                        log.info("INU_AI_KNOWLEDGE에 학생 학적 정보 컨텍스트 주입 완료: {}", enrichedQuestion);
+                    }
+                }
+
                 AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolParams);
 
                 if (result.uiComponent() != null) {
@@ -144,28 +163,50 @@ public class AgentService {
                 if (result.summary() != null && !result.summary().isBlank()) {
                     if (combinedSummaries.length() > 0) combinedSummaries.append("\n\n");
                     combinedSummaries.append(result.summary());
+
+                    if ("ACADEMIC".equals(toolName)) {
+                        lastAcademicSummary = result.summary();
+                    } else if ("INU_AI_KNOWLEDGE".equals(toolName)) {
+                        inuAiSummary = result.summary();
+                    } else {
+                        if (campusSummaries.length() > 0) campusSummaries.append("\n\n");
+                        campusSummaries.append(result.summary());
+                    }
                 }
             }
 
             // 다음 홉에서 추가로 실행해야 할 도구가 있는지 자율 판단 (ReAct Self-Correction)
             SecondaryDecision secondaryDecision = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
-            currentBatch = secondaryDecision.tools();
+            currentBatch = sortToolCalls(secondaryDecision.tools());
             currentHop++;
         }
 
-        // 단일 학사 질의(INU_AI_KNOWLEDGE)인 경우: inuai RAG 원문을 왜곡/축약 없이 즉시 반환 (지연 시간 및 정보 손실 방지)
-        if (isPureInuAiQuery(executedToolNames)) {
-            List<String> chips = extractChips(combinedSummaries.toString());
+        boolean hasInuAi = inuAiSummary != null && !inuAiSummary.isBlank();
+        boolean hasCampusTools = !campusSummaries.isEmpty();
+
+        // 1) 학사 규정(INU_AI_KNOWLEDGE) 단독이거나 ACADEMIC과의 연계인 경우:
+        // inuai RAG 원문을 왜곡/축약 없이 즉시 반환 (지연 시간 및 정보 손실 방지)
+        if (hasInuAi && !hasCampusTools) {
+            List<String> chips = extractChips(inuAiSummary);
             if (chips.isEmpty()) {
                 chips = getDefaultAcademicSuggestedActions();
             }
-            String cleanAnswer = cleanChipsText(combinedSummaries.toString());
+            String cleanAnswer = cleanChipsText(inuAiSummary);
             return AgentChatResponseDto.of(cleanAnswer, uiComponents, chips);
         }
 
-        // 4단계: 최종 자연어 요약 및 능동 추천 칩 합성 (복합 질의 시 inuai 학칙 원문 최대한 보존)
-        SynthesizedResult synthesized = synthesizeAnswer(userMessage, history, combinedSummaries.toString());
+        // 2) 학사 규정(INU_AI) + 캠퍼스 도구(학식, 버스, 시간표 등) 복합 질의인 경우:
+        // inuai 원문은 100% 무손실 보존하고, 캠퍼스 도구 정보만 간결하게 덧붙임 결합
+        if (hasInuAi && hasCampusTools) {
+            String cleanInuAi = cleanChipsText(inuAiSummary);
+            String campusAddon = synthesizeCampusAddon(userMessage, campusSummaries.toString());
+            String finalAnswer = cleanInuAi + "\n\n---\n\n### 🍱 함께 문의하신 캠퍼스 생활 정보\n" + campusAddon;
+            List<String> chips = extractChips(inuAiSummary);
+            return AgentChatResponseDto.of(finalAnswer, uiComponents, chips.isEmpty() ? getDefaultSuggestedActions() : chips);
+        }
 
+        // 3) 일반 캠퍼스 도구들만의 질의인 경우
+        SynthesizedResult synthesized = synthesizeAnswer(userMessage, history, combinedSummaries.toString());
         return AgentChatResponseDto.of(synthesized.cleanMessage(), uiComponents, synthesized.suggestedActions());
     }
 
@@ -214,7 +255,11 @@ public class AgentService {
                 StringBuilder combinedSummaries = new StringBuilder();
                 Set<String> executedToolNames = new HashSet<>();
 
-                List<AgentToolDecisionDto.SingleToolCall> currentBatch = effectiveTools;
+                String lastAcademicSummary = null;
+                String inuAiSummary = null;
+                StringBuilder campusSummaries = new StringBuilder();
+
+                List<AgentToolDecisionDto.SingleToolCall> currentBatch = sortToolCalls(effectiveTools);
                 final int MAX_REACT_HOPS = 4;
                 int currentHop = 1;
 
@@ -225,11 +270,25 @@ public class AgentService {
                     }
 
                     for (AgentToolDecisionDto.SingleToolCall toolCall : currentBatch) {
-                        executedToolNames.add(toolCall.tool().toUpperCase());
+                        String toolName = toolCall.tool().toUpperCase();
+                        executedToolNames.add(toolName);
                         Map<String, Object> toolParams = new LinkedHashMap<>(toolCall.params() != null ? toolCall.params() : Map.of());
                         if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
                             toolParams.put("_clientContext", requestDto.clientContext());
                         }
+
+                        // INU_AI_KNOWLEDGE 호출 시, 이전에 조회된 학생 학적 요약이 있다면 question 파라미터에 컨텍스트 주입!
+                        if ("INU_AI_KNOWLEDGE".equals(toolName) && lastAcademicSummary != null && !lastAcademicSummary.isBlank()) {
+                            String origQuestion = toolParams.containsKey("question") && toolParams.get("question") != null
+                                    ? String.valueOf(toolParams.get("question")).trim()
+                                    : userMessage;
+                            if (!origQuestion.contains("학적") && !origQuestion.contains("취득학점")) {
+                                String enrichedQuestion = String.format("[학생 학적 현황: %s]\n%s", lastAcademicSummary, origQuestion);
+                                toolParams.put("question", enrichedQuestion);
+                                log.info("INU_AI_KNOWLEDGE에 학생 학적 정보 컨텍스트 주입 완료: {}", enrichedQuestion);
+                            }
+                        }
+
                         AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolParams);
 
                         if (result.uiComponent() != null) {
@@ -238,12 +297,21 @@ public class AgentService {
                         if (result.summary() != null && !result.summary().isBlank()) {
                             if (combinedSummaries.length() > 0) combinedSummaries.append("\n\n");
                             combinedSummaries.append(result.summary());
+
+                            if ("ACADEMIC".equals(toolName)) {
+                                lastAcademicSummary = result.summary();
+                            } else if ("INU_AI_KNOWLEDGE".equals(toolName)) {
+                                inuAiSummary = result.summary();
+                            } else {
+                                if (campusSummaries.length() > 0) campusSummaries.append("\n\n");
+                                campusSummaries.append(result.summary());
+                            }
                         }
                     }
 
                     // ReAct 다음 단계 자율 판단
                     SecondaryDecision secDecision = decideSecondaryTool(userMessage, history, combinedSummaries.toString(), executedToolNames);
-                    currentBatch = secDecision.tools();
+                    currentBatch = sortToolCalls(secDecision.tools());
 
                     if (!currentBatch.isEmpty() && currentHop < MAX_REACT_HOPS) {
                         String hopThought = (secDecision.thought() != null && !secDecision.thought().isBlank())
@@ -267,14 +335,25 @@ public class AgentService {
                 // 4. GENERATIVE UI 카드 즉시 선행 전달 (화면에 카드 먼저 렌더링!)
                 sendSse(emitter, "tools", AgentStreamDto.tools(new ArrayList<>(executedToolNames), uiComponents));
 
-                // 단일 학사 질의(INU_AI_KNOWLEDGE)인 경우: inuai 원문 즉시 스트리밍 방출 (vLLM 재호출 생략으로 지연시간 2초 절감 & 원문 완벽 보존)
-                if (isPureInuAiQuery(executedToolNames)) {
+                boolean hasInuAi = inuAiSummary != null && !inuAiSummary.isBlank();
+                boolean hasCampusTools = !campusSummaries.isEmpty();
+
+                // 1) 학사 규정(INU_AI_KNOWLEDGE) 단독이거나 ACADEMIC과의 연계인 경우: inuai 원문 즉시 스트리밍 방출 (지연시간 0초, 원문 완벽 보존)
+                if (hasInuAi && !hasCampusTools) {
                     sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "학사 규정 답변을 전달하고 있습니다..."));
-                    streamInuAiDirect(emitter, combinedSummaries.toString());
+                    streamInuAiDirect(emitter, inuAiSummary);
                     return;
                 }
 
-                // 5. 복합 질의 자연어 요약 스트리밍 및 추천 칩 전달 (inuai 지식 충실 보존 프롬프트 적용)
+                // 2) 학사 규정(INU_AI) + 캠퍼스 도구(학식, 버스 등) 복합 질의인 경우:
+                // inuai 원문 선방출 -> 구분선 방출 -> 캠퍼스 도구 1~2문장 덧붙임 스트리밍
+                if (hasInuAi && hasCampusTools) {
+                    sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "학사 규정 및 캠퍼스 정보를 정리하고 있습니다..."));
+                    streamChainedInuAiWithCampus(emitter, inuAiSummary, campusSummaries.toString(), userMessage);
+                    return;
+                }
+
+                // 3) 일반 캠퍼스 도구만의 복합 질의 자연어 요약 스트리밍 및 추천 칩 전달
                 sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "답변을 정리하고 있습니다..."));
                 streamSynthesisAnswer(emitter, userMessage, history, combinedSummaries.toString());
 
@@ -936,6 +1015,129 @@ public class AgentService {
         emitter.complete();
     }
 
+    /**
+     * ReAct 도구 호출 순서 최적화:
+     * ACADEMIC 등 학생 학적 정보 도구를 최우선 실행하여 선행 데이터를 확보하고,
+     * INU_AI_KNOWLEDGE(학칙 RAG)를 맨 마지막에 배치하여 선행 데이터가 반영된 질의를 수행하도록 보장합니다.
+     */
+    private List<AgentToolDecisionDto.SingleToolCall> sortToolCalls(List<AgentToolDecisionDto.SingleToolCall> toolCalls) {
+        if (toolCalls == null || toolCalls.size() <= 1) return toolCalls;
+        List<AgentToolDecisionDto.SingleToolCall> sorted = new ArrayList<>(toolCalls);
+        sorted.sort(Comparator.comparingInt(tc -> {
+            String name = tc.tool() != null ? tc.tool().toUpperCase() : "";
+            if ("ACADEMIC".equals(name)) return 1;
+            if ("INU_AI_KNOWLEDGE".equals(name)) return 100;
+            return 50;
+        }));
+        return sorted;
+    }
+
+    /**
+     * 복합 질의 시 캠퍼스 생활 정보(학식, 버스, 시간표 등)에 대한 가벼운 덧붙임 자연어 요약 생성 (동기식)
+     */
+    private String synthesizeCampusAddon(String userMessage, String campusSummary) {
+        if (campusSummary == null || campusSummary.isBlank()) return "";
+        LocalDate today = LocalDate.now();
+        String dateHeader = String.format("현재 시점: %d년 %d월 %d일", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
+
+        String prompt = String.format("""
+                당신은 인천대학교 캠퍼스 비서 '챗불이'입니다.
+                [%s]
+                학생의 질문 중 캠퍼스 생활 정보(학식, 버스, 시간표, 도서관 등)에 대한 시스템 데이터가 아래와 같이 주어졌습니다.
+                친절하고 다정한 어조로 핵심 내용만 1~2문장으로 간결하고 깔끔하게 안내하세요.
+                불필요한 서론이나 인사말은 생략하고 바로 핵심 정보를 안내하세요.
+                
+                [사용자 질문]: %s
+                [캠퍼스 데이터]: %s
+                """, dateHeader, userMessage, campusSummary);
+
+        try {
+            VllmChatRequestDto request = VllmChatRequestDto.builder()
+                    .messages(List.of(VllmChatMessageDto.user(prompt)))
+                    .temperature(0.7)
+                    .maxTokens(250)
+                    .stream(false)
+                    .build();
+            return vllmService.chat(request).trim();
+        } catch (Exception e) {
+            log.warn("캠퍼스 추가 요약 생성 실패: {}", e.getMessage());
+            return campusSummary;
+        }
+    }
+
+    /**
+     * 복합 질의 Chaining Stream:
+     * 1단계: inuai RAG 학사 규정 원문을 40자 단위 청크로 즉시 선(先)방출 (무손실, 지연시간 최소화)
+     * 2단계: 구분선 및 '함께 문의하신 캠퍼스 생활 정보' 헤더 방출
+     * 3단계: 캠퍼스 생활 정보(학식, 버스 등)만 가벼운 vLLM 호출(250토큰)로 1~2문장 간결하게 덧붙여 스트리밍
+     * 4단계: 추천 칩 및 완료 이벤트 방출
+     */
+    private void streamChainedInuAiWithCampus(
+            SseEmitter emitter,
+            String rawInuAiAnswer,
+            String campusSummary,
+            String userMessage
+    ) {
+        String cleanInuAi = cleanChipsText(rawInuAiAnswer);
+        List<String> inuAiChips = extractChips(rawInuAiAnswer);
+
+        // 1단계: inuai 원문 즉시 청크 방출
+        int chunkSize = 40;
+        int len = cleanInuAi.length();
+        for (int i = 0; i < len; i += chunkSize) {
+            String chunk = cleanInuAi.substring(i, Math.min(len, i + chunkSize));
+            sendSse(emitter, "delta", AgentStreamDto.delta(chunk));
+            try {
+                Thread.sleep(15);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        // 2단계: 구분선 방출
+        sendSse(emitter, "delta", AgentStreamDto.delta("\n\n---\n\n### 🍱 함께 문의하신 캠퍼스 생활 정보\n"));
+
+        // 3단계: 캠퍼스 생활 정보 요약 스트리밍
+        LocalDate today = LocalDate.now();
+        String dateHeader = String.format("현재 시점: %d년 %d월 %d일", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
+
+        String prompt = String.format("""
+                당신은 인천대학교 캠퍼스 비서 '챗불이'입니다.
+                [%s]
+                학생의 질문 중 캠퍼스 생활 정보(학식, 버스, 시간표, 도서관 등)에 대한 시스템 데이터가 아래와 같이 주어졌습니다.
+                친절하고 다정한 어조로 핵심 내용만 1~2문장으로 간결하고 깔끔하게 안내하세요.
+                불필요한 서론이나 인사말은 생략하고 바로 핵심 정보를 안내하세요.
+                
+                [사용자 질문]: %s
+                [캠퍼스 데이터]: %s
+                """, dateHeader, userMessage, campusSummary);
+
+        List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
+        VllmChatRequestDto request = VllmChatRequestDto.builder()
+                .messages(messages)
+                .temperature(0.7)
+                .maxTokens(250)
+                .stream(true)
+                .build();
+
+        vllmService.streamChat(
+                request,
+                token -> sendSse(emitter, "delta", AgentStreamDto.delta(token)),
+                () -> {
+                    List<String> chips = inuAiChips.isEmpty() ? getDefaultSuggestedActions() : inuAiChips;
+                    sendSse(emitter, "done", AgentStreamDto.done(chips));
+                    emitter.complete();
+                },
+                err -> {
+                    log.error("캠퍼스 정보 후속 스트리밍 오류: {}", err.getMessage());
+                    List<String> chips = inuAiChips.isEmpty() ? getDefaultSuggestedActions() : inuAiChips;
+                    sendSse(emitter, "done", AgentStreamDto.done(chips));
+                    emitter.complete();
+                }
+        );
+    }
+
     private record SynthesizedResult(String cleanMessage, List<String> suggestedActions) {}
 
     private AgentToolDecisionDto fallbackRuleBasedDecision(String msg, List<ChatMessageDto> history) {
@@ -1035,13 +1237,13 @@ public class AgentService {
             }
             tools.add(new AgentToolDecisionDto.SingleToolCall("LMS", Map.of("target", target)));
         }
-        if (lower.contains("학칙") || lower.contains("규정") || lower.contains("졸업 요건") || lower.contains("졸업요건") || lower.contains("조기졸업") || lower.contains("조기 졸업") || lower.contains("휴학") || lower.contains("복학") || lower.contains("복수전공") || lower.contains("부전공") || lower.contains("전과") || lower.contains("학사경고") || lower.contains("공학인증")) {
+        if (lower.contains("학칙") || lower.contains("규정") || lower.contains("졸업 요건") || lower.contains("졸업요건") || lower.contains("조기졸업") || lower.contains("조기 졸업") || lower.contains("휴학") || lower.contains("복학") || lower.contains("복수전공") || lower.contains("부전공") || lower.contains("전과") || lower.contains("학사경고") || lower.contains("공학인증") || (lower.contains("졸업") && (lower.contains("가능") || lower.contains("봐줘") || lower.contains("요건")))) {
             tools.add(new AgentToolDecisionDto.SingleToolCall("INU_AI_KNOWLEDGE", Map.of("question", msg)));
         }
 
         if (tools.isEmpty()) {
             return AgentToolDecisionDto.general("기본 대화로 전환");
         }
-        return new AgentToolDecisionDto(tools, null, null, "규칙 기반 매핑");
+        return new AgentToolDecisionDto(sortToolCalls(tools), null, null, "규칙 기반 매핑");
     }
 }
