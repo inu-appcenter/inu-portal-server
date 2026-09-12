@@ -508,20 +508,56 @@ public class AgentService {
                 .build();
 
         StringBuilder accumulated = new StringBuilder();
+        StringBuilder buffer = new StringBuilder();
         boolean[] inChipsSection = new boolean[]{false};
 
         vllmService.streamChat(
                 request,
                 token -> {
+                    if (inChipsSection[0]) {
+                        accumulated.append(token);
+                        return;
+                    }
+
                     accumulated.append(token);
-                    if (token.contains("[CHIPS:") || accumulated.toString().contains("[CHIPS:")) {
+                    buffer.append(token);
+
+                    String bufStr = buffer.toString();
+                    int chipsIdx = bufStr.toUpperCase().indexOf("[CHIPS");
+                    if (chipsIdx >= 0) {
                         inChipsSection[0] = true;
+                        String flushPart = bufStr.substring(0, chipsIdx);
+                        if (!flushPart.isEmpty()) {
+                            sendSse(emitter, "delta", AgentStreamDto.delta(flushPart));
+                        }
+                        buffer.setLength(0);
+                        return;
                     }
-                    if (!inChipsSection[0]) {
-                        sendSse(emitter, "delta", AgentStreamDto.delta(token));
+
+                    int lastBracket = bufStr.lastIndexOf('[');
+                    if (lastBracket >= 0) {
+                        String potentialPrefix = bufStr.substring(lastBracket).toUpperCase();
+                        if ("[CHIPS:".startsWith(potentialPrefix)) {
+                            String flushPart = bufStr.substring(0, lastBracket);
+                            if (!flushPart.isEmpty()) {
+                                sendSse(emitter, "delta", AgentStreamDto.delta(flushPart));
+                            }
+                            buffer.setLength(0);
+                            buffer.append(bufStr.substring(lastBracket));
+                            return;
+                        }
                     }
+
+                    sendSse(emitter, "delta", AgentStreamDto.delta(bufStr));
+                    buffer.setLength(0);
                 },
                 () -> {
+                    if (!inChipsSection[0] && buffer.length() > 0) {
+                        String bufStr = buffer.toString();
+                        if (!bufStr.toUpperCase().contains("[CHIPS")) {
+                            sendSse(emitter, "delta", AgentStreamDto.delta(bufStr));
+                        }
+                    }
                     List<String> chips = extractChips(accumulated.toString());
                     sendSse(emitter, "done", AgentStreamDto.done(chips));
                     emitter.complete();
@@ -606,20 +642,56 @@ public class AgentService {
                 .build();
 
         StringBuilder accumulated = new StringBuilder();
+        StringBuilder buffer = new StringBuilder();
         boolean[] inChipsSection = new boolean[]{false};
 
         vllmService.streamChat(
                 request,
                 token -> {
+                    if (inChipsSection[0]) {
+                        accumulated.append(token);
+                        return;
+                    }
+
                     accumulated.append(token);
-                    if (token.contains("[CHIPS:") || accumulated.toString().contains("[CHIPS:")) {
+                    buffer.append(token);
+
+                    String bufStr = buffer.toString();
+                    int chipsIdx = bufStr.toUpperCase().indexOf("[CHIPS");
+                    if (chipsIdx >= 0) {
                         inChipsSection[0] = true;
+                        String flushPart = bufStr.substring(0, chipsIdx);
+                        if (!flushPart.isEmpty()) {
+                            sendSse(emitter, "delta", AgentStreamDto.delta(flushPart));
+                        }
+                        buffer.setLength(0);
+                        return;
                     }
-                    if (!inChipsSection[0]) {
-                        sendSse(emitter, "delta", AgentStreamDto.delta(token));
+
+                    int lastBracket = bufStr.lastIndexOf('[');
+                    if (lastBracket >= 0) {
+                        String potentialPrefix = bufStr.substring(lastBracket).toUpperCase();
+                        if ("[CHIPS:".startsWith(potentialPrefix)) {
+                            String flushPart = bufStr.substring(0, lastBracket);
+                            if (!flushPart.isEmpty()) {
+                                sendSse(emitter, "delta", AgentStreamDto.delta(flushPart));
+                            }
+                            buffer.setLength(0);
+                            buffer.append(bufStr.substring(lastBracket));
+                            return;
+                        }
                     }
+
+                    sendSse(emitter, "delta", AgentStreamDto.delta(bufStr));
+                    buffer.setLength(0);
                 },
                 () -> {
+                    if (!inChipsSection[0] && buffer.length() > 0) {
+                        String bufStr = buffer.toString();
+                        if (!bufStr.toUpperCase().contains("[CHIPS")) {
+                            sendSse(emitter, "delta", AgentStreamDto.delta(bufStr));
+                        }
+                    }
                     List<String> chips = extractChips(accumulated.toString());
                     sendSse(emitter, "done", AgentStreamDto.done(chips));
                     emitter.complete();
