@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
+import kr.inuappcenterportal.inuportal.domain.agent.util.AgentFuzzyMatcher;
 import kr.inuappcenterportal.inuportal.domain.bus.dto.BusArrivalItemDto;
 import kr.inuappcenterportal.inuportal.domain.bus.dto.BusHistoryResponseDto;
 import kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteSectionResponseDto;
@@ -36,7 +37,7 @@ public class BusAgentTool implements AgentTool {
                 List.of("정류장별 실시간 도착 조회", "과거 날짜 도착 이력 조회", "배차 간격 통계 조회"),
                 List.of("2번 출구 버스 언제 와?", "정문 버스 언제 와?", "인입 1번출구 버스", "송도역 셔틀 알려줘", "어제 공대 버스 배차 어땠어?"),
                 List.of("특정 시각에 버스 정보를 알려달라는 예약 요청은 ACTION_MANAGE_REMINDER"),
-                Map.of("stopName", AgentToolParameter.string("정류장 이름 (예: 인천대입구역 2번출구, 1번출구, 정문, 공대, 자연대, 지정단 3번출구 등), 미지정 시 현재 시간대 기본 정류장", false),
+                Map.of("stopName", AgentToolParameter.string("조회할 정류소 명칭 (예: 인천대입구역 1번출구, 인천대입구역 2번출구, 인천대입구역.롯데몰, 지식정보단지역 3번출구, 인천대 정문, 인천대 공과대학, 자연과학대학, 기숙사 등). 사용자가 '2번 출구'를 질의하면 지하철역 출구인 '인천대입구역 2번출구'로 지정하세요. 미지정 시 현재 시간대 기본 정류소.", false),
                         "targetDate", AgentToolParameter.string("YYYY-MM-DD, YESTERDAY 또는 LAST_WEEK", false),
                         "mode", AgentToolParameter.string("조회 방식", false, "REALTIME", "HISTORY")), false, true);
     }
@@ -53,8 +54,6 @@ public class BusAgentTool implements AgentTool {
                     hasExplicitStopQuery = true;
                 }
             }
-
-            String targetStopName = resolveTargetStopName(rawStopName);
 
             String mode = "REALTIME";
             if (params != null && params.containsKey("mode") && params.get("mode") != null) {
@@ -82,27 +81,31 @@ public class BusAgentTool implements AgentTool {
             List<BusRouteSectionResponseDto> allSections = busService.getRouteSections(null);
             List<BusStopAliasDto> aliases = busService.getStopAliases();
 
-            // 1. 질의어 기반 정류장/별칭/구간 탐색 (공백 무시 및 키워드 다단계 매칭)
+            // 1. 질의어 기반 정류장/별칭/구간 탐색 (AgentFuzzyMatcher를 통한 자율 유사도 매칭)
             List<BusRouteSectionResponseDto> matchedSections = new ArrayList<>();
             String matchedBstopId = null;
             String resolvedStopName = null;
             boolean fallbackToDefaultUsed = false;
 
-            String normQuery = normalizeText(targetStopName);
+            if (hasExplicitStopQuery) {
+                // 1-1. BusStopAlias(공식 명칭, 축약 별칭, 메모)에서 최적 일치 정류소 탐색
+                Optional<AgentFuzzyMatcher.MatchResult<BusStopAliasDto>> aliasMatch = AgentFuzzyMatcher.findBestMatch(
+                        rawStopName,
+                        aliases,
+                        a -> List.of(
+                                a.getBstopName() != null ? a.getBstopName() : "",
+                                a.getStopAlias() != null ? a.getStopAlias() : "",
+                                a.getMemo() != null ? a.getMemo() : ""
+                        ),
+                        0.4
+                );
 
-            if (!normQuery.isBlank()) {
-                // 1-1. BusStopAlias에서 일치하는 정류장 ID 우선 탐색
-                for (BusStopAliasDto alias : aliases) {
-                    String normName = normalizeText(alias.getBstopName());
-                    String normAlias = normalizeText(alias.getStopAlias());
-                    String normMemo = normalizeText(alias.getMemo());
-
-                    if (normName.contains(normQuery) || normMemo.contains(normQuery) || normAlias.equals(normQuery)
-                            || (!normName.isEmpty() && normQuery.contains(normName))) {
-                        matchedBstopId = alias.getBstopId();
-                        resolvedStopName = alias.getBstopName();
-                        break;
-                    }
+                if (aliasMatch.isPresent()) {
+                    BusStopAliasDto bestAlias = aliasMatch.get().item();
+                    matchedBstopId = bestAlias.getBstopId();
+                    resolvedStopName = (bestAlias.getBstopName() != null && !bestAlias.getBstopName().isBlank())
+                            ? bestAlias.getBstopName()
+                            : bestAlias.getStopAlias();
                 }
 
                 // 1-2. 정류장 ID가 특정되었으면 해당 ID의 노선 섹션들 선택
@@ -114,19 +117,35 @@ public class BusAgentTool implements AgentTool {
                     }
                 }
 
-                // 1-3. ID 매칭으로 섹션이 없으면 구간명/탭명/정류장명 공백 무시 검색
+                // 1-3. BusStopAlias 매칭 실패 시, 전체 노선 섹션(섹션명, 탭명, 기점 정류장명/별칭)에서 직접 유사도 매칭
                 if (matchedSections.isEmpty()) {
-                    for (BusRouteSectionResponseDto sec : allSections) {
-                        String normTab = normalizeText(sec.getTabName());
-                        String normStart = normalizeText(sec.getStartBstopName());
-                        String normStartAlias = normalizeText(sec.getStartBstopAlias());
-                        String normSecName = normalizeText(sec.getSectionName());
+                    Optional<AgentFuzzyMatcher.MatchResult<BusRouteSectionResponseDto>> sectionMatch = AgentFuzzyMatcher.findBestMatch(
+                            rawStopName,
+                            allSections,
+                            s -> List.of(
+                                    s.getTabName() != null ? s.getTabName() : "",
+                                    s.getSectionName() != null ? s.getSectionName() : "",
+                                    s.getStartBstopName() != null ? s.getStartBstopName() : "",
+                                    s.getStartBstopAlias() != null ? s.getStartBstopAlias() : ""
+                            ),
+                            0.35
+                    );
 
-                        if (normStart.contains(normQuery) || normTab.contains(normQuery)
-                                || normStartAlias.contains(normQuery) || normSecName.contains(normQuery)
-                                || (!normStart.isEmpty() && normQuery.contains(normStart))) {
-                            matchedSections.add(sec);
+                    if (sectionMatch.isPresent()) {
+                        BusRouteSectionResponseDto bestSec = sectionMatch.get().item();
+                        String bestBstopId = bestSec.getStartBstopId();
+                        for (BusRouteSectionResponseDto sec : allSections) {
+                            if (bestBstopId != null && bestBstopId.equals(sec.getStartBstopId())) {
+                                matchedSections.add(sec);
+                            }
                         }
+                        if (matchedSections.isEmpty()) {
+                            matchedSections.add(bestSec);
+                        }
+                        matchedBstopId = bestBstopId;
+                        resolvedStopName = bestSec.getStartBstopAlias() != null
+                                ? bestSec.getStartBstopAlias()
+                                : bestSec.getStartBstopName();
                     }
                 }
             }
@@ -152,7 +171,7 @@ public class BusAgentTool implements AgentTool {
 
             BusRouteSectionResponseDto representativeSection = matchedSections.get(0);
             String matchedCategory = representativeSection.getCategory() != null ? representativeSection.getCategory() : "go-school";
-            String matchedTabName = representativeSection.getTabName() != null ? representativeSection.getTabName() : targetStopName;
+            String matchedTabName = representativeSection.getTabName() != null ? representativeSection.getTabName() : "";
             if (matchedBstopId == null) {
                 matchedBstopId = representativeSection.getStartBstopId();
             }
@@ -160,16 +179,6 @@ public class BusAgentTool implements AgentTool {
                 resolvedStopName = representativeSection.getStartBstopAlias() != null
                         ? representativeSection.getStartBstopAlias()
                         : representativeSection.getStartBstopName();
-            }
-
-            if (matchedBstopId == null) {
-                for (BusStopAliasDto alias : aliases) {
-                    if (normalizeText(alias.getStopAlias()).contains(normQuery) || normQuery.contains(normalizeText(alias.getStopAlias()))) {
-                        matchedBstopId = alias.getBstopId();
-                        resolvedStopName = alias.getStopAlias();
-                        break;
-                    }
-                }
             }
 
             // 2. 인입런에서 실제로 관리/표출 중인 유효 버스 노선 번호 화이트리스트 구성
@@ -311,45 +320,6 @@ public class BusAgentTool implements AgentTool {
         }
     }
 
-    private String resolveTargetStopName(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return "";
-        }
-        String cleaned = raw.replaceAll("(?i)(버스|셔틀|도착|언제|정보|알려줘|정류장|정류소)", "").trim();
-        String normalized = normalizeText(cleaned);
-
-        if (normalized.contains("2번출구") || normalized.contains("2출")) {
-            return "인천대입구역 2번출구";
-        }
-        if (normalized.contains("1번출구") || normalized.contains("1출")) {
-            return "인천대입구역 1번출구";
-        }
-        if (normalized.contains("3번출구") || normalized.contains("3출")) {
-            return "지식정보단지역 3번출구";
-        }
-        if (normalized.contains("롯데몰")) {
-            return "인천대입구역.롯데몰";
-        }
-        if (normalized.contains("정문")) {
-            return "정문";
-        }
-        if (normalized.contains("공대") || normalized.contains("자연대")) {
-            return "공대";
-        }
-        if (normalized.contains("지정단") || normalized.contains("지식정보")) {
-            return "지정단";
-        }
-        if (normalized.contains("인입") || normalized.contains("인천대입구")) {
-            return "인입";
-        }
-
-        return cleaned.isBlank() ? raw : cleaned;
-    }
-
-    private String normalizeText(String text) {
-        return text == null ? "" : text.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
-    }
-
     @Override
     public boolean supportsFallback(String message, List<ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
@@ -360,7 +330,27 @@ public class BusAgentTool implements AgentTool {
 
     @Override
     public Map<String, Object> createFallbackParams(String message, List<ChatMessageDto> history) {
-        String stop = resolveTargetStopName(message);
+        String stop = "";
+        try {
+            List<BusStopAliasDto> aliases = busService.getStopAliases();
+            Optional<AgentFuzzyMatcher.MatchResult<BusStopAliasDto>> match = AgentFuzzyMatcher.findBestMatch(
+                    message,
+                    aliases,
+                    a -> List.of(
+                            a.getBstopName() != null ? a.getBstopName() : "",
+                            a.getStopAlias() != null ? a.getStopAlias() : "",
+                            a.getMemo() != null ? a.getMemo() : ""
+                    ),
+                    0.35
+            );
+            if (match.isPresent()) {
+                BusStopAliasDto alias = match.get().item();
+                stop = (alias.getBstopName() != null && !alias.getBstopName().isBlank())
+                        ? alias.getBstopName()
+                        : alias.getStopAlias();
+            }
+        } catch (Exception ignored) {}
+
         if (stop.isBlank()) {
             boolean isMorning = LocalTime.now().isBefore(LocalTime.of(14, 0));
             stop = isMorning ? "인입" : "정문";

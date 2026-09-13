@@ -75,6 +75,13 @@ class BusAgentToolTest {
     @Test
     @DisplayName("출구 번호가 포함된 경우 fallbackParams에서도 '인천대입구역 2번출구'로 정규화된다")
     void fallbackParamsNormalizesExitKeyword() {
+        BusStopAliasDto alias = BusStopAliasDto.builder()
+                .bstopId("38391")
+                .bstopName("인천대입구역 2번출구")
+                .stopAlias("인입")
+                .build();
+        given(busService.getStopAliases()).willReturn(List.of(alias));
+
         assertTrue(busAgentTool.supportsFallback("2번 출구 버스 언제 와?", Collections.emptyList()));
         Map<String, Object> params = busAgentTool.createFallbackParams("2번 출구 버스 언제 와?", Collections.emptyList());
         assertEquals("인천대입구역 2번출구", params.get("stopName"));
