@@ -6,6 +6,7 @@ import kr.inuappcenterportal.inuportal.domain.agent.dto.*;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolJsonParser;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolRegistry;
+import kr.inuappcenterportal.inuportal.domain.chat.service.InuChatAiService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatMessageDto;
 import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatRequestDto;
@@ -30,6 +31,7 @@ public class AgentService {
 
     private final VllmService vllmService;
     private final AgentToolRegistry agentToolRegistry;
+    private final InuChatAiService inuChatAiService;
     private final ObjectMapper objectMapper;
 
     private static final Pattern CHIPS_PATTERN = Pattern.compile("\\[CHIPS:\\s*(.*?)\\]", Pattern.CASE_INSENSITIVE);
@@ -239,7 +241,50 @@ public class AgentService {
                         effectiveTools.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList()
                 ));
 
-                // 3. ReAct 다단계 자율 실행 및 체이닝
+                // 2-1. [단독/학적 연계 학사 규정 질의 초고속 패스스루]
+                // 캠퍼스 도구(식당, 버스 등) 결합 없이 학사 규정(INU_AI_KNOWLEDGE)과 학적(ACADEMIC)만 필요한 경우,
+                // 동기 블로킹 대기 및 2차 요약을 생략하고 inuchat AI 스트리밍을 클라이언트로 즉시 실시간 토스(Pass-through)
+                boolean isPureInuAi = effectiveTools.stream()
+                        .allMatch(tc -> "INU_AI_KNOWLEDGE".equalsIgnoreCase(tc.tool()) || "ACADEMIC".equalsIgnoreCase(tc.tool()))
+                        && effectiveTools.stream().anyMatch(tc -> "INU_AI_KNOWLEDGE".equalsIgnoreCase(tc.tool()));
+
+                if (isPureInuAi) {
+                    List<UiComponentDto> uiComponents = new ArrayList<>();
+                    Set<String> executedTools = new LinkedHashSet<>();
+                    boolean hasAcademic = effectiveTools.stream().anyMatch(tc -> "ACADEMIC".equalsIgnoreCase(tc.tool()));
+                    if (hasAcademic) {
+                        executedTools.add("ACADEMIC");
+                        Map<String, Object> toolParams = new LinkedHashMap<>();
+                        if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
+                            toolParams.put("_clientContext", requestDto.clientContext());
+                        }
+                        AgentTool.ToolResult result = agentToolRegistry.execute("ACADEMIC", member, toolParams);
+                        if (result.uiComponent() != null) {
+                            uiComponents.add(result.uiComponent());
+                        }
+                    }
+                    executedTools.add("INU_AI_KNOWLEDGE");
+
+                    String advisorAnswer = buildAdvisorProfessorAnswer(userMessage, requestDto.clientContext());
+                    if (advisorAnswer != null) {
+                        sendSse(emitter, "tools", AgentStreamDto.tools(new ArrayList<>(executedTools), uiComponents));
+                        sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "지도교수 정보를 전달하고 있습니다..."));
+                        sendSse(emitter, "delta", AgentStreamDto.delta(advisorAnswer));
+                        sendSse(emitter, "done", AgentStreamDto.done(getDefaultSuggestedActions()));
+                        emitter.complete();
+                        return;
+                    }
+
+                    // 학적 UI 카드 선행 방출
+                    sendSse(emitter, "tools", AgentStreamDto.tools(new ArrayList<>(executedTools), uiComponents));
+                    sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "학사 규정 답변을 전달하고 있습니다..."));
+
+                    // inuchat AI 실시간 토큰 스트리밍 다이렉트 토스
+                    streamInuAiLive(emitter, member != null ? member.getId() : null, userMessage, requestDto.clientContext());
+                    return;
+                }
+
+                // 3. ReAct 다단계 자율 실행 및 체이닝 (이종 캠퍼스 도구 복합 질의)
                 sendSse(emitter, "status", AgentStreamDto.status("EXECUTING", "필요한 캠퍼스 정보를 조회하고 있습니다..."));
                 List<UiComponentDto> uiComponents = new ArrayList<>();
                 StringBuilder combinedSummaries = new StringBuilder();
@@ -957,6 +1002,100 @@ public class AgentService {
         return text.replaceAll("(?i)\\[\\s*CHIPS[\\s\\S]*$", "")
                    .replaceAll("(?i)\\[CHIPS:[^\\]]*\\]?", "")
                    .trim();
+    }
+
+    private void streamInuAiLive(SseEmitter emitter, Long memberId, String userMessage, Map<String, Object> clientContext) {
+        Map<String, Object> academicContext = selectAcademicContext(userMessage, clientContext);
+        StringBuilder accumulated = new StringBuilder();
+        StringBuilder buffer = new StringBuilder();
+        boolean[] inChipsSection = new boolean[]{false};
+
+        inuChatAiService.streamChat(memberId, userMessage, Collections.emptyList(), academicContext)
+                .subscribe(
+                        token -> {
+                            if (inChipsSection[0]) {
+                                accumulated.append(token);
+                                return;
+                            }
+
+                            accumulated.append(token);
+                            buffer.append(token);
+
+                            String bufStr = buffer.toString();
+                            int chipsIdx = bufStr.toUpperCase().indexOf("[CHIPS");
+                            if (chipsIdx >= 0) {
+                                inChipsSection[0] = true;
+                                String flushPart = bufStr.substring(0, chipsIdx);
+                                if (!flushPart.isEmpty()) {
+                                    sendSse(emitter, "delta", AgentStreamDto.delta(flushPart));
+                                }
+                                buffer.setLength(0);
+                                return;
+                            }
+
+                            int lastBracket = bufStr.lastIndexOf('[');
+                            if (lastBracket >= 0) {
+                                String potentialPrefix = bufStr.substring(lastBracket).toUpperCase();
+                                if ("[CHIPS:".startsWith(potentialPrefix)) {
+                                    String flushPart = bufStr.substring(0, lastBracket);
+                                    if (!flushPart.isEmpty()) {
+                                        sendSse(emitter, "delta", AgentStreamDto.delta(flushPart));
+                                    }
+                                    buffer.setLength(0);
+                                    buffer.append(bufStr.substring(lastBracket));
+                                    return;
+                                }
+                            }
+
+                            sendSse(emitter, "delta", AgentStreamDto.delta(bufStr));
+                            buffer.setLength(0);
+                        },
+                        err -> {
+                            log.error("InuChat AI 실시간 스트리밍 에러: {}", err.getMessage());
+                            sendSse(emitter, "done", AgentStreamDto.done(getDefaultAcademicSuggestedActions()));
+                            emitter.complete();
+                        },
+                        () -> {
+                            if (!inChipsSection[0] && buffer.length() > 0) {
+                                String bufStr = buffer.toString();
+                                if (!bufStr.toUpperCase().contains("[CHIPS")) {
+                                    sendSse(emitter, "delta", AgentStreamDto.delta(bufStr));
+                                }
+                            }
+                            List<String> chips = extractChips(accumulated.toString());
+                            if (chips.isEmpty()) {
+                                chips = getDefaultAcademicSuggestedActions();
+                            }
+                            sendSse(emitter, "done", AgentStreamDto.done(chips));
+                            emitter.complete();
+                        }
+                );
+    }
+
+    private Map<String, Object> selectAcademicContext(String question, Map<String, Object> clientContext) {
+        if (clientContext == null || !(clientContext.get("academic") instanceof Map<?, ?> academic)) {
+            return Collections.emptyMap();
+        }
+
+        String lower = question.toLowerCase(Locale.ROOT);
+        boolean graduation = lower.contains("졸업") || lower.contains("수료") || lower.contains("이수") || lower.contains("학점");
+        boolean status = lower.contains("휴학") || lower.contains("복학") || lower.contains("전과") || lower.contains("학적");
+        boolean scholarship = lower.contains("장학");
+        if (!graduation && !status && !scholarship) return Collections.emptyMap();
+
+        Map<String, Object> selected = new LinkedHashMap<>();
+        copyIfPresent(academic, selected, "entryYear", "departmentName", "collegeName", "enrollmentStatus");
+        if (graduation || scholarship) {
+            copyIfPresent(academic, selected, "completedSemesterCount", "acquiredCredits", "gradeAverage");
+        }
+        return selected;
+    }
+
+    private void copyIfPresent(Map<?, ?> source, Map<String, Object> target, String... keys) {
+        for (String key : keys) {
+            Object value = source.get(key);
+            if (value != null && !String.valueOf(value).isBlank()) target.put(key, value);
+        }
     }
 
     private void streamInuAiDirect(SseEmitter emitter, String rawAnswer) {

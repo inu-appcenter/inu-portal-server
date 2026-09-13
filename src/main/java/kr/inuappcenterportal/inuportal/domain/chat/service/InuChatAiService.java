@@ -77,6 +77,42 @@ public class InuChatAiService {
                 });
     }
 
+    /**
+     * inuchat AI 서버의 실시간 스트리밍 응답(HTTP Chunked / StreamingResponse)을
+     * 0ms 지연으로 클라이언트 SSE에 다이렉트 토스할 수 있도록 Flux<String> 형태로 반환합니다.
+     */
+    public reactor.core.publisher.Flux<String> streamChat(Long memberId, String question, List<Object> history, Map<String, Object> academicContext) {
+        String deviceId = memberId != null ? "intip-" + memberId : "intip-" + UUID.randomUUID();
+        String safeQuestion = anonymizeForInuChat(question);
+        String questionWithContext = safeQuestion + formatAcademicContext(academicContext);
+        InuChatRequestDto requestDto = InuChatRequestDto.of(questionWithContext, List.of());
+        String fullUrl = trimTrailingSlash(baseUrl) + (chatPath.startsWith("/") ? chatPath : "/" + chatPath);
+
+        log.info("InuChat AI 스트리밍 요청 시작: memberId={}, deviceId={}, url={}, question={}",
+                memberId, deviceId, fullUrl, questionWithContext);
+
+        HttpClient httpClient = HttpClient.create()
+                .responseTimeout(Duration.ofSeconds(timeoutSeconds));
+
+        WebClient dedicatedWebClient = webClient.mutate()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+
+        return dedicatedWebClient.post()
+                .uri(fullUrl)
+                .header("X-Guest-Device-Id", deviceId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_PLAIN, MediaType.ALL)
+                .bodyValue(requestDto)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .timeout(Duration.ofSeconds(timeoutSeconds + 5))
+                .onErrorResume(e -> {
+                    log.error("InuChat AI 스트리밍 호출 실패: memberId={}, error={}", memberId, e.getMessage(), e);
+                    return reactor.core.publisher.Flux.just("학사 규정 답변을 가져오는 중 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+                });
+    }
+
     private String trimTrailingSlash(String url) {
         if (url == null) return "";
         String trimmed = url.trim();
