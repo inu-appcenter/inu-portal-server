@@ -40,10 +40,11 @@ class AgentToolCatalogContractTest {
         AgentToolDefinition library = instantiate(LibraryAgentTool.class).getDefinition();
         AgentToolDefinition watch = instantiate(CampusWatchAgentTool.class).getDefinition();
 
-        assertEquals(List.of("SEATS", "STUDY_ROOMS"), library.parameters().get("target").enumValues());
-        assertEquals(List.of("LIBRARY_SEAT"), watch.parameters().get("domain").enumValues());
-        assertTrue(library.negativeExamples().stream().anyMatch(text -> text.contains("예약")));
-        assertTrue(watch.negativeExamples().stream().anyMatch(text -> text.contains("스터디룸")));
+        assertEquals(List.of("SEATS", "STUDY_ROOMS", "MY_SEAT", "RENEW_SEAT", "RETURN_SEAT", "RESERVE_STUDY_ROOM", "CANCEL_STUDY_ROOM", "CHECKIN_STUDY_ROOM"),
+                library.parameters().get("target").enumValues());
+        assertEquals(List.of("LIBRARY_SEAT", "STUDY_ROOM"), watch.parameters().get("domain").enumValues());
+        assertTrue(library.negativeExamples().stream().anyMatch(text -> text.contains("ACTION_CAMPUS_WATCH")));
+        assertTrue(watch.negativeExamples().stream().anyMatch(text -> text.contains("LIBRARY")));
     }
 
     @Test
