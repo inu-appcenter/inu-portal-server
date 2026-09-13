@@ -73,9 +73,10 @@ public class AgentService {
                 
                 [도구 선택 시 핵심 지침 (빅스비 연합 에이전트 원칙)]
                 - 학교 공식 학칙, 규정(졸업 요건, 복수전공/전과 기준, 조기졸업, 휴학/복학 연한, 학사경고, 성적 장학금 선발 규정 등), 대학 행정 절차 및 규정 해석 질문은 반드시 'INU_AI_KNOWLEDGE' 도구를 사용하세요.
-                - [멀티턴 후속 질문 처리]: 직전 대화에서 학칙/졸업요건/규정 등을 묻고 난 뒤, 사용자가 '나는 20학번이야', '2020학번은?', '소프트웨어학과는?', '복수전공할 때는?'과 같이 학번/학과/상황을 좁히는 후속 발화를 한 경우:
-                  * 절대로 GENERAL로 넘기지 말고, 이전 문맥과 합쳐서 반드시 'INU_AI_KNOWLEDGE'를 호출하세요.
-                  * 예: 직전 질문이 '컴공 졸업요건'이고 현재 질문이 '나는 2020학번이야'라면 -> params: {"question": "2020학번 컴퓨터공학부 졸업 요건"}
+                - 교수, 교직원, 학과 사무실, 행정부서의 전화번호, 이메일, 연구실/사무실 위치 조회는 'DIRECTORY' 도구를 사용하세요.
+                - [멀티턴 후속 질문 처리]:
+                  * 직전 대화에서 학칙/졸업요건/규정 등을 묻고 난 뒤, 사용자가 '나는 20학번이야', '2020학번은?', '소프트웨어학과는?', '복수전공할 때는?'과 같이 학번/학과/상황을 좁히는 후속 발화를 한 경우: 이전 문맥과 합쳐서 반드시 'INU_AI_KNOWLEDGE'를 호출하세요. (예: 직전 질문이 '컴공 졸업요건'이고 현재 질문이 '나는 2020학번이야'라면 -> params: {"question": "2020학번 컴퓨터공학부 졸업 요건"})
+                  * 직전 대화에서 지도교수님(예: '박문주 교수님')이나 특정 인물/학과를 확인한 뒤, 사용자가 '전화번호나 이메일 알아?', '연락처 알려줘', '연구실 어디야?'와 같이 후속 질문을 한 경우: 이전 문맥의 인물 성함이나 학과명(예: '박문주')을 query 파라미터로 설정하여 반드시 'DIRECTORY' 도구를 호출하세요. (예: params: {"query": "박문주"})
                 - 단순 게시판 공지 목록/최근 행사 안내 검색은 'NOTICE' 도구를 사용하세요.
                 - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태, 지도교수 또는 담임교수 확인은 'ACADEMIC' 도구를 사용하세요. 지도/담임교수 질문에서 ACADEMIC 도구 결과에 지도교수 성함이 있으면, 소속 학과 상태와 무관하게 그 성함을 답변의 근거로 사용하세요.
                 - [1인칭 졸업/학사 판정 질의]: '나 졸업 가능해?', '나 졸업 요건 돼?', '나 이번에 졸업할 수 있어?', '졸업 언제 할 수 있어?'처럼 1인칭 주어('나', '내', '저')로 본인의 졸업/수료/학점 가능 여부를 묻는 질문은, 학생 본인의 학적 상태(소속 학과, 취득 학점) 파악이 필수적이므로 반드시 'ACADEMIC'과 'INU_AI_KNOWLEDGE'를 순서대로 모두 포함하세요. (절대로 INU_AI_KNOWLEDGE만 단독 호출하지 마세요)
@@ -1163,6 +1164,16 @@ public class AgentService {
         if (!hasAcademic) {
             ensured.add(new AgentToolDecisionDto.SingleToolCall("ACADEMIC", Map.of()));
         }
+
+        // 지도교수 연락처(전화번호, 이메일 등) 질의인 경우 DIRECTORY 도구도 함께 보장
+        if (isContactQuestion(message)) {
+            boolean hasDirectory = ensured.stream()
+                    .anyMatch(call -> "DIRECTORY".equalsIgnoreCase(call.tool()));
+            if (!hasDirectory) {
+                ensured.add(new AgentToolDecisionDto.SingleToolCall("DIRECTORY", Map.of("query", "지도교수")));
+            }
+        }
+
         return sortToolCalls(ensured);
     }
 
@@ -1171,7 +1182,8 @@ public class AgentService {
      * 인증된 사용자에게 돌려줄 이 응답에서만 생성 모델의 재해석 없이 그대로 사용한다.
      */
     private String buildAdvisorProfessorAnswer(String message, Map<String, Object> clientContext) {
-        if (!isAdvisorProfessorQuestion(message) || clientContext == null) {
+        // 전화번호, 이메일 등 연락처를 함께 묻는 질의는 DIRECTORY 도구 실행 후 종합 답변으로 넘긴다.
+        if (!isAdvisorProfessorQuestion(message) || isContactQuestion(message) || clientContext == null) {
             return null;
         }
         Object academicObj = clientContext.get("academicDisplay");
@@ -1194,6 +1206,16 @@ public class AgentService {
         }
         String normalized = message.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
         return normalized.contains("지도교수") || normalized.contains("담임교수");
+    }
+
+    private boolean isContactQuestion(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+        return normalized.contains("전화") || normalized.contains("번호") || normalized.contains("이메일")
+                || normalized.contains("메일") || normalized.contains("연락처") || normalized.contains("연구실")
+                || normalized.contains("위치") || normalized.contains("사무실");
     }
 
     private AgentToolDecisionDto fallbackRuleBasedDecision(String msg, List<ChatMessageDto> history) {
