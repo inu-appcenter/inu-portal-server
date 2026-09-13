@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedule.dto.ScheduleResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedule.service.ScheduleService;
@@ -20,13 +20,13 @@ public class ScheduleAgentTool implements AgentTool {
     private final ScheduleService scheduleService;
 
     @Override
-    public String getName() {
-        return "SCHEDULE";
-    }
-
-    @Override
-    public String getDescription() {
-        return "학사일정, 시험기간, 수강신청/정정 기간, 학과 일정 관련 질문 (params: {\"year\": YYYY, \"month\": MM})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("SCHEDULE", "학교와 소속 학과의 월별 학사일정을 조회합니다.",
+                List.of("월별 학사일정 조회", "시험 기간 조회", "수강신청·수강정정 기간 조회", "소속 학과 일정 조회"),
+                List.of("이번 달 학사일정 알려줘", "중간고사 기간 언제야?", "다음 달 수강정정 일정 있어?"),
+                List.of("절차·자격·학칙 해석은 INU_AI_KNOWLEDGE", "개인 수업 일정은 TIMETABLE"),
+                Map.of("year", AgentToolParameter.integer("조회 연도, 미지정 시 현재 연도", false),
+                        "month", AgentToolParameter.integer("조회 월 1~12, 미지정 시 현재 월", false)), false, true);
     }
 
     @Override

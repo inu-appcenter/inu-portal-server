@@ -5,8 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.agent.dto.AgentReminderDto;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
 import kr.inuappcenterportal.inuportal.domain.agent.enums.AgentReminderRepeatType;
 import kr.inuappcenterportal.inuportal.domain.agent.service.AgentReminderService;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolRegistry;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -33,16 +32,18 @@ public class AgentReminderTool implements AgentTool {
     }
 
     @Override
-    public String getName() {
-        return "ACTION_MANAGE_REMINDER";
-    }
-
-    @Override
-    public String getDescription() {
-        return "사용자가 원하는 특정 시각에 학식, 날씨, 버스 등 원하는 도구의 정보를 맞춤형 푸시 알림으로 예약/수정/삭제/조회합니다. "
-                + "(params: {\"action\": \"CREATE\"|\"DELETE\"|\"LIST\", \"targetTime\": \"HH:mm\", \"targetTool\": \"CAFETERIA\"|\"WEATHER\"|\"BUS\"|\"NOTICE\", "
-                + "\"toolParams\": { ... }, \"title\": \"알림 제목\", \"repeatType\": \"WEEKDAYS\"|\"EVERYDAY\"|\"ONCE\"}). "
-                + "예: '오전 11시에 학식 알려줘' -> {\"action\":\"CREATE\",\"targetTime\":\"11:00\",\"targetTool\":\"CAFETERIA\",\"toolParams\":{\"mealType\":\"LUNCH\"},\"title\":\"점심 학식 알림\",\"repeatType\":\"WEEKDAYS\"}";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACTION_MANAGE_REMINDER", "특정 시각에 캠퍼스 정보를 보내는 맞춤 푸시 알림을 관리합니다.",
+                List.of("학식·날씨·버스·공지 맞춤 알림 생성", "등록된 맞춤 알림 목록 조회", "알림 ID 또는 대상 도구로 삭제"),
+                List.of("매일 11시에 학식 알려줘", "내 맞춤 알림 목록 보여줘", "3번 알림 삭제해줘"),
+                List.of("시간표·학사일정 기본 브리프는 ACTION_DAILY_BRIEF", "공지 키워드 발생 알림은 ACTION_NOTICE_KEYWORD"),
+                Map.of("action", AgentToolParameter.string("수행 작업", true, "CREATE", "DELETE", "LIST"),
+                        "targetTime", AgentToolParameter.string("알림 시각 HH:mm", false),
+                        "targetTool", AgentToolParameter.string("알림 데이터 도구", false, "CAFETERIA", "WEATHER", "BUS", "NOTICE"),
+                        "toolParams", AgentToolParameter.object("대상 도구에 전달할 중첩 파라미터", false, Map.of()),
+                        "title", AgentToolParameter.string("알림 제목", false),
+                        "repeatType", AgentToolParameter.string("반복 방식", false, "WEEKDAYS", "EVERYDAY", "ONCE"),
+                        "reminderId", AgentToolParameter.integer("삭제할 알림 ID", false)), true, false);
     }
 
     @Override
@@ -190,5 +191,27 @@ public class AgentReminderTool implements AgentTool {
             log.error("[AgentReminderTool] 알림 관리 처리 실패: {}", e.getMessage(), e);
             return new ToolResult("알림을 설정하는 도중 오류가 발생했습니다: " + e.getMessage(), null, null);
         }
+    }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        boolean timedInfo = (lower.contains("알려줘") || lower.contains("알림"))
+                && lower.matches(".*(\\d{1,2}시|\\d{1,2}:\\d{2}|아침|점심|저녁).*?")
+                && (lower.contains("학식") || lower.contains("날씨") || lower.contains("버스") || lower.contains("공지"));
+        boolean manage = lower.contains("맞춤 알림") && (lower.contains("목록") || lower.contains("삭제") || lower.contains("취소"));
+        return timedInfo || manage;
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        String lower = message == null ? "" : message.toLowerCase();
+        if (lower.contains("목록")) return Map.of("action", "LIST");
+        if (lower.contains("삭제") || lower.contains("취소")) return Map.of("action", "DELETE");
+        String targetTool = lower.contains("날씨") ? "WEATHER" : lower.contains("버스") ? "BUS" : lower.contains("공지") ? "NOTICE" : "CAFETERIA";
+        java.util.regex.Matcher time = java.util.regex.Pattern.compile("(\\d{1,2})(?::(\\d{2})|시)").matcher(lower);
+        String targetTime = time.find() ? String.format("%02d:%02d", Integer.parseInt(time.group(1)), time.group(2) == null ? 0 : Integer.parseInt(time.group(2))) : "08:30";
+        return Map.of("action", "CREATE", "targetTool", targetTool, "targetTime", targetTime, "repeatType", "WEEKDAYS");
     }
 }

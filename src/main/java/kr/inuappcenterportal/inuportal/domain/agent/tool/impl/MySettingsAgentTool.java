@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefSettingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
 import kr.inuappcenterportal.inuportal.domain.keyword.dto.res.KeywordResponse;
@@ -26,13 +26,12 @@ public class MySettingsAgentTool implements AgentTool {
     private final KeywordService keywordService;
 
     @Override
-    public String getName() {
-        return "ACTION_MY_SETTINGS";
-    }
-
-    @Override
-    public String getDescription() {
-        return "내 알림 설정 현황 및 키워드 목록 조회 (params: 없음). 예: '내 알림 설정 보여줘', '내가 등록한 키워드 뭐 있어?'";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACTION_MY_SETTINGS", "사용자의 알림 설정과 등록된 공지 키워드를 조회합니다.",
+                List.of("채팅 푸시 설정 조회", "데일리 브리프 설정 조회", "등록된 공지 키워드 목록 조회"),
+                List.of("내 알림 설정 보여줘", "등록한 키워드 뭐 있어?"),
+                List.of("설정 변경은 각각 ACTION_CHAT_PUSH, ACTION_DAILY_BRIEF, ACTION_NOTICE_KEYWORD"),
+                Map.of(), true, true);
     }
 
     @Override

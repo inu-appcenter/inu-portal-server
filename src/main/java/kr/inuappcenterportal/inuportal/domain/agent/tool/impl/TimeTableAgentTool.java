@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
@@ -26,13 +26,12 @@ public class TimeTableAgentTool implements AgentTool {
     private final TimeTableService timeTableService;
 
     @Override
-    public String getName() {
-        return "TIMETABLE";
-    }
-
-    @Override
-    public String getDescription() {
-        return "내 시간표, 특정 일자(오늘, 내일, 모레, 특정 요일) 수업, 강의실, 다음 강의 관련 질문 (params: {\"targetDay\": \"TODAY\"|\"TOMORROW\"|\"AFTER_TOMORROW\"|\"MONDAY\"|\"TUESDAY\"|\"WEDNESDAY\"|\"THURSDAY\"|\"FRIDAY\"|\"SATURDAY\"|\"SUNDAY\"|\"YYYY-MM-DD\"})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("TIMETABLE", "사용자의 대표 시간표에서 날짜별 수업과 강의실을 조회합니다.",
+                List.of("오늘·내일·모레 수업 조회", "요일 또는 날짜별 수업 조회", "다음 강의와 강의실 조회"),
+                List.of("오늘 수업 뭐 있어?", "내일 첫 수업 어디야?", "다음 강의 언제야?"),
+                List.of("공강 길이 분석은 TIMETABLE_GAP", "학교 전체 학사일정은 SCHEDULE"),
+                Map.of("targetDay", AgentToolParameter.string("TODAY, TOMORROW, AFTER_TOMORROW, 영문 요일 또는 YYYY-MM-DD", false)), true, true);
     }
 
     @Override

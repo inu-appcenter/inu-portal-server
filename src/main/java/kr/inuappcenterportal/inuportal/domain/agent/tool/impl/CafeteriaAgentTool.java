@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.cafeteria.service.CafeteriaService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +24,14 @@ public class CafeteriaAgentTool implements AgentTool {
     );
 
     @Override
-    public String getName() {
-        return "CAFETERIA";
-    }
-
-    @Override
-    public String getDescription() {
-        return "학식, 식당, 메뉴, 밥, 점심, 저녁, 고기 메뉴, 메뉴 추천 관련 질문 (params: {\"cafeteria\": \"전체\"|\"학생식당\"|\"제1기숙사식당\"|\"2기숙사 식당\"|\"2호관(교직원)식당\"|\"27호관식당\"|\"사범대식당\", \"mealType\": \"AUTO\"|\"BREAKFAST\"|\"LUNCH\"|\"DINNER\", \"day\": 요일(1=월~7=일)}). 특정 식당 언급이 없으면 반드시 cafeteria는 \"전체\"로 설정하세요.";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("CAFETERIA", "교내 식당의 요일·식사 시간대별 메뉴를 조회하고 추천합니다.",
+                List.of("전체 또는 특정 식당 메뉴 조회", "조식·중식·석식 메뉴 조회", "메뉴 조건 기반 추천"),
+                List.of("오늘 점심 뭐야?", "기숙사 저녁 메뉴 알려줘", "고기 나오는 식당 추천해줘"),
+                List.of("특정 시각에 학식을 알려달라는 예약 요청은 ACTION_MANAGE_REMINDER"),
+                Map.of("cafeteria", AgentToolParameter.string("미지정 시 전체", false, "전체", "학생식당", "제1기숙사식당", "2기숙사 식당", "2호관(교직원)식당", "27호관식당", "사범대식당"),
+                        "mealType", AgentToolParameter.string("식사 구분", false, "AUTO", "BREAKFAST", "LUNCH", "DINNER"),
+                        "day", AgentToolParameter.integer("요일, 월요일=1부터 일요일=7", false)), false, true);
     }
 
     @Override

@@ -5,7 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.agent.dto.CampusWatchJobDto;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
 import kr.inuappcenterportal.inuportal.domain.agent.enums.CampusWatchDomain;
 import kr.inuappcenterportal.inuportal.domain.agent.service.CampusWatchService;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,16 +23,17 @@ public class CampusWatchAgentTool implements AgentTool {
     private final CampusWatchService campusWatchService;
 
     @Override
-    public String getName() {
-        return "ACTION_CAMPUS_WATCH";
-    }
-
-    @Override
-    public String getDescription() {
-        return "학산도서관 열람실/노트북실/힐링존 실시간 빈자리 감시(스나이퍼) 또는 스터디룸 희망 시간대 취소표 감시를 등록하거나 현재 감시 목록을 조회/취소합니다. "
-                + "(params: {\"action\": \"WATCH\"|\"LIST\"|\"CANCEL\", \"domain\": \"LIBRARY_SEAT\"|\"STUDY_ROOM\", \"targetName\": \"제1열람실\"|\"205호\", \"seatNo\": \"43\", \"hopeDate\": \"YYYY-MM-DD\", \"targetHour\": 15, \"durationMinutes\": 90}). "
-                + "예: '제1열람실 43번 좌석 비면 알려줘' -> {\"action\": \"WATCH\", \"domain\": \"LIBRARY_SEAT\", \"targetName\": \"제1열람실\", \"seatNo\": \"43\"}, "
-                + "'내일 3시 스터디룸 205호 자리 나면 알려줘' -> {\"action\": \"WATCH\", \"domain\": \"STUDY_ROOM\", \"targetName\": \"205호\", \"targetHour\": 15}";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACTION_CAMPUS_WATCH", "도서관 좌석 빈자리 감시를 등록·조회·취소합니다.",
+                List.of("열람실·노트북실·힐링존 빈자리 감시 등록", "감시 목록 조회", "감시 작업 ID로 취소"),
+                List.of("제1열람실 자리 나면 알려줘", "내 빈자리 감시 목록 보여줘", "3번 감시 취소해줘"),
+                List.of("현재 잔여 좌석만 조회할 때는 LIBRARY", "스터디룸 취소표 감시는 현재 지원하지 않음"),
+                Map.of("action", AgentToolParameter.string("수행 작업", true, "WATCH", "LIST", "CANCEL"),
+                        "domain", AgentToolParameter.string("감시 영역", false, "LIBRARY_SEAT"),
+                        "targetName", AgentToolParameter.string("열람실·노트북실·힐링존 이름", false),
+                        "seatNo", AgentToolParameter.string("특정 좌석 번호", false),
+                        "durationMinutes", AgentToolParameter.integer("감시 지속 시간, 최대 180분", false),
+                        "jobId", AgentToolParameter.integer("취소할 감시 작업 ID", false)), true, false);
     }
 
     @Override
@@ -59,6 +60,15 @@ public class CampusWatchAgentTool implements AgentTool {
                         ? "현재 실행 중인 실시간 빈자리 감시 작업이 없습니다."
                         : String.format("현재 총 %d건의 실시간 감시 작업이 진행 중입니다.", jobs.size());
                 return new ToolResult(summary, ui, Map.of("jobs", jobs));
+            }
+
+            if ("CANCEL".equals(action)) {
+                if (params == null || params.get("jobId") == null) {
+                    return new ToolResult("취소할 감시 작업 ID가 필요합니다. 먼저 감시 목록을 조회해 주세요.", null, null);
+                }
+                Long jobId = Long.valueOf(String.valueOf(params.get("jobId")));
+                campusWatchService.cancelWatchJob(member, jobId);
+                return new ToolResult("요청하신 빈자리 감시를 취소했습니다.", null, Map.of("cancelledJobId", jobId));
             }
 
             // 기본: 감시 등록
@@ -129,7 +139,8 @@ public class CampusWatchAgentTool implements AgentTool {
         String lower = message.toLowerCase();
         boolean isWatchTarget = lower.contains("빈자리") || ((lower.contains("힐링존") || lower.contains("수면실") || lower.contains("열람실")) && (lower.contains("자리 나면") || lower.contains("자리 생기면") || lower.contains("알려줘")));
         boolean isWatchList = lower.contains("감시") && (lower.contains("목록") || lower.contains("조회") || lower.contains("현황"));
-        return isWatchTarget || isWatchList;
+        boolean isCancel = (lower.contains("감시") || lower.contains("스나이퍼")) && (lower.contains("취소") || lower.contains("삭제") || lower.contains("그만"));
+        return isWatchTarget || isWatchList || isCancel;
     }
 
     @Override
@@ -138,6 +149,12 @@ public class CampusWatchAgentTool implements AgentTool {
         String lower = message.toLowerCase();
         if (lower.contains("감시") && (lower.contains("목록") || lower.contains("조회") || lower.contains("현황"))) {
             return Map.of("action", "LIST");
+        }
+        if ((lower.contains("취소") || lower.contains("삭제") || lower.contains("그만"))) {
+            java.util.regex.Matcher idMatcher = java.util.regex.Pattern.compile("(\\d+)").matcher(message);
+            return idMatcher.find()
+                    ? Map.of("action", "CANCEL", "jobId", Long.parseLong(idMatcher.group(1)))
+                    : Map.of("action", "CANCEL");
         }
         String target = lower.contains("힐링존") ? "힐링존" : (lower.contains("수면실") ? "수면실" : "제1열람실");
         return Map.of("action", "WATCH", "targetName", target, "durationMinutes", 90);

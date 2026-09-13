@@ -3,7 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,13 +32,13 @@ public class LibraryAgentTool implements AgentTool {
     private static final String SEAT_ROOMS_URL = "https://lib.inu.ac.kr/pyxis-api/1/seat-rooms?branchGroupId=1&smufMethodCode=PC";
 
     @Override
-    public String getName() {
-        return "LIBRARY";
-    }
-
-    @Override
-    public String getDescription() {
-        return "인천대학교 학산도서관 열람실 실시간 잔여 좌석(제1~3열람실, 노트북실, 라운지 등), 좌석 배정 및 예약, 좌석 연장, 좌석 반납(퇴실), 스터디룸 및 세미나실 공간 조회/예약 관련 질문 (params: {\"target\": \"SEATS\"|\"STUDY_ROOMS\"|\"MY_SEAT\"|\"RESERVE\"|\"RENEW\"|\"RETURN\", \"roomName\": \"제1열람실\"|\"제1노트북실\" 등})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("LIBRARY", "학산도서관 열람실 좌석 현황과 스터디룸 목록을 조회합니다.",
+                List.of("열람실·노트북실·라운지 실시간 잔여 좌석 조회", "스터디룸·세미나실 목록과 이용 정보 조회"),
+                List.of("도서관 자리 있어?", "제1열람실 몇 자리 남았어?", "스터디룸 목록 보여줘"),
+                List.of("빈자리 발생 감시는 ACTION_CAMPUS_WATCH", "좌석 배정·예약·연장·반납을 직접 실행하는 기능은 지원하지 않음"),
+                Map.of("target", AgentToolParameter.string("조회 대상", false, "SEATS", "STUDY_ROOMS"),
+                        "roomName", AgentToolParameter.string("특정 열람실 이름", false)), false, true);
     }
 
     @Override
@@ -171,12 +171,6 @@ public class LibraryAgentTool implements AgentTool {
         String target = "SEATS";
         if (lower.contains("스터디룸") || lower.contains("세미나실") || lower.contains("공간")) {
             target = "STUDY_ROOMS";
-        } else if (lower.contains("연장")) {
-            target = "RENEW";
-        } else if (lower.contains("반납") || lower.contains("퇴실")) {
-            target = "RETURN";
-        } else if (lower.contains("내 자리") || lower.contains("내 좌석") || lower.contains("현재 좌석")) {
-            target = "MY_SEAT";
         }
         return Map.of("target", target);
     }

@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.weather.dto.WeatherResponseDto;
 import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
@@ -19,13 +19,11 @@ public class WeatherAgentTool implements AgentTool {
     private final WeatherService weatherService;
 
     @Override
-    public String getName() {
-        return "WEATHER";
-    }
-
-    @Override
-    public String getDescription() {
-        return "날씨, 기온, 미세먼지, 비, 우산 관련 질문 (params: 없음)";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("WEATHER", "송도 캠퍼스 현재 날씨와 대기 상태를 조회합니다.",
+                java.util.List.of("현재 하늘 상태·기온 조회", "미세먼지 등급 조회", "우산 필요 여부 판단에 필요한 현재 날씨 제공"),
+                java.util.List.of("오늘 학교 날씨 어때?", "우산 필요해?", "미세먼지 어때?"),
+                java.util.List.of("다른 지역 날씨", "장기 일기예보"), Map.of(), false, true);
     }
 
     @Override

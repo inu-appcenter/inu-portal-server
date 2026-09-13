@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.agent.dto.*;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolJsonParser;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolRegistry;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.vllm.VllmChatMessageDto;
@@ -76,9 +77,10 @@ public class AgentService {
                   * 절대로 GENERAL로 넘기지 말고, 이전 문맥과 합쳐서 반드시 'INU_AI_KNOWLEDGE'를 호출하세요.
                   * 예: 직전 질문이 '컴공 졸업요건'이고 현재 질문이 '나는 2020학번이야'라면 -> params: {"question": "2020학번 컴퓨터공학부 졸업 요건"}
                 - 단순 게시판 공지 목록/최근 행사 안내 검색은 'NOTICE' 도구를 사용하세요.
-                - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태 확인은 'ACADEMIC' 도구를 사용하세요.
+                - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태, 지도교수 또는 담임교수 확인은 'ACADEMIC' 도구를 사용하세요. 지도/담임교수 질문에서 ACADEMIC 도구 결과에 지도교수 성함이 있으면, 소속 학과 상태와 무관하게 그 성함을 답변의 근거로 사용하세요.
                 - [1인칭 졸업/학사 판정 질의]: '나 졸업 가능해?', '나 졸업 요건 돼?', '나 이번에 졸업할 수 있어?', '졸업 언제 할 수 있어?'처럼 1인칭 주어('나', '내', '저')로 본인의 졸업/수료/학점 가능 여부를 묻는 질문은, 학생 본인의 학적 상태(소속 학과, 취득 학점) 파악이 필수적이므로 반드시 'ACADEMIC'과 'INU_AI_KNOWLEDGE'를 순서대로 모두 포함하세요. (절대로 INU_AI_KNOWLEDGE만 단독 호출하지 마세요)
                 - 복합 질문(예: '나 취득학점이랑 졸업 요건 알려줘', '졸업 요건이랑 오늘 학식 알려줘')은 해당하는 도구들을 순서대로 모두 포함하세요.
+                - 카탈로그에서 '실행 성격: 변경 가능'인 ACTION 도구는 사용자가 등록·변경·삭제를 명시적으로 요청한 경우에만 선택하세요. 단순 조회나 추천 질문을 실행 요청으로 확대 해석하지 마세요.
                 
                 [응답 규칙]
                 마크다운 백틱(```json) 없이 오직 JSON 텍스트 하나만 출력하세요.
@@ -107,7 +109,7 @@ public class AgentService {
 
         // 1단계: 1차 도구 라우팅 결정 (대화 맥락 반영)
         AgentToolDecisionDto decision = decideTool(userMessage, history);
-        List<AgentToolDecisionDto.SingleToolCall> effectiveTools = decision.getEffectiveTools();
+        List<AgentToolDecisionDto.SingleToolCall> effectiveTools = ensureAcademicToolForAdvisorQuestion(userMessage, decision.getEffectiveTools());
         log.info("AI Agent hop 1 tools decision: {}, count: {}, thought: {}", 
                 effectiveTools.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList(),
                 effectiveTools.size(),
@@ -181,6 +183,11 @@ public class AgentService {
             currentHop++;
         }
 
+        String advisorAnswer = buildAdvisorProfessorAnswer(userMessage, requestDto.clientContext());
+        if (advisorAnswer != null) {
+            return AgentChatResponseDto.of(advisorAnswer, uiComponents, getDefaultSuggestedActions());
+        }
+
         boolean hasInuAi = inuAiSummary != null && !inuAiSummary.isBlank();
         boolean hasCampusTools = !campusSummaries.isEmpty();
 
@@ -231,7 +238,7 @@ public class AgentService {
 
                 // 1. 도구 라우팅 결정
                 AgentToolDecisionDto decision = decideTool(userMessage, history);
-                List<AgentToolDecisionDto.SingleToolCall> effectiveTools = decision.getEffectiveTools();
+                List<AgentToolDecisionDto.SingleToolCall> effectiveTools = ensureAcademicToolForAdvisorQuestion(userMessage, decision.getEffectiveTools());
 
                 if (effectiveTools.isEmpty()) {
                     sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "답변을 작성하고 있습니다..."));
@@ -335,6 +342,15 @@ public class AgentService {
                 // 4. GENERATIVE UI 카드 즉시 선행 전달 (화면에 카드 먼저 렌더링!)
                 sendSse(emitter, "tools", AgentStreamDto.tools(new ArrayList<>(executedToolNames), uiComponents));
 
+                String advisorAnswer = buildAdvisorProfessorAnswer(userMessage, requestDto.clientContext());
+                if (advisorAnswer != null) {
+                    sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "지도교수 정보를 전달하고 있습니다..."));
+                    sendSse(emitter, "delta", AgentStreamDto.delta(advisorAnswer));
+                    sendSse(emitter, "done", AgentStreamDto.done(getDefaultSuggestedActions()));
+                    emitter.complete();
+                    return;
+                }
+
                 boolean hasInuAi = inuAiSummary != null && !inuAiSummary.isBlank();
                 boolean hasCampusTools = !campusSummaries.isEmpty();
 
@@ -409,6 +425,11 @@ public class AgentService {
                 }
             }
 
+            toolList.removeIf(call -> agentToolRegistry.findTool(call.tool()).isEmpty());
+            if (toolList.isEmpty()) {
+                AgentToolDecisionDto fallback = fallbackRuleBasedDecision(userMessage, history);
+                if (!fallback.getEffectiveTools().isEmpty()) return fallback;
+            }
             return new AgentToolDecisionDto(toolList, null, null, thought);
         } catch (Exception e) {
             log.error("도구 라우팅 결정 실패, Fallback 규칙으로 대체: {}", e.getMessage(), e);
@@ -449,6 +470,7 @@ public class AgentService {
                 - 이전 도구에서 원하는 정보가 나오지 않았거나 대안이 필요한 경우(예: 특정 열람실 만석 시 다른 열람실 조회, 과제 미존재 시 강좌 공지 확인 등) 다른 적절한 도구를 호출할 수 있습니다.
                 - 이미 충분한 정보가 수집되어 바로 사용자에게 최종 답변을 할 수 있다면 반드시 {"tools": []}로 응답하세요.
                 - 이미 실행된 도구(%s)는 중복 호출하지 마세요.
+                - 원래 사용자 질문에 등록·변경·삭제 의도가 명시되지 않았다면 '실행 성격: 변경 가능'인 도구를 후속 호출하지 마세요.
                 
                 [사용 가능한 도구 카탈로그]:
                 %s
@@ -482,7 +504,8 @@ public class AgentService {
             if (toolsNode.isArray()) {
                 for (JsonNode tNode : toolsNode) {
                     String toolName = tNode.path("tool").asText("").toUpperCase().trim();
-                    if (!toolName.isBlank() && !executedToolNames.contains(toolName) && !"GENERAL".equalsIgnoreCase(toolName)) {
+                    if (!toolName.isBlank() && !executedToolNames.contains(toolName) && !"GENERAL".equalsIgnoreCase(toolName)
+                            && agentToolRegistry.findTool(toolName).isPresent()) {
                         Map<String, Object> params = parseParamsNode(tNode.path("params"));
                         secondaryList.add(new AgentToolDecisionDto.SingleToolCall(toolName, params));
                     }
@@ -497,20 +520,7 @@ public class AgentService {
 
 
     private Map<String, Object> parseParamsNode(JsonNode paramsNode) {
-        Map<String, Object> params = new LinkedHashMap<>();
-        if (paramsNode != null && paramsNode.isObject()) {
-            paramsNode.fields().forEachRemaining(entry -> {
-                JsonNode val = entry.getValue();
-                if (val.isBoolean()) {
-                    params.put(entry.getKey(), val.asBoolean());
-                } else if (val.isInt()) {
-                    params.put(entry.getKey(), val.asInt());
-                } else {
-                    params.put(entry.getKey(), val.asText());
-                }
-            });
-        }
-        return params;
+        return AgentToolJsonParser.toMap(objectMapper, paramsNode);
     }
 
     private SynthesizedResult synthesizeAnswer(String userMessage, List<ChatMessageDto> history, String toolSummary) {
@@ -1139,6 +1149,52 @@ public class AgentService {
     }
 
     private record SynthesizedResult(String cleanMessage, List<String> suggestedActions) {}
+
+    /** 지도/담임교수는 학적 데이터의 직접 조회 항목이므로 LLM 라우팅 결과와 무관하게 학적 도구를 포함한다. */
+    private List<AgentToolDecisionDto.SingleToolCall> ensureAcademicToolForAdvisorQuestion(
+            String message, List<AgentToolDecisionDto.SingleToolCall> toolCalls) {
+        if (!isAdvisorProfessorQuestion(message)) {
+            return toolCalls;
+        }
+
+        List<AgentToolDecisionDto.SingleToolCall> ensured = new ArrayList<>(toolCalls != null ? toolCalls : List.of());
+        boolean hasAcademic = ensured.stream()
+                .anyMatch(call -> "ACADEMIC".equalsIgnoreCase(call.tool()));
+        if (!hasAcademic) {
+            ensured.add(new AgentToolDecisionDto.SingleToolCall("ACADEMIC", Map.of()));
+        }
+        return sortToolCalls(ensured);
+    }
+
+    /**
+     * 지도교수명은 academicDisplay에만 존재하는 본인 확인용 필드다. 외부 AI에는 전달하지 않고,
+     * 인증된 사용자에게 돌려줄 이 응답에서만 생성 모델의 재해석 없이 그대로 사용한다.
+     */
+    private String buildAdvisorProfessorAnswer(String message, Map<String, Object> clientContext) {
+        if (!isAdvisorProfessorQuestion(message) || clientContext == null) {
+            return null;
+        }
+        Object academicObj = clientContext.get("academicDisplay");
+        if (!(academicObj instanceof Map<?, ?> academic)) {
+            return null;
+        }
+        Object advisorObj = academic.get("advisorProfessorName");
+        if (advisorObj == null || String.valueOf(advisorObj).isBlank()) {
+            return "현재 조회된 학적 정보에는 지도교수님 정보가 등록되어 있지 않습니다.";
+        }
+        String advisor = String.valueOf(advisorObj).trim();
+        String title = advisor.endsWith("교수님") ? advisor
+                : advisor.endsWith("교수") ? advisor + "님" : advisor + " 교수님";
+        return "학우님의 지도교수님은 **" + title + "**입니다.";
+    }
+
+    private boolean isAdvisorProfessorQuestion(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+        return normalized.contains("지도교수") || normalized.contains("담임교수");
+    }
 
     private AgentToolDecisionDto fallbackRuleBasedDecision(String msg, List<ChatMessageDto> history) {
         List<AgentToolDecisionDto.SingleToolCall> tools = new ArrayList<>();

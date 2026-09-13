@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,13 +18,12 @@ import java.util.Map;
 public class AcademicAgentTool implements AgentTool {
 
     @Override
-    public String getName() {
-        return "ACADEMIC";
-    }
-
-    @Override
-    public String getDescription() {
-        return "학생 본인의 포털 SSO 학적 정보, 취득 학점, 평점 평균(GPA), 이수 학기, 학적 상태(재학/휴학), 졸업 요건 이수 현황 질문 (params: 없음)";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACADEMIC", "학생 본인의 포털 SSO 학적 정보를 조회합니다.",
+                java.util.List.of("학적 상태 조회", "취득 학점·평점·이수 학기 조회", "지도교수 또는 담임교수 성함 조회"),
+                java.util.List.of("내 지도교수님 누구야?", "내 학점과 평점 알려줘", "현재 내 학적 상태는?"),
+                java.util.List.of("학교 학칙·졸업 규정 설명은 INU_AI_KNOWLEDGE", "강좌별 성적 조회는 지원하지 않음"),
+                Map.of(), false, true);
     }
 
     @Override
@@ -115,7 +114,8 @@ public class AcademicAgentTool implements AgentTool {
         String lower = message.toLowerCase();
         boolean isFirstPersonAcademic = (lower.contains("나 ") || lower.startsWith("나") || lower.contains("내 ") || lower.startsWith("내") || lower.contains("저 ")) &&
                 (lower.contains("졸업") || lower.contains("수료") || lower.contains("이수") || lower.contains("학점"));
-        return isFirstPersonAcademic || lower.contains("학적") || lower.contains("취득 학점") || lower.contains("취득학점") ||
+        return isFirstPersonAcademic || lower.contains("지도교수") || lower.contains("지도 교수") ||
+                lower.contains("담임교수") || lower.contains("담임 교수") || lower.contains("학적") || lower.contains("취득 학점") || lower.contains("취득학점") ||
                 lower.contains("이수 학점") || lower.contains("이수학점") || lower.contains("내 학점") || lower.contains("gpa") || lower.contains("평점");
     }
 }

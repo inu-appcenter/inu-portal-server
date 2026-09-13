@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.chat.service.InuChatAiService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.RequiredArgsConstructor;
@@ -29,13 +29,12 @@ public class InuAiAgentTool implements AgentTool {
     private static final Pattern ARTICLE_PATTERN = Pattern.compile("(제\\s*\\d+\\s*조(?:의\\s*\\d+)?(?:\\s*\\([^)]+\\))?)");
 
     @Override
-    public String getName() {
-        return "INU_AI_KNOWLEDGE";
-    }
-
-    @Override
-    public String getDescription() {
-        return "인천대학교 공식 학칙, 학사 규정(졸업 요건, 복수전공/부전공/전과 기준, 조기졸업, 휴학/복학 연한, 학사경고, 성적 장학금 선발 규정 등), 대학 공식 공지사항 상세 내용 및 행정 절차 질의 (params: {\"question\": \"규정/학사 질문\"})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("INU_AI_KNOWLEDGE", "인천대학교 공식 자료를 근거로 학칙·규정·행정 절차를 답변합니다.",
+                List.of("졸업 요건과 조기졸업 규정", "복수전공·부전공·전과 기준", "휴학·복학·학사경고 규정", "장학금 선발 규정", "공식 공지 상세 내용과 행정 절차"),
+                List.of("컴퓨터공학부 졸업 요건 알려줘", "휴학은 최대 몇 학기 가능해?", "전과 신청 절차가 뭐야?"),
+                List.of("공지 목록 검색은 NOTICE", "개인의 실제 학점·학적 조회는 ACADEMIC", "일정 날짜만 조회하는 경우 SCHEDULE"),
+                Map.of("question", AgentToolParameter.string("근거 자료가 필요한 전체 질문", true)), false, true);
     }
 
     @Override

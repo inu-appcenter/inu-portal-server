@@ -11,8 +11,13 @@ import java.util.*;
 public class AgentToolRegistry {
 
     private final Map<String, AgentTool> toolMap = new LinkedHashMap<>();
+    private final AgentToolPromptRenderer promptRenderer;
+    private final AgentToolParameterValidator parameterValidator;
 
-    public AgentToolRegistry(List<AgentTool> tools) {
+    public AgentToolRegistry(List<AgentTool> tools, AgentToolPromptRenderer promptRenderer,
+                             AgentToolParameterValidator parameterValidator) {
+        this.promptRenderer = promptRenderer;
+        this.parameterValidator = parameterValidator;
         for (AgentTool tool : tools) {
             String key = tool.getName().toUpperCase().trim();
             if (toolMap.containsKey(key)) {
@@ -37,7 +42,16 @@ public class AgentToolRegistry {
 
     public AgentTool.ToolResult execute(String toolName, Member member, Map<String, Object> params) {
         return findTool(toolName)
-                .map(tool -> tool.execute(member, params != null ? params : Map.of()))
+                .map(tool -> {
+                    Map<String, Object> safeParams = params != null ? params : Map.of();
+                    List<String> errors = parameterValidator.validate(tool.getDefinition(), safeParams);
+                    if (!errors.isEmpty()) {
+                        return new AgentTool.ToolResult(
+                                "도구 입력값이 올바르지 않습니다: " + String.join(" ", errors), null,
+                                Map.of("validationErrors", errors));
+                    }
+                    return tool.execute(member, safeParams);
+                })
                 .orElseGet(() -> new AgentTool.ToolResult("요청하신 도구(" + toolName + ")를 찾을 수 없습니다.", null, null));
     }
 
@@ -51,7 +65,7 @@ public class AgentToolRegistry {
     public String generateRoutingPromptCatalog() {
         StringBuilder sb = new StringBuilder();
         for (AgentTool tool : toolMap.values()) {
-            sb.append(String.format("- %s: %s\n", tool.getName(), tool.getDescription()));
+            sb.append(promptRenderer.render(tool.getDefinition())).append('\n');
         }
         return sb.toString().trim();
     }

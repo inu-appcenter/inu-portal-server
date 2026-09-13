@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.notice.dto.NoticeListResponseDto;
@@ -28,13 +28,12 @@ public class NoticeAgentTool implements AgentTool {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     @Override
-    public String getName() {
-        return "NOTICE";
-    }
-
-    @Override
-    public String getDescription() {
-        return "장학금, 대회, 행사, 학과공지, 학교 공지사항 검색 질문 (params: {\"query\": \"검색어(2글자 이상)\"})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("NOTICE", "학교 및 소속 학과의 공지 목록을 검색합니다.",
+                List.of("최신 학교·학과 공지 조회", "학교 공지 검색", "소속 학과 공지 검색", "장학금·행사·대회·모집 공지 검색"),
+                List.of("최근 공지 보여줘", "장학금 공지 찾아줘", "최근 학과 행사 공지 보여줘"),
+                List.of("공지 내용의 상세 해석·학칙 질의는 INU_AI_KNOWLEDGE", "새 공지 알림 등록은 ACTION_NOTICE_KEYWORD"),
+                Map.of("query", AgentToolParameter.string("두 글자 이상의 공지 검색어. 생략하면 최신 공지", false)), false, true);
     }
 
     @Override

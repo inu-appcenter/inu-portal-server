@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,13 +20,13 @@ import java.util.Map;
 public class LmsAgentTool implements AgentTool {
 
     @Override
-    public String getName() {
-        return "LMS";
-    }
-
-    @Override
-    public String getDescription() {
-        return "인천대학교 사이버캠퍼스(LMS) 과제 마감 일정, 미제출 과제, 수강 중인 강좌 목록, 주차별 동영상 강의 출결 및 진도율, 시험 일정 관련 질문 (params: {\"target\": \"ASSIGNMENTS\"|\"COURSES\"|\"UPCOMING\", \"courseName\": \"과목명\"})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("LMS", "기기에서 조회한 사이버캠퍼스 강좌와 학습 일정을 안내합니다.",
+                List.of("과제 마감과 미제출 과제 조회", "수강 강좌 목록 조회", "다가오는 LMS 일정 조회", "강좌별 일정 필터링"),
+                List.of("미제출 과제 있어?", "이번 주 마감 과제 알려줘", "내 LMS 강좌 목록 보여줘"),
+                List.of("개인 시간표는 TIMETABLE", "학교 시험기간은 SCHEDULE"),
+                Map.of("target", AgentToolParameter.string("조회 대상", false, "ASSIGNMENTS", "COURSES", "UPCOMING"),
+                        "courseName", AgentToolParameter.string("특정 강좌명", false)), false, true);
     }
 
     @Override

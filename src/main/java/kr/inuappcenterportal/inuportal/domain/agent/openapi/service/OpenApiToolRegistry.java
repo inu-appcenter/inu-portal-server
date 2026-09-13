@@ -3,6 +3,8 @@ package kr.inuappcenterportal.inuportal.domain.agent.openapi.service;
 import kr.inuappcenterportal.inuportal.domain.agent.openapi.annotation.AgentExposed;
 import kr.inuappcenterportal.inuportal.domain.agent.openapi.dto.OpenApiToolDescriptor;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolDefinition;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolParameter;
 import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolRegistry;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.RequiredArgsConstructor;
@@ -65,13 +67,13 @@ public class OpenApiToolRegistry implements SmartInitializingSingleton {
                 // AgentTool 어댑터 생성 및 등록
                 AgentTool adapter = new AgentTool() {
                     @Override
-                    public String getName() {
-                        return descriptor.getName();
-                    }
-
-                    @Override
-                    public String getDescription() {
-                        return descriptor.getDescription();
+                    public AgentToolDefinition getDefinition() {
+                        return new AgentToolDefinition(
+                                descriptor.getName(), descriptor.getDescription(),
+                                java.util.List.of(exposed.capabilities()), java.util.List.of(exposed.triggerExamples()),
+                                java.util.List.of(exposed.negativeExamples()), inferParameters(method),
+                                exposed.requiresLogin(), true
+                        );
                     }
 
                     @Override
@@ -100,5 +102,21 @@ public class OpenApiToolRegistry implements SmartInitializingSingleton {
         }
         // POST, PUT, DELETE, PATCH 등은 거부
         return false;
+    }
+
+    private Map<String, AgentToolParameter> inferParameters(Method method) {
+        Map<String, AgentToolParameter> parameters = new java.util.LinkedHashMap<>();
+        for (java.lang.reflect.Parameter parameter : method.getParameters()) {
+            RequestParam requestParam = AnnotationUtils.findAnnotation(parameter, RequestParam.class);
+            if (requestParam == null) continue;
+            String name = !requestParam.name().isBlank() ? requestParam.name()
+                    : !requestParam.value().isBlank() ? requestParam.value() : parameter.getName();
+            AgentToolParameter spec = (parameter.getType() == int.class || parameter.getType() == Integer.class
+                    || parameter.getType() == long.class || parameter.getType() == Long.class)
+                    ? AgentToolParameter.integer("API 요청 파라미터", requestParam.required())
+                    : AgentToolParameter.string("API 요청 파라미터", requestParam.required());
+            parameters.put(name, spec);
+        }
+        return parameters;
     }
 }

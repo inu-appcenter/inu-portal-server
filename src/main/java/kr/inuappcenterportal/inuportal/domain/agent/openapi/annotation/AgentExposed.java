@@ -21,11 +21,20 @@ public @interface AgentExposed {
      */
     String name();
 
-    /**
-     * AI 라우팅용 도구 설명 및 파라미터 규격
-     * (예: "학내 분실물 습득 목록 조회 질문 (params: 없음)")
-     */
+    /** AI 라우팅용 한 줄 요약. 파라미터는 메서드 시그니처에서 자동 추론한다. */
     String description();
+
+    /** 실제 엔드포인트가 수행하는 작업 목록. */
+    String[] capabilities();
+
+    /** 이 도구를 선택해야 하는 자연어 발화 예시. */
+    String[] triggerExamples();
+
+    /** 유사하지만 다른 도구를 선택하거나 지원하지 않는 발화 경계. */
+    String[] negativeExamples() default {};
+
+    /** 조회에 로그인 세션이 필요한지 여부. */
+    boolean requiresLogin() default false;
 
     /**
      * 프론트엔드 이동 딥링크 URL (선택)

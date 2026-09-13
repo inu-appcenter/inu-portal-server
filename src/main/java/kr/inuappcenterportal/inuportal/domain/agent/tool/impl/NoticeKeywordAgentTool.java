@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.category.enums.CategoryType;
 import kr.inuappcenterportal.inuportal.domain.category.model.Category;
 import kr.inuappcenterportal.inuportal.domain.category.repository.CategoryRepository;
@@ -27,15 +27,15 @@ public class NoticeKeywordAgentTool implements AgentTool {
     private final CategoryRepository categoryRepository;
 
     @Override
-    public String getName() {
-        return "ACTION_NOTICE_KEYWORD";
-    }
-
-    @Override
-    public String getDescription() {
-        return "스마트 공지 키워드 알림 등록 (params: {\"keyword\": \"정제된명사키워드\", \"targetType\": \"SCHOOL\"|\"DEPARTMENT\", \"category\": \"장학금\"|\"학사\"|\"일반/행사/모집\"|\"등록금 납부\"|null, \"isExcluded\": false|true}). "
-                + "구어체(예: '학비 지원')는 공식 명사(예: '장학금')로 변환하고, 전공/졸업/학과 관련은 targetType: \"DEPARTMENT\", 학교 전체 대상은 \"SCHOOL\"로 설정하세요. "
-                + "특정 카테고리에 한정하지 않거나 전체 공지 대상이면 category를 생략하거나 null로 설정하세요.";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACTION_NOTICE_KEYWORD", "새 공지를 감지할 키워드 알림을 등록합니다.",
+                List.of("학교 공지 키워드 등록", "학과 공지 키워드 등록", "카테고리·제외 키워드 조건 설정"),
+                List.of("장학금 공지 올라오면 알려줘", "학과 졸업 공지 알림 등록해줘"),
+                List.of("현재 공지 검색은 NOTICE", "등록된 키워드 조회는 ACTION_MY_SETTINGS"),
+                Map.of("keyword", AgentToolParameter.string("구어체를 공식 명사로 정제한 키워드", true),
+                        "targetType", AgentToolParameter.string("공지 범위, 미지정 시 SCHOOL", false, "SCHOOL", "DEPARTMENT"),
+                        "category", AgentToolParameter.string("선택 카테고리", false, "장학금", "학사", "일반/행사/모집", "등록금 납부"),
+                        "isExcluded", AgentToolParameter.bool("제외 키워드 여부", false)), true, false);
     }
 
     @Override
@@ -203,7 +203,11 @@ public class NoticeKeywordAgentTool implements AgentTool {
     public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
         String lower = message.toLowerCase();
-        return lower.contains("키워드") && (lower.contains("알림") || lower.contains("등록") || lower.contains("추가"));
+        boolean keywordAction = lower.contains("키워드") && (lower.contains("알림") || lower.contains("등록") || lower.contains("추가"));
+        boolean notifyNewNotice = lower.contains("공지")
+                && (lower.contains("올라오면") || lower.contains("뜨면") || lower.contains("등록되면"))
+                && (lower.contains("알려") || lower.contains("알림"));
+        return keywordAction || notifyNewNotice;
     }
 
     @Override

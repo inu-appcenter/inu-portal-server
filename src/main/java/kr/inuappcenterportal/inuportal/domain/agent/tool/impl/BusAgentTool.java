@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.bus.dto.BusArrivalItemDto;
 import kr.inuappcenterportal.inuportal.domain.bus.dto.BusHistoryResponseDto;
 import kr.inuappcenterportal.inuportal.domain.bus.dto.BusRouteSectionResponseDto;
@@ -28,13 +28,14 @@ public class BusAgentTool implements AgentTool {
     private final BusService busService;
 
     @Override
-    public String getName() {
-        return "BUS";
-    }
-
-    @Override
-    public String getDescription() {
-        return "셔틀버스, 시내버스 실시간 도착 시간, 과거 도착 이력/시간표, 배차 간격 통계 질문 (params: {\"stopName\": \"정문\"|\"공과대\"|\"자연대\"|\"인입\"|\"송도역\" 등, \"targetDate\": \"YYYY-MM-DD\"|\"YESTERDAY\"|\"LAST_WEEK\" (선택), \"mode\": \"REALTIME\"|\"HISTORY\" (선택)})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("BUS", "교내 셔틀버스와 주변 시내버스 도착 정보를 조회합니다.",
+                List.of("정류장별 실시간 도착 조회", "과거 날짜 도착 이력 조회", "배차 간격 통계 조회"),
+                List.of("정문 버스 언제 와?", "송도역 셔틀 알려줘", "어제 공대 버스 배차 어땠어?"),
+                List.of("특정 시각에 버스 정보를 알려달라는 예약 요청은 ACTION_MANAGE_REMINDER"),
+                Map.of("stopName", AgentToolParameter.string("정류장 이름, 미지정 시 정문", false),
+                        "targetDate", AgentToolParameter.string("YYYY-MM-DD, YESTERDAY 또는 LAST_WEEK", false),
+                        "mode", AgentToolParameter.string("조회 방식", false, "REALTIME", "HISTORY")), false, true);
     }
 
     @Override

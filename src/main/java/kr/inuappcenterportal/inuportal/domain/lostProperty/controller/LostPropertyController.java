@@ -54,7 +54,10 @@ public class LostPropertyController {
 
     @AgentExposed(
             name = "LOST_PROPERTY",
-            description = "학내 분실물 습득 목록 및 분실물 신고 내역 조회 질문 (params: 없음)",
+            description = "학내 분실물 습득·신고 목록을 페이지별로 조회합니다.",
+            capabilities = {"분실물 습득 목록 조회", "분실물 신고 목록 조회"},
+            triggerExamples = {"최근 분실물 보여줘", "학교에 지갑 습득 신고 올라왔어?"},
+            negativeExamples = {"분실물 등록·수정·삭제 또는 상세 항목 조회는 지원하지 않음"},
             redirectUrl = "/home",
             cardTitle = "학내 분실물 목록"
     )

@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +19,12 @@ public class ChatPushAgentTool implements AgentTool {
     private final MemberService memberService;
 
     @Override
-    public String getName() {
-        return "ACTION_CHAT_PUSH";
-    }
-
-    @Override
-    public String getDescription() {
-        return "채팅 푸시 알림 켜기/끄기 설정 (params: {\"enabled\": true|false}). 예: '채팅 알림 꺼줘' -> {\"enabled\": false}, '채팅 알림 켜줘' -> {\"enabled\": true}";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACTION_CHAT_PUSH", "채팅 푸시 알림을 켜거나 끕니다.",
+                java.util.List.of("채팅 푸시 활성화", "채팅 푸시 비활성화"),
+                java.util.List.of("채팅 알림 켜줘", "채팅 푸시 꺼줘"),
+                java.util.List.of("현재 설정 조회는 ACTION_MY_SETTINGS"),
+                Map.of("enabled", AgentToolParameter.bool("켜기=true, 끄기=false", true)), true, false);
     }
 
     @Override

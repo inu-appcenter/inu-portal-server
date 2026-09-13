@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.req.DailyBriefSettingRequestDto;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
@@ -21,13 +21,14 @@ public class DailyBriefAgentTool implements AgentTool {
     private final DailyBriefService dailyBriefService;
 
     @Override
-    public String getName() {
-        return "ACTION_DAILY_BRIEF";
-    }
-
-    @Override
-    public String getDescription() {
-        return "기본 데일리 브리프(시간표 수업 알림 및 학사일정 브리핑) 수신 시간 및 On/Off 설정 (params: {\"time\": \"HH:mm\", \"enabled\": true|false, \"scope\": \"ALL\"|\"SCHOOL_ONLY\"|\"DEPT_ONLY\"}). (주의: 날씨, 학식, 버스 등 맞춤형 알림 예약은 ACTION_MANAGE_REMINDER를 사용할 것)";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACTION_DAILY_BRIEF", "시간표·학사일정 데일리 브리프 수신 설정을 변경합니다.",
+                java.util.List.of("데일리 브리프 켜기·끄기", "수신 시간 변경", "학교·학과 일정 범위 변경"),
+                java.util.List.of("아침 8시에 데일리 브리프 켜줘", "학과 일정만 브리핑해줘"),
+                java.util.List.of("날씨·학식·버스 맞춤 알림은 ACTION_MANAGE_REMINDER", "현재 설정 조회는 ACTION_MY_SETTINGS"),
+                Map.of("time", AgentToolParameter.string("수신 시각 HH:mm", false),
+                        "enabled", AgentToolParameter.bool("활성화 여부", false),
+                        "scope", AgentToolParameter.string("일정 범위", false, "ALL", "SCHOOL_ONLY", "DEPT_ONLY")), true, false);
     }
 
     @Override

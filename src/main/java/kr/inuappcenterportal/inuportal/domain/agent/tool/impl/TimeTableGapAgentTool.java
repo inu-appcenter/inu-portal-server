@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
@@ -26,13 +26,12 @@ public class TimeTableGapAgentTool implements AgentTool {
     private final TimeTableService timeTableService;
 
     @Override
-    public String getName() {
-        return "TIMETABLE_GAP";
-    }
-
-    @Override
-    public String getDescription() {
-        return "시간표 공강 시간, 여유 시간, 수업 사이 쉬는 시간, 점심 시간 확보 여부, 우주공강 분석 (params: {\"day\": 요일(1=월~7=일)}). 요일 미지정 시 오늘 분석";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("TIMETABLE_GAP", "대표 시간표를 바탕으로 요일별 공강과 여유 시간을 분석합니다.",
+                List.of("수업 사이 공강 계산", "점심시간 확보 여부 분석", "우주공강 분석"),
+                List.of("오늘 공강 언제야?", "화요일 점심 먹을 시간 있어?", "우주공강 찾아줘"),
+                List.of("수업·강의실 자체 조회는 TIMETABLE"),
+                Map.of("day", AgentToolParameter.integer("요일, 월요일=1부터 일요일=7. 미지정 시 오늘", false)), true, true);
     }
 
     @Override

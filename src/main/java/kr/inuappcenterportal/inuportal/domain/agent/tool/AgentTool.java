@@ -12,15 +12,12 @@ import java.util.Map;
  */
 public interface AgentTool {
 
-    /**
-     * 고유 도구 식별자 (예: WEATHER, CAFETERIA, ACTION_CHAT_PUSH)
-     */
-    String getName();
+    /** 도구 구현과 AI가 함께 사용하는 단일 기능 명세. */
+    AgentToolDefinition getDefinition();
 
-    /**
-     * LLM 라우팅 프롬프트에 제공할 도구 설명 및 파라미터 규격
-     */
-    String getDescription();
+    default String getName() {
+        return getDefinition().name();
+    }
 
     /**
      * 도구 실행 루틴

@@ -1,7 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
 
 import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
-import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentTool;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
 import kr.inuappcenterportal.inuportal.domain.directory.dto.CollegeOfficeContactResponse;
 import kr.inuappcenterportal.inuportal.domain.directory.service.CollegeOfficeContactService;
 import kr.inuappcenterportal.inuportal.domain.directory.service.DirectoryService;
@@ -24,13 +24,12 @@ public class DirectoryAgentTool implements AgentTool {
     private final DirectoryService directoryService;
 
     @Override
-    public String getName() {
-        return "DIRECTORY";
-    }
-
-    @Override
-    public String getDescription() {
-        return "학과사무실, 행정실, 부서 위치, 전화번호, 연락처 질문 (params: {\"query\": \"학과/부서명\"})";
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("DIRECTORY", "교내 학과 사무실과 행정부서 연락처·위치를 조회합니다.",
+                List.of("학과 사무실 위치·전화번호 조회", "행정부서 위치·연락처 조회"),
+                List.of("컴퓨터공학부 사무실 전화번호 알려줘", "학사지원과 어디야?"),
+                List.of("교수 개인 연락처 조회", "학교 규정이나 행정 절차 설명은 INU_AI_KNOWLEDGE"),
+                Map.of("query", AgentToolParameter.string("조회할 학과 또는 부서명", true)), false, true);
     }
 
     @Override
