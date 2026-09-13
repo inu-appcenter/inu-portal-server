@@ -101,8 +101,12 @@ public class LibraryAgentTool implements AgentTool {
                     "/services/library"
             );
 
-            String summary = String.format("%s %s번 좌석 배정을 확인하실 수 있도록 준비했습니다. 현재 좌석 점유 상태를 확인하고 배정 또는 빈자리 알림을 설정하세요.",
-                    seatData.get("roomName"), seatNo.isBlank() ? "" : seatNo);
+            String roomLabel = (String) seatData.get("roomName");
+            String seatLabel = seatNo.isBlank() ? "좌석" : seatNo + "번 좌석";
+            String summary = String.format("[학산도서관 열람실 좌석 배정 신청]\n" +
+                            "%s %s 배정 신청 카드를 준비했습니다. 아래 카드에서 실시간 좌석 상태를 확인하신 후 [확인 및 배정 신청하기] 버튼을 눌러주세요.\n" +
+                            "(⚠️ 도서관 좌석 배정은 모바일 앱 보안 인증으로 사용자가 카드의 [확인 및 배정 신청하기] 버튼을 직접 눌러야만 즉시 완료됩니다. 어시스턴트 텍스트 상에서 임의로 배정 완료되었다고 답하지 마세요.)",
+                    roomLabel, seatLabel);
             return new ToolResult(summary, ui, seatData);
         }
 
@@ -135,7 +139,9 @@ public class LibraryAgentTool implements AgentTool {
                     "/services/library"
             );
 
-            String summary = String.format("%s 스터디룸 예약 정보를 확인해 주세요. 신청하기를 누르시면 도서관 계정으로 즉시 예약이 진행됩니다.",
+            String summary = String.format("[학산도서관 스터디룸 예약 신청]\n" +
+                            "%s 스터디룸 예약 신청 카드를 준비했습니다. 아래 카드에서 날짜, 시간, 동반자 정보를 확인하신 후 [확인 및 예약 신청하기] 버튼을 눌러주세요.\n" +
+                            "(⚠️ 스터디룸 예약은 모바일 앱 보안 인증으로 사용자가 카드의 [확인 및 예약 신청하기] 버튼을 직접 눌러야만 즉시 완료됩니다. 어시스턴트 텍스트 상에서 임의로 예약 완료되었다고 답하지 마세요.)",
                     studyData.get("roomName"));
             return new ToolResult(summary, ui, studyData);
         }
@@ -172,7 +178,7 @@ public class LibraryAgentTool implements AgentTool {
                     "LIBRARY_STUDY_ROOMS",
                     Map.of(
                             "rooms", studyRooms,
-                            "notice", "스터디룸 예약은 1회 최대 2시간, 당일 예약 가능합니다. (이용 시작 20분 내 50% 이상 입실 필수)"
+                            "notice", "스터디룸 예약은 1회 최대 2시간, 당일 및 사전 예약 가능합니다. (이용 시작 20분 내 50% 이상 입실 필수)"
                     ),
                     "학산도서관 스터디룸 목록",
                     "/services/library?tab=study"
@@ -182,7 +188,7 @@ public class LibraryAgentTool implements AgentTool {
             sb.append("• 중앙관 2층: 205호~209호 (2~8인실, 전자칠판 및 모니터 구비)\n");
             sb.append("• 중앙관 3층: 305호~309호 (3~14인실 대형 그룹 스터디룸)\n");
             sb.append("• 이룸관 3층: 스터디룸 1호~6호 (2~8인실 집중 토의실)\n");
-            sb.append("희망하시는 스터디룸과 시간, 동반자를 말씀해 주시면 바로 예약을 도와드립니다.");
+            sb.append("아래 카드에서 희망하시는 스터디룸과 시간, 동반자를 선택하여 간편하게 예약하실 수 있습니다.");
 
             return new ToolResult(sb.toString(), ui, Map.of("rooms", studyRooms));
         }
@@ -216,6 +222,7 @@ public class LibraryAgentTool implements AgentTool {
                         Map<String, Object> roomMap = new LinkedHashMap<>();
                         roomMap.put("id", rNode.path("id").asInt());
                         roomMap.put("name", name);
+                        roomMap.put("isChargeable", rNode.path("isChargeable").asBoolean(true));
                         roomMap.put("seats", Map.of(
                                 "total", total,
                                 "occupied", occupied,
@@ -256,28 +263,43 @@ public class LibraryAgentTool implements AgentTool {
 
     private Integer findReadingRoomIdByName(String name) {
         if (name == null || name.isBlank()) return null;
-        String clean = name.replaceAll("\\s+", "");
-        if (clean.contains("제1") || clean.contains("1열람실")) return 1;
-        if (clean.contains("제2") || clean.contains("2열람실")) return 2;
-        if (clean.contains("자연과학")) return 3;
-        if (clean.contains("집중")) return 4;
-        if (clean.contains("노트북")) return 5;
-        if (clean.contains("자유") || clean.contains("열린")) return 6;
+        String clean = name.replaceAll("\\s+", "").toLowerCase();
+        // 노트북실 우선 판별 (제1열람실 오매칭 방지)
+        if (clean.contains("1노트북") || clean.contains("제1노트북")) return 4;
+        if (clean.contains("3노트북") || clean.contains("제3노트북")) return 124;
+        if (clean.contains("노트북")) return 4;
+
+        // 열람실 번호별 판별
+        if (clean.contains("제1") || clean.contains("1열람") || clean.contains("1실")) return 1;
+        if (clean.contains("제2") || clean.contains("2열람") || clean.contains("2실")) return 2;
+        if (clean.contains("제3") || clean.contains("3열람") || clean.contains("3실")) return 3;
+
+        // 기타 공간
+        if (clean.contains("힐링존") || clean.contains("힐링")) return 107;
+        if (clean.contains("ict") || clean.contains("아이씨티")) return 5;
+        if (clean.contains("포커스") || clean.contains("오픈/포커스")) return 6;
+        if (clean.contains("오픈라운지")) return 7;
+        if (clean.contains("영상제작")) return 51;
+        if (clean.contains("인포메이션")) return 108;
+        if (clean.contains("미디어pc") || clean.contains("미디어라운지pc")) return 109;
+        if (clean.contains("미디어")) return 110;
+        if (clean.contains("연속간행물")) return 111;
         return null;
     }
 
     private Integer findStudyRoomIdByName(String name) {
         if (name == null || name.isBlank()) return null;
-        if (name.contains("205")) return 9;
-        if (name.contains("206")) return 10;
-        if (name.contains("207")) return 11;
-        if (name.contains("208")) return 12;
-        if (name.contains("209")) return 13;
-        if (name.contains("305")) return 14;
-        if (name.contains("306")) return 15;
-        if (name.contains("1호") || name.contains("스터디룸-1")) return 41;
-        if (name.contains("2호") || name.contains("스터디룸-2")) return 42;
-        if (name.contains("5호") || name.contains("스터디룸-5")) return 45;
+        String clean = name.replaceAll("\\s+", "").toLowerCase();
+        if (clean.contains("205")) return 9;
+        if (clean.contains("206")) return 10;
+        if (clean.contains("207")) return 11;
+        if (clean.contains("208")) return 12;
+        if (clean.contains("209")) return 13;
+        if (clean.contains("305")) return 14;
+        if (clean.contains("306")) return 15;
+        if (clean.contains("1호") || clean.contains("스터디룸1") || clean.contains("스터디룸-1")) return 41;
+        if (clean.contains("2호") || clean.contains("스터디룸2") || clean.contains("스터디룸-2")) return 42;
+        if (clean.contains("5호") || clean.contains("스터디룸5") || clean.contains("스터디룸-5")) return 45;
         return null;
     }
 
@@ -294,7 +316,9 @@ public class LibraryAgentTool implements AgentTool {
         String lower = message.toLowerCase();
         String target = "SEATS";
         if (lower.contains("스터디룸") || lower.contains("세미나실") || lower.contains("공간")) {
-            target = "STUDY_ROOMS";
+            target = lower.contains("예약") || lower.contains("신청") ? "RESERVE_STUDY_ROOM" : "STUDY_ROOMS";
+        } else if (lower.contains("예약") || lower.contains("배정") || lower.contains("잡아줘") || lower.contains("맡아줘")) {
+            target = "RESERVE_SEAT";
         }
         return Map.of("target", target);
     }
