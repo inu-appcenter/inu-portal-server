@@ -22,10 +22,10 @@ public class LmsAgentTool implements AgentTool {
     @Override
     public AgentToolDefinition getDefinition() {
         return new AgentToolDefinition("LMS", "기기에서 조회한 사이버캠퍼스 강좌와 학습 일정을 안내합니다.",
-                List.of("과제 마감과 미제출 과제 조회", "수강 강좌 목록 조회", "다가오는 LMS 일정 조회", "강좌별 일정 필터링"),
-                List.of("미제출 과제 있어?", "이번 주 마감 과제 알려줘", "내 LMS 강좌 목록 보여줘"),
+                List.of("과제 마감과 미제출 과제 조회", "수강 강좌 목록 조회", "다가오는 LMS 일정 조회", "강좌별 콘텐츠·진도 조회", "강좌 성적 개요 조회", "마감 리마인더 등록"),
+                List.of("미제출 과제 있어?", "이번 주 마감 과제 알려줘", "내 LMS 강좌 목록 보여줘", "OO과목 진도 보여줘", "과제 마감 알림 설정해줘"),
                 List.of("개인 시간표는 TIMETABLE", "학교 시험기간은 SCHEDULE"),
-                Map.of("target", AgentToolParameter.string("조회 대상", false, "ASSIGNMENTS", "COURSES", "UPCOMING"),
+                Map.of("target", AgentToolParameter.string("조회 대상", false, "ASSIGNMENTS", "COURSES", "UPCOMING", "CONTENTS", "PROGRESS", "GRADES", "REMINDER"),
                         "courseName", AgentToolParameter.string("특정 강좌명", false)), false, true);
     }
 
@@ -53,6 +53,11 @@ public class LmsAgentTool implements AgentTool {
                 if (lmsObj instanceof Map<?, ?> lmsData && !lmsData.isEmpty()) {
                     List<?> events = (lmsData.get("events") instanceof List<?>) ? (List<?>) lmsData.get("events") : Collections.emptyList();
                     List<?> courses = (lmsData.get("courses") instanceof List<?>) ? (List<?>) lmsData.get("courses") : Collections.emptyList();
+                    if (!courseName.isBlank() && !events.isEmpty()) {
+                        final String requestedCourseName = courseName;
+                        events = events.stream().filter(event -> event instanceof Map<?, ?> map
+                                && String.valueOf(map.get("course")).contains(requestedCourseName)).toList();
+                    }
 
                     UiComponentDto ui = UiComponentDto.of(
                             "LMS_ASSIGNMENTS",
@@ -99,11 +104,7 @@ public class LmsAgentTool implements AgentTool {
 
         String summary = "사이버캠퍼스(LMS) 과제 마감 일정 및 강좌 조회를 위해 LMS 계정 연동이 필요합니다. 아래 연동 카드를 통해 학번과 비밀번호를 1회 등록하시면 실시간으로 과제와 일정을 바로 확인하실 수 있습니다.";
 
-        return new ToolResult(summary, ui, Map.of(
-                "clientAction", "EXECUTE_LMS_ACTION",
-                "target", target,
-                "courseName", courseName
-        ));
+        return new ToolResult(summary, ui, Map.of("clientAction", "EXECUTE_LMS_ACTION", "target", target, "courseName", courseName));
     }
 
     @Override

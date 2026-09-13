@@ -24,14 +24,17 @@ public class CampusWatchAgentTool implements AgentTool {
 
     @Override
     public AgentToolDefinition getDefinition() {
-        return new AgentToolDefinition("ACTION_CAMPUS_WATCH", "도서관 좌석 빈자리 감시를 등록·조회·취소합니다.",
-                List.of("열람실·노트북실·힐링존 빈자리 감시 등록", "감시 목록 조회", "감시 작업 ID로 취소"),
-                List.of("제1열람실 자리 나면 알려줘", "내 빈자리 감시 목록 보여줘", "3번 감시 취소해줘"),
-                List.of("현재 잔여 좌석만 조회할 때는 LIBRARY", "스터디룸 취소표 감시는 현재 지원하지 않음"),
+        return new AgentToolDefinition("ACTION_CAMPUS_WATCH", "도서관 빈자리·스터디룸 취소표 감시를 등록·조회·취소합니다.",
+                List.of("열람실·노트북실·힐링존 빈자리 감시 등록", "특정 좌석 및 스터디룸 취소표의 기기 내 감시", "감시 목록 조회", "감시 작업 ID로 취소"),
+                List.of("제1열람실 자리 나면 알려줘", "205호 취소표 나오면 알려줘", "내 빈자리 감시 목록 보여줘"),
+                List.of("현재 잔여 좌석만 조회할 때는 LIBRARY"),
                 Map.of("action", AgentToolParameter.string("수행 작업", true, "WATCH", "LIST", "CANCEL"),
-                        "domain", AgentToolParameter.string("감시 영역", false, "LIBRARY_SEAT"),
+                        "domain", AgentToolParameter.string("감시 영역", false, "LIBRARY_SEAT", "STUDY_ROOM"),
                         "targetName", AgentToolParameter.string("열람실·노트북실·힐링존 이름", false),
+                        "roomId", AgentToolParameter.integer("도서관 방 식별 번호", false),
                         "seatNo", AgentToolParameter.string("특정 좌석 번호", false),
+                        "hopeDate", AgentToolParameter.string("스터디룸 희망 날짜(YYYY-MM-DD)", false),
+                        "targetHour", AgentToolParameter.integer("스터디룸 희망 시작 시각(0~23)", false),
                         "durationMinutes", AgentToolParameter.integer("감시 지속 시간, 최대 180분", false),
                         "jobId", AgentToolParameter.integer("취소할 감시 작업 ID", false)), true, false);
     }
@@ -87,6 +90,20 @@ public class CampusWatchAgentTool implements AgentTool {
             CampusWatchDomain domain = "STUDY_ROOM".equals(domainStr)
                     ? CampusWatchDomain.STUDY_ROOM
                     : CampusWatchDomain.LIBRARY_SEAT;
+
+            // 스터디룸 취소표와 특정 좌석 감시는 로그인 토큰을 보관하는 앱에서만 정확히 폴링할 수 있다.
+            if (domain == CampusWatchDomain.STUDY_ROOM || (seatNo != null && !seatNo.isBlank())) {
+                Map<String, Object> localAction = new java.util.LinkedHashMap<>();
+                localAction.put("watchType", domain == CampusWatchDomain.STUDY_ROOM ? "STUDY_ROOM_SNIPER" : "SPECIFIC_SEAT_SNIPER");
+                localAction.put("targetName", targetName);
+                if (params != null && params.get("roomId") != null) localAction.put("roomId", params.get("roomId"));
+                localAction.put("seatNo", seatNo);
+                if (params != null && params.get("hopeDate") != null) localAction.put("hopeDate", params.get("hopeDate"));
+                if (params != null && params.get("targetHour") != null) localAction.put("targetHour", params.get("targetHour"));
+                localAction.put("durationMinutes", params != null && params.get("durationMinutes") != null ? params.get("durationMinutes") : 90);
+                return new ToolResult("모바일 앱에서 빈자리 감시 조건을 확인한 뒤 기기 알림으로 등록할 수 있습니다.",
+                        UiComponentDto.of("LOCAL_WATCH_ACTION", localAction), localAction);
+            }
 
             int duration = 90;
             if (params != null && params.get("durationMinutes") != null) {

@@ -33,12 +33,14 @@ public class LibraryAgentTool implements AgentTool {
 
     @Override
     public AgentToolDefinition getDefinition() {
-        return new AgentToolDefinition("LIBRARY", "학산도서관 열람실 좌석 현황과 스터디룸 목록을 조회합니다.",
-                List.of("열람실·노트북실·라운지 실시간 잔여 좌석 조회", "스터디룸·세미나실 목록과 이용 정보 조회"),
-                List.of("도서관 자리 있어?", "제1열람실 몇 자리 남았어?", "스터디룸 목록 보여줘"),
-                List.of("빈자리 발생 감시는 ACTION_CAMPUS_WATCH", "좌석 배정·예약·연장·반납을 직접 실행하는 기능은 지원하지 않음"),
-                Map.of("target", AgentToolParameter.string("조회 대상", false, "SEATS", "STUDY_ROOMS"),
-                        "roomName", AgentToolParameter.string("특정 열람실 이름", false)), false, true);
+        return new AgentToolDefinition("LIBRARY", "학산도서관 조회와 모바일 앱 위임 실행을 처리합니다.",
+                List.of("열람실·노트북실·라운지 실시간 잔여 좌석 조회", "스터디룸 목록과 이용 정보 조회",
+                        "내 좌석 조회·연장·반납", "스터디룸 예약·취소·체크인"),
+                List.of("도서관 자리 있어?", "내 좌석 연장해줘", "좌석 반납할게", "스터디룸 예약 취소해줘"),
+                List.of("빈자리·취소표 감시는 ACTION_CAMPUS_WATCH", "변경 작업은 모바일 앱에서 사용자 확인 후 실행"),
+                Map.of("target", AgentToolParameter.string("수행 대상", false, "SEATS", "STUDY_ROOMS", "MY_SEAT", "RENEW_SEAT", "RETURN_SEAT", "RESERVE_STUDY_ROOM", "CANCEL_STUDY_ROOM", "CHECKIN_STUDY_ROOM"),
+                        "roomName", AgentToolParameter.string("특정 열람실 또는 스터디룸 이름", false),
+                        "chargeId", AgentToolParameter.integer("예약 또는 좌석 이용 번호", false)), false, false);
     }
 
     @Override
@@ -56,6 +58,18 @@ public class LibraryAgentTool implements AgentTool {
         }
 
         log.info("[LibraryAgentTool] execute target: {}, roomName: {}", target, roomName);
+
+        if (Set.of("MY_SEAT", "RENEW_SEAT", "RETURN_SEAT", "RESERVE_STUDY_ROOM", "CANCEL_STUDY_ROOM", "CHECKIN_STUDY_ROOM").contains(target)) {
+            Map<String, Object> action = new LinkedHashMap<>();
+            action.put("action", target);
+            if (!roomName.isBlank()) action.put("roomName", roomName);
+            if (params != null && params.get("chargeId") != null) action.put("chargeId", params.get("chargeId"));
+            boolean mutation = !"MY_SEAT".equals(target);
+            String summary = mutation
+                    ? "모바일 앱에서 내용을 확인한 뒤 실행할 수 있도록 준비했습니다."
+                    : "모바일 앱의 도서관 계정으로 현재 이용 중인 좌석을 확인할 수 있습니다.";
+            return new ToolResult(summary, UiComponentDto.of("LIBRARY_CLIENT_ACTION", action), action);
+        }
 
         if ("STUDY_ROOMS".equalsIgnoreCase(target)) {
             List<Map<String, Object>> studyRooms = List.of(
@@ -172,6 +186,6 @@ public class LibraryAgentTool implements AgentTool {
         if (lower.contains("스터디룸") || lower.contains("세미나실") || lower.contains("공간")) {
             target = "STUDY_ROOMS";
         }
-        return Map.of("target", target);
+            return Map.of("target", target);
     }
 }
