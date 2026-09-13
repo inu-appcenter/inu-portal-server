@@ -149,18 +149,6 @@ public class AgentService {
                     toolParams.put("_clientContext", requestDto.clientContext());
                 }
 
-                // INU_AI_KNOWLEDGE 호출 시, 이전에 조회된 학생 학적 요약이 있다면 question 파라미터에 컨텍스트 주입!
-                if ("INU_AI_KNOWLEDGE".equals(toolName) && lastAcademicSummary != null && !lastAcademicSummary.isBlank()) {
-                    String origQuestion = toolParams.containsKey("question") && toolParams.get("question") != null
-                            ? String.valueOf(toolParams.get("question")).trim()
-                            : userMessage;
-                    if (!origQuestion.contains("학적") && !origQuestion.contains("취득학점")) {
-                        String enrichedQuestion = String.format("[학생 학적 현황: %s]\n%s", lastAcademicSummary, origQuestion);
-                        toolParams.put("question", enrichedQuestion);
-                        log.info("INU_AI_KNOWLEDGE에 학생 학적 정보 컨텍스트 주입 완료: {}", enrichedQuestion);
-                    }
-                }
-
                 AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolParams);
 
                 if (result.uiComponent() != null) {
@@ -277,18 +265,6 @@ public class AgentService {
                         Map<String, Object> toolParams = new LinkedHashMap<>(toolCall.params() != null ? toolCall.params() : Map.of());
                         if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
                             toolParams.put("_clientContext", requestDto.clientContext());
-                        }
-
-                        // INU_AI_KNOWLEDGE 호출 시, 이전에 조회된 학생 학적 요약이 있다면 question 파라미터에 컨텍스트 주입!
-                        if ("INU_AI_KNOWLEDGE".equals(toolName) && lastAcademicSummary != null && !lastAcademicSummary.isBlank()) {
-                            String origQuestion = toolParams.containsKey("question") && toolParams.get("question") != null
-                                    ? String.valueOf(toolParams.get("question")).trim()
-                                    : userMessage;
-                            if (!origQuestion.contains("학적") && !origQuestion.contains("취득학점")) {
-                                String enrichedQuestion = String.format("[학생 학적 현황: %s]\n%s", lastAcademicSummary, origQuestion);
-                                toolParams.put("question", enrichedQuestion);
-                                log.info("INU_AI_KNOWLEDGE에 학생 학적 정보 컨텍스트 주입 완료: {}", enrichedQuestion);
-                            }
                         }
 
                         AgentTool.ToolResult result = agentToolRegistry.execute(toolCall.tool(), member, toolParams);
