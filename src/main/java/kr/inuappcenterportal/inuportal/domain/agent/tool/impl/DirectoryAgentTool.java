@@ -37,7 +37,7 @@ public class DirectoryAgentTool implements AgentTool {
     public AgentToolDefinition getDefinition() {
         return new AgentToolDefinition("DIRECTORY", "교내 교수, 교직원, 학과 사무실, 행정부서의 전화번호, 이메일, 연구실/사무실 위치를 조회합니다.",
                 List.of("교수/교직원 연락처·이메일·전화번호·연구실 조회", "학과 사무실 위치·전화번호 조회", "행정부서 위치·연락처 조회"),
-                List.of("박문주 교수님 연락처 알려줘", "컴퓨터공학부 사무실 전화번호 알려줘", "학사지원과 어디야?", "교수님 이메일 찾아줘"),
+                List.of("홍길동 교수님 연락처 알려줘", "컴퓨터공학부 사무실 전화번호 알려줘", "학사지원과 어디야?", "교수님 이메일 찾아줘"),
                 List.of("학교 규정이나 행정 절차 설명은 INU_AI_KNOWLEDGE"),
                 Map.of("query", AgentToolParameter.string("조회할 교수/교직원 성함, 학과명 또는 부서명", true)), false, true);
     }
