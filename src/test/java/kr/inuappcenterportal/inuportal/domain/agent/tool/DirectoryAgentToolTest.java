@@ -145,6 +145,54 @@ class DirectoryAgentToolTest {
     }
 
     @Test
+    @DisplayName("'컴공 과사' 질의 시 학과 약칭 매핑과 함께 학과 사무실(과사) 번호가 최우선으로 요약에 포함된다")
+    void executeWithDepartmentOfficeQueryPrioritizesCollegeOfficeContact() {
+        CollegeOfficeContactResponse office = CollegeOfficeContactResponse.builder()
+                .id(10L)
+                .departmentName("컴퓨터공학부")
+                .collegeName("정보기술대학")
+                .officePhoneNumber("032-835-8410")
+                .officeLocation("7호관 330호")
+                .homepageUrl("https://cse.inu.ac.kr")
+                .build();
+
+        DirectoryEntryResponse prof = DirectoryEntryResponse.builder()
+                .id(1L)
+                .name("박문주")
+                .position("교수")
+                .affiliation("정보기술대학")
+                .detailAffiliation("컴퓨터공학부")
+                .phoneNumber("032-835-8452")
+                .build();
+
+        given(collegeOfficeContactService.getContacts(isNull(), anyString(), anyInt()))
+                .willAnswer(invocation -> {
+                    String query = invocation.getArgument(1);
+                    if ("컴퓨터공학부".equals(query) || "컴공".equals(query)) {
+                        return ListResponseDto.of(1, 1L, List.of(office));
+                    }
+                    return ListResponseDto.of(0, 0L, Collections.emptyList());
+                });
+        given(directoryService.getEntries(isNull(), anyString(), anyInt()))
+                .willAnswer(invocation -> {
+                    String query = invocation.getArgument(1);
+                    if ("컴퓨터공학부".equals(query) || "컴공".equals(query)) {
+                        return ListResponseDto.of(1, 1L, List.of(prof));
+                    }
+                    return ListResponseDto.of(0, 0L, Collections.emptyList());
+                });
+
+        AgentTool.ToolResult result = directoryAgentTool.execute(null, Map.of("query", "컴공 과사 전화번호"));
+
+        assertNotNull(result.uiComponent());
+        assertTrue(result.summary().contains("🏢 [학과 사무실(과사)]"));
+        assertTrue(result.summary().contains("컴퓨터공학부"));
+        assertTrue(result.summary().contains("032-835-8410"));
+        assertTrue(result.summary().contains("7호관 330호"));
+        assertTrue(result.summary().contains("👨‍🏫 [소속 교수 및 교직원 (참고)]"));
+    }
+
+    @Test
     @DisplayName("fallback 시 history에서 직전 발화의 교수 성함을 추출하여 query로 생성한다")
     void fallbackExtractsProfessorNameFromHistory() {
         List<ChatMessageDto> history = List.of(

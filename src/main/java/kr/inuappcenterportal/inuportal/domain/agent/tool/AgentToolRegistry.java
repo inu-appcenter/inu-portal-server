@@ -69,4 +69,20 @@ public class AgentToolRegistry {
         }
         return sb.toString().trim();
     }
+
+    /**
+     * 최종 답변 및 추천 질문(CHIPS) 생성 시 참고할 수 있도록 등록된 도구들의 주요 지원 기능 요약을 간결하게 생성합니다.
+     */
+    public String generateToolSummaryForChips() {
+        StringBuilder sb = new StringBuilder();
+        for (AgentTool tool : toolMap.values()) {
+            AgentToolDefinition def = tool.getDefinition();
+            sb.append("- ").append(def.name()).append(": ").append(def.summary());
+            if (!def.capabilities().isEmpty()) {
+                sb.append(" (지원 기능: ").append(String.join(", ", def.capabilities())).append(")");
+            }
+            sb.append("\n");
+        }
+        return sb.toString().trim();
+    }
 }

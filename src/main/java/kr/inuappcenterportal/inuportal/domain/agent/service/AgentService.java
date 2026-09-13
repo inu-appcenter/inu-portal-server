@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -80,7 +81,7 @@ public class AgentService {
                   * (예: 직전 대화가 '졸업 요건'이었는데 사용자가 '반드시 들어야 하는 과목도 있지 않아?', '필수 과목은?', '외국어 요건은?'이라고 후속 질문한 경우 -> 이전 대화의 학과/학번 맥락과 결합하여 params: {"question": "컴퓨터공학부 졸업 필수 이수 과목 및 전공/교양 필수 규정"}으로 복원하여 반드시 'INU_AI_KNOWLEDGE'를 호출하세요.)
                   * 직전 대화에서 학칙/졸업요건/규정 등을 묻고 난 뒤, 사용자가 '나는 20학번이야', '2020학번은?', '소프트웨어학과는?', '복수전공할 때는?'과 같이 조건을 좁히는 후속 질문을 한 경우: 이전 문맥과 합쳐서 반드시 'INU_AI_KNOWLEDGE'를 호출하세요. (예: params: {"question": "2020학번 컴퓨터공학부 졸업 요건"})
                   * 직전 대화에서 지도교수님이나 특정 인물/학과를 확인한 뒤, 사용자가 '전화번호나 이메일 알아?', '연락처 알려줘', '연구실 어디야?'와 같이 후속 질문을 한 경우: 이전 문맥의 인물 성함이나 학과명을 query 파라미터로 설정하여 반드시 'DIRECTORY' 도구를 호출하세요. (예: 직전 대화에서 '홍길동 교수님'이 확인되었다면 -> params: {"query": "홍길동"})
-                - 교수, 교직원, 학과 사무실, 행정부서의 전화번호, 이메일, 연구실/사무실 위치 조회는 'DIRECTORY' 도구를 사용하세요.
+                - 교수, 교직원, 학과 사무실(과사), 행정부서의 전화번호, 이메일, 연구실/사무실 위치 조회는 'DIRECTORY' 도구를 사용하세요. '컴공 과사', '컴퓨터공학부 사무실'처럼 학과 사무실(과사)을 묻는 질문은 query에 학과명 또는 과사명을 설정하여 DIRECTORY 도구를 호출하세요 (예: params: {"query": "컴퓨터공학부 과사"}).
                 - 단순 게시판 공지 목록/최근 행사 안내 검색은 'NOTICE' 도구를 사용하세요.
                 - 학생 본인의 실제 취득 학점, 평점평균(GPA), 학적 상태, 지도교수 또는 담임교수 확인은 'ACADEMIC' 도구를 사용하세요. 지도/담임교수 질문에서 ACADEMIC 도구 결과에 지도교수 성함이 있으면, 소속 학과 상태와 무관하게 그 성함을 답변의 근거로 사용하세요.
                 - [1인칭 졸업/학사 판정 질의]: '나 졸업 가능해?', '나 졸업 요건 돼?', '나 이번에 졸업할 수 있어?', '졸업 언제 할 수 있어?'처럼 1인칭 주어('나', '내', '저')로 본인의 졸업/수료/학점 가능 여부를 묻는 질문은, 학생 본인의 학적 상태(소속 학과, 취득 학점) 파악이 필수적이므로 반드시 'ACADEMIC'과 'INU_AI_KNOWLEDGE'를 순서대로 모두 포함하세요. (절대로 INU_AI_KNOWLEDGE만 단독 호출하지 마세요)
@@ -189,8 +190,12 @@ public class AgentService {
         // inuai RAG 원문을 왜곡/축약 없이 즉시 반환 (지연 시간 및 정보 손실 방지)
         if (hasInuAi && !hasCampusTools) {
             List<String> chips = extractChips(inuAiSummary);
-            if (chips.isEmpty()) {
-                chips = getDefaultAcademicSuggestedActions();
+            if (chips.isEmpty() || chips.equals(getDefaultSuggestedActions())) {
+                try {
+                    chips = generateDynamicChipsAsync(userMessage, inuAiSummary, history).get(1500, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    chips = getDefaultAcademicSuggestedActions();
+                }
             }
             String cleanAnswer = cleanChipsText(inuAiSummary);
             return AgentChatResponseDto.of(cleanAnswer, uiComponents, chips);
@@ -280,7 +285,7 @@ public class AgentService {
                     sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "학사 규정 답변을 전달하고 있습니다..."));
 
                     // inuchat AI 실시간 토큰 스트리밍 다이렉트 토스
-                    streamInuAiLive(emitter, member != null ? member.getId() : null, userMessage, requestDto.clientContext());
+                    streamInuAiLive(emitter, member != null ? member.getId() : null, userMessage, requestDto.clientContext(), history);
                     return;
                 }
 
@@ -373,7 +378,7 @@ public class AgentService {
                 // 1) 학사 규정(INU_AI_KNOWLEDGE) 단독이거나 ACADEMIC과의 연계인 경우: inuai 원문 즉시 스트리밍 방출 (지연시간 0초, 원문 완벽 보존)
                 if (hasInuAi && !hasCampusTools) {
                     sendSse(emitter, "status", AgentStreamDto.status("STREAMING", "학사 규정 답변을 전달하고 있습니다..."));
-                    streamInuAiDirect(emitter, inuAiSummary);
+                    streamInuAiDirect(emitter, userMessage, inuAiSummary, history);
                     return;
                 }
 
@@ -563,15 +568,19 @@ public class AgentService {
         String styleGuideline = containsInuAi ? """
                 [챗불이 학사 규정 안내 원칙]:
                 1. [엄격한 사실 근거 (Grounding)]: 오직 [시스템 데이터 요약]에 명시된 실제 학칙, 규정, 조항, 수치에만 근거하여 답변하세요. 시스템 데이터에 없는 가상의 메뉴 경로(예: '통합정보시스템 ➔ 졸업자가진단' 등), 존재하지 않는 가상의 과목명이나 임의의 수치를 절대로 상상해서 꾸며내지 마세요. 데이터에 없는 세부 사항은 '정확한 필수 과목 목록은 학과 사무실이나 학과 홈페이지에서 확인이 필요합니다'라고 솔직히 안내하세요.
-                2. [학사 규정 보존 및 유기적 결합]: 학칙, 졸업요건, 수강신청 등 학사 정보는 핵심 조항이나 수치를 왜곡하지 말고 충실히 유지하되, 함께 조회된 캠퍼스 정보(학식, 버스 등)가 있다면 분리된 느낌 없이 친절하고 자연스러운 하나의 답변으로 매끄럽게 어우러지게 작성하세요.
-                3. [두괄식 결론 및 구조화]: 첫 문단은 핵심 결론을 **볼드체**로 명확히 제시하고, 소제목(###), 표(|---|---|), 인용구(>) 등 리치 마크다운을 활용해 가독성 높게 정리하세요.
-                4. [완전한 문장 마무리]: 전체 답변이 지나치게 늘어지지 않도록 불필요한 사족은 줄이되, 핵심 요건이 중간에 끊기지 않고 완전한 문장으로 마무리되도록 하세요.
+                2. [학과 사무실(과사) 번호 구분]: 사용자가 '과사(학과 사무실)', '사무실 전화번호', '사무실 위치'를 물어본 경우, 시스템 데이터에 명시된 [학과 사무실(과사)]의 번호와 위치를 안내해야 하며, 교수님 개인 전화번호나 연구실 번호를 학과 사무실 번호로 오인하여 안내하지 마세요.
+                3. [학사 규정 보존 및 유기적 결합]: 학칙, 졸업요건, 수강신청 등 학사 정보는 핵심 조항이나 수치를 왜곡하지 말고 충실히 유지하되, 함께 조회된 캠퍼스 정보(학식, 버스 등)가 있다면 분리된 느낌 없이 친절하고 자연스러운 하나의 답변으로 매끄럽게 어우러지게 작성하세요.
+                4. [두괄식 결론 및 구조화]: 첫 문단은 핵심 결론을 **볼드체**로 명확히 제시하고, 소제목(###), 표(|---|---|), 인용구(>) 등 리치 마크다운을 활용해 가독성 높게 정리하세요.
+                5. [완전한 문장 마무리]: 전체 답변이 지나치게 늘어지지 않도록 불필요한 사족은 줄이되, 핵심 요건이 중간에 끊기지 않고 완전한 문장으로 마무리되도록 하세요.
                 """ : """
                 [작성 가이드]:
                 1. 학생과 사용자의 눈높이에 맞춰 친절하고 정중하며 이해하기 쉬운 어조로 답변하세요.
-                2. 시간표, 학식, 버스, 일정 등 캠퍼스 생활 정보는 핵심 위주로 명확하고 깔끔하게 요약하세요.
-                3. [엄격한 사실 근거]: 반드시 주어진 시스템 데이터의 실제 내용만을 바탕으로 안내하며, 임의의 사실이나 시스템 메뉴를 지어내지 마세요.
+                2. [학과 사무실(과사) 번호 구분]: 사용자가 '과사(학과 사무실)', '사무실 전화번호', '사무실 위치'를 물어본 경우, 시스템 데이터에 명시된 [학과 사무실(과사)]의 번호와 위치를 안내해야 하며, 교수님 개인 전화번호나 연구실 번호를 학과 사무실 번호로 오인하여 안내하지 마세요.
+                3. 시간표, 학식, 버스, 일정 등 캠퍼스 생활 정보는 핵심 위주로 명확하고 깔끔하게 요약하세요.
+                4. [엄격한 사실 근거]: 반드시 주어진 시스템 데이터의 실제 내용만을 바탕으로 안내하며, 임의의 사실이나 시스템 메뉴를 지어내지 마세요.
                 """;
+
+        String toolCapabilities = agentToolRegistry.generateToolSummaryForChips();
 
         String prompt = String.format("""
                 당신은 인천대학교 학사 행정 및 대학 생활 정보를 친절하고 정확하게 안내하는 전문 어시스턴트이자 똑똑한 캠퍼스 비서 '챗불이'입니다.
@@ -584,12 +593,18 @@ public class AgentService {
                 %s
                 관련 이모지를 적절히 활용하세요.
                 
-                답변 마지막 줄에 사용자가 이어서 누를 만한 유용한 후속 추천 질문 칩 2~3개를 다음 형식으로 반드시 포함하세요:
-                [CHIPS: 칩1, 칩2, 칩3]
+                [사용 가능한 캠퍼스 도구 및 기능 범위]:
+                %s
+                
+                [후속 추천 질문 칩 생성 규칙]:
+                1. 답변 맨 마지막 줄에 사용자가 이어서 누를 만한 유용한 후속 추천 질문 칩 2~3개를 다음 형식으로 반드시 포함하세요:
+                   [CHIPS: 칩1, 칩2, 칩3]
+                2. [도구 기반 엄격 제한]: 추천 질문 칩은 반드시 위 [사용 가능한 캠퍼스 도구 및 기능 범위] 내에서 비서가 실제로 조회하거나 처리할 수 있는 질문으로만 생성하세요.
+                3. [허구/미지원 기능 생성 절대 금지]: 외부 포털 직접 신청(예: 장학금 신청, 등록금 분납 신청), 결제, 이메일 발송, 가상 시스템 경로 조작 등 비서가 지원하지 않는 기능은 절대로 추천하지 마세요.
                 
                 [사용자 질문]: %s
                 [시스템 데이터 요약]: %s
-                """, dateHeader, historyContext.toString(), styleGuideline, userMessage, toolSummary);
+                """, dateHeader, historyContext.toString(), styleGuideline, toolCapabilities, userMessage, toolSummary);
 
         List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
         VllmChatRequestDto request = VllmChatRequestDto.builder()
@@ -638,15 +653,19 @@ public class AgentService {
         String styleGuideline = containsInuAi ? """
                 [챗불이 학사 규정 안내 원칙]:
                 1. [엄격한 사실 근거 (Grounding)]: 오직 [시스템 데이터 요약]에 명시된 실제 학칙, 규정, 조항, 수치에만 근거하여 답변하세요. 시스템 데이터에 없는 가상의 메뉴 경로(예: '통합정보시스템 ➔ 졸업자가진단' 등), 존재하지 않는 가상의 과목명이나 임의의 수치를 절대로 상상해서 꾸며내지 마세요. 데이터에 없는 세부 사항은 '정확한 필수 과목 목록은 학과 사무실이나 학과 홈페이지에서 확인이 필요합니다'라고 솔직히 안내하세요.
-                2. [학사 규정 보존 및 유기적 결합]: 학칙, 졸업요건, 수강신청 등 학사 정보는 핵심 조항이나 수치를 왜곡하지 말고 충실히 유지하되, 함께 조회된 캠퍼스 정보(학식, 버스 등)가 있다면 분리된 느낌 없이 친절하고 자연스러운 하나의 답변으로 매끄럽게 어우러지게 작성하세요.
-                3. [두괄식 결론 및 구조화]: 첫 문단은 핵심 결론을 **볼드체**로 명확히 제시하고, 소제목(###), 표(|---|---|), 인용구(>) 등 리치 마크다운을 활용해 가독성 높게 정리하세요.
-                4. [완전한 문장 마무리]: 전체 답변이 지나치게 늘어지지 않도록 불필요한 사족은 줄이되, 핵심 요건이 중간에 끊기지 않고 완전한 문장으로 마무리되도록 하세요.
+                2. [학과 사무실(과사) 번호 구분]: 사용자가 '과사(학과 사무실)', '사무실 전화번호', '사무실 위치'를 물어본 경우, 시스템 데이터에 명시된 [학과 사무실(과사)]의 번호와 위치를 안내해야 하며, 교수님 개인 전화번호나 연구실 번호를 학과 사무실 번호로 오인하여 안내하지 마세요.
+                3. [학사 규정 보존 및 유기적 결합]: 학칙, 졸업요건, 수강신청 등 학사 정보는 핵심 조항이나 수치를 왜곡하지 말고 충실히 유지하되, 함께 조회된 캠퍼스 정보(학식, 버스 등)가 있다면 분리된 느낌 없이 친절하고 자연스러운 하나의 답변으로 매끄럽게 어우러지게 작성하세요.
+                4. [두괄식 결론 및 구조화]: 첫 문단은 핵심 결론을 **볼드체**로 명확히 제시하고, 소제목(###), 표(|---|---|), 인용구(>) 등 리치 마크다운을 활용해 가독성 높게 정리하세요.
+                5. [완전한 문장 마무리]: 전체 답변이 지나치게 늘어지지 않도록 불필요한 사족은 줄이되, 핵심 요건이 중간에 끊기지 않고 완전한 문장으로 마무리되도록 하세요.
                 """ : """
                 [작성 가이드]:
                 1. 학생과 사용자의 눈높이에 맞춰 친절하고 정중하며 이해하기 쉬운 어조로 답변하세요.
-                2. 시간표, 학식, 버스, 일정 등 캠퍼스 생활 정보는 핵심 위주로 명확하고 깔끔하게 요약하세요.
-                3. [엄격한 사실 근거]: 반드시 주어진 시스템 데이터의 실제 내용만을 바탕으로 안내하며, 임의의 사실이나 시스템 메뉴를 지어내지 마세요.
+                2. [학과 사무실(과사) 번호 구분]: 사용자가 '과사(학과 사무실)', '사무실 전화번호', '사무실 위치'를 물어본 경우, 시스템 데이터에 명시된 [학과 사무실(과사)]의 번호와 위치를 안내해야 하며, 교수님 개인 전화번호나 연구실 번호를 학과 사무실 번호로 오인하여 안내하지 마세요.
+                3. 시간표, 학식, 버스, 일정 등 캠퍼스 생활 정보는 핵심 위주로 명확하고 깔끔하게 요약하세요.
+                4. [엄격한 사실 근거]: 반드시 주어진 시스템 데이터의 실제 내용만을 바탕으로 안내하며, 임의의 사실이나 시스템 메뉴를 지어내지 마세요.
                 """;
+
+        String toolCapabilities = agentToolRegistry.generateToolSummaryForChips();
 
         String prompt = String.format("""
                 당신은 인천대학교 학사 행정 및 대학 생활 정보를 친절하고 정확하게 안내하는 전문 어시스턴트이자 똑똑한 캠퍼스 비서 '챗불이'입니다.
@@ -659,12 +678,18 @@ public class AgentService {
                 %s
                 관련 이모지를 적절히 활용하세요.
                 
-                답변 마지막 줄에 사용자가 이어서 누를 만한 유용한 후속 추천 질문 칩 2~3개를 다음 형식으로 반드시 포함하세요:
-                [CHIPS: 칩1, 칩2, 칩3]
+                [사용 가능한 캠퍼스 도구 및 기능 범위]:
+                %s
+                
+                [후속 추천 질문 칩 생성 규칙]:
+                1. 답변 맨 마지막 줄에 사용자가 이어서 누를 만한 유용한 후속 추천 질문 칩 2~3개를 다음 형식으로 반드시 포함하세요:
+                   [CHIPS: 칩1, 칩2, 칩3]
+                2. [도구 기반 엄격 제한]: 추천 질문 칩은 반드시 위 [사용 가능한 캠퍼스 도구 및 기능 범위] 내에서 비서가 실제로 조회하거나 처리할 수 있는 질문으로만 생성하세요.
+                3. [허구/미지원 기능 생성 절대 금지]: 외부 포털 직접 신청(예: 장학금 신청, 등록금 분납 신청), 결제, 이메일 발송, 가상 시스템 경로 조작 등 비서가 지원하지 않는 기능은 절대로 추천하지 마세요.
                 
                 [사용자 질문]: %s
                 [시스템 데이터 요약]: %s
-                """, dateHeader, historyContext.toString(), styleGuideline, userMessage, toolSummary);
+                """, dateHeader, historyContext.toString(), styleGuideline, toolCapabilities, userMessage, toolSummary);
 
         List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
         VllmChatRequestDto request = VllmChatRequestDto.builder()
@@ -746,7 +771,9 @@ public class AgentService {
             );
         }
 
-        String prompt = """
+        String toolCapabilities = agentToolRegistry.generateToolSummaryForChips();
+
+        String prompt = String.format("""
                 당신은 **인천대학교 학사 행정 및 대학 생활 정보를 안내하는** 똑똑한 캠퍼스 비서 '챗불이'입니다.
 
                 ### [핵심 원칙: 자체 지식 부재 및 환각 절대 금지] ###
@@ -759,8 +786,15 @@ public class AgentService {
 
                 ### [답변 가이드] ###
                 1. **일상 대화**: "안녕", "졸려", "수고했어", "고마워" 등 가벼운 인사나 일상 대화에는 친절하고 다정하게 화답하세요.
-                2. 답변 마지막 줄에 [CHIPS: 오늘 학식 메뉴 추천, 정문 버스 도착 시간, 오늘 수업 시간표] 형식으로 추천 질문을 달아주세요.
-                """;
+                2. **후속 추천 질문 칩 생성**:
+                   - 답변 마지막 줄에 사용자가 캠퍼스 생활에서 이어서 활용할 만한 유용한 후속 질문 2~3개를 다음 형식으로 달아주세요:
+                     [CHIPS: 칩1, 칩2, 칩3]
+                   - 반드시 아래 [사용 가능한 캠퍼스 도구 및 기능 범위]에서 실제로 비서가 지원하는 기능 위주로 질문을 구성하세요.
+                   - 지원하지 않는 기능이나 가상의 기능은 절대 추천하지 마세요.
+
+                [사용 가능한 캠퍼스 도구 및 기능 범위]:
+                %s
+                """, toolCapabilities);
 
         List<VllmChatMessageDto> messages = new ArrayList<>();
         messages.add(VllmChatMessageDto.system(prompt));
@@ -805,7 +839,9 @@ public class AgentService {
             return;
         }
 
-        String prompt = """
+        String toolCapabilities = agentToolRegistry.generateToolSummaryForChips();
+
+        String prompt = String.format("""
                 당신은 **인천대학교 학사 행정 및 대학 생활 정보를 안내하는** 똑똑한 캠퍼스 비서 '챗불이'입니다.
 
                 ### [핵심 원칙: 자체 지식 부재 및 환각 절대 금지] ###
@@ -818,8 +854,15 @@ public class AgentService {
 
                 ### [답변 가이드] ###
                 1. **일상 대화**: "안녕", "졸려", "수고했어", "고마워" 등 가벼운 인사나 일상 대화에는 친절하고 다정하게 화답하세요.
-                2. 답변 마지막 줄에 [CHIPS: 오늘 학식 메뉴 추천, 정문 버스 도착 시간, 오늘 수업 시간표] 형식으로 추천 질문을 달아주세요.
-                """;
+                2. **후속 추천 질문 칩 생성**:
+                   - 답변 마지막 줄에 사용자가 캠퍼스 생활에서 이어서 활용할 만한 유용한 후속 질문 2~3개를 다음 형식으로 달아주세요:
+                     [CHIPS: 칩1, 칩2, 칩3]
+                   - 반드시 아래 [사용 가능한 캠퍼스 도구 및 기능 범위]에서 실제로 비서가 지원하는 기능 위주로 질문을 구성하세요.
+                   - 지원하지 않는 기능이나 가상의 기능은 절대 추천하지 마세요.
+
+                [사용 가능한 캠퍼스 도구 및 기능 범위]:
+                %s
+                """, toolCapabilities);
 
         List<VllmChatMessageDto> messages = new ArrayList<>();
         messages.add(VllmChatMessageDto.system(prompt));
@@ -1004,11 +1047,72 @@ public class AgentService {
                    .trim();
     }
 
-    private void streamInuAiLive(SseEmitter emitter, Long memberId, String userMessage, Map<String, Object> clientContext) {
+    private CompletableFuture<List<String>> generateDynamicChipsAsync(String userMessage, String inuAiAnswer, List<ChatMessageDto> history) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String toolCapabilities = agentToolRegistry.generateToolSummaryForChips();
+                StringBuilder historySection = new StringBuilder();
+                if (history != null && !history.isEmpty()) {
+                    int start = Math.max(0, history.size() - 2);
+                    for (int i = start; i < history.size(); i++) {
+                        ChatMessageDto h = history.get(i);
+                        String role = "user".equalsIgnoreCase(h.role()) ? "학생" : "비서";
+                        historySection.append(String.format("%s: %s\n", role, h.content()));
+                    }
+                }
+
+                String answerSnippet = "";
+                if (inuAiAnswer != null && !inuAiAnswer.isBlank()) {
+                    String clean = cleanChipsText(inuAiAnswer);
+                    answerSnippet = clean.substring(0, Math.min(clean.length(), 600));
+                }
+
+                String prompt = String.format("""
+                        당신은 인천대학교 캠퍼스 비서 '챗불이'의 후속 추천 질문 생성기입니다.
+                        사용자의 질문과 학사 규정 답변 내용을 분석하여, 사용자가 이어서 질문할 만한 유용한 후속 추천 질문 2~3개를 다음 형식으로만 한 줄 출력하세요:
+                        [CHIPS: 칩1, 칩2, 칩3]
+                        
+                        [사용 가능한 캠퍼스 도구 및 기능 범위]:
+                        %s
+                        
+                        [규칙]:
+                        1. 추천 질문은 반드시 위 [사용 가능한 캠퍼스 도구 및 기능 범위] 내에서 실제로 비서가 조회하거나 처리할 수 있는 질문이어야 합니다.
+                        2. 지원하지 않는 외부 포털 직접 신청(예: 장학금 신청, 등록금 분납 신청), 결제, 이메일 발송, 시설 직접 예약 등 가상의 기능은 절대로 추천하지 마세요.
+                        3. 오직 `[CHIPS: 질문1, 질문2, 질문3]` 형식 한 줄만 출력하고, 다른 설명이나 인사는 일체 출력하지 마세요.
+                        
+                        %s
+                        [사용자 질문]: %s
+                        [학사 규정 답변 요약]: %s
+                        """, toolCapabilities, historySection.toString(), userMessage, answerSnippet);
+
+                List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
+                VllmChatRequestDto request = VllmChatRequestDto.builder()
+                        .messages(messages)
+                        .temperature(0.3)
+                        .maxTokens(120)
+                        .stream(false)
+                        .build();
+
+                String res = vllmService.chat(request).trim();
+                List<String> chips = extractChips(res);
+                if (!chips.isEmpty() && !chips.equals(getDefaultSuggestedActions())) {
+                    return chips;
+                }
+            } catch (Exception e) {
+                log.warn("[AgentService] inuai 비동기 추천 칩 생성 실패, fallback 사용: {}", e.getMessage());
+            }
+            return getDefaultAcademicSuggestedActions();
+        });
+    }
+
+    private void streamInuAiLive(SseEmitter emitter, Long memberId, String userMessage, Map<String, Object> clientContext, List<ChatMessageDto> history) {
         Map<String, Object> academicContext = selectAcademicContext(userMessage, clientContext);
         StringBuilder accumulated = new StringBuilder();
         StringBuilder buffer = new StringBuilder();
         boolean[] inChipsSection = new boolean[]{false};
+
+        // 스트리밍 방출과 동시에 비동기 추천 칩 생성 시작
+        CompletableFuture<List<String>> chipsFuture = generateDynamicChipsAsync(userMessage, null, history);
 
         inuChatAiService.streamChat(memberId, userMessage, Collections.emptyList(), academicContext)
                 .subscribe(
@@ -1063,8 +1167,12 @@ public class AgentService {
                                 }
                             }
                             List<String> chips = extractChips(accumulated.toString());
-                            if (chips.isEmpty()) {
-                                chips = getDefaultAcademicSuggestedActions();
+                            if (chips.isEmpty() || chips.equals(getDefaultSuggestedActions())) {
+                                try {
+                                    chips = chipsFuture.get(1500, TimeUnit.MILLISECONDS);
+                                } catch (Exception e) {
+                                    chips = getDefaultAcademicSuggestedActions();
+                                }
                             }
                             sendSse(emitter, "done", AgentStreamDto.done(chips));
                             emitter.complete();
@@ -1098,7 +1206,7 @@ public class AgentService {
         }
     }
 
-    private void streamInuAiDirect(SseEmitter emitter, String rawAnswer) {
+    private void streamInuAiDirect(SseEmitter emitter, String userMessage, String rawAnswer, List<ChatMessageDto> history) {
         if (rawAnswer == null || rawAnswer.isBlank()) {
             sendSse(emitter, "delta", AgentStreamDto.delta("학사 규정 답변을 불러오지 못했습니다."));
             sendSse(emitter, "done", AgentStreamDto.done(getDefaultAcademicSuggestedActions()));
@@ -1106,10 +1214,9 @@ public class AgentService {
             return;
         }
 
-        List<String> chips = extractChips(rawAnswer);
-        if (chips.isEmpty()) {
-            chips = getDefaultAcademicSuggestedActions();
-        }
+        // 스트리밍과 동시에 비동기 추천 칩 생성 시작
+        CompletableFuture<List<String>> chipsFuture = generateDynamicChipsAsync(userMessage, rawAnswer, history);
+
         String cleanAnswer = cleanChipsText(rawAnswer);
 
         // 사용자가 자연스럽게 읽을 수 있도록 40자 단위 청크로 빠르게 방출
@@ -1123,6 +1230,15 @@ public class AgentService {
             } catch (InterruptedException ignored) {
                 Thread.currentThread().interrupt();
                 break;
+            }
+        }
+
+        List<String> chips = extractChips(rawAnswer);
+        if (chips.isEmpty() || chips.equals(getDefaultSuggestedActions())) {
+            try {
+                chips = chipsFuture.get(1500, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                chips = getDefaultAcademicSuggestedActions();
             }
         }
 
