@@ -241,12 +241,14 @@ public class SuggestionControllerTest {
                 .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
         when(suggestionService.getSuggestionImage(eq(1L), eq(1L), any(Member.class))).thenReturn(new byte[]{1, 2, 3});
+        when(suggestionService.getSuggestionImageContentType(eq(1L), eq(1L), any(Member.class))).thenReturn(MediaType.valueOf("image/webp"));
 
         mockMvc.perform(get("/api/suggestions/1/images/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.valueOf("image/webp")))
                 .andDo(print());
         verify(suggestionService).getSuggestionImage(eq(1L), eq(1L), any(Member.class));
+        verify(suggestionService).getSuggestionImageContentType(eq(1L), eq(1L), any(Member.class));
     }
 
     @Test
