@@ -52,6 +52,9 @@ public class Suggestion extends BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
 
+    @Column(name = "image_count", nullable = false)
+    private Integer imageCount;
+
     private Suggestion(String content, String cheerMessage, Member member, SuggestionCategory category,
                         String appVersion, String osType, String osVersion, String deviceModel) {
         this.content = content;
@@ -64,6 +67,7 @@ public class Suggestion extends BaseTimeEntity {
         this.deviceModel = deviceModel;
         this.status = SuggestionStatus.RECEIVED;
         this.isDeleted = false;
+        this.imageCount = 0;
     }
 
     public static Suggestion create(String content, String cheerMessage, Member member, SuggestionCategory category,
@@ -73,6 +77,10 @@ public class Suggestion extends BaseTimeEntity {
 
     public void changeStatus(SuggestionStatus status) {
         this.status = status;
+    }
+
+    public void updateImageCount(int imageCount) {
+        this.imageCount = imageCount;
     }
 
     public void deleteSuggestion() {
