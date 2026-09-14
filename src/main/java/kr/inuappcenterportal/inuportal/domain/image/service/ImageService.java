@@ -75,15 +75,6 @@ public class ImageService {
         }
     }
 
-    private String getExtension(String filename) {
-        // 파일 확장자 추출 (예: .jpg, .png)
-        int dotIndex = filename.lastIndexOf(".");
-        if (dotIndex != -1 && dotIndex < filename.length() - 1) {
-            return filename.substring(dotIndex);
-        }
-        return "";
-    }
-
     private void saveThumbnail(MultipartFile image, String path, Long id) throws IOException {
         BufferedImage thumbnail = Thumbnails.of(image.getInputStream())
                 .size(400, 400)
@@ -103,10 +94,10 @@ public class ImageService {
         }
     }
 
-    // 2025-03-11 이전에 저장된 이미지는 원본 업로드 확장자(png/jpg 등) 그대로 저장되어 있고,
-    // 그 이후 이미지는 압축 과정에서 webp로 변환되어 저장된다. 파일마다 실제 포맷이 다르므로
-    // Content-Type을 고정값으로 응답하면 한쪽 시기의 이미지가 깨진다. 저장된 파일의 확장자를 보고
-    // 그때그때 맞는 MediaType을 돌려준다.
+    
+    /**
+     * 저장된 파일의 확장자를 보고 맞는 MediaType 리턴해주는 메서드
+     */
     public MediaType getImageContentType(Long id, Long imageId, String path) {
         try {
             File file = findImageFile(id, imageId, path);
