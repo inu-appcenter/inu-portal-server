@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 public class ImageService {
 
     // 이미지 확장자 순서대로
-    private static final List<String> EXTENSION_PRIORITY = List.of(".webp", ".png", ".jpg", ".jpeg", ".gif");
+    private static final List<String> EXTENSION_PRIORITY = List.of(".webp", ".png", ".jpg", ".jpeg", ".gif", ".svg");
 
     /**
      * 이미지/썸네일 저장 메서드
@@ -140,6 +140,9 @@ public class ImageService {
         }
         if (lowerFileName.endsWith(".gif")) {
             return MediaType.IMAGE_GIF;
+        }
+        if (lowerFileName.endsWith(".svg")) {
+            return MediaType.valueOf("image/svg+xml");
         }
         return MediaType.APPLICATION_OCTET_STREAM;
     }
