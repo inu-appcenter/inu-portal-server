@@ -409,7 +409,7 @@ public interface TimeTableApiSpecification {
                                     value = """
                                             {
                                               "data": null,
-                                              "msg": "채팅방 참여자만 서로의 시간표를 조회할 수 있습니다."
+                                              "msg": "이 채팅방에서는 참여자 시간표를 조회할 수 없습니다."
                                             }
                                             """
                             )
