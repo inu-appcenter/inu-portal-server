@@ -15,6 +15,7 @@ import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableNameUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableVisibilityUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.ChatRoomTimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timtable.TimeTableResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -325,6 +326,141 @@ public interface TimeTableApiSpecification {
             @RequestParam(required = false) Integer year,
             @Parameter(
                     description = "조회할 학기. year와 함께 입력해야 합니다.",
+                    schema = @Schema(
+                            allowableValues = {"FIRST", "SUMMER", "SECOND", "WINTER"},
+                            example = "FIRST"
+                    )
+            )
+            @RequestParam(required = false) SemesterTerm term
+    );
+
+
+    @Operation(
+            summary = "채팅방 참여자 대표 시간표 한 번에 조회",
+            description = """
+                    이 채팅방(단체톡)에 현재 참여 중인 모든 멤버의 대표 시간표를 한 번에 조회합니다.
+                    <br><br>
+                    친구 관계와 무관하게, 같은 채팅방에 참여 중이면 조회할 수 있습니다.
+                    <br>
+                    year/term을 생략하면 진행 중인 학기를 기준으로 조회합니다.
+                    <br><br>
+                    멤버별 시간표는 그 사람의 공개범위(visibility)에 따라 다르게 응답합니다.
+                    <ul>
+                      <li>PRIVATE: 이름만 응답하고 timeTable은 null입니다.</li>
+                      <li>PROTECTED: 시간 블록은 포함하되 각 항목의 id와 memo는 가립니다.</li>
+                      <li>PUBLIC: 시간표를 그대로 응답합니다 (memo는 항상 제외).</li>
+                    </ul>
+                    해당 학기에 대표 시간표가 없는 멤버는 이름만 응답하고 visibility, timeTable은 null입니다.
+                    <br><br>
+                    오픈채팅방이거나 익명 채팅방이면 이 API를 사용할 수 없습니다.
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "채팅방 참여자 대표 시간표 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "채팅방 참여자 대표 시간표 조회 응답 예시",
+                                    value = """
+                                            {
+                                              "data": [
+                                                {
+                                                  "memberId": 1,
+                                                  "nickname": "익명의포도123",
+                                                  "visibility": "PUBLIC",
+                                                  "timeTable": {
+                                                    "id": 1,
+                                                    "timeTableName": "1학기 기본 시간표",
+                                                    "year": 2026,
+                                                    "term": "FIRST",
+                                                    "items": []
+                                                  }
+                                                },
+                                                {
+                                                  "memberId": 2,
+                                                  "nickname": "익명의사과456",
+                                                  "visibility": "PRIVATE",
+                                                  "timeTable": null
+                                                },
+                                                {
+                                                  "memberId": 3,
+                                                  "nickname": "익명의배789",
+                                                  "visibility": null,
+                                                  "timeTable": null
+                                                }
+                                              ],
+                                              "msg": "단체톡 참여자 대표 시간표 조회 성공"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "오픈채팅방/익명 채팅방이거나, 이 채팅방에 참여 중이지 않습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(
+                                    name = "채팅방 시간표 조회 권한 없음",
+                                    value = """
+                                            {
+                                              "data": null,
+                                              "msg": "채팅방 참여자만 서로의 시간표를 조회할 수 있습니다."
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않는 채팅방이거나, 조회할 학기가 존재하지 않습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseDto.class),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "채팅방 없음",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "존재하지 않는 채팅방입니다."
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "학기 없음",
+                                            value = """
+                                                    {
+                                                      "data": null,
+                                                      "msg": "존재하지 않는 학기입니다."
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            )
+    })
+    ResponseEntity<ResponseDto<List<ChatRoomTimeTableResponseDto>>> getChatRoomPrimaryTimeTables(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Member member,
+            @Parameter(
+                    name = "roomId",
+                    description = "시간표를 조회할 채팅방 id",
+                    in = ParameterIn.PATH,
+                    example = "1"
+            )
+            @PathVariable Long roomId,
+            @Parameter(
+                    description = "조회할 학년도. 생략하면 진행 중인 학기를 기준으로 조회합니다. term과 함께 입력해야 합니다.",
+                    example = "2026"
+            )
+            @RequestParam(required = false) Integer year,
+            @Parameter(
+                    description = "조회할 학기. 생략하면 진행 중인 학기를 기준으로 조회합니다. year와 함께 입력해야 합니다.",
                     schema = @Schema(
                             allowableValues = {"FIRST", "SUMMER", "SECOND", "WINTER"},
                             example = "FIRST"

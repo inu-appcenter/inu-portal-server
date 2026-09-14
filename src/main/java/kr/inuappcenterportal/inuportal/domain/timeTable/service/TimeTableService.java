@@ -17,6 +17,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatMemberStatus;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -389,26 +390,34 @@ public class TimeTableService {
         return TimeTableDetailResponseDto.from(timeTable, items);
     }
 
-    /** 일반 단체톡의 현재 참여자 대표 시간표를 한 번에 조회한다. */
+    /** 일반 단체톡의 현재 참여자 대표 시간표를 한 번에 조회한다. year/term을 생략하면 진행 중인 학기를 기준으로 조회한다. */
     public List<ChatRoomTimeTableResponseDto> getChatRoomPrimaryTimeTables(
             Long viewerId, Long roomId, Integer year, SemesterTerm term
     ) {
-        if (year == null || term == null) throw new MyException(MyErrorCode.INPUT_YEAR_AND_TERM);
-
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
         // 익명방에서는 별칭과 실회원 정보를 연결하지 않기 위해 시간표 비교도 제공하지 않는다.
         if (room.getType() == ChatRoomType.OPEN || room.isAnonymous() ||
                 !chatRoomMemberRepository.existsByChatRoomIdAndMemberIdAndStatus(roomId, viewerId, ChatMemberStatus.JOINED)) {
-            throw new MyException(MyErrorCode.NOT_READABLE_TIMETABLE);
+            throw new MyException(MyErrorCode.NOT_CHATROOM_TIMETABLE_ACCESSIBLE);
         }
 
-        Long semesterId = semesterRepository.findByYearAndTerm(year, term)
-                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND)).getId();
+        Long semesterId = resolveSemester(year, term).getId();
 
         return chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED).stream()
                 .map(member -> toChatRoomTimeTable(member, semesterId))
                 .toList();
+    }
+
+    /** year/term이 모두 주어지면 해당 학기를, 아니면 진행 중(OPEN)인 학기를, 그마저 없으면 가장 최신 학기를 반환한다. */
+    private Semester resolveSemester(Integer year, SemesterTerm term) {
+        if (year != null && term != null) {
+            return semesterRepository.findByYearAndTerm(year, term)
+                    .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+        }
+        return semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)
+                .or(() -> semesterRepository.findAllByOrderByStartDateDesc().stream().findFirst())
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
     }
 
     private ChatRoomTimeTableResponseDto toChatRoomTimeTable(ChatRoomMember roomMember, Long semesterId) {
