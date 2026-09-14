@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -76,6 +77,15 @@ public class SuggestionService {
             throw new MyException(MyErrorCode.HAS_NOT_SUGGESTION_AUTHORIZATION);
         }
         return imageService.getImage(suggestionId, imageId, suggestionImagePath);
+    }
+
+    public MediaType getSuggestionImageContentType(Long suggestionId, Long imageId, Member member) {
+        Suggestion suggestion = suggestionRepository.findByIdWithMember(suggestionId)
+                .orElseThrow(() -> new MyException(MyErrorCode.SUGGESTION_NOT_FOUND));
+        if (!suggestion.getMember().getId().equals(member.getId()) && !member.getRoles().contains("ROLE_ADMIN")) {
+            throw new MyException(MyErrorCode.HAS_NOT_SUGGESTION_AUTHORIZATION);
+        }
+        return imageService.getImageContentType(suggestionId, imageId, suggestionImagePath);
     }
 
     public SuggestionListResponse getSuggestionList(int page, Member member) {

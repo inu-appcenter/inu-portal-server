@@ -1,6 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.image.service;
 
-import kr.inuappcenterportal.inuportal.domain.image.repository.ImageRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
@@ -27,18 +26,20 @@ import java.util.stream.Stream;
 @Service
 public class ImageService {
 
-    // 확장자 없이 "id-imageId"로만 prefix 매칭하다보니, webp 전환 과정에서 원본 확장자
-    // 파일(png/jpg 등)을 지우지 않고 남겨둔 게시물은 같은 id-imageId에 파일이 두 개 이상
-    // 걸린다. listFiles()의 반환 순서는 보장되지 않으므로, 매번 동일한 파일이 선택되도록
-    // 우선순위를 명시한다. 현재 저장 로직은 항상 webp로만 쓰므로 webp가 있으면 그게 최신본이다.
+    // 이미지 확장자 순서대로
     private static final List<String> EXTENSION_PRIORITY = List.of(".webp", ".png", ".jpg", ".jpeg", ".gif");
-    private final ImageRepository imageRepository;
 
+    /**
+     * 이미지/썸네일 저장 메서드
+     */
     public void saveImageWithThumbnail(Long id, List<MultipartFile> images, String path) throws IOException {
         saveImage(id, images, path);
         saveThumbnail(images.get(0), path + "/thumbnail", id);
     }
 
+    /**
+     * 채팅방 이미지 저장 메서드
+     */
     public void saveChatImage(Long roomId, Long messageId, List<MultipartFile> images, String basePath) throws IOException {
         Path roomPath = Paths.get(basePath, roomId.toString());
         Path thumbnailPath = roomPath.resolve("thumbnail");
@@ -58,6 +59,9 @@ public class ImageService {
         saveThumbnail(images.get(0), thumbnailPath.toString(), messageId);
     }
 
+    /**
+     * 이미지 저장 메서드(게시글 등)
+     */
     public void saveImage(Long id, List<MultipartFile> images, String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
             MultipartFile file = images.get(i - 1);
@@ -149,6 +153,9 @@ public class ImageService {
         return MediaType.APPLICATION_OCTET_STREAM;
     }
 
+    /**
+     * 모든 이미지 삭제 메서드
+     */
     public void deleteAllImage(Long id, Long imageCount, String path) throws IOException {
         for (int i = 1; i < imageCount + 1; i++) {
             String fileName = id + "-" + i;
@@ -159,6 +166,9 @@ public class ImageService {
         Files.deleteIfExists(filePath);
     }
 
+    /**
+     * 이미지 삭제 메서드
+     */
     public void deleteImages(Long id, String path) {
         try (Stream<Path> paths = Files.list(Paths.get(path))) {
             for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id + "-"))
