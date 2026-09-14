@@ -32,7 +32,7 @@ public class ImageController implements ImageApiSpecification {
     @GetMapping("/{id}")
     public ResponseEntity<byte[]> getFireImage(@PathVariable Long id) {
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.IMAGE_PNG);
+        httpHeaders.setContentType(MediaType.valueOf("image/webp"));
         return ResponseEntity.ok().headers(httpHeaders).body(redisService.getFireImage(id));
     }
 

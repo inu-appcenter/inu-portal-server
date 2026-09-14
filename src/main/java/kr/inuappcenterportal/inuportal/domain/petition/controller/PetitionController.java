@@ -95,7 +95,7 @@ public class PetitionController {
     public ResponseEntity<byte[]> getCouncilNoticeImages(@Parameter(name = "petitionId",description = "총학생회 청원의 id",in = ParameterIn.PATH) @PathVariable Long petitionId, @Parameter(name = "imageId",description = "이미지 번호",in = ParameterIn.PATH) @PathVariable Long imageId){
         log.info("총학생회 청원 이미지 가져오기 호출 id:{}",petitionId);
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.IMAGE_PNG);
+        httpHeaders.setContentType(MediaType.valueOf("image/webp"));
         return ResponseEntity.ok().headers(httpHeaders).body(petitionService.getPetitionImage(petitionId,imageId));
     }
 
