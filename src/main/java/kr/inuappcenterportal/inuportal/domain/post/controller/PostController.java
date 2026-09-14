@@ -90,7 +90,7 @@ public class PostController implements PostApiSpecification {
     public ResponseEntity<byte[]> getImages(@PathVariable Long postId, @PathVariable Long imageId) throws IOException {
         //log.info("게시글의 이미지 가져오기 호출 id:{}",postId);
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.valueOf("image/webp"));
+        httpHeaders.setContentType(postService.getPostImageContentType(postId, imageId));
         return ResponseEntity.ok().headers(httpHeaders).body(postService.getPostImage(postId, imageId));
     }
 
