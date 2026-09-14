@@ -28,11 +28,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -45,9 +47,11 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -68,7 +72,7 @@ public class SuggestionControllerTest {
     TokenProvider tokenProvider;
 
     @Test
-    @DisplayName("건의사항 등록 테스트")
+    @DisplayName("건의사항 등록 테스트 (이미지 없음)")
     public void saveSuggestion() throws Exception {
         Member authMember = mock(Member.class);
         when(authMember.getId()).thenReturn(1L);
@@ -82,15 +86,46 @@ public class SuggestionControllerTest {
                 .content("이미지 업로드가 안 돼요")
                 .category("BUG_REPORT")
                 .build();
-        when(suggestionService.saveSuggestion(any(SuggestionRequest.class), any(Member.class))).thenReturn(1L);
+        when(suggestionService.saveSuggestion(any(SuggestionRequest.class), any(Member.class), any())).thenReturn(1L);
 
         String body = objectMapper.writeValueAsString(suggestionRequest);
-        mockMvc.perform(post("/api/suggestions").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
+        MockMultipartFile jsonPart = new MockMultipartFile("suggestionRequest", "", MediaType.APPLICATION_JSON_VALUE, body.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/api/suggestions").file(jsonPart).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("건의사항 등록 성공"))
                 .andExpect(jsonPath("$.data").value(1L))
                 .andDo(print());
-        verify(suggestionService).saveSuggestion(any(SuggestionRequest.class), any(Member.class));
+        verify(suggestionService).saveSuggestion(any(SuggestionRequest.class), any(Member.class), any());
+    }
+
+    @Test
+    @DisplayName("건의사항 등록 테스트 (이미지 첨부)")
+    public void saveSuggestion_withImages() throws Exception {
+        Member authMember = mock(Member.class);
+        when(authMember.getId()).thenReturn(1L);
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+
+        SuggestionRequest suggestionRequest = SuggestionRequest.builder()
+                .content("이미지 업로드가 안 돼요")
+                .category("BUG_REPORT")
+                .build();
+        when(suggestionService.saveSuggestion(any(SuggestionRequest.class), any(Member.class), any())).thenReturn(1L);
+
+        String body = objectMapper.writeValueAsString(suggestionRequest);
+        MockMultipartFile jsonPart = new MockMultipartFile("suggestionRequest", "", MediaType.APPLICATION_JSON_VALUE, body.getBytes(StandardCharsets.UTF_8));
+        MockMultipartFile image1 = new MockMultipartFile("images", "a.png", "image/png", new byte[]{1, 2, 3});
+        MockMultipartFile image2 = new MockMultipartFile("images", "b.jpg", "image/jpeg", new byte[]{4, 5, 6});
+
+        mockMvc.perform(multipart("/api/suggestions").file(jsonPart).file(image1).file(image2).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value(1L))
+                .andDo(print());
+        verify(suggestionService).saveSuggestion(any(SuggestionRequest.class), any(Member.class), any());
     }
 
     @Test
@@ -192,6 +227,63 @@ public class SuggestionControllerTest {
         mockMvc.perform(get("/api/suggestions/1").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.msg").value(MyErrorCode.SUGGESTION_NOT_FOUND.getMessage()))
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("건의사항 이미지 조회 성공 테스트")
+    public void getSuggestionImage_success() throws Exception {
+        Member authMember = mock(Member.class);
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+
+        when(suggestionService.getSuggestionImage(eq(1L), eq(1L), any(Member.class))).thenReturn(new byte[]{1, 2, 3});
+
+        mockMvc.perform(get("/api/suggestions/1/images/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.valueOf("image/webp")))
+                .andDo(print());
+        verify(suggestionService).getSuggestionImage(eq(1L), eq(1L), any(Member.class));
+    }
+
+    @Test
+    @DisplayName("건의사항 이미지 조회 실패 테스트 (권한 없음)")
+    public void getSuggestionImage_fail_authorization() throws Exception {
+        Member authMember = mock(Member.class);
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+
+        when(suggestionService.getSuggestionImage(eq(1L), eq(1L), any(Member.class)))
+                .thenThrow(new MyException(MyErrorCode.HAS_NOT_SUGGESTION_AUTHORIZATION));
+
+        mockMvc.perform(get("/api/suggestions/1/images/1"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.msg").value(MyErrorCode.HAS_NOT_SUGGESTION_AUTHORIZATION.getMessage()))
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("건의사항 이미지 조회 실패 테스트 (존재하지 않는 이미지)")
+    public void getSuggestionImage_fail_imageNotFound() throws Exception {
+        Member authMember = mock(Member.class);
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+
+        when(suggestionService.getSuggestionImage(eq(1L), eq(99L), any(Member.class)))
+                .thenThrow(new MyException(MyErrorCode.IMAGE_NOT_FOUND));
+
+        mockMvc.perform(get("/api/suggestions/1/images/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.msg").value(MyErrorCode.IMAGE_NOT_FOUND.getMessage()))
                 .andDo(print());
     }
 
