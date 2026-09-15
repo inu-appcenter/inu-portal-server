@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,6 +62,10 @@ public class PetitionService {
 
     public byte[] getPetitionImage(Long petitionId, Long imageId){
         return imageService.getImage(petitionId,imageId,path);
+    }
+
+    public MediaType getPetitionImageContentType(Long petitionId, Long imageId){
+        return imageService.getImageContentType(petitionId,imageId,path);
     }
 
     @Transactional
