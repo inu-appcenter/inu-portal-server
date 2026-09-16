@@ -273,4 +273,17 @@ class InucoopMenuParserTest {
 
         Assertions.assertEquals(java.util.List.of("중식"), weeklyMenu.labels());
     }
+    @Test
+    void parseDropsTimeAndEventNoticeLines() throws IOException {
+        // 제1기숙사식당은 메뉴 위에 "<천원의아침밥>", "*08:00~09:30*" 같은 안내 줄을 붙인다.
+        InucoopWeeklyMenu weeklyMenu = parser.parse(readFixture("dormitory1.html"));
+
+        InucoopMenuRow breakfast = weeklyMenu.findRow("조식").orElseThrow();
+        Assertions.assertTrue(breakfast.menuOf(MONDAY).startsWith("경상도식소고기국"), breakfast.menuOf(MONDAY));
+        Assertions.assertFalse(breakfast.menuOf(MONDAY).contains("천원의아침밥"), breakfast.menuOf(MONDAY));
+        Assertions.assertFalse(breakfast.menuOf(MONDAY).contains("08:00"), breakfast.menuOf(MONDAY));
+
+        InucoopMenuRow lunch = weeklyMenu.findRow("중식").orElseThrow();
+        Assertions.assertFalse(lunch.menuOf(MONDAY).contains("11:30"), lunch.menuOf(MONDAY));
+    }
 }
