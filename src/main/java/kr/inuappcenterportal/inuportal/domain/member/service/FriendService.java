@@ -129,6 +129,13 @@ public class FriendService {
             throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
         }
 
+        // 연타·동시 재시도로 같은 요청이 두 번 들어오면 friend.accept()도, 그 아래의
+        // FCM 알림 발송도 두 번 일어난다 — 상대는 "친구 수락" 알림을 중복으로 받는다.
+        // 이미 처리된(=더 이상 PENDING이 아닌) 요청은 여기서 막는다.
+        if (friend.getStatus() != FriendStatus.PENDING) {
+            throw new MyException(MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST);
+        }
+
         friend.accept();
 
         fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 수락", friend.getReceiver().getNickname() + "님이 친구 요청을 수락했습니다.", FcmMessageType.FRIEND, friend.getId(), "/chat/list?category=친구");
