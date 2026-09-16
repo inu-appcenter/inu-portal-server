@@ -13,6 +13,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 
 @Service
@@ -115,6 +116,11 @@ public class VllmService {
                 );
     }
 
+    // vLLM 서버가 응답 없이 멈추는 경우(특히 이미지 분석)까지 요청 스레드가
+    // 무한정 붙잡히지 않도록 상한을 둔다. 클라이언트 쪽 axios timeout(45s)보다
+    // 여유 있게 잡아, 타임아웃 안내가 클라이언트 쪽에서 우선 뜨지 않게 한다.
+    private static final Duration SYNC_CHAT_TIMEOUT = Duration.ofSeconds(50);
+
     /**
      * 범용 동기(단건) 채팅 완성
      */
@@ -141,7 +147,7 @@ public class VllmService {
                     .bodyValue(actualRequest)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .block();
+                    .block(SYNC_CHAT_TIMEOUT);
 
             if (responseBody != null) {
                 JsonNode root = objectMapper.readTree(responseBody);
@@ -154,10 +160,33 @@ public class VllmService {
             log.error("vLLM sync chat error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(), e);
             throw new RuntimeException("AI 응답 생성 실패: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
+            // Mono#block(Duration)이 시간 초과하면 원인 체인 어딘가에 TimeoutException을
+            // 담은 IllegalStateException 등으로 던져진다. 다른 실패와 구분해 처리할 수
+            // 있도록 별도 타입으로 다시 던진다.
+            if (isTimeoutCause(e)) {
+                log.error("vLLM sync chat timeout: ", e);
+                throw new VllmTimeoutException("AI 응답 시간 초과", e);
+            }
             log.error("vLLM sync chat error: ", e);
             throw new RuntimeException("AI 응답 생성 실패", e);
         }
         return "";
+    }
+
+    private boolean isTimeoutCause(Throwable e) {
+        Throwable cursor = e;
+        while (cursor != null) {
+            if (cursor instanceof java.util.concurrent.TimeoutException) return true;
+            cursor = cursor.getCause();
+        }
+        return false;
+    }
+
+    /** vLLM 호출이 제한 시간 내에 응답하지 못했을 때 던지는 예외. 다른 실패와 구분해 처리할 수 있게 별도 타입으로 둔다. */
+    public static class VllmTimeoutException extends RuntimeException {
+        public VllmTimeoutException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     private String resolveChatCompletionUrl() {
