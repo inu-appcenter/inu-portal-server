@@ -104,6 +104,7 @@ public enum MyErrorCode {
     DUPLICATE_TIMETABLE_COURSE_ITEM(HttpStatus.CONFLICT, "이미 시간표에 추가된 개설 강의입니다."),
     PRIVATE_TIMETABLE(HttpStatus.FORBIDDEN, "비공개된 시간표입니다."),
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
+    NOT_CHATROOM_TIMETABLE_ACCESSIBLE(HttpStatus.FORBIDDEN, "이 채팅방에서는 참여자 시간표를 조회할 수 없습니다."),
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
     DUPLICATE_COURSE_OFFERING(HttpStatus.CONFLICT, "중복된 개설 강의입니다."),
     INVALID_DAY_OF_WEEK(HttpStatus.CONFLICT, "허용하지 않은 요일입니다."),
