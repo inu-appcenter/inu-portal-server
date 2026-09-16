@@ -25,6 +25,8 @@ public class InuAiAgentTool implements AgentTool {
 
     private final InuChatAiService inuChatAiService;
 
+    private static final Pattern MD_LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\((https?://[^\\s)]+)\\)");
+    private static final Pattern LINE_TITLE_PATTERN = Pattern.compile("(?:^|[\\r\\n])\\s*(?:[-*•]|\\d+[.)])\\s*([^\\r\\n:–—\\-]+?)\\s*[:–—\\-]\\s*(https?://[^\\s)\\]]+)");
     private static final Pattern URL_PATTERN = Pattern.compile("https?://[^\\s)\\]]+");
     private static final Pattern ARTICLE_PATTERN = Pattern.compile("(제\\s*\\d+\\s*조(?:의\\s*\\d+)?(?:\\s*\\([^)]+\\))?)");
 
@@ -137,20 +139,51 @@ public class InuAiAgentTool implements AgentTool {
         List<Map<String, String>> citations = new ArrayList<>();
         Set<String> seenUrls = new HashSet<>();
 
-        // URL 추출
+        // 1. 마크다운 링크 추출: [공지사항 제목](https://...)
+        Matcher mdMatcher = MD_LINK_PATTERN.matcher(answer);
+        while (mdMatcher.find()) {
+            String rawTitle = mdMatcher.group(1).trim();
+            String url = mdMatcher.group(2).trim();
+            if (seenUrls.add(url) && !rawTitle.isBlank()) {
+                String title = (rawTitle.length() > 2 && !rawTitle.matches("(?i)^(링크|바로가기|여기|클릭|url|link)$"))
+                        ? rawTitle
+                        : inferUrlTitle(url, answer);
+                Map<String, String> item = new HashMap<>();
+                item.put("type", "URL");
+                item.put("title", title);
+                item.put("url", url);
+                citations.add(item);
+            }
+        }
+
+        // 2. 텍스트 라인 기반 추출: • 제목 : https://...
+        Matcher lineMatcher = LINE_TITLE_PATTERN.matcher(answer);
+        while (lineMatcher.find()) {
+            String rawTitle = lineMatcher.group(1).trim();
+            String url = lineMatcher.group(2).trim();
+            if (seenUrls.add(url) && rawTitle.length() > 2) {
+                Map<String, String> item = new HashMap<>();
+                item.put("type", "URL");
+                item.put("title", rawTitle);
+                item.put("url", url);
+                citations.add(item);
+            }
+        }
+
+        // 3. 단독 URL fallback
         Matcher urlMatcher = URL_PATTERN.matcher(answer);
         while (urlMatcher.find()) {
             String url = urlMatcher.group();
             if (seenUrls.add(url)) {
                 Map<String, String> item = new HashMap<>();
                 item.put("type", "URL");
-                item.put("title", "관련 학교 공지/원문 바로가기");
+                item.put("title", inferUrlTitle(url, answer));
                 item.put("url", url);
                 citations.add(item);
             }
         }
 
-        // 학칙 조항 추출 (예: 제37조, 제14조의2 등)
+        // 4. 학칙 조항 추출 (예: 제37조, 제14조의2 등)
         Matcher articleMatcher = ARTICLE_PATTERN.matcher(answer);
         Set<String> seenArticles = new HashSet<>();
         while (articleMatcher.find()) {
@@ -165,6 +198,18 @@ public class InuAiAgentTool implements AgentTool {
         }
 
         return citations;
+    }
+
+    private String inferUrlTitle(String url, String context) {
+        if (url.contains("inu.ac.kr")) {
+            if (url.contains("1560") || url.contains("rule") || url.contains("subview.do")) {
+                return "인천대학교 학칙 및 규정집 원문";
+            }
+            return "인천대학교 학사 공지사항";
+        } else if (url.contains("dorm.inu.ac.kr")) {
+            return "생활관(기숙사) 공지사항";
+        }
+        return "관련 공지 원문";
     }
 
     @Override
