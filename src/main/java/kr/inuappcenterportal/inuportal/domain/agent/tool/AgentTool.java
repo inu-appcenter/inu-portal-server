@@ -39,6 +39,17 @@ public interface AgentTool {
         return java.util.Collections.emptyMap();
     }
 
+    /**
+     * 맞춤 루틴/알림(Push Notification) 발송 시 사용할 도구 전용 한 줄 요약 포맷터
+     * Zero-LLM으로 0ms 내에 실시간 데이터를 정형화된 푸시 텍스트로 변환합니다.
+     */
+    default String formatNotification(ToolResult result, Map<String, Object> params) {
+        if (result == null || result.summary() == null) {
+            return "";
+        }
+        return result.summary();
+    }
+
     record ToolResult(
             String summary,
             UiComponentDto uiComponent,

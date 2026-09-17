@@ -321,6 +321,37 @@ public class BusAgentTool implements AgentTool {
     }
 
     @Override
+    public String formatNotification(ToolResult result, Map<String, Object> params) {
+        if (result == null || !(result.rawData() instanceof Map<?, ?> data)) {
+            return result != null && result.summary() != null ? result.summary() : "실시간 버스 도착 정보입니다.";
+        }
+
+        String stopName = data.get("stopName") != null ? String.valueOf(data.get("stopName")) : "캠퍼스 정류장";
+        Object rawArrivals = data.get("arrivals");
+
+        if (rawArrivals instanceof List<?> list && !list.isEmpty()) {
+            List<String> items = new ArrayList<>();
+            for (int i = 0; i < Math.min(list.size(), 2); i++) {
+                Object itemObj = list.get(i);
+                if (itemObj instanceof BusArrivalItemDto arrival) {
+                    int arrivalMin = 0;
+                    try {
+                        if (arrival.getArrivalEstimateTime() != null) {
+                            arrivalMin = Integer.parseInt(arrival.getArrivalEstimateTime()) / 60;
+                        }
+                    } catch (Exception ignored) {}
+                    items.add(String.format("%s번(%d분 뒤)", arrival.getRouteNo(), arrivalMin));
+                }
+            }
+            if (!items.isEmpty()) {
+                return String.format("🚌 [%s] %s", stopName, String.join(", ", items));
+            }
+        }
+
+        return String.format("🚌 [%s] 현재 운행 중인 버스 정보를 확인해 보세요.", stopName);
+    }
+
+    @Override
     public boolean supportsFallback(String message, List<ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
         String lower = message.toLowerCase();

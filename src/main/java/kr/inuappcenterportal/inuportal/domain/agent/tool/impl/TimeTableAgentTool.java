@@ -262,6 +262,26 @@ public class TimeTableAgentTool implements AgentTool {
     }
 
     @Override
+    public String formatNotification(ToolResult result, Map<String, Object> params) {
+        if (result == null || !(result.rawData() instanceof Map<?, ?> data)) {
+            return result != null && result.summary() != null ? result.summary() : "오늘의 시간표 정보입니다.";
+        }
+
+        Object rawClasses = data.get("todayClasses");
+        if (rawClasses instanceof List<?> list && !list.isEmpty()) {
+            Object firstClassObj = list.get(0);
+            if (firstClassObj instanceof Map<?, ?> firstClass) {
+                String name = firstClass.get("name") != null ? String.valueOf(firstClass.get("name")) : "수업";
+                String startTime = firstClass.get("startTime") != null ? String.valueOf(firstClass.get("startTime")) : "";
+                String room = firstClass.get("room") != null ? String.valueOf(firstClass.get("room")) : "";
+                return String.format("📅 [오늘 첫 수업] %s %s (%s)", startTime, name, room);
+            }
+        }
+
+        return "📅 오늘 예정된 강의 일정이 없습니다 (공강).";
+    }
+
+    @Override
     public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
         String lower = message.toLowerCase();

@@ -41,6 +41,38 @@ public class WeatherAgentTool implements AgentTool {
     }
 
     @Override
+    public String formatNotification(ToolResult result, Map<String, Object> params) {
+        if (result == null || !(result.rawData() instanceof WeatherResponseDto weather)) {
+            return result != null && result.summary() != null ? result.summary() : "송도 캠퍼스 날씨 정보입니다.";
+        }
+
+        String sky = weather.getSky() != null ? weather.getSky() : "맑음";
+        String temp = weather.getTemperature() != null ? weather.getTemperature() : "-";
+        String pmGrade = weather.getPm10Grade() != null ? weather.getPm10Grade() : "보통";
+
+        String weatherEmoji = switch (sky) {
+            case "맑음" -> "☀️";
+            case "구름많음" -> "⛅";
+            case "흐림" -> "☁️";
+            case "비" -> "🌧️";
+            case "눈" -> "❄️";
+            case "비/눈", "소나기" -> "🌦️";
+            default -> "☀️";
+        };
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(weatherEmoji).append(" 현재 송도 ").append(temp).append("℃ ").append(sky);
+
+        if (sky.contains("비") || sky.contains("소나기") || sky.contains("눈")) {
+            sb.append(" (우산 꼭 챙기세요!)");
+        } else if ("나쁨".equals(pmGrade) || "매우나쁨".equals(pmGrade)) {
+            sb.append(String.format(" (미세먼지 %s, 마스크 권장)", pmGrade));
+        }
+
+        return sb.toString();
+    }
+
+    @Override
     public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
         String lower = message.toLowerCase();

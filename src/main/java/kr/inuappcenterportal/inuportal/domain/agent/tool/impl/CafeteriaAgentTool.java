@@ -192,6 +192,47 @@ public class CafeteriaAgentTool implements AgentTool {
     }
 
     @Override
+    public String formatNotification(ToolResult result, Map<String, Object> params) {
+        if (result == null || !(result.rawData() instanceof Map<?, ?> data)) {
+            return result != null && result.summary() != null ? result.summary() : "오늘의 학식 정보입니다.";
+        }
+
+        boolean isAll = Boolean.TRUE.equals(data.get("isAllCafeterias"));
+        String targetMeal = data.get("targetMeal") != null ? String.valueOf(data.get("targetMeal")) : "중식";
+
+        if (!isAll) {
+            String cafName = data.get("cafeteria") != null ? String.valueOf(data.get("cafeteria")) : "학생식당";
+            String menu = switch (targetMeal) {
+                case "조식" -> data.get("breakfast") != null ? String.valueOf(data.get("breakfast")) : "-";
+                case "석식" -> data.get("dinner") != null ? String.valueOf(data.get("dinner")) : "-";
+                default -> data.get("lunch") != null ? String.valueOf(data.get("lunch")) : "-";
+            };
+            if ("-".equals(menu) || menu.isBlank() || menu.contains("쉬는 날")) {
+                return String.format("🍱 [%s %s] 오늘은 식당 운영이 없습니다.", cafName, targetMeal);
+            }
+            String cleanMenu = menu.replaceAll("[\\r\\n]+", ", ").trim();
+            if (cleanMenu.length() > 50) cleanMenu = cleanMenu.substring(0, 47) + "...";
+            return String.format("🍱 [%s %s] %s", cafName, targetMeal, cleanMenu);
+        } else {
+            Object rawList = data.get("cafeterias");
+            if (rawList instanceof List<?> list && !list.isEmpty()) {
+                for (Object itemObj : list) {
+                    if (itemObj instanceof Map<?, ?> itemMap) {
+                        boolean isOp = Boolean.TRUE.equals(itemMap.get("isOperated"));
+                        if (isOp) {
+                            String name = String.valueOf(itemMap.get("name"));
+                            String menu = String.valueOf(itemMap.get("menu")).replaceAll("[\\r\\n]+", ", ").trim();
+                            if (menu.length() > 40) menu = menu.substring(0, 37) + "...";
+                            return String.format("🍱 [%s %s] %s", name, targetMeal, menu);
+                        }
+                    }
+                }
+            }
+            return String.format("🍱 [캠퍼스 학식 %s] 운영 중인 식당 메뉴를 확인해 보세요.", targetMeal);
+        }
+    }
+
+    @Override
     public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
         String lower = message.toLowerCase();

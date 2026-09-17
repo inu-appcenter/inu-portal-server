@@ -157,6 +157,22 @@ public class NoticeAgentTool implements AgentTool {
     }
 
     @Override
+    public String formatNotification(ToolResult result, Map<String, Object> params) {
+        if (result == null || !(result.rawData() instanceof List<?> list) || list.isEmpty()) {
+            return result != null && result.summary() != null ? result.summary() : "📢 새로운 학교 공지사항을 확인해 보세요.";
+        }
+
+        Object firstObj = list.get(0);
+        if (firstObj instanceof Map<?, ?> notice) {
+            String title = notice.get("title") != null ? String.valueOf(notice.get("title")) : "새 공지";
+            if (title.length() > 40) title = title.substring(0, 37) + "...";
+            return String.format("📢 [공지] %s", title);
+        }
+
+        return "📢 새로운 학교 공지사항을 확인해 보세요.";
+    }
+
+    @Override
     public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
         String lower = message.toLowerCase();
