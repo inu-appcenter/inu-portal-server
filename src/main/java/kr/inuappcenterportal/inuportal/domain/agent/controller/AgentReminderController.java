@@ -86,6 +86,24 @@ public class AgentReminderController {
         return ResponseEntity.ok(ResponseDto.of(null, "맞춤 알림 테스트 발송 성공"));
     }
 
+    @Operation(summary = "기본/맞춤 알림 즉시 테스트 발송", description = "도구와 파라미터를 기반으로 즉시 FCM 테스트 발송을 수행합니다 (기본 루틴 및 미등록 루틴 지원).")
+    @PostMapping("/test-custom")
+    public ResponseEntity<ResponseDto<Void>> testDispatchCustom(
+            @AuthenticationPrincipal Member member,
+            @RequestBody kr.inuappcenterportal.inuportal.domain.agent.dto.AgentReminderTestRequestDto req
+    ) {
+        agentReminderService.testDispatchCustom(
+                member,
+                req.title(),
+                req.targetTool(),
+                req.toolParamsJson(),
+                req.titleTemplate(),
+                req.bodyTemplate(),
+                req.route()
+        );
+        return ResponseEntity.ok(ResponseDto.of(null, "테스트 알림 발송 성공"));
+    }
+
     @Operation(summary = "맞춤 알림 삭제", description = "특정 맞춤 알림을 삭제합니다.")
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseDto<Void>> deleteReminder(

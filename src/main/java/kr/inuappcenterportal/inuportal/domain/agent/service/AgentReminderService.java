@@ -180,6 +180,40 @@ public class AgentReminderService {
     }
 
     /**
+     * 임의의 도구 및 파라미터 조합으로 즉시 FCM 테스트 발송을 수행합니다 (기본 루틴 및 생성 전 루틴 지원).
+     */
+    @Transactional
+    public void testDispatchCustom(
+            Member member,
+            String title,
+            String targetTool,
+            String toolParamsJson,
+            String titleTemplate,
+            String bodyTemplate,
+            String route
+    ) {
+        if (member == null) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
+
+        String toolKey = targetTool != null ? targetTool.toUpperCase().trim() : "TIMETABLE";
+        AgentReminder tempReminder = AgentReminder.builder()
+                .member(member)
+                .title(title != null && !title.isBlank() ? title : "AI 맞춤 알림")
+                .targetTime("08:30")
+                .repeatType(AgentReminderRepeatType.WEEKDAYS)
+                .targetTool(toolKey)
+                .toolParamsJson(toolParamsJson)
+                .titleTemplate(titleTemplate)
+                .bodyTemplate(bodyTemplate)
+                .route(route != null && !route.isBlank() ? route : "/")
+                .enabled(true)
+                .build();
+
+        sendReminder(tempReminder, false, null);
+    }
+
+    /**
      * 스케줄러에서 매 분마다 실행하는 알림 발송 디스패치 메서드
      */
      @Transactional

@@ -262,6 +262,38 @@ class AgentReminderServiceTest {
     }
 
     @Test
+    @DisplayName("임의 도구/기본 루틴 즉시 테스트 발송(testDispatchCustom) 검증")
+    void testDispatchCustom_success() {
+        // given
+        Member member = createTestMember(1L);
+        AgentTool mockTool = mock(AgentTool.class);
+        given(agentToolRegistry.findTool("TIMETABLE")).willReturn(Optional.of(mockTool));
+        given(agentToolRegistry.execute(eq("TIMETABLE"), eq(member), anyMap()))
+                .willReturn(AgentTool.ToolResult.of("📅 [오늘 첫 수업] 10:00 컴퓨터구조 (공7-301)", null, Map.of("firstClass", "컴퓨터구조")));
+        given(mockTool.formatNotification(any(), any())).willReturn("📅 [오늘 첫 수업] 10:00 컴퓨터구조 (공7-301)");
+
+        // when
+        agentReminderService.testDispatchCustom(
+                member,
+                "당일 강의 & 시간표 브리핑",
+                "TIMETABLE",
+                "{}",
+                "🔔 당일 강의 브리핑",
+                "",
+                "/timetable"
+        );
+
+        // then
+        verify(fcmService, times(1)).sendDailyBriefNotification(
+                eq(1L),
+                eq("🔔 당일 강의 브리핑"),
+                eq("📅 [오늘 첫 수업] 10:00 컴퓨터구조 (공7-301)"),
+                eq(FcmMessageType.AGENT_CUSTOM_REMINDER),
+                eq("/timetable")
+        );
+    }
+
+    @Test
     @DisplayName("스마트 조건: 첫 수업 시작 60분 전(BEFORE_FIRST_CLASS) 매칭 검증")
     void isReminderDue_beforeFirstClass() {
         // given
