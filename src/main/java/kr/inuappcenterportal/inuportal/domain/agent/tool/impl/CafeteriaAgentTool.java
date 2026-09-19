@@ -191,6 +191,75 @@ public class CafeteriaAgentTool implements AgentTool {
         return "학생식당";
     }
 
+    private String simplifyCafeteriaName(String name) {
+        if (name == null) return "식당";
+        if (name.contains("학생")) return "학생";
+        if (name.contains("2호관") || name.contains("교직원")) return "2호관";
+        if (name.contains("기숙사") || name.contains("1기숙사")) return "기숙사";
+        if (name.contains("27호관")) return "27호관";
+        if (name.contains("사범대")) return "사범대";
+        return name.replace("식당", "");
+    }
+
+    private String extractFirstMainMenu(String rawMenu) {
+        if (rawMenu == null || rawMenu.isBlank() || "-".equals(rawMenu.trim())) {
+            return null;
+        }
+        if (rawMenu.contains("쉬는 날") || rawMenu.contains("오늘은 쉽니다") || rawMenu.contains("등록된 메뉴가 없습니다")) {
+            return null;
+        }
+
+        String[] lines = rawMenu.split("[\\r\\n]+");
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+
+            // [1코너], [공통], [비빔밥·돈가스] 등 대괄호로만 이루어진 헤더 라인은 건너뜀
+            if (trimmed.matches("^\\[[^\\]]+\\]$")) {
+                continue;
+            }
+
+            // 가격 / 칼로리만 있는 라인 건너뜀
+            if (trimmed.matches("^\\s*\\d{1,3}(,\\d{3})*(\\s*원|\\s*kcal).*") || trimmed.matches(".*(kcal|Kcal|KCAL)$")) {
+                continue;
+            }
+
+            // "[선택1] 제육볶음" 같은 경우 앞의 태그 제거
+            String cleaned = trimmed.replaceAll("^\\[[^\\]]+\\]\\s*", "");
+
+            // 가격 표기 제거 (예: "8,500원(구성원 7,500원)", "7,500원" 등)
+            cleaned = cleaned.replaceAll("\\d{1,3}(,\\d{3})*\\s*원.*", "");
+            cleaned = cleaned.replaceAll("\\(구성원.*\\)", "");
+            cleaned = cleaned.replaceAll("\\d+([,\\.]\\d+)?\\s*(kcal|Kcal)", "");
+
+            // 괄호 안의 부가 설명이나 원산지 제거 (예: "(pork)", "(비엔나/미니해쉬)")
+            cleaned = cleaned.replaceAll("\\([^)]*\\)", "");
+
+            // ", 콩나물국", "&소면", "/ 순대국밥", "*새우튀김" 등 첫 번째 메인 요리 뒤에 붙는 국/사이드/선택지 정리
+            if (cleaned.contains(",")) {
+                cleaned = cleaned.split(",")[0];
+            }
+            if (cleaned.contains("&")) {
+                cleaned = cleaned.split("&")[0];
+            }
+            if (cleaned.contains("/")) {
+                cleaned = cleaned.split("/")[0];
+            }
+            if (cleaned.contains("*")) {
+                cleaned = cleaned.split("\\*")[0];
+            }
+
+            cleaned = cleaned.trim();
+            if (!cleaned.isEmpty() && !"-".equals(cleaned)) {
+                if (cleaned.length() > 20) {
+                    cleaned = cleaned.substring(0, 20).trim();
+                }
+                return cleaned;
+            }
+        }
+        return null;
+    }
+
     @Override
     public String formatNotification(ToolResult result, Map<String, Object> params) {
         if (result == null || !(result.rawData() instanceof Map<?, ?> data)) {
@@ -207,25 +276,30 @@ public class CafeteriaAgentTool implements AgentTool {
                 case "석식" -> data.get("dinner") != null ? String.valueOf(data.get("dinner")) : "-";
                 default -> data.get("lunch") != null ? String.valueOf(data.get("lunch")) : "-";
             };
-            if ("-".equals(menu) || menu.isBlank() || menu.contains("쉬는 날")) {
+            String firstMenu = extractFirstMainMenu(menu);
+            if (firstMenu == null || firstMenu.isBlank()) {
                 return String.format("🍱 [%s %s] 오늘은 식당 운영이 없습니다.", cafName, targetMeal);
             }
-            String cleanMenu = menu.replaceAll("[\\r\\n]+", ", ").trim();
-            if (cleanMenu.length() > 50) cleanMenu = cleanMenu.substring(0, 47) + "...";
-            return String.format("🍱 [%s %s] %s", cafName, targetMeal, cleanMenu);
+            return String.format("🍱 [%s %s] %s", cafName, targetMeal, firstMenu);
         } else {
             Object rawList = data.get("cafeterias");
             if (rawList instanceof List<?> list && !list.isEmpty()) {
+                List<String> operatedSummaries = new ArrayList<>();
                 for (Object itemObj : list) {
                     if (itemObj instanceof Map<?, ?> itemMap) {
                         boolean isOp = Boolean.TRUE.equals(itemMap.get("isOperated"));
                         if (isOp) {
                             String name = String.valueOf(itemMap.get("name"));
-                            String menu = String.valueOf(itemMap.get("menu")).replaceAll("[\\r\\n]+", ", ").trim();
-                            if (menu.length() > 40) menu = menu.substring(0, 37) + "...";
-                            return String.format("🍱 [%s %s] %s", name, targetMeal, menu);
+                            String rawMenu = String.valueOf(itemMap.get("menu"));
+                            String firstMenu = extractFirstMainMenu(rawMenu);
+                            if (firstMenu != null && !firstMenu.isBlank()) {
+                                operatedSummaries.add(String.format("%s(%s)", simplifyCafeteriaName(name), firstMenu));
+                            }
                         }
                     }
+                }
+                if (!operatedSummaries.isEmpty()) {
+                    return String.format("🍱 [학식 %s] %s", targetMeal, String.join(", ", operatedSummaries));
                 }
             }
             return String.format("🍱 [캠퍼스 학식 %s] 운영 중인 식당 메뉴를 확인해 보세요.", targetMeal);
