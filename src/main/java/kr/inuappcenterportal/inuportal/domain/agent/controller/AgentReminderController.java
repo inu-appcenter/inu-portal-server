@@ -68,6 +68,7 @@ public class AgentReminderController {
                 req.repeatType(),
                 req.targetTool(),
                 req.toolParamsJson(),
+                req.schedulesJson(),
                 req.titleTemplate(),
                 req.bodyTemplate(),
                 req.route()

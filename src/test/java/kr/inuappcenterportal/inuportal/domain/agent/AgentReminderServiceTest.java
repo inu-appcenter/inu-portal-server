@@ -149,7 +149,7 @@ class AgentReminderServiceTest {
                 "수정된 학식 알림",
                 "11:30",
                 AgentReminderRepeatType.EVERYDAY,
-                null, null, null, null, null
+                null, null, null, null, null, null, null
         );
         AgentReminderDto updated = agentReminderService.updateReminder(10L, member, req);
 
@@ -163,6 +163,53 @@ class AgentReminderServiceTest {
 
         // then 2
         assertThat(toggled.enabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("다중 스케줄 등록 및 스케줄러 디스패치 검증")
+    void dispatchDueReminders_multiSchedule_success() {
+        // given
+        Member member = createTestMember(1L);
+        LocalDate today = LocalDate.now();
+        String day3 = today.getDayOfWeek().name().substring(0, 3);
+        String currentTimeStr = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+
+        String schedulesJson = String.format("[{\"days\":[\"%s\"],\"time\":\"%s\",\"repeatType\":\"WEEKDAYS\"}]", day3, currentTimeStr);
+
+        AgentReminder reminder = AgentReminder.builder()
+                .member(member)
+                .title("다중 스케줄 알림")
+                .targetTime(currentTimeStr)
+                .repeatType(AgentReminderRepeatType.WEEKDAYS)
+                .targetTool("CAFETERIA")
+                .schedulesJson(schedulesJson)
+                .toolParamsJson("{\"restaurant\":\"DORMITORY_1\"}")
+                .titleTemplate("🍱 11시 학식 알림")
+                .bodyTemplate("학식: {mainMenu}")
+                .route("/cafeteria")
+                .enabled(true)
+                .build();
+
+        given(agentReminderRepository.findAllActive()).willReturn(List.of(reminder));
+
+        Map<String, Object> liveData = Map.of("mainMenu", "제육덮밥");
+        AgentTool.ToolResult mockResult = AgentTool.ToolResult.of("제육 요약", null, liveData);
+        given(agentToolRegistry.execute(eq("CAFETERIA"), eq(member), anyMap()))
+                .willReturn(mockResult);
+
+        // when
+        agentReminderService.dispatchDueReminders();
+
+        // then
+        verify(fcmService, times(1)).sendDailyBriefNotification(
+                eq(1L),
+                eq("🍱 11시 학식 알림"),
+                eq("학식: 제육덮밥"),
+                eq(FcmMessageType.AGENT_CUSTOM_REMINDER),
+                eq("/cafeteria")
+        );
+        assertThat(reminder.getLastSentDate()).isEqualTo(today);
+        assertThat(reminder.getLastSentTime()).isEqualTo(currentTimeStr);
     }
 
     @Test
@@ -185,7 +232,7 @@ class AgentReminderServiceTest {
                 .enabled(true)
                 .build();
 
-        given(agentReminderRepository.findAllActiveByTargetTime(currentTimeStr))
+        given(agentReminderRepository.findAllActive())
                 .willReturn(List.of(reminder));
 
         Map<String, Object> liveData = Map.of(

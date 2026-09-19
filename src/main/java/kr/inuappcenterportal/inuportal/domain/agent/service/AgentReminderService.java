@@ -66,6 +66,7 @@ public class AgentReminderService {
             AgentReminderRepeatType repeatType,
             String targetTool,
             String toolParamsJson,
+            String schedulesJson,
             String titleTemplate,
             String bodyTemplate,
             String route
@@ -84,13 +85,27 @@ public class AgentReminderService {
             throw new IllegalArgumentException(String.format("지원하지 않는 기능 도구('%s')가 포함되어 있습니다.", targetTool));
         }
 
+        String finalTargetTime = targetTime;
+        if ((finalTargetTime == null || finalTargetTime.isBlank()) && schedulesJson != null && !schedulesJson.isBlank()) {
+            try {
+                List<kr.inuappcenterportal.inuportal.domain.agent.dto.ReminderScheduleDto> schedules = objectMapper.readValue(
+                        schedulesJson,
+                        new TypeReference<List<kr.inuappcenterportal.inuportal.domain.agent.dto.ReminderScheduleDto>>() {}
+                );
+                if (schedules != null && !schedules.isEmpty() && schedules.get(0).time() != null) {
+                    finalTargetTime = schedules.get(0).time();
+                }
+            } catch (Exception ignored) {}
+        }
+
         AgentReminder reminder = AgentReminder.builder()
                 .member(member)
                 .title(title != null && !title.isBlank() ? title : "AI 맞춤 알림")
-                .targetTime(normalizeTime(targetTime))
+                .targetTime(normalizeTime(finalTargetTime))
                 .repeatType(repeatType != null ? repeatType : AgentReminderRepeatType.WEEKDAYS)
                 .targetTool(toolKey)
                 .toolParamsJson(toolParamsJson)
+                .schedulesJson(schedulesJson)
                 .titleTemplate(titleTemplate)
                 .bodyTemplate(bodyTemplate)
                 .route(route != null && !route.isBlank() ? route : "/")
@@ -104,6 +119,21 @@ public class AgentReminderService {
     }
 
     @Transactional
+    public AgentReminderDto createReminder(
+            Member member,
+            String title,
+            String targetTime,
+            AgentReminderRepeatType repeatType,
+            String targetTool,
+            String toolParamsJson,
+            String titleTemplate,
+            String bodyTemplate,
+            String route
+    ) {
+        return createReminder(member, title, targetTime, repeatType, targetTool, toolParamsJson, null, titleTemplate, bodyTemplate, route);
+    }
+
+    @Transactional
     public AgentReminderDto updateReminder(Long id, Member member, AgentReminderUpdateRequestDto req) {
         AgentReminder reminder = getMyReminderEntity(id, member);
         String normalizedTime = req.targetTime() != null ? normalizeTime(req.targetTime()) : null;
@@ -113,6 +143,7 @@ public class AgentReminderService {
                 normalizedTime,
                 req.repeatType(),
                 req.toolParamsJson(),
+                req.schedulesJson(),
                 req.titleTemplate(),
                 req.bodyTemplate(),
                 req.route(),
@@ -141,7 +172,7 @@ public class AgentReminderService {
     @Transactional
     public void testDispatchReminder(Long id, Member member) {
         AgentReminder reminder = getMyReminderEntity(id, member);
-        sendReminder(reminder, false);
+        sendReminder(reminder, false, null);
     }
 
     /**
@@ -150,26 +181,32 @@ public class AgentReminderService {
     @Transactional
     public void dispatchDueReminders() {
         LocalDate today = LocalDate.now();
-        String currentTimeStr = LocalTime.now().format(TIME_FORMATTER);
+        LocalTime now = LocalTime.now();
+        String currentTimeStr = now.format(TIME_FORMATTER);
 
-        List<AgentReminder> dueReminders = agentReminderRepository.findAllActiveByTargetTime(currentTimeStr);
-        if (dueReminders.isEmpty()) {
+        List<AgentReminder> activeReminders = agentReminderRepository.findAllActive();
+        if (activeReminders.isEmpty()) {
             return;
         }
 
-        for (AgentReminder reminder : dueReminders) {
+        for (AgentReminder reminder : activeReminders) {
             try {
-                // 1. 요일 일치 여부 검증
-                if (!reminder.getRepeatType().matches(today.getDayOfWeek())) {
+                // 1. 다중 스케줄 또는 레거시 스케줄 일치 여부 검증
+                if (!reminder.matchesSchedule(today, now, objectMapper)) {
                     continue;
                 }
 
-                // 2. 당일 중복 발송 방지 (1회성이거나 이미 보낸 경우)
+                // 2. 당일 동일 시각 중복 발송 방지 (1회성이거나 해당 시각에 이미 보낸 경우)
                 if (today.equals(reminder.getLastSentDate())) {
-                    continue;
+                    if (reminder.getRepeatType() == AgentReminderRepeatType.ONCE) {
+                        continue;
+                    }
+                    if (currentTimeStr.equals(reminder.getLastSentTime())) {
+                        continue;
+                    }
                 }
 
-                sendReminder(reminder, true);
+                sendReminder(reminder, true, currentTimeStr);
 
             } catch (Exception e) {
                 log.error("[AgentReminderService] 알림 발송 실패: reminderId={}, error={}",
@@ -178,7 +215,7 @@ public class AgentReminderService {
         }
     }
 
-    private void sendReminder(AgentReminder reminder, boolean recordDate) {
+    private void sendReminder(AgentReminder reminder, boolean recordDate, String sentTime) {
         LocalDate today = LocalDate.now();
         String targetTool = reminder.getTargetTool();
         Map<String, Object> params = parseParams(reminder.getToolParamsJson());
@@ -246,7 +283,7 @@ public class AgentReminderService {
         );
 
         if (recordDate) {
-            reminder.recordSent(today);
+            reminder.recordSent(today, sentTime);
         }
 
         log.info("[AgentReminderService] 맞춤 알림 발송 완료: reminderId={}, memberId={}, tool={}, title={}",

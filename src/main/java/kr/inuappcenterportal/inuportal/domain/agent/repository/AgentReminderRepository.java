@@ -16,4 +16,7 @@ public interface AgentReminderRepository extends JpaRepository<AgentReminder, Lo
 
     @Query("SELECT r FROM AgentReminder r JOIN FETCH r.member WHERE r.targetTime = :targetTime AND r.enabled = true")
     List<AgentReminder> findAllActiveByTargetTime(@Param("targetTime") String targetTime);
+
+    @Query("SELECT r FROM AgentReminder r JOIN FETCH r.member WHERE r.enabled = true")
+    List<AgentReminder> findAllActive();
 }

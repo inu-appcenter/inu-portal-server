@@ -8,6 +8,7 @@ public record AgentReminderCreateRequestDto(
         AgentReminderRepeatType repeatType,
         String targetTool,
         String toolParamsJson,
+        String schedulesJson,
         String titleTemplate,
         String bodyTemplate,
         String route

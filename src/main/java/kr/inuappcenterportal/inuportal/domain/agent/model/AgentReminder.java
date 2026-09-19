@@ -59,8 +59,14 @@ public class AgentReminder {
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
 
+    @Column(name = "schedules_json", columnDefinition = "TEXT")
+    private String schedulesJson; // "[{\"days\":[\"MON\",\"WED\"],\"time\":\"08:30\"}]"
+
     @Column(name = "last_sent_date")
     private LocalDate lastSentDate;
+
+    @Column(name = "last_sent_time", length = 10)
+    private String lastSentTime; // "08:30"
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -87,6 +93,7 @@ public class AgentReminder {
             AgentReminderRepeatType repeatType,
             String targetTool,
             String toolParamsJson,
+            String schedulesJson,
             String titleTemplate,
             String bodyTemplate,
             String route,
@@ -98,6 +105,7 @@ public class AgentReminder {
         if (repeatType != null) this.repeatType = repeatType;
         this.targetTool = targetTool;
         this.toolParamsJson = toolParamsJson;
+        this.schedulesJson = schedulesJson;
         this.titleTemplate = titleTemplate;
         this.bodyTemplate = bodyTemplate;
         this.route = (route != null && !route.isBlank()) ? route : "/";
@@ -105,12 +113,13 @@ public class AgentReminder {
     }
 
     public void update(String title, String targetTime, AgentReminderRepeatType repeatType,
-                       String toolParamsJson, String titleTemplate, String bodyTemplate,
-                       String route, Boolean enabled) {
+                       String toolParamsJson, String schedulesJson, String titleTemplate,
+                       String bodyTemplate, String route, Boolean enabled) {
         if (title != null && !title.isBlank()) this.title = title;
         if (targetTime != null && !targetTime.isBlank()) this.targetTime = targetTime;
         if (repeatType != null) this.repeatType = repeatType;
         if (toolParamsJson != null) this.toolParamsJson = toolParamsJson;
+        if (schedulesJson != null) this.schedulesJson = schedulesJson;
         if (titleTemplate != null) this.titleTemplate = titleTemplate;
         if (bodyTemplate != null) this.bodyTemplate = bodyTemplate;
         if (route != null) this.route = route;
@@ -128,9 +137,57 @@ public class AgentReminder {
     }
 
     public void recordSent(LocalDate sentDate) {
+        recordSent(sentDate, null);
+    }
+
+    public void recordSent(LocalDate sentDate, String sentTime) {
         this.lastSentDate = sentDate;
+        this.lastSentTime = sentTime;
         if (this.repeatType == AgentReminderRepeatType.ONCE) {
             this.enabled = false;
         }
+    }
+
+    public boolean matchesSchedule(LocalDate date, java.time.LocalTime time, com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        if (!this.enabled) {
+            return false;
+        }
+        String timeStr = time.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+        java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
+        String dayName3 = dayOfWeek.name().substring(0, 3); // "MON", "TUE", ...
+
+        if (this.schedulesJson != null && !this.schedulesJson.isBlank()) {
+            try {
+                java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ReminderScheduleDto> schedules =
+                        objectMapper.readValue(
+                                this.schedulesJson,
+                                new com.fasterxml.jackson.core.type.TypeReference<java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ReminderScheduleDto>>() {}
+                        );
+                if (schedules != null && !schedules.isEmpty()) {
+                    for (kr.inuappcenterportal.inuportal.domain.agent.dto.ReminderScheduleDto s : schedules) {
+                        if (s.time() != null && s.time().equals(timeStr)) {
+                            if (s.days() != null && !s.days().isEmpty()) {
+                                if (s.days().stream().anyMatch(d -> d.equalsIgnoreCase(dayName3) || d.equalsIgnoreCase(dayOfWeek.name()))) {
+                                    return true;
+                                }
+                            } else if (s.repeatType() != null) {
+                                if (s.repeatType().matches(dayOfWeek)) {
+                                    return true;
+                                }
+                            } else if (this.repeatType != null && this.repeatType.matches(dayOfWeek)) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Legacy fallback
+        return this.targetTime != null
+                && this.targetTime.equals(timeStr)
+                && this.repeatType != null
+                && this.repeatType.matches(dayOfWeek);
     }
 }
