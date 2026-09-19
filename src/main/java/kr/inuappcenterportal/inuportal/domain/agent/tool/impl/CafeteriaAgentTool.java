@@ -39,13 +39,43 @@ public class CafeteriaAgentTool implements AgentTool {
         try {
             boolean isAll = true;
             String cafeteria = "학생식당";
+            String candidate = null;
+            String candidateMeal = null;
 
-            if (params != null && params.containsKey("cafeteria") && params.get("cafeteria") != null) {
-                String candidate = String.valueOf(params.get("cafeteria")).trim();
-                if (!candidate.isBlank() && !candidate.contains("전체") && !"ALL".equalsIgnoreCase(candidate)) {
-                    cafeteria = normalizeCafeteriaName(candidate);
-                    isAll = false;
+            if (params != null) {
+                if (params.containsKey("cafeteria") && params.get("cafeteria") != null) {
+                    candidate = String.valueOf(params.get("cafeteria")).trim();
+                } else if (params.containsKey("restaurant") && params.get("restaurant") != null) {
+                    candidate = String.valueOf(params.get("restaurant")).trim();
                 }
+
+                if (params.containsKey("mealType") && params.get("mealType") != null) {
+                    candidateMeal = String.valueOf(params.get("mealType")).trim();
+                }
+
+                if (candidate == null && params.get("cafeteriaParams") instanceof Map<?, ?> cp) {
+                    if (cp.get("cafeteria") != null) candidate = String.valueOf(cp.get("cafeteria")).trim();
+                    else if (cp.get("restaurant") != null) candidate = String.valueOf(cp.get("restaurant")).trim();
+                    if (candidateMeal == null && cp.get("mealType") != null) candidateMeal = String.valueOf(cp.get("mealType")).trim();
+                }
+
+                if (candidate == null && params.get("actions") instanceof List<?> actionList) {
+                    for (Object act : actionList) {
+                        if (act instanceof Map<?, ?> actMap && "CAFETERIA".equals(actMap.get("type"))) {
+                            if (actMap.get("cafeteriaParams") instanceof Map<?, ?> cp) {
+                                if (cp.get("cafeteria") != null) candidate = String.valueOf(cp.get("cafeteria")).trim();
+                                else if (cp.get("restaurant") != null) candidate = String.valueOf(cp.get("restaurant")).trim();
+                                if (candidateMeal == null && cp.get("mealType") != null) candidateMeal = String.valueOf(cp.get("mealType")).trim();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (candidate != null && !candidate.isBlank() && !candidate.contains("전체") && !"ALL".equalsIgnoreCase(candidate)) {
+                cafeteria = normalizeCafeteriaName(candidate);
+                isAll = false;
             }
 
             int dayOfWeek = LocalDate.now().getDayOfWeek().getValue();
@@ -59,8 +89,8 @@ public class CafeteriaAgentTool implements AgentTool {
             int slotIndex;
             String mealName;
 
-            String mealTypeParam = (params != null && params.get("mealType") != null)
-                    ? String.valueOf(params.get("mealType")).toUpperCase().trim()
+            String mealTypeParam = (candidateMeal != null && !candidateMeal.isBlank())
+                    ? candidateMeal.toUpperCase().trim()
                     : "AUTO";
 
             if ("BREAKFAST".equals(mealTypeParam) || "조식".equals(mealTypeParam) || "아침".equals(mealTypeParam)) {

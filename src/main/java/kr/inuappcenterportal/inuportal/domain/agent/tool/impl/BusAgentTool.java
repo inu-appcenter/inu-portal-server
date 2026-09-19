@@ -47,12 +47,28 @@ public class BusAgentTool implements AgentTool {
         try {
             String rawStopName = "";
             boolean hasExplicitStopQuery = false;
-            if (params != null && params.containsKey("stopName") && params.get("stopName") != null) {
-                String candidate = String.valueOf(params.get("stopName")).trim();
-                if (!candidate.isBlank()) {
-                    rawStopName = candidate;
-                    hasExplicitStopQuery = true;
+            String candidate = null;
+            if (params != null) {
+                if (params.containsKey("stopName") && params.get("stopName") != null) {
+                    candidate = String.valueOf(params.get("stopName")).trim();
                 }
+                if (candidate == null && params.get("busParams") instanceof Map<?, ?> bp) {
+                    if (bp.get("stopName") != null) candidate = String.valueOf(bp.get("stopName")).trim();
+                }
+                if (candidate == null && params.get("actions") instanceof List<?> actionList) {
+                    for (Object act : actionList) {
+                        if (act instanceof Map<?, ?> actMap && "BUS".equals(actMap.get("type"))) {
+                            if (actMap.get("busParams") instanceof Map<?, ?> bp && bp.get("stopName") != null) {
+                                candidate = String.valueOf(bp.get("stopName")).trim();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            if (candidate != null && !candidate.isBlank()) {
+                rawStopName = candidate;
+                hasExplicitStopQuery = true;
             }
 
             String mode = "REALTIME";

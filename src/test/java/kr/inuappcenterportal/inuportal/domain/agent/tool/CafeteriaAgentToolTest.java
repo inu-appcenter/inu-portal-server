@@ -115,18 +115,27 @@ class CafeteriaAgentToolTest {
     }
 
     @Test
-    @DisplayName("운영하지 않는 식당의 경우 운영 없음 메시지가 생성된다")
-    void formatNotificationClosedCafeteria() {
-        Map<String, Object> data = Map.of(
-                "isAllCafeterias", false,
-                "cafeteria", "사범대식당",
-                "targetMeal", "조식",
-                "breakfast", "-"
+    @DisplayName("actions 리스트 내 특정 식당이 설정되어 있으면 해당 단일 식당만 조회되어 결과가 생성된다")
+    void executeWithSpecificCafeteriaInActionsOnlyQueriesThatCafeteria() {
+        org.mockito.BDDMockito.given(cafeteriaService.getCafeteria(org.mockito.ArgumentMatchers.eq("제1기숙사식당"), org.mockito.ArgumentMatchers.anyInt()))
+                .willReturn(List.of("-", "등심돈까스\n우동국물", "-"));
+
+        Map<String, Object> params = Map.of(
+                "actions", List.of(
+                        Map.of(
+                                "type", "CAFETERIA",
+                                "cafeteriaParams", Map.of(
+                                        "restaurant", "제1기숙사식당",
+                                        "mealType", "LUNCH"
+                                )
+                        )
+                )
         );
-        AgentTool.ToolResult result = new AgentTool.ToolResult("요약", null, data);
 
-        String notification = cafeteriaAgentTool.formatNotification(result, Map.of());
+        AgentTool.ToolResult result = cafeteriaAgentTool.execute(null, params);
 
-        assertEquals("[사범대식당] 오늘은 식당 운영이 없습니다.", notification);
+        org.junit.jupiter.api.Assertions.assertNotNull(result);
+        String notif = cafeteriaAgentTool.formatNotification(result, params);
+        assertEquals("[기숙사식당] 등심돈까스", notif);
     }
 }
