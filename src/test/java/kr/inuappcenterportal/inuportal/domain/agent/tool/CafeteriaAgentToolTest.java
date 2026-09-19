@@ -45,7 +45,7 @@ class CafeteriaAgentToolTest {
 
         String notification = cafeteriaAgentTool.formatNotification(result, Map.of());
 
-        assertEquals("🍱 [학생식당 중식] 참치김치찌개", notification);
+        assertEquals("[학생식당] 참치김치찌개", notification);
     }
 
     @Test
@@ -68,11 +68,11 @@ class CafeteriaAgentToolTest {
 
         String notification = cafeteriaAgentTool.formatNotification(result, Map.of());
 
-        assertEquals("🍱 [2호관(교직원)식당 중식] 제육볶음", notification);
+        assertEquals("[2호관식당] 제육볶음", notification);
     }
 
     @Test
-    @DisplayName("전체 식당 알림 시 각 식당의 첫 번째 메인메뉴가 요약되어 한 줄로 구성된다")
+    @DisplayName("전체 식당 알림 시 각 식당의 첫 번째 메인메뉴가 [식당명1] 메인메뉴, [식당명2] 메인메뉴 형태로 구성된다")
     void formatNotificationAllCafeteriasExtractsEachFirstMainMenu() {
         List<Map<String, Object>> cafeterias = List.of(
                 Map.of(
@@ -111,7 +111,7 @@ class CafeteriaAgentToolTest {
 
         String notification = cafeteriaAgentTool.formatNotification(result, Map.of());
 
-        assertEquals("🍱 [학식 중식] 학생(참치김치찌개), 2호관(제육볶음), 기숙사(등심돈까스), 27호관(제육야채비빔밥)", notification);
+        assertEquals("[학생식당] 참치김치찌개, [2호관식당] 제육볶음, [기숙사식당] 등심돈까스, [27호관식당] 제육야채비빔밥", notification);
     }
 
     @Test
@@ -127,6 +127,6 @@ class CafeteriaAgentToolTest {
 
         String notification = cafeteriaAgentTool.formatNotification(result, Map.of());
 
-        assertEquals("🍱 [사범대식당 조식] 오늘은 식당 운영이 없습니다.", notification);
+        assertEquals("[사범대식당] 오늘은 식당 운영이 없습니다.", notification);
     }
 }

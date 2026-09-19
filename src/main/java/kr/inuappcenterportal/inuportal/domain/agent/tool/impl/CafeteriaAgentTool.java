@@ -193,12 +193,12 @@ public class CafeteriaAgentTool implements AgentTool {
 
     private String simplifyCafeteriaName(String name) {
         if (name == null) return "식당";
-        if (name.contains("학생")) return "학생";
-        if (name.contains("2호관") || name.contains("교직원")) return "2호관";
-        if (name.contains("기숙사") || name.contains("1기숙사")) return "기숙사";
-        if (name.contains("27호관")) return "27호관";
-        if (name.contains("사범대")) return "사범대";
-        return name.replace("식당", "");
+        if (name.contains("학생")) return "학생식당";
+        if (name.contains("2호관") || name.contains("교직원")) return "2호관식당";
+        if (name.contains("기숙사") || name.contains("1기숙사")) return "기숙사식당";
+        if (name.contains("27호관")) return "27호관식당";
+        if (name.contains("사범대")) return "사범대식당";
+        return name;
     }
 
     private String extractFirstMainMenu(String rawMenu) {
@@ -278,9 +278,9 @@ public class CafeteriaAgentTool implements AgentTool {
             };
             String firstMenu = extractFirstMainMenu(menu);
             if (firstMenu == null || firstMenu.isBlank()) {
-                return String.format("🍱 [%s %s] 오늘은 식당 운영이 없습니다.", cafName, targetMeal);
+                return String.format("[%s] 오늘은 식당 운영이 없습니다.", simplifyCafeteriaName(cafName));
             }
-            return String.format("🍱 [%s %s] %s", cafName, targetMeal, firstMenu);
+            return String.format("[%s] %s", simplifyCafeteriaName(cafName), firstMenu);
         } else {
             Object rawList = data.get("cafeterias");
             if (rawList instanceof List<?> list && !list.isEmpty()) {
@@ -293,16 +293,16 @@ public class CafeteriaAgentTool implements AgentTool {
                             String rawMenu = String.valueOf(itemMap.get("menu"));
                             String firstMenu = extractFirstMainMenu(rawMenu);
                             if (firstMenu != null && !firstMenu.isBlank()) {
-                                operatedSummaries.add(String.format("%s(%s)", simplifyCafeteriaName(name), firstMenu));
+                                operatedSummaries.add(String.format("[%s] %s", simplifyCafeteriaName(name), firstMenu));
                             }
                         }
                     }
                 }
                 if (!operatedSummaries.isEmpty()) {
-                    return String.format("🍱 [학식 %s] %s", targetMeal, String.join(", ", operatedSummaries));
+                    return String.join(", ", operatedSummaries);
                 }
             }
-            return String.format("🍱 [캠퍼스 학식 %s] 운영 중인 식당 메뉴를 확인해 보세요.", targetMeal);
+            return "[학식] 운영 중인 식당 메뉴를 확인해 보세요.";
         }
     }
 
