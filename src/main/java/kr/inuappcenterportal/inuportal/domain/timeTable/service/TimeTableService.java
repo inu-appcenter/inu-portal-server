@@ -463,4 +463,78 @@ public class TimeTableService {
             }
         };
     }
+
+    public record DailyLectureDto(
+            String title,
+            String location,
+            java.time.LocalTime startTime,
+            java.time.LocalTime endTime,
+            String professor
+    ) {}
+
+    /**
+     * 회원의 특정 일자 대표 시간표 강의 목록을 시간순으로 정렬하여 조회합니다.
+     */
+    public List<DailyLectureDto> getMemberDailyLectures(Long memberId, java.time.LocalDate date) {
+        if (memberId == null || date == null) return java.util.Collections.emptyList();
+
+        List<TimeTableResponseDto> tables = getTimeTables(memberId);
+        TimeTableResponseDto primary = tables.stream()
+                .filter(t -> Boolean.TRUE.equals(t.isPrimary()))
+                .findFirst()
+                .orElse(tables.isEmpty() ? null : tables.get(0));
+
+        if (primary == null) return java.util.Collections.emptyList();
+
+        TimeTableDetailResponseDto detail;
+        try {
+            detail = getTimeTableDetail(memberId, primary.id());
+        } catch (Exception e) {
+            return java.util.Collections.emptyList();
+        }
+
+        if (detail == null || detail.items() == null) return java.util.Collections.emptyList();
+
+        kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek targetDay;
+        try {
+            targetDay = kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek.valueOf(date.getDayOfWeek().name());
+        } catch (Exception e) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<DailyLectureDto> result = new java.util.ArrayList<>();
+        for (TimeTableDetailItemResponseDto item : detail.items()) {
+            String title = "";
+            String professor = "";
+            List<?> meetings = java.util.Collections.emptyList();
+
+            if (item.type() == kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType.COURSE && item.course() != null) {
+                title = item.course().title();
+                professor = item.course().professor();
+                meetings = item.course().meetings();
+            } else if (item.type() == kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType.CUSTOM && item.customSchedule() != null) {
+                title = item.customSchedule().title();
+                meetings = item.customSchedule().meetings();
+            }
+
+            if (meetings != null) {
+                for (Object mObj : meetings) {
+                    if (mObj instanceof kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableMeetingResponseDto m) {
+                        if (m.day() == targetDay && m.startTime() != null && m.endTime() != null) {
+                            result.add(new DailyLectureDto(
+                                    title,
+                                    m.location() != null ? m.location() : "",
+                                    m.startTime(),
+                                    m.endTime(),
+                                    professor != null ? professor : ""
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        result.sort(java.util.Comparator.comparing(DailyLectureDto::startTime));
+        return result;
+    }
 }

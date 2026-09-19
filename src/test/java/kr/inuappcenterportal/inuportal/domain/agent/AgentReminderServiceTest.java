@@ -12,6 +12,7 @@ import kr.inuappcenterportal.inuportal.domain.agent.tool.AgentToolRegistry;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +44,9 @@ class AgentReminderServiceTest {
 
     @Mock
     private FcmService fcmService;
+
+    @Mock
+    private TimeTableService timeTableService;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -255,5 +259,111 @@ class AgentReminderServiceTest {
                 eq("/cafeteria")
         );
         assertThat(reminder.getLastSentDate()).isEqualTo(LocalDate.now());
+    }
+
+    @Test
+    @DisplayName("스마트 조건: 첫 수업 시작 60분 전(BEFORE_FIRST_CLASS) 매칭 검증")
+    void isReminderDue_beforeFirstClass() {
+        // given
+        Member member = createTestMember(1L);
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.of(9, 0); // 09:00
+
+        List<TimeTableService.DailyLectureDto> lectures = List.of(
+                new TimeTableService.DailyLectureDto("운영체제", "공7-301", LocalTime.of(10, 0), LocalTime.of(12, 0), "교수A"),
+                new TimeTableService.DailyLectureDto("알고리즘", "공7-302", LocalTime.of(13, 0), LocalTime.of(15, 0), "교수B")
+        );
+        given(timeTableService.getMemberDailyLectures(eq(1L), eq(today))).willReturn(lectures);
+
+        AgentReminder reminder = AgentReminder.builder()
+                .member(member)
+                .title("첫 수업 안내")
+                .targetTool("TIMETABLE")
+                .toolParamsJson("{\"triggers\":[{\"type\":\"BEFORE_FIRST_CLASS\",\"minutes\":60}]}")
+                .enabled(true)
+                .build();
+
+        // when & then
+        assertThat(agentReminderService.isReminderDue(reminder, today, now)).isTrue();
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(9, 30))).isFalse();
+    }
+
+    @Test
+    @DisplayName("스마트 조건: 각 수업 시작 10분 전(BEFORE_CLASS) 매칭 검증")
+    void isReminderDue_beforeClass() {
+        // given
+        Member member = createTestMember(1L);
+        LocalDate today = LocalDate.now();
+
+        List<TimeTableService.DailyLectureDto> lectures = List.of(
+                new TimeTableService.DailyLectureDto("운영체제", "공7-301", LocalTime.of(10, 0), LocalTime.of(12, 0), "교수A"),
+                new TimeTableService.DailyLectureDto("알고리즘", "공7-302", LocalTime.of(13, 0), LocalTime.of(15, 0), "교수B")
+        );
+        given(timeTableService.getMemberDailyLectures(eq(1L), eq(today))).willReturn(lectures);
+
+        AgentReminder reminder = AgentReminder.builder()
+                .member(member)
+                .title("수업 시작 전 알림")
+                .targetTool("TIMETABLE")
+                .toolParamsJson("{\"triggers\":[{\"type\":\"BEFORE_CLASS\",\"minutes\":10}]}")
+                .enabled(true)
+                .build();
+
+        // when & then
+        // 10:00 10분 전 = 09:50
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(9, 50))).isTrue();
+        // 13:00 10분 전 = 12:50
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(12, 50))).isTrue();
+        // 일치하지 않는 시각
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(10, 0))).isFalse();
+    }
+
+    @Test
+    @DisplayName("스마트 조건: 마지막 수업 종료 10분 후(AFTER_LAST_CLASS) 매칭 검증")
+    void isReminderDue_afterLastClass() {
+        // given
+        Member member = createTestMember(1L);
+        LocalDate today = LocalDate.now();
+
+        List<TimeTableService.DailyLectureDto> lectures = List.of(
+                new TimeTableService.DailyLectureDto("운영체제", "공7-301", LocalTime.of(10, 0), LocalTime.of(12, 0), "교수A"),
+                new TimeTableService.DailyLectureDto("알고리즘", "공7-302", LocalTime.of(13, 0), LocalTime.of(15, 0), "교수B")
+        );
+        given(timeTableService.getMemberDailyLectures(eq(1L), eq(today))).willReturn(lectures);
+
+        AgentReminder reminder = AgentReminder.builder()
+                .member(member)
+                .title("하교 버스 알림")
+                .targetTool("BUS")
+                .toolParamsJson("{\"triggers\":[{\"type\":\"AFTER_LAST_CLASS\",\"offsetMinutes\":10}]}")
+                .enabled(true)
+                .build();
+
+        // when & then
+        // 마지막 수업(15:00) 10분 후 = 15:10
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(15, 10))).isTrue();
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(15, 0))).isFalse();
+    }
+
+    @Test
+    @DisplayName("스마트 조건: 공강일(NO_CLASS_DAY) 브리핑 매칭 검증")
+    void isReminderDue_noClassDay() {
+        // given
+        Member member = createTestMember(1L);
+        LocalDate today = LocalDate.now();
+
+        given(timeTableService.getMemberDailyLectures(eq(1L), eq(today))).willReturn(Collections.emptyList());
+
+        AgentReminder reminder = AgentReminder.builder()
+                .member(member)
+                .title("공강일 여유 브리핑")
+                .targetTool("SCHEDULE")
+                .toolParamsJson("{\"triggers\":[{\"type\":\"NO_CLASS_DAY\",\"time\":\"10:00\"}]}")
+                .enabled(true)
+                .build();
+
+        // when & then
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(10, 0))).isTrue();
+        assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(11, 0))).isFalse();
     }
 }

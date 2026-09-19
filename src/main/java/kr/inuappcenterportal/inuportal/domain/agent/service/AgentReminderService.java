@@ -14,6 +14,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.domain.timeTable.service.TimeTableService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -32,17 +33,20 @@ public class AgentReminderService {
     private final AgentToolRegistry agentToolRegistry;
     private final FcmService fcmService;
     private final ObjectMapper objectMapper;
+    private final TimeTableService timeTableService;
 
     public AgentReminderService(
             AgentReminderRepository agentReminderRepository,
             @Lazy AgentToolRegistry agentToolRegistry,
             FcmService fcmService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            TimeTableService timeTableService
     ) {
         this.agentReminderRepository = agentReminderRepository;
         this.agentToolRegistry = agentToolRegistry;
         this.fcmService = fcmService;
         this.objectMapper = objectMapper;
+        this.timeTableService = timeTableService;
     }
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -178,42 +182,166 @@ public class AgentReminderService {
     /**
      * 스케줄러에서 매 분마다 실행하는 알림 발송 디스패치 메서드
      */
-    @Transactional
-    public void dispatchDueReminders() {
-        LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
-        String currentTimeStr = now.format(TIME_FORMATTER);
+     @Transactional
+     public void dispatchDueReminders() {
+         LocalDate today = LocalDate.now();
+         LocalTime now = LocalTime.now();
+         String currentTimeStr = now.format(TIME_FORMATTER);
 
-        List<AgentReminder> activeReminders = agentReminderRepository.findAllActive();
-        if (activeReminders.isEmpty()) {
-            return;
-        }
+         List<AgentReminder> activeReminders = agentReminderRepository.findAllActive();
+         if (activeReminders.isEmpty()) {
+             return;
+         }
 
-        for (AgentReminder reminder : activeReminders) {
-            try {
-                // 1. 다중 스케줄 또는 레거시 스케줄 일치 여부 검증
-                if (!reminder.matchesSchedule(today, now, objectMapper)) {
-                    continue;
-                }
+         for (AgentReminder reminder : activeReminders) {
+             try {
+                 // 1. 다중 스케줄 또는 시간표 기반 동적 조건 일치 여부 검증
+                 if (!isReminderDue(reminder, today, now)) {
+                     continue;
+                 }
 
-                // 2. 당일 동일 시각 중복 발송 방지 (1회성이거나 해당 시각에 이미 보낸 경우)
-                if (today.equals(reminder.getLastSentDate())) {
-                    if (reminder.getRepeatType() == AgentReminderRepeatType.ONCE) {
-                        continue;
-                    }
-                    if (currentTimeStr.equals(reminder.getLastSentTime())) {
-                        continue;
-                    }
-                }
+                 // 2. 당일 동일 시각 중복 발송 방지 (1회성이거나 해당 시각에 이미 보낸 경우)
+                 if (today.equals(reminder.getLastSentDate())) {
+                     if (reminder.getRepeatType() == AgentReminderRepeatType.ONCE) {
+                         continue;
+                     }
+                     if (currentTimeStr.equals(reminder.getLastSentTime())) {
+                         continue;
+                     }
+                 }
 
-                sendReminder(reminder, true, currentTimeStr);
+                 sendReminder(reminder, true, currentTimeStr);
 
-            } catch (Exception e) {
-                log.error("[AgentReminderService] 알림 발송 실패: reminderId={}, error={}",
-                        reminder.getId(), e.getMessage(), e);
-            }
-        }
-    }
+             } catch (Exception e) {
+                 log.error("[AgentReminderService] 알림 발송 실패: reminderId={}, error={}",
+                         reminder.getId(), e.getMessage(), e);
+             }
+         }
+     }
+
+     /**
+      * 해당 알림이 현재 일자 및 시각에 발송되어야 하는지 판단합니다.
+      */
+     public boolean isReminderDue(AgentReminder reminder, LocalDate today, LocalTime now) {
+         if (reminder == null || !reminder.isEnabled()) {
+             return false;
+         }
+
+         String currentTimeStr = now.format(TIME_FORMATTER);
+
+         // 1. toolParamsJson 내 triggers 검사
+         Map<String, Object> params = parseParams(reminder.getToolParamsJson());
+         Object triggersObj = params.get("triggers");
+
+         if (triggersObj instanceof List<?> triggerList && !triggerList.isEmpty()) {
+             List<TimeTableService.DailyLectureDto> lectures = null;
+             boolean dynamicTriggerFound = false;
+
+             for (Object item : triggerList) {
+                 if (!(item instanceof Map<?, ?> triggerMap)) continue;
+                 String type = triggerMap.get("type") != null ? String.valueOf(triggerMap.get("type")).toUpperCase() : "";
+
+                 switch (type) {
+                     case "BEFORE_FIRST_CLASS" -> {
+                         dynamicTriggerFound = true;
+                         if (lectures == null && reminder.getMember() != null) {
+                             lectures = timeTableService.getMemberDailyLectures(reminder.getMember().getId(), today);
+                         }
+                         if (lectures != null && !lectures.isEmpty()) {
+                             int minutes = parseMinutes(triggerMap.get("minutes"), 60);
+                             LocalTime firstClassStart = lectures.get(0).startTime();
+                             LocalTime triggerTime = firstClassStart.minusMinutes(minutes);
+                             if (currentTimeStr.equals(triggerTime.format(TIME_FORMATTER))) {
+                                 return true;
+                             }
+                         }
+                     }
+                     case "BEFORE_CLASS" -> {
+                         dynamicTriggerFound = true;
+                         if (lectures == null && reminder.getMember() != null) {
+                             lectures = timeTableService.getMemberDailyLectures(reminder.getMember().getId(), today);
+                         }
+                         if (lectures != null && !lectures.isEmpty()) {
+                             int minutes = parseMinutes(triggerMap.get("minutes"), 10);
+                             for (TimeTableService.DailyLectureDto lec : lectures) {
+                                 LocalTime triggerTime = lec.startTime().minusMinutes(minutes);
+                                 if (currentTimeStr.equals(triggerTime.format(TIME_FORMATTER))) {
+                                     return true;
+                                 }
+                             }
+                         }
+                     }
+                     case "AFTER_LAST_CLASS" -> {
+                         dynamicTriggerFound = true;
+                         if (lectures == null && reminder.getMember() != null) {
+                             lectures = timeTableService.getMemberDailyLectures(reminder.getMember().getId(), today);
+                         }
+                         if (lectures != null && !lectures.isEmpty()) {
+                             int offsetMinutes = parseMinutes(triggerMap.get("offsetMinutes"), 10);
+                             LocalTime lastClassEnd = lectures.get(lectures.size() - 1).endTime();
+                             LocalTime triggerTime = lastClassEnd.plusMinutes(offsetMinutes);
+                             if (currentTimeStr.equals(triggerTime.format(TIME_FORMATTER))) {
+                                 return true;
+                             }
+                         }
+                     }
+                     case "LONG_BREAK" -> {
+                         dynamicTriggerFound = true;
+                         if (lectures == null && reminder.getMember() != null) {
+                             lectures = timeTableService.getMemberDailyLectures(reminder.getMember().getId(), today);
+                         }
+                         if (lectures != null && lectures.size() >= 2) {
+                             int minGapMinutes = parseMinutes(triggerMap.get("minGapMinutes"), 120);
+                             for (int i = 0; i < lectures.size() - 1; i++) {
+                                 LocalTime endPrev = lectures.get(i).endTime();
+                                 LocalTime startNext = lectures.get(i + 1).startTime();
+                                 long gap = java.time.Duration.between(endPrev, startNext).toMinutes();
+                                 if (gap >= minGapMinutes) {
+                                     if (currentTimeStr.equals(endPrev.format(TIME_FORMATTER))) {
+                                         return true;
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                     case "NO_CLASS_DAY" -> {
+                         dynamicTriggerFound = true;
+                         if (lectures == null && reminder.getMember() != null) {
+                             lectures = timeTableService.getMemberDailyLectures(reminder.getMember().getId(), today);
+                         }
+                         if (lectures != null && lectures.isEmpty()) {
+                             String checkTime = triggerMap.get("time") != null ? normalizeTime(String.valueOf(triggerMap.get("time"))) : "10:00";
+                             if (currentTimeStr.equals(checkTime)) {
+                                 return true;
+                             }
+                         }
+                     }
+                     case "TIME" -> {
+                         dynamicTriggerFound = true;
+                         String checkTime = triggerMap.get("time") != null ? normalizeTime(String.valueOf(triggerMap.get("time"))) : reminder.getTargetTime();
+                         if (currentTimeStr.equals(checkTime)) {
+                             return true;
+                         }
+                     }
+                 }
+             }
+
+             if (dynamicTriggerFound) {
+                 return false;
+             }
+         }
+
+         return reminder.matchesSchedule(today, now, objectMapper);
+     }
+
+     private int parseMinutes(Object obj, int defaultVal) {
+         if (obj == null) return defaultVal;
+         try {
+             return Integer.parseInt(String.valueOf(obj).trim());
+         } catch (Exception e) {
+             return defaultVal;
+         }
+     }
 
     private void sendReminder(AgentReminder reminder, boolean recordDate, String sentTime) {
         LocalDate today = LocalDate.now();

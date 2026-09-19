@@ -273,8 +273,9 @@ public class TimeTableAgentTool implements AgentTool {
             if (firstClassObj instanceof Map<?, ?> firstClass) {
                 String name = firstClass.get("name") != null ? String.valueOf(firstClass.get("name")) : "수업";
                 String startTime = firstClass.get("startTime") != null ? String.valueOf(firstClass.get("startTime")) : "";
-                String room = firstClass.get("room") != null ? String.valueOf(firstClass.get("room")) : "";
-                return String.format("📅 [오늘 첫 수업] %s %s (%s)", startTime, name, room);
+                String room = firstClass.get("room") != null ? String.valueOf(firstClass.get("room")).trim() : "";
+                String roomText = room.isEmpty() ? "" : " (" + room + ")";
+                return String.format("📅 [오늘 첫 수업] %s %s%s", startTime, name, roomText);
             }
         }
 
