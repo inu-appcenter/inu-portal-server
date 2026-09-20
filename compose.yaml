@@ -23,11 +23,12 @@ services:
       - ${MOUNT_PATH}:/intip-dev
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - elasticsearch
+    #   depends_on:
+    #     - elasticsearch
     networks:
       - intip-network
     working_dir: /intip
+
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.3.1
@@ -74,9 +75,39 @@ services:
     networks:
       - intip-network
 
+  loki:
+    image: grafana/loki:latest
+    container_name: intip-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki-data:/loki
+    networks:
+      - intip-network
+      - monitoring
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: intip-alloy
+    restart: unless-stopped
+    volumes:
+      - ${MOUNT_PATH}:/intip:ro
+      - ./infra/config.alloy:/etc/alloy/config.alloy:ro
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    networks:
+      - intip-network
+
 networks:
   intip-network:
+  monitoring:
+    external: true
+    name: appcenter-server-metric-monitoring_monitoring
+
 
 volumes:
   esdata:
   agent-state:
+  loki-data:
