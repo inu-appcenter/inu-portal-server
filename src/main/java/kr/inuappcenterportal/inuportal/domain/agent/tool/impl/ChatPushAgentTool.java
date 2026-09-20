@@ -1,0 +1,82 @@
+package kr.inuappcenterportal.inuportal.domain.agent.tool.impl;
+
+import kr.inuappcenterportal.inuportal.domain.agent.dto.UiComponentDto;
+import kr.inuappcenterportal.inuportal.domain.agent.tool.*;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ChatPushAgentTool implements AgentTool {
+
+    private final MemberService memberService;
+
+    @Override
+    public AgentToolDefinition getDefinition() {
+        return new AgentToolDefinition("ACTION_CHAT_PUSH", "채팅 푸시 알림을 켜거나 끕니다.",
+                java.util.List.of("채팅 푸시 활성화", "채팅 푸시 비활성화"),
+                java.util.List.of("채팅 알림 켜줘", "채팅 푸시 꺼줘"),
+                java.util.List.of("현재 설정 조회는 ACTION_MY_SETTINGS"),
+                Map.of("enabled", AgentToolParameter.bool("켜기=true, 끄기=false", true)), true, false);
+    }
+
+    @Override
+    public ToolResult execute(Member member, Map<String, Object> params) {
+        if (member == null) {
+            return new ToolResult("채팅 알림 설정을 변경하려면 로그인이 필요합니다.",
+                    UiComponentDto.of("AUTH_REQUIRED", Map.of(), "로그인하기", "/login"), null);
+        }
+
+        try {
+            boolean enabled = true;
+            if (params != null && params.containsKey("enabled")) {
+                Object val = params.get("enabled");
+                if (val instanceof Boolean b) {
+                    enabled = b;
+                } else {
+                    enabled = Boolean.parseBoolean(String.valueOf(val));
+                }
+            }
+            boolean result = memberService.updateChatPush(member.getId(), enabled);
+
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("settingType", "CHAT_PUSH");
+            data.put("title", "채팅 푸시 알림");
+            data.put("enabled", result);
+            data.put("statusText", result ? "알림 켜짐" : "알림 꺼짐");
+            data.put("message", result ? "채팅 푸시 알림이 활성화되었습니다." : "채팅 푸시 알림이 비활성화되었습니다.");
+
+            UiComponentDto component = UiComponentDto.of("SETTING_RESULT", data, "내 정보 / 알림 설정", "/mypage");
+            String summary = result 
+                    ? "채팅 푸시 알림을 성공적으로 켰습니다. 새 메시지가 오면 푸시로 알려드릴게요!"
+                    : "채팅 푸시 알림을 성공적으로 껐습니다. 언제든 다시 켜실 수 있어요.";
+
+            return new ToolResult(summary, component, data);
+        } catch (Exception e) {
+            log.error("채팅 푸시 설정 변경 오류: {}", e.getMessage(), e);
+            return new ToolResult("채팅 푸시 알림 설정을 변경하는 도중 오류가 발생했습니다.", null, null);
+        }
+    }
+
+    @Override
+    public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null || message.isBlank()) return false;
+        String lower = message.toLowerCase();
+        return lower.contains("채팅") && (lower.contains("알림") || lower.contains("푸시"));
+    }
+
+    @Override
+    public Map<String, Object> createFallbackParams(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
+        if (message == null) return Map.of("enabled", true);
+        String lower = message.toLowerCase();
+        boolean enabled = !lower.contains("꺼") && !lower.contains("해제") && !lower.contains("비활성");
+        return Map.of("enabled", enabled);
+    }
+}

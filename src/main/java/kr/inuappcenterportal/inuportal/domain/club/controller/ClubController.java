@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import kr.inuappcenterportal.inuportal.domain.agent.openapi.annotation.AgentExposed;
 import kr.inuappcenterportal.inuportal.domain.club.dto.ClubListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.club.dto.ClubRecruitingRequestDto;
 import kr.inuappcenterportal.inuportal.domain.club.dto.ClubRecruitingResponseDto;
@@ -35,6 +36,15 @@ import java.util.List;
 public class ClubController {
     private final ClubService clubService;
 
+    @AgentExposed(
+            name = "CLUB_LIST",
+            description = "교내 동아리 목록을 전체 또는 분과별로 조회합니다.",
+            capabilities = {"전체 동아리 목록 조회", "분과별 동아리 목록 조회"},
+            triggerExamples = {"학교 동아리 보여줘", "체육 동아리 뭐 있어?"},
+            negativeExamples = {"동아리 모집공고 상세 조회나 가입 신청은 지원하지 않음"},
+            redirectUrl = "/home/club",
+            cardTitle = "교내 동아리 목록"
+    )
     @Operation(summary = "동아리 리스트 가져오기",description = "파라미터에 원하는 카테고리(교양학술, 문화, 봉사, 종교, 체육, 취미·전시) 혹은 빈칸(전체 조회)를 보내주세요")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "동아리 리스트 가져오기 성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))

@@ -77,4 +77,16 @@ public interface DepartmentNoticeRepository extends JpaRepository<DepartmentNoti
             List<DepartmentNoticeScheduleExtractStatus> statuses,
             Pageable pageable
     );
+
+    @Query("""
+            select dn from DepartmentNotice dn
+            where (:department is null or dn.department = :department)
+              and dn.title like %:query%
+            order by dn.createDate desc, dn.id desc
+            """)
+    Page<DepartmentNotice> searchDepartmentNotices(
+            @Param("department") Department department,
+            @Param("query") String query,
+            Pageable pageable
+    );
 }

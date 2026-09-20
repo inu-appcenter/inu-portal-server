@@ -61,7 +61,10 @@ public class VllmService {
     ) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : (vllmProperties.model() != null ? vllmProperties.model() : "vllm-prod");
+                : vllmProperties.model();
+        if (targetModel == null || targetModel.isBlank()) {
+            throw new IllegalStateException("vLLM 모델명이 설정되지 않았습니다. application.yaml의 vllm.model 설정을 확인하세요.");
+        }
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)
@@ -121,7 +124,10 @@ public class VllmService {
     public String chat(VllmChatRequestDto requestDto) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
-                : (vllmProperties.model() != null ? vllmProperties.model() : "vllm-prod");
+                : vllmProperties.model();
+        if (targetModel == null || targetModel.isBlank()) {
+            throw new IllegalStateException("vLLM 모델명이 설정되지 않았습니다. application.yaml의 vllm.model 설정을 확인하세요.");
+        }
 
         VllmChatRequestDto actualRequest = VllmChatRequestDto.builder()
                 .model(targetModel)
@@ -163,7 +169,7 @@ public class VllmService {
     private String resolveChatCompletionUrl() {
         String base = vllmProperties.url();
         if (base == null || base.isBlank()) {
-            base = "https://vllm-api.inuappcenter.kr/v1";
+            throw new IllegalStateException("vLLM URL이 설정되지 않았습니다. application.yaml의 vllm.url 설정을 확인하세요.");
         }
         base = base.trim().replaceAll("/+$", "");
         if (!base.endsWith("/v1")) {

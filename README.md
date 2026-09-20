@@ -1,5 +1,13 @@
 # inu-portal-server
 
+## AI Agent 도구 추가·변경
+
+AI 도구의 기능 명세는 각 `AgentTool#getDefinition()`이 단일 진실 공급원입니다. 별도의 라우팅 프롬프트나 설명 문자열을 직접 수정하지 않습니다.
+
+정적 도구를 추가할 때는 `AgentTool`을 구현하고 `@Component`로 등록한 뒤, `AgentToolDefinition`에 고유 이름·요약·실제 capability·호출 예시·호출 제외 경계·파라미터 스키마·로그인 여부·조회/변경 성격을 선언합니다.
+
+레지스트리는 이 명세로 AI 라우팅 카탈로그와 실행 전 파라미터 검증을 자동 구성합니다. `@AgentExposed` GET API도 어노테이션의 capability와 예시를 통해 동일한 명세로 자동 등록됩니다. 구현하지 않은 기능은 capability나 파라미터 enum에 노출하지 않습니다.
+
 ---
 
 **앱센터 겨울방학 프로젝트 INTIP의 서버 저장소입니다.**
