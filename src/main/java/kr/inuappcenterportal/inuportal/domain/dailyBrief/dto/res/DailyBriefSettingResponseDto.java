@@ -28,7 +28,10 @@ public record DailyBriefSettingResponseDto(
         String scheduleDailyBriefTime,
 
         @Schema(description = "학사일정 알림 수신 대상 범위", example = "ALL")
-        ScheduleScope scheduleScope
+        ScheduleScope scheduleScope,
+
+        @Schema(description = "카드 구성 및 세부 설정 JSON 문자열", example = "{}")
+        String cardSettingsJson
 ) {
     public static DailyBriefSettingResponseDto from(DailyBriefSetting setting) {
         return new DailyBriefSettingResponseDto(
@@ -39,7 +42,8 @@ public record DailyBriefSettingResponseDto(
                 setting.getTimetableDailyBriefTime(),
                 setting.isScheduleAlertEnabled(),
                 setting.getScheduleDailyBriefTime(),
-                setting.getScheduleScope()
+                setting.getScheduleScope(),
+                setting.getCardSettingsJson()
         );
     }
 }
