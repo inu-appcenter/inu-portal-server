@@ -27,6 +27,23 @@ public record DailyBriefSettingRequestDto(
         String scheduleDailyBriefTime,
 
         @Schema(description = "학사일정 알림 수신 대상 범위 (ALL, SCHOOL_ONLY, DEPT_ONLY)", example = "ALL")
-        ScheduleScope scheduleScope
+        ScheduleScope scheduleScope,
+
+        @Schema(description = "카드 구성 및 세부 설정 JSON 문자열", example = "{}")
+        String cardSettingsJson
 ) {
+    public DailyBriefSettingRequestDto(
+            Boolean timetableAlertEnabled,
+            Boolean timetablePreAlertEnabled,
+            Integer timetablePreAlertMinutes,
+            Boolean timetableDailyBriefEnabled,
+            String timetableDailyBriefTime,
+            Boolean scheduleAlertEnabled,
+            String scheduleDailyBriefTime,
+            ScheduleScope scheduleScope
+    ) {
+        this(timetableAlertEnabled, timetablePreAlertEnabled, timetablePreAlertMinutes,
+                timetableDailyBriefEnabled, timetableDailyBriefTime,
+                scheduleAlertEnabled, scheduleDailyBriefTime, scheduleScope, null);
+    }
 }

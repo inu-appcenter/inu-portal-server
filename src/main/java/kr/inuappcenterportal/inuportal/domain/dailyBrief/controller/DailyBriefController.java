@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.req.DailyBriefSettingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefCardSettingDto;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefSettingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -49,6 +50,8 @@ public class DailyBriefController {
                     description = "설정 수정 성공",
                     content = @Content(schema = @Schema(implementation = DailyBriefSettingResponseDto.class))
             )
+
+
     })
     @PutMapping("/settings")
     public ResponseEntity<ResponseDto<DailyBriefSettingResponseDto>> updateSettings(
@@ -57,5 +60,38 @@ public class DailyBriefController {
     ) {
         DailyBriefSettingResponseDto response = dailyBriefService.updateSettings(member, requestDto);
         return ResponseEntity.ok(ResponseDto.of(response, "Daily Brief 설정 수정 성공"));
+    }
+
+    @Operation(summary = "Daily Brief 카드 설정 조회", description = "로그인한 사용자의 Daily Brief 카드 노출 순서 및 세부 설정(JSON)을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "카드 설정 조회 성공",
+                    content = @Content(schema = @Schema(implementation = DailyBriefCardSettingDto.class))
+            )
+    })
+    @GetMapping("/cards/settings")
+    public ResponseEntity<ResponseDto<DailyBriefCardSettingDto>> getCardSettings(
+            @AuthenticationPrincipal Member member
+    ) {
+        DailyBriefCardSettingDto response = dailyBriefService.getCardSettings(member);
+        return ResponseEntity.ok(ResponseDto.of(response, "Daily Brief 카드 설정 조회 성공"));
+    }
+
+    @Operation(summary = "Daily Brief 카드 설정 수정", description = "로그인한 사용자의 Daily Brief 카드 노출 순서 및 세부 설정(JSON)을 수정합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "카드 설정 수정 성공",
+                    content = @Content(schema = @Schema(implementation = DailyBriefCardSettingDto.class))
+            )
+    })
+    @PutMapping("/cards/settings")
+    public ResponseEntity<ResponseDto<DailyBriefCardSettingDto>> updateCardSettings(
+            @AuthenticationPrincipal Member member,
+            @RequestBody DailyBriefCardSettingDto requestDto
+    ) {
+        DailyBriefCardSettingDto response = dailyBriefService.updateCardSettings(member, requestDto);
+        return ResponseEntity.ok(ResponseDto.of(response, "Daily Brief 카드 설정 수정 성공"));
     }
 }
