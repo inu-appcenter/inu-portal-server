@@ -149,6 +149,9 @@ public class AgentService {
                 String toolName = toolCall.tool().toUpperCase();
                 executedToolNames.add(toolName);
                 Map<String, Object> toolParams = new LinkedHashMap<>(toolCall.params() != null ? toolCall.params() : Map.of());
+                if (history != null && !history.isEmpty()) {
+                    toolParams.put("_history", history);
+                }
                 if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
                     toolParams.put("_clientContext", requestDto.clientContext());
                 }
@@ -261,6 +264,9 @@ public class AgentService {
                     if (hasAcademic) {
                         executedTools.add("ACADEMIC");
                         Map<String, Object> toolParams = new LinkedHashMap<>();
+                        if (history != null && !history.isEmpty()) {
+                            toolParams.put("_history", history);
+                        }
                         if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
                             toolParams.put("_clientContext", requestDto.clientContext());
                         }
@@ -314,6 +320,9 @@ public class AgentService {
                         String toolName = toolCall.tool().toUpperCase();
                         executedToolNames.add(toolName);
                         Map<String, Object> toolParams = new LinkedHashMap<>(toolCall.params() != null ? toolCall.params() : Map.of());
+                        if (history != null && !history.isEmpty()) {
+                            toolParams.put("_history", history);
+                        }
                         if (requestDto.clientContext() != null && !requestDto.clientContext().isEmpty()) {
                             toolParams.put("_clientContext", requestDto.clientContext());
                         }
@@ -399,10 +408,20 @@ public class AgentService {
     }
 
     private AgentToolDecisionDto decideTool(String userMessage, List<ChatMessageDto> history) {
-        List<VllmChatMessageDto> messages = List.of(
-                VllmChatMessageDto.system(buildRoutingPrompt(history)),
-                VllmChatMessageDto.user(userMessage)
-        );
+        List<VllmChatMessageDto> messages = new ArrayList<>();
+        messages.add(VllmChatMessageDto.system(buildRoutingPrompt(history)));
+        if (history != null && !history.isEmpty()) {
+            int start = Math.max(0, history.size() - 6);
+            for (int i = start; i < history.size(); i++) {
+                ChatMessageDto h = history.get(i);
+                if ("user".equalsIgnoreCase(h.role())) {
+                    messages.add(VllmChatMessageDto.user(h.content()));
+                } else {
+                    messages.add(VllmChatMessageDto.assistant(h.content()));
+                }
+            }
+        }
+        messages.add(VllmChatMessageDto.user(userMessage));
 
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
@@ -472,16 +491,27 @@ public class AgentService {
             return new SecondaryDecision(Collections.emptyList(), null);
         }
 
+        StringBuilder historyContext = new StringBuilder();
+        if (history != null && !history.isEmpty()) {
+            historyContext.append("\n[최근 대화 맥락]\n");
+            int start = Math.max(0, history.size() - 4);
+            for (int i = start; i < history.size(); i++) {
+                ChatMessageDto h = history.get(i);
+                String role = "user".equalsIgnoreCase(h.role()) ? "사용자" : "비서";
+                historyContext.append(String.format("- %s: %s\n", role, h.content()));
+            }
+        }
+
         String prompt = String.format("""
                 당신은 인천대학교 포털 INTIP의 자율 ReAct AI 캠퍼스 비서입니다.
                 [사용자 질문]: "%s"
-                
+                %s
                 [현재까지 수집된 도구 실행 결과 (Observation)]:
                 %s
                 
                 [이미 실행된 도구 목록]: %s
                 
-                위 관찰 결과(Observation)를 바탕으로, 사용자의 질문에 완벽히 답하기 위해 추가로 실행해야 할 후속 도구가 있는지 판단하세요.
+                위 관찰 결과(Observation)와 대화 맥락을 바탕으로, 사용자의 질문에 완벽히 답하기 위해 추가로 실행해야 할 후속 도구가 있는지 판단하세요.
                 - 이전 도구에서 원하는 정보가 나오지 않았거나 대안이 필요한 경우(예: 특정 열람실 만석 시 다른 열람실 조회, 과제 미존재 시 강좌 공지 확인 등) 다른 적절한 도구를 호출할 수 있습니다.
                 - 이미 충분한 정보가 수집되어 바로 사용자에게 최종 답변을 할 수 있다면 반드시 {"tools": []}로 응답하세요.
                 - 이미 실행된 도구(%s)는 중복 호출하지 마세요.
@@ -494,12 +524,27 @@ public class AgentService {
                 {"tools": [{"tool": "도구명", "params": { ... }}], "thought": "판단 및 다음 행동 이유"}
                 """,
                 userMessage,
+                historyContext.toString(),
                 previousSummary,
                 String.join(", ", executedToolNames),
                 String.join(", ", executedToolNames),
                 agentToolRegistry.generateRoutingPromptCatalog());
 
-        List<VllmChatMessageDto> messages = List.of(VllmChatMessageDto.user(prompt));
+        List<VllmChatMessageDto> messages = new ArrayList<>();
+        messages.add(VllmChatMessageDto.system(prompt));
+        if (history != null && !history.isEmpty()) {
+            int start = Math.max(0, history.size() - 4);
+            for (int i = start; i < history.size(); i++) {
+                ChatMessageDto h = history.get(i);
+                if ("user".equalsIgnoreCase(h.role())) {
+                    messages.add(VllmChatMessageDto.user(h.content()));
+                } else {
+                    messages.add(VllmChatMessageDto.assistant(h.content()));
+                }
+            }
+        }
+        messages.add(VllmChatMessageDto.user("현재까지의 관찰 결과를 바탕으로 후속 도구 호출 여부를 결정하세요."));
+
         VllmChatRequestDto request = VllmChatRequestDto.builder()
                 .messages(messages)
                 .temperature(0.1)
