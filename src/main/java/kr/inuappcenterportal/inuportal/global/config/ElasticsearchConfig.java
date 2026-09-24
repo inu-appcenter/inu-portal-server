@@ -23,8 +23,8 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
         log.info("[ElasticsearchConfig] Connecting to Elasticsearch at: '{}' (raw config: '{}')", cleanUri, elasticsearchUri);
         return ClientConfiguration.builder()
                 .connectedTo(cleanUri)
-                .withConnectTimeout(Duration.ofSeconds(5))
-                .withSocketTimeout(Duration.ofSeconds(10))
+                .withConnectTimeout(Duration.ofSeconds(10))
+                .withSocketTimeout(Duration.ofSeconds(60))
                 .build();
     }
 }

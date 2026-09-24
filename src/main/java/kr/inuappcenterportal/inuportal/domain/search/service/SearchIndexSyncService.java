@@ -61,80 +61,40 @@ public class SearchIndexSyncService {
         return total;
     }
 
+    private static final int BATCH_SIZE = 300;
+
+    private <T> void saveInBatches(List<T> items, java.util.function.Consumer<List<T>> batchConsumer) {
+        if (items == null || items.isEmpty()) return;
+        for (int i = 0; i < items.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, items.size());
+            batchConsumer.accept(items.subList(i, end));
+        }
+    }
+
     @Transactional(readOnly = true)
     public int syncNotices() {
         List<Notice> notices = noticeRepository.findAll();
-        List<NoticeDocument> docs = notices.stream().map(n -> {
-            String contentText = (n.getContent() != null && n.getContent().getContentText() != null)
-                    ? n.getContent().getContentText()
-                    : n.getDescription();
-            return NoticeDocument.builder()
-                    .id(n.getId())
-                    .title(n.getTitle())
-                    .content(contentText)
-                    .category(n.getCategory())
-                    .writer(n.getWriter())
-                    .url(n.getUrl())
-                    .createDate(n.getCreateDate())
-                    .build();
-        }).collect(Collectors.toList());
-
-        noticeSearchRepository.saveAll(docs);
-        log.info("Indexed {} notices", docs.size());
+        List<NoticeDocument> docs = notices.stream().map(this::toNoticeDocument).collect(Collectors.toList());
+        saveInBatches(docs, noticeSearchRepository::saveAll);
+        log.info("Indexed {} notices in batches of {}", docs.size(), BATCH_SIZE);
         return docs.size();
     }
 
     @Transactional(readOnly = true)
     public int syncDepartmentNotices() {
         List<DepartmentNotice> deptNotices = departmentNoticeRepository.findAll();
-        List<DepartmentNoticeDocument> docs = deptNotices.stream().map(dn -> {
-            StringBuilder sb = new StringBuilder();
-            if (dn.getContent() != null) {
-                if (dn.getContent().getContentText() != null) {
-                    sb.append(dn.getContent().getContentText()).append(" ");
-                }
-                if (dn.getContent().getOcrText() != null) {
-                    sb.append(dn.getContent().getOcrText()).append(" ");
-                }
-                if (dn.getContent().getAttachmentText() != null) {
-                    sb.append(dn.getContent().getAttachmentText());
-                }
-            }
-            String deptName = (dn.getDepartment() != null) ? dn.getDepartment().getDepartmentName() : "";
-            return DepartmentNoticeDocument.builder()
-                    .id(dn.getId())
-                    .department(dn.getDepartment() != null ? dn.getDepartment().name() : null)
-                    .departmentName(deptName)
-                    .title(dn.getTitle())
-                    .content(sb.toString().trim())
-                    .writer(null)
-                    .url(dn.getUrl())
-                    .createDate(dn.getCreateDate() != null ? dn.getCreateDate().toString() : null)
-                    .build();
-        }).collect(Collectors.toList());
-
-        departmentNoticeSearchRepository.saveAll(docs);
-        log.info("Indexed {} department notices", docs.size());
+        List<DepartmentNoticeDocument> docs = deptNotices.stream().map(this::toDepartmentNoticeDocument).collect(Collectors.toList());
+        saveInBatches(docs, departmentNoticeSearchRepository::saveAll);
+        log.info("Indexed {} department notices in batches of {}", docs.size(), BATCH_SIZE);
         return docs.size();
     }
 
     @Transactional(readOnly = true)
     public int syncPosts() {
         List<Post> posts = postRepository.findAllByIsDeletedFalse();
-        List<PostDocument> docs = posts.stream().map(p -> PostDocument.builder()
-                .id(p.getId())
-                .title(p.getTitle())
-                .content(p.getContent())
-                .category(p.getCategory())
-                .writer(p.getAnonymous() != null && p.getAnonymous() ? "익명" : (p.getMember() != null ? p.getMember().getNickname() : "알수없음"))
-                .good(p.getGood() != null ? p.getGood().intValue() : 0)
-                .scrap(p.getScrap() != null ? p.getScrap().intValue() : 0)
-                .createDate(p.getCreateDate() != null ? p.getCreateDate().toString() : null)
-                .build()
-        ).collect(Collectors.toList());
-
-        postSearchRepository.saveAll(docs);
-        log.info("Indexed {} posts", docs.size());
+        List<PostDocument> docs = posts.stream().map(this::toPostDocument).collect(Collectors.toList());
+        saveInBatches(docs, postSearchRepository::saveAll);
+        log.info("Indexed {} posts in batches of {}", docs.size(), BATCH_SIZE);
         return docs.size();
     }
 
@@ -151,7 +111,7 @@ public class SearchIndexSyncService {
                 .build()
         ).collect(Collectors.toList());
 
-        scheduleSearchRepository.saveAll(docs);
+        saveInBatches(docs, scheduleSearchRepository::saveAll);
         log.info("Indexed {} schedules", docs.size());
         return docs.size();
     }
@@ -171,7 +131,7 @@ public class SearchIndexSyncService {
                 .build()
         ).collect(Collectors.toList());
 
-        directorySearchRepository.saveAll(docs);
+        saveInBatches(docs, directorySearchRepository::saveAll);
         log.info("Indexed {} directory entries", docs.size());
         return docs.size();
     }
@@ -191,7 +151,7 @@ public class SearchIndexSyncService {
                 .build()
         ).collect(Collectors.toList());
 
-        courseSearchRepository.saveAll(docs);
+        saveInBatches(docs, courseSearchRepository::saveAll);
         log.info("Indexed {} courses", docs.size());
         return docs.size();
     }
@@ -207,7 +167,7 @@ public class SearchIndexSyncService {
                 .build()
         ).collect(Collectors.toList());
 
-        clubSearchRepository.saveAll(docs);
+        saveInBatches(docs, clubSearchRepository::saveAll);
         log.info("Indexed {} clubs", docs.size());
         return docs.size();
     }
@@ -216,17 +176,7 @@ public class SearchIndexSyncService {
     @Async
     public void indexPost(Post post) {
         try {
-            PostDocument doc = PostDocument.builder()
-                    .id(post.getId())
-                    .title(post.getTitle())
-                    .content(post.getContent())
-                    .category(post.getCategory())
-                    .writer(post.getAnonymous() != null && post.getAnonymous() ? "익명" : (post.getMember() != null ? post.getMember().getNickname() : "알수없음"))
-                    .good(post.getGood() != null ? post.getGood().intValue() : 0)
-                    .scrap(post.getScrap() != null ? post.getScrap().intValue() : 0)
-                    .createDate(post.getCreateDate() != null ? post.getCreateDate().toString() : null)
-                    .build();
-            postSearchRepository.save(doc);
+            postSearchRepository.save(toPostDocument(post));
         } catch (Exception e) {
             log.warn("Failed to index post in elasticsearch: {}", e.getMessage());
         }
@@ -239,5 +189,86 @@ public class SearchIndexSyncService {
         } catch (Exception e) {
             log.warn("Failed to delete post from elasticsearch: {}", e.getMessage());
         }
+    }
+
+    @Async
+    public void indexNotice(Notice notice) {
+        try {
+            noticeSearchRepository.save(toNoticeDocument(notice));
+        } catch (Exception e) {
+            log.warn("Failed to index notice in elasticsearch: {}", e.getMessage());
+        }
+    }
+
+    @Async
+    public void deleteNotice(Long noticeId) {
+        try {
+            noticeSearchRepository.deleteById(noticeId);
+        } catch (Exception e) {
+            log.warn("Failed to delete notice from elasticsearch: {}", e.getMessage());
+        }
+    }
+
+    @Async
+    public void indexDepartmentNotice(DepartmentNotice deptNotice) {
+        try {
+            departmentNoticeSearchRepository.save(toDepartmentNoticeDocument(deptNotice));
+        } catch (Exception e) {
+            log.warn("Failed to index department notice in elasticsearch: {}", e.getMessage());
+        }
+    }
+
+    public NoticeDocument toNoticeDocument(Notice n) {
+        String contentText = (n.getContent() != null && n.getContent().getContentText() != null)
+                ? n.getContent().getContentText()
+                : n.getDescription();
+        return NoticeDocument.builder()
+                .id(n.getId())
+                .title(n.getTitle())
+                .content(contentText)
+                .category(n.getCategory())
+                .writer(n.getWriter())
+                .url(n.getUrl())
+                .createDate(n.getCreateDate())
+                .build();
+    }
+
+    public DepartmentNoticeDocument toDepartmentNoticeDocument(DepartmentNotice dn) {
+        StringBuilder sb = new StringBuilder();
+        if (dn.getContent() != null) {
+            if (dn.getContent().getContentText() != null) {
+                sb.append(dn.getContent().getContentText()).append(" ");
+            }
+            if (dn.getContent().getOcrText() != null) {
+                sb.append(dn.getContent().getOcrText()).append(" ");
+            }
+            if (dn.getContent().getAttachmentText() != null) {
+                sb.append(dn.getContent().getAttachmentText());
+            }
+        }
+        String deptName = (dn.getDepartment() != null) ? dn.getDepartment().getDepartmentName() : "";
+        return DepartmentNoticeDocument.builder()
+                .id(dn.getId())
+                .department(dn.getDepartment() != null ? dn.getDepartment().name() : null)
+                .departmentName(deptName)
+                .title(dn.getTitle())
+                .content(sb.toString().trim())
+                .writer(null)
+                .url(dn.getUrl())
+                .createDate(dn.getCreateDate() != null ? dn.getCreateDate().toString() : null)
+                .build();
+    }
+
+    public PostDocument toPostDocument(Post p) {
+        return PostDocument.builder()
+                .id(p.getId())
+                .title(p.getTitle())
+                .content(p.getContent())
+                .category(p.getCategory())
+                .writer(p.getAnonymous() != null && p.getAnonymous() ? "익명" : (p.getMember() != null ? p.getMember().getNickname() : "알수없음"))
+                .good(p.getGood() != null ? p.getGood().intValue() : 0)
+                .scrap(p.getScrap() != null ? p.getScrap().intValue() : 0)
+                .createDate(p.getCreateDate() != null ? p.getCreateDate().toString() : null)
+                .build();
     }
 }

@@ -26,6 +26,7 @@ public class NoticeCrawlHelper {
     private final NoticeRepository noticeRepository;
     private final DepartmentNoticeRepository departmentNoticeRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final kr.inuappcenterportal.inuportal.domain.search.service.SearchIndexSyncService searchIndexSyncService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean saveOrUpdateNotice(
@@ -112,6 +113,12 @@ public class NoticeCrawlHelper {
 
         // 트랜잭션 내에서 본문 동기화 등 추가 액션 실행
         contentSyncAction.accept(departmentNotice);
+
+        try {
+            searchIndexSyncService.indexDepartmentNotice(departmentNotice);
+        } catch (Exception e) {
+            log.warn("[학과공지] Elasticsearch 인덱싱 예약 실패: {}", e.getMessage());
+        }
 
         return new DepartmentNoticeSaveResult(departmentNotice, isNew);
     }
