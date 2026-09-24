@@ -45,10 +45,37 @@ public class SearchIndexSyncService {
     private final DirectorySearchRepository directorySearchRepository;
     private final CourseSearchRepository courseSearchRepository;
     private final ClubSearchRepository clubSearchRepository;
+    private final org.springframework.data.elasticsearch.core.ElasticsearchOperations elasticsearchOperations;
+
+    public void initIndices() {
+        Class<?>[] documentClasses = new Class<?>[]{
+                NoticeDocument.class,
+                DepartmentNoticeDocument.class,
+                PostDocument.class,
+                ScheduleDocument.class,
+                DirectoryDocument.class,
+                CourseDocument.class,
+                ClubDocument.class
+        };
+
+        for (Class<?> docClass : documentClasses) {
+            try {
+                var indexOps = elasticsearchOperations.indexOps(docClass);
+                if (!indexOps.exists()) {
+                    log.info("[SearchIndexSyncService] Creating index for {}", docClass.getSimpleName());
+                    indexOps.create();
+                    indexOps.putMapping();
+                }
+            } catch (Exception e) {
+                log.warn("[SearchIndexSyncService] Failed to initialize index for {}: {}", docClass.getSimpleName(), e.getMessage());
+            }
+        }
+    }
 
     @Transactional(readOnly = true)
     public int syncAll() {
         log.info("Starting full re-indexing of all domains to Elasticsearch...");
+        initIndices();
         int total = 0;
         total += syncNotices();
         total += syncDepartmentNotices();
