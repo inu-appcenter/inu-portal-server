@@ -16,6 +16,7 @@ services:
       COURSE_OVERVIEW_DIRECTORY: /intip/overviews
       COURSE_OVERVIEW_FILENAME_PATTERN: "course-offering-{year}-{term-code}.xlsx"
       COURSE_OVERVIEW_CAPACITY_FILENAME_PATTERN: "course-offering-capacity-{year}-{term-code}.xlsx"
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
     ports:
       - "8086:8086"
     volumes:
@@ -23,8 +24,8 @@ services:
       - ${MOUNT_PATH}:/intip-dev
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    #   depends_on:
-    #     - elasticsearch
+    depends_on:
+      - elasticsearch
     networks:
       - intip-network
     working_dir: /intip
