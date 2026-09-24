@@ -18,8 +18,12 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
 import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
 import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
+import co.elastic.clients.json.JsonData;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -131,13 +135,18 @@ public class UnifiedSearchService {
     public UnifiedSectionDto<NoticeSearchItemDto> searchNotices(String keyword, Pageable pageable) {
         try {
             NativeQuery query = new NativeQueryBuilder()
-                    .withQuery(q -> q.multiMatch(m -> m
-                            .query(keyword)
-                            .fields("title^3", "content^1", "writer^1.5", "category^1.2")
-                            .operator(Operator.And)
-                    ))
+                    .withQuery(q -> q.bool(b -> {
+                        b.must(m -> m.multiMatch(mm -> mm
+                                .query(keyword)
+                                .fields("title^10", "content^1", "writer^1.5", "category^1.2")
+                                .operator(Operator.And)
+                        ));
+                        applyRecencyAndPhraseBoosts(b, keyword, "title", true);
+                        return b;
+                    }))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "content")))
                     .withPageable(pageable)
+                    .withSort(resolveSortWithDate(pageable))
                     .build();
 
             SearchHits<NoticeDocument> hits = elasticsearchOperations.search(query, NoticeDocument.class);
@@ -167,13 +176,18 @@ public class UnifiedSearchService {
     public UnifiedSectionDto<DepartmentNoticeSearchItemDto> searchDepartmentNotices(String keyword, Pageable pageable) {
         try {
             NativeQuery query = new NativeQueryBuilder()
-                    .withQuery(q -> q.multiMatch(m -> m
-                            .query(keyword)
-                            .fields("title^3", "content^1", "departmentName^2", "writer^1.5")
-                            .operator(Operator.And)
-                    ))
+                    .withQuery(q -> q.bool(b -> {
+                        b.must(m -> m.multiMatch(mm -> mm
+                                .query(keyword)
+                                .fields("title^10", "content^1", "departmentName^3", "writer^1.5")
+                                .operator(Operator.And)
+                        ));
+                        applyRecencyAndPhraseBoosts(b, keyword, "title", false);
+                        return b;
+                    }))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "content")))
                     .withPageable(pageable)
+                    .withSort(resolveSortWithDate(pageable))
                     .build();
 
             SearchHits<DepartmentNoticeDocument> hits = elasticsearchOperations.search(query, DepartmentNoticeDocument.class);
@@ -204,13 +218,18 @@ public class UnifiedSearchService {
     public UnifiedSectionDto<PostSearchItemDto> searchPosts(String keyword, Pageable pageable) {
         try {
             NativeQuery query = new NativeQueryBuilder()
-                    .withQuery(q -> q.multiMatch(m -> m
-                            .query(keyword)
-                            .fields("title^3", "content^1", "category^1.5")
-                            .operator(Operator.And)
-                    ))
+                    .withQuery(q -> q.bool(b -> {
+                        b.must(m -> m.multiMatch(mm -> mm
+                                .query(keyword)
+                                .fields("title^10", "content^1", "category^1.5")
+                                .operator(Operator.And)
+                        ));
+                        applyRecencyAndPhraseBoosts(b, keyword, "title", false);
+                        return b;
+                    }))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "content")))
                     .withPageable(pageable)
+                    .withSort(resolveSortWithDate(pageable))
                     .build();
 
             SearchHits<PostDocument> hits = elasticsearchOperations.search(query, PostDocument.class);
@@ -308,10 +327,17 @@ public class UnifiedSearchService {
     public UnifiedSectionDto<CourseSearchItemDto> searchCourses(String keyword, Pageable pageable) {
         try {
             NativeQuery query = new NativeQueryBuilder()
-                    .withQuery(q -> q.multiMatch(m -> m
-                            .query(keyword)
-                            .fields("title^3", "professor^2", "subjectNumber^2", "englishTitle^1.5")
-                            .operator(Operator.And)
+                    .withQuery(q -> q.bool(b -> b
+                            .must(m -> m.multiMatch(mm -> mm
+                                    .query(keyword)
+                                    .fields("title^10", "professor^3", "subjectNumber^2", "englishTitle^2")
+                                    .operator(Operator.And)
+                            ))
+                            .should(s -> s.matchPhrase(mp -> mp
+                                    .field("title")
+                                    .query(keyword)
+                                    .boost(15.0f)
+                            ))
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "professor")))
                     .withPageable(pageable)
@@ -342,10 +368,17 @@ public class UnifiedSearchService {
     public UnifiedSectionDto<ClubSearchItemDto> searchClubs(String keyword, Pageable pageable) {
         try {
             NativeQuery query = new NativeQueryBuilder()
-                    .withQuery(q -> q.multiMatch(m -> m
-                            .query(keyword)
-                            .fields("name^3", "recruitContent^1", "category^1.5")
-                            .operator(Operator.And)
+                    .withQuery(q -> q.bool(b -> b
+                            .must(m -> m.multiMatch(mm -> mm
+                                    .query(keyword)
+                                    .fields("name^10", "recruitContent^1", "category^1.5")
+                                    .operator(Operator.And)
+                            ))
+                            .should(s -> s.matchPhrase(mp -> mp
+                                    .field("name")
+                                    .query(keyword)
+                                    .boost(15.0f)
+                            ))
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("name", "recruitContent")))
                     .withPageable(pageable)
@@ -369,6 +402,51 @@ public class UnifiedSearchService {
             log.error("Failed to search clubs in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
         }
+    }
+
+    private void applyRecencyAndPhraseBoosts(BoolQuery.Builder b, String keyword, String titleField, boolean useDotDateFormat) {
+        if (titleField != null) {
+            b.should(s -> s.matchPhrase(mp -> mp
+                    .field(titleField)
+                    .query(keyword)
+                    .boost(15.0f)
+            ));
+        }
+
+        LocalDate now = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(useDotDateFormat ? "yyyy.MM.dd" : "yyyy-MM-dd");
+
+        String date90DaysAgo = now.minusDays(90).format(formatter);
+        String date180DaysAgo = now.minusDays(180).format(formatter);
+        String date1YearAgo = now.minusYears(1).format(formatter);
+
+        // 최근 90일 이내 공지 (+8.0)
+        b.should(s -> s.range(r -> r
+                .field("createDate")
+                .gte(JsonData.of(date90DaysAgo))
+                .boost(8.0f)
+        ));
+
+        // 최근 180일(한 학기) 이내 공지 (+5.0)
+        b.should(s -> s.range(r -> r
+                .field("createDate")
+                .gte(JsonData.of(date180DaysAgo))
+                .boost(5.0f)
+        ));
+
+        // 최근 1년(해당 연도) 이내 공지 (+3.0)
+        b.should(s -> s.range(r -> r
+                .field("createDate")
+                .gte(JsonData.of(date1YearAgo))
+                .boost(3.0f)
+        ));
+    }
+
+    private Sort resolveSortWithDate(Pageable pageable) {
+        if (pageable.getSort().isSorted()) {
+            return pageable.getSort();
+        }
+        return Sort.by(Sort.Order.desc("_score"), Sort.Order.desc("createDate"));
     }
 
     private org.springframework.data.elasticsearch.core.query.HighlightQuery createHighlightQuery(List<String> fieldNames) {
