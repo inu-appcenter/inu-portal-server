@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -69,6 +70,8 @@ public class PostServiceTest {
     ScrapRepository scrapRepository;
     @Mock
     CategoryRepository categoryRepository;
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @Test
     @DisplayName("게시글을 저장합니다.")

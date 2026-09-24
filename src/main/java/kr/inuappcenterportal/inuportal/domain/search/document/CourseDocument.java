@@ -12,7 +12,7 @@ import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Document(indexName = "intip-courses")
+@Document(indexName = "intip-courses", createIndex = false)
 @Setting(settingPath = "elasticsearch/settings.json")
 public class CourseDocument {
 

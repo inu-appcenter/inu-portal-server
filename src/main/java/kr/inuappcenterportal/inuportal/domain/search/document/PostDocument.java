@@ -12,7 +12,7 @@ import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Document(indexName = "intip-posts")
+@Document(indexName = "intip-posts", createIndex = false)
 @Setting(settingPath = "elasticsearch/settings.json")
 public class PostDocument {
 

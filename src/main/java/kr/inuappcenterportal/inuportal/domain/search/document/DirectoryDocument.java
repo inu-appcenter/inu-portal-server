@@ -12,7 +12,7 @@ import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Document(indexName = "intip-directory")
+@Document(indexName = "intip-directory", createIndex = false)
 @Setting(settingPath = "elasticsearch/settings.json")
 public class DirectoryDocument {
 
