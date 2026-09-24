@@ -1,11 +1,17 @@
 {
   "index": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
     "max_result_window": 50000,
     "analysis": {
       "tokenizer": {
         "nori_user_tokenizer": {
           "type": "nori_tokenizer",
-          "decompound_mode": "mixed"
+          "decompound_mode": "discard",
+          "user_dictionary_rules": [
+            "컴공", "임베", "정통", "전자과", "기계과", "전기과", "경영과", "경제과", "무역과", "행정과", "국문과", "영문과",
+            "정음관", "자연대", "정기대", "공대", "복지관", "중도", "생관", "과사", "학식", "국장", "성사장", "학점포기", "수강철회"
+          ]
         }
       },
       "filter": {
@@ -55,7 +61,6 @@
           "tokenizer": "nori_user_tokenizer",
           "filter": [
             "nori_pos_filter",
-            "campus_synonym_filter",
             "lowercase"
           ]
         },
@@ -64,6 +69,7 @@
           "tokenizer": "nori_user_tokenizer",
           "filter": [
             "nori_pos_filter",
+            "campus_synonym_filter",
             "lowercase"
           ]
         }

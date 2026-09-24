@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.search.service;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import kr.inuappcenterportal.inuportal.domain.search.document.*;
 import kr.inuappcenterportal.inuportal.domain.search.dto.*;
@@ -133,7 +134,7 @@ public class UnifiedSearchService {
                     .withQuery(q -> q.multiMatch(m -> m
                             .query(keyword)
                             .fields("title^3", "content^1", "writer^1.5", "category^1.2")
-                            .fuzziness("AUTO")
+                            .operator(Operator.And)
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "content")))
                     .withPageable(pageable)
@@ -169,7 +170,7 @@ public class UnifiedSearchService {
                     .withQuery(q -> q.multiMatch(m -> m
                             .query(keyword)
                             .fields("title^3", "content^1", "departmentName^2", "writer^1.5")
-                            .fuzziness("AUTO")
+                            .operator(Operator.And)
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "content")))
                     .withPageable(pageable)
@@ -206,7 +207,7 @@ public class UnifiedSearchService {
                     .withQuery(q -> q.multiMatch(m -> m
                             .query(keyword)
                             .fields("title^3", "content^1", "category^1.5")
-                            .fuzziness("AUTO")
+                            .operator(Operator.And)
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "content")))
                     .withPageable(pageable)
@@ -243,7 +244,7 @@ public class UnifiedSearchService {
                     .withQuery(q -> q.multiMatch(m -> m
                             .query(keyword)
                             .fields("content^3")
-                            .fuzziness("AUTO")
+                            .operator(Operator.And)
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("content")))
                     .withPageable(pageable)
@@ -276,7 +277,7 @@ public class UnifiedSearchService {
                     .withQuery(q -> q.multiMatch(m -> m
                             .query(keyword)
                             .fields("name^3", "affiliation^2", "detailAffiliation^2", "duties^1.5", "position^1")
-                            .fuzziness("AUTO")
+                            .operator(Operator.And)
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("name", "affiliation", "detailAffiliation", "duties")))
                     .withPageable(pageable)
@@ -310,7 +311,7 @@ public class UnifiedSearchService {
                     .withQuery(q -> q.multiMatch(m -> m
                             .query(keyword)
                             .fields("title^3", "professor^2", "subjectNumber^2", "englishTitle^1.5")
-                            .fuzziness("AUTO")
+                            .operator(Operator.And)
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("title", "professor")))
                     .withPageable(pageable)
@@ -344,7 +345,7 @@ public class UnifiedSearchService {
                     .withQuery(q -> q.multiMatch(m -> m
                             .query(keyword)
                             .fields("name^3", "recruitContent^1", "category^1.5")
-                            .fuzziness("AUTO")
+                            .operator(Operator.And)
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("name", "recruitContent")))
                     .withPageable(pageable)
