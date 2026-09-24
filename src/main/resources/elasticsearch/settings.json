@@ -1,0 +1,73 @@
+{
+  "index": {
+    "max_result_window": 50000,
+    "analysis": {
+      "tokenizer": {
+        "nori_user_tokenizer": {
+          "type": "nori_tokenizer",
+          "decompound_mode": "mixed"
+        }
+      },
+      "filter": {
+        "nori_pos_filter": {
+          "type": "nori_part_of_speech",
+          "stoptags": [
+            "E", "IC", "J", "MAG", "MAJ", "MM", "SP", "SSC", "SSO", "SC", "SE", "XPN", "XSA", "XSN", "XSV"
+          ]
+        },
+        "campus_synonym_filter": {
+          "type": "synonym_graph",
+          "lenient": true,
+          "synonyms": [
+            "컴공, 컴퓨터공학, 컴퓨터공학과, 컴퓨터공학부",
+            "임베, 임베디드, 임베디드시스템공학, 임베디드시스템공학과",
+            "정통, 정보통신, 정보통신공학, 정보통신공학과",
+            "전자과, 전자공학, 전자공학과",
+            "기계과, 기계공학, 기계공학과",
+            "전기과, 전기공학, 전기공학과",
+            "경영과, 경영, 경영학, 경영학부",
+            "경제과, 경제, 경제학, 경제학과",
+            "무역과, 무역, 무역학, 무역학부",
+            "행정과, 행정, 행정학, 행정학과",
+            "국문과, 국어국문, 국어국문학과",
+            "영문과, 영어영문, 영어영문학과",
+            "정음관, 1호관, 본관, 대학본부",
+            "자연대, 5호관, 자연과학대학",
+            "정기대, 7호관, 정보기술대학, 정보대",
+            "공대, 8호관, 공과대학",
+            "복지관, 11호관, 학생회관",
+            "중도, 도서관, 중앙도서관, 학술정보원",
+            "기숙사, 생활관, 생관, 1기숙사, 2기숙사, 3기숙사",
+            "수강철회, 드랍, 과목포기, 드롭",
+            "수강신청, 수강신쳥",
+            "성적장학금, 성적우수장학금, 성사장",
+            "국가장학금, 국장",
+            "계절학기, 계절",
+            "과사, 학과사무실, 학부사무실",
+            "동아리, 소모임, 학회",
+            "학식, 학생식당, 교직원식당"
+          ]
+        }
+      },
+      "analyzer": {
+        "korean_analyzer": {
+          "type": "custom",
+          "tokenizer": "nori_user_tokenizer",
+          "filter": [
+            "nori_pos_filter",
+            "campus_synonym_filter",
+            "lowercase"
+          ]
+        },
+        "korean_search_analyzer": {
+          "type": "custom",
+          "tokenizer": "nori_user_tokenizer",
+          "filter": [
+            "nori_pos_filter",
+            "lowercase"
+          ]
+        }
+      }
+    }
+  }
+}

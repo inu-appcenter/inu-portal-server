@@ -38,6 +38,7 @@ dependencies {
 
     implementation 'mysql:mysql-connector-java:8.0.32'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     implementation 'org.redisson:redisson:3.51.0'
     testImplementation("com.github.codemonstur:embedded-redis:1.4.3")
 
