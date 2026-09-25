@@ -16,16 +16,26 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableTransactionManagement@EnableJpaRepositories(basePackages = {
-        "kr.inuappcenterportal.inuportal.domain",
-        "kr.inuappcenterportal.inuportal.global.logging.repository"
-})
+@EnableTransactionManagement
+@EnableJpaRepositories(
+        basePackages = {
+                "kr.inuappcenterportal.inuportal.domain",
+                "kr.inuappcenterportal.inuportal.global.logging.repository"
+        },
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = ElasticsearchRepository.class
+        )
+)
 @Profile("!test")
 public class MySqlConfig {
     @Bean(name = "dataSource")

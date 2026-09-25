@@ -16,6 +16,7 @@ services:
       COURSE_OVERVIEW_DIRECTORY: /intip/overviews
       COURSE_OVERVIEW_FILENAME_PATTERN: "course-offering-{year}-{term-code}.xlsx"
       COURSE_OVERVIEW_CAPACITY_FILENAME_PATTERN: "course-offering-capacity-{year}-{term-code}.xlsx"
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
     ports:
       - "8086:8086"
     volumes:
@@ -23,28 +24,35 @@ services:
       - ${MOUNT_PATH}:/intip-dev
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    #   depends_on:
-    #     - elasticsearch
+    depends_on:
+      - elasticsearch
     networks:
       - intip-network
     working_dir: /intip
 
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.1
+    build:
+      context: ./infra/elasticsearch
+    image: intip-elasticsearch:8.12.2
     container_name: intip-elasticsearch
     restart: unless-stopped
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+      cluster.routing.allocation.disk.watermark.low: "97%"
+      cluster.routing.allocation.disk.watermark.high: "98%"
+      cluster.routing.allocation.disk.watermark.flood_stage: "99%"
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
     networks:
       - intip-network
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:9.3.1
+    image: docker.elastic.co/kibana/kibana:8.12.2
     container_name: intip-kibana
     restart: unless-stopped
     environment:
