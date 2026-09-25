@@ -22,10 +22,16 @@ public class SearchAdminController {
 
     private final SearchIndexSyncService searchIndexSyncService;
 
-    @Operation(summary = "전체 도메인 데이터 재색인 (초기 백필)", description = "MySQL DB에 존재하는 모든 공지사항, 학과공지, 게시글, 학사일정, 전화번호부, 강의, 동아리 데이터를 Elasticsearch로 재색인합니다.")
+    @Operation(summary = "전체 도메인 데이터 재색인 (초기 백필)", description = "MySQL DB에 존재하는 모든 공지사항, 학과공지, 게시글, 학사일정, 전화번호부, 강의, 동아리 데이터를 Elasticsearch로 재색인합니다. recreate=true 지정 시 최신 settings/mappings로 인덱스를 삭제 후 재생성합니다.")
     @ApiResponse(responseCode = "200", description = "재색인 성공")
     @PostMapping("/reindex")
-    public ResponseEntity<ResponseDto<Integer>> reindexAll() {
+    public ResponseEntity<ResponseDto<Integer>> reindexAll(
+            @Parameter(description = "인덱스 삭제 후 재생성 여부 (settings.json 변경 반영 시 true 권장)", example = "false")
+            @RequestParam(required = false, defaultValue = "false") boolean recreate
+    ) {
+        if (recreate) {
+            searchIndexSyncService.recreateIndices();
+        }
         int count = searchIndexSyncService.syncAll();
         return ResponseEntity.ok(ResponseDto.of(count, "전체 " + count + "건 데이터 재색인 완료"));
     }

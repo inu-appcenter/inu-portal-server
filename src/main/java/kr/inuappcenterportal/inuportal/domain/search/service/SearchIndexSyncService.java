@@ -48,6 +48,37 @@ public class SearchIndexSyncService {
     private final org.springframework.data.elasticsearch.core.ElasticsearchOperations elasticsearchOperations;
 
     public void initIndices() {
+        createIndicesIfNotExist();
+    }
+
+    public void recreateIndices() {
+        Class<?>[] documentClasses = new Class<?>[]{
+                NoticeDocument.class,
+                DepartmentNoticeDocument.class,
+                PostDocument.class,
+                ScheduleDocument.class,
+                DirectoryDocument.class,
+                CourseDocument.class,
+                ClubDocument.class
+        };
+
+        for (Class<?> docClass : documentClasses) {
+            try {
+                var indexOps = elasticsearchOperations.indexOps(docClass);
+                if (indexOps.exists()) {
+                    log.info("[SearchIndexSyncService] Deleting existing index for {}", docClass.getSimpleName());
+                    indexOps.delete();
+                }
+                log.info("[SearchIndexSyncService] Creating fresh index for {}", docClass.getSimpleName());
+                indexOps.create();
+                indexOps.putMapping();
+            } catch (Exception e) {
+                log.warn("[SearchIndexSyncService] Failed to recreate index for {}: {}", docClass.getSimpleName(), e.getMessage());
+            }
+        }
+    }
+
+    private void createIndicesIfNotExist() {
         Class<?>[] documentClasses = new Class<?>[]{
                 NoticeDocument.class,
                 DepartmentNoticeDocument.class,
