@@ -209,26 +209,27 @@ public class LegacyCourseExcelImporter {
         if (existing.isPresent()) {
             CourseOffering courseOffering = existing.get();
 
+            // 편람 이름을 코드로 바꾸고, 모르는 이름이면 기존 코드를 유지한다(코드가 비면 개설강의 필터에서 빠진다).
             courseOffering.updateFromApi(
                     course,
-                    null,
+                    orElse(LegacyCourseCodeResolver.deptCode(row.departmentRaw()), courseOffering.getDeptCode()),
                     row.departmentRaw(),
-                    null,
+                    orElse(LegacyCourseCodeResolver.collegeCode(row.collegeRaw()), courseOffering.getCollegeCode()),
                     row.collegeRaw(),
-                    null,
+                    orElse(LegacyCourseCodeResolver.hyCode(row.gradeRaw()), courseOffering.getHyCode()),
                     row.gradeRaw(),
-                    null,
+                    orElse(LegacyCourseCodeResolver.isuCode(row.completionDivisionRaw()), courseOffering.getIsuCode()),
                     row.completionDivisionRaw(),
-                    null,
+                    orElse(LegacyCourseCodeResolver.isuFldCode(row.isuFldRaw()), courseOffering.getIsuFldCode()),
                     row.isuFldRaw(),
-                    null,
+                    orElse(LegacyCourseCodeResolver.ssupTypeCode(row.ssupTypeRaw()), courseOffering.getSsupTypeCode()),
                     row.ssupTypeRaw(),
-                    null,
+                    orElse(LegacyCourseCodeResolver.cnctrIsuCode(row.cnctrIsuRaw()), courseOffering.getCnctrIsuCode()),
                     row.cnctrIsuRaw(),
                     row.englishYn(),
-                    null,
-                    null,
-                    null,
+                    courseOffering.getEnglishCode(),
+                    courseOffering.getEnglishNameRaw(),
+                    courseOffering.getHussCourseYn(),
                     safeCredit(row.credit())
             );
 
@@ -245,19 +246,19 @@ public class LegacyCourseExcelImporter {
                 CourseOffering.create(
                         null,
                         row.subjectNumber(),
-                        null,
+                        LegacyCourseCodeResolver.deptCode(row.departmentRaw()),
                         row.departmentRaw(),
-                        null,
+                        LegacyCourseCodeResolver.collegeCode(row.collegeRaw()),
                         row.collegeRaw(),
-                        null,
+                        LegacyCourseCodeResolver.hyCode(row.gradeRaw()),
                         row.gradeRaw(),
-                        null,
+                        LegacyCourseCodeResolver.isuCode(row.completionDivisionRaw()),
                         row.completionDivisionRaw(),
-                        null,
+                        LegacyCourseCodeResolver.isuFldCode(row.isuFldRaw()),
                         row.isuFldRaw(),
-                        null,
+                        LegacyCourseCodeResolver.ssupTypeCode(row.ssupTypeRaw()),
                         row.ssupTypeRaw(),
-                        null,
+                        LegacyCourseCodeResolver.cnctrIsuCode(row.cnctrIsuRaw()),
                         row.cnctrIsuRaw(),
                         row.englishYn(),
                         null,
@@ -273,6 +274,10 @@ public class LegacyCourseExcelImporter {
                         null
                 )
         );
+    }
+
+    private static String orElse(String value, String fallback) {
+        return value != null ? value : fallback;
     }
 
     private void replaceCourseMeetings(CourseOffering courseOffering, String timetable) {
