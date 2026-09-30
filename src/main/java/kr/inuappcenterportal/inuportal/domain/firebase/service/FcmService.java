@@ -7,14 +7,17 @@ import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.LiveActivityStartPush;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityTokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationReadStats;
@@ -55,6 +58,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -112,6 +116,25 @@ public class FcmService {
         }
         fcmToken.updateTimeNow();
         fcmToken.updateDeviceType(tokenRequestDto.getDeviceType());
+
+        if (fcmToken.getId() == null) {
+            fcmTokenRepository.save(fcmToken);
+        }
+    }
+
+    /**
+     * 기기의 ActivityKit push-to-start 토큰을 그 기기의 FCM 토큰 행에 저장(또는 해제)한다.
+     * 앱이 FCM 토큰 등록보다 먼저 호출할 수도 있으므로 행이 없으면 {@link #saveToken}과 같은 규칙으로 만든다.
+     */
+    @Transactional
+    public void saveLiveActivityStartToken(LiveActivityTokenRequestDto requestDto, Long memberId) {
+        FcmToken fcmToken = fcmTokenRepository.findByToken(requestDto.getToken())
+                .orElse(FcmToken.builder().token(requestDto.getToken()).memberId(memberId).deviceType("IOS").build());
+
+        if (memberId != null || fcmToken.getId() == null) {
+            fcmToken.updateMemberId(memberId);
+        }
+        fcmToken.updateLiveActivityStartToken(requestDto.getLiveActivityStartToken());
 
         if (fcmToken.getId() == null) {
             fcmTokenRepository.save(fcmToken);
@@ -1199,6 +1222,118 @@ public class FcmService {
             fcmMessage.markFailed(tokens.size());
             log.error("Daily Brief push failed: memberId={}, error={}", memberId, e.getMessage(), e);
         }
+    }
+
+    /**
+     * 수업 시작 전 알림. {@link #sendDailyBriefNotification}과 같은 알림을 보내되, push-to-start 토큰이
+     * 등록된 iOS 기기에는 일반 알림 대신 같은 제목/본문을 alert로 실은 Live Activity 시작 푸시를 보낸다.
+     * 사용자에겐 알림 한 번과 함께 잠금화면/Dynamic Island에 수업 카운트다운이 뜬다.
+     *
+     * <p>Live Activity 발송이 실패한 기기는 일반 알림으로 대체해, 알림 자체는 잃지 않는다.
+     * 트랜잭션 분리 이유는 {@link #sendDailyBriefNotification}과 같다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void sendPreClassNotification(Long memberId, String title, String body, FcmMessageType type, String path,
+                                         LiveActivityStartPush liveActivity) {
+        if (memberId == null) {
+            return;
+        }
+
+        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(List.of(memberId));
+
+        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
+                .title(title)
+                .body(body)
+                .targetId(null)
+                .isAdminMessage(false)
+                .build());
+
+        batchInsertMemberFcmMessages(fcmMessage.getId(), List.of(memberId), type);
+
+        int success = 0;
+        int failure = 0;
+        Set<String> seen = new HashSet<>();
+        List<String> notificationTokens = new ArrayList<>();
+        for (FcmToken fcmToken : fcmTokens) {
+            if (!seen.add(fcmToken.getToken())) {
+                continue;
+            }
+            if (liveActivity != null && fcmToken.getLiveActivityStartToken() != null
+                    && sendLiveActivityStart(fcmToken, title, body, liveActivity)) {
+                success++;
+                continue;
+            }
+            notificationTokens.add(fcmToken.getToken());
+        }
+
+        if (!notificationTokens.isEmpty()) {
+            MulticastMessage message = createMulticastMessage(notificationTokens, title, body, type, null, path);
+            try {
+                BatchResponse response = fcmDispatchGate.send(message);
+                success += response.getSuccessCount();
+                failure += response.getFailureCount();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                failure += notificationTokens.size();
+                log.warn("Pre-class push interrupted: memberId={}", memberId);
+            } catch (Exception e) {
+                failure += notificationTokens.size();
+                log.error("Pre-class push failed: memberId={}, error={}", memberId, e.getMessage(), e);
+            }
+        }
+
+        fcmMessage.updateDeliveryResult(success, failure);
+        log.info("Pre-class push sent: memberId={}, success={}, failure={}", memberId, success, failure);
+    }
+
+    private boolean sendLiveActivityStart(FcmToken fcmToken, String title, String body, LiveActivityStartPush liveActivity) {
+        try {
+            fcmDispatchGate.sendOne(createLiveActivityStartMessage(
+                    fcmToken.getToken(), fcmToken.getLiveActivityStartToken(), title, body, liveActivity,
+                    Instant.now().getEpochSecond()));
+            return true;
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (Exception e) {
+            log.warn("Live Activity push-to-start failed, falling back to notification: fcmTokenId={}, error={}",
+                    fcmToken.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * FCM HTTP v1의 Live Activity 발송 형식. {@code apns.live_activity_token}을 실으면 FCM이
+     * apns-push-type(liveactivity)과 토픽({bundleId}.push-type.liveactivity)을 맞춰 APNs로 보낸다.
+     * aps 본문은 ActivityKit push-to-start 규격이다: event=start에는 attributes-type/attributes와
+     * alert가 필수다.
+     */
+    static Message createLiveActivityStartMessage(String fcmToken, String liveActivityToken, String title, String body,
+                                                  LiveActivityStartPush liveActivity, long nowEpochSec) {
+        Map<String, Object> contentState = new LinkedHashMap<>();
+        contentState.put("name", liveActivity.activityName());
+        contentState.put("props", liveActivity.propsJson());
+
+        Aps aps = Aps.builder()
+                .setAlert(ApsAlert.builder().setTitle(title).setBody(body).build())
+                .setSound("default")
+                .putCustomData("event", "start")
+                .putCustomData("timestamp", nowEpochSec)
+                .putCustomData("attributes-type", LiveActivityStartPush.ATTRIBUTES_TYPE)
+                .putCustomData("attributes", Map.of())
+                .putCustomData("content-state", contentState)
+                .putCustomData("stale-date", liveActivity.staleDateSec())
+                .build();
+
+        return Message.builder()
+                .setToken(fcmToken)
+                .setApnsConfig(ApnsConfig.builder()
+                        .setLiveActivityToken(liveActivityToken)
+                        .putHeader("apns-priority", "10")
+                        .putHeader("apns-expiration", String.valueOf(liveActivity.expirationSec()))
+                        .setAps(aps)
+                        .build())
+                .build();
     }
 
     private record DeliveryResult(

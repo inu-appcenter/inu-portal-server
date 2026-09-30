@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -50,6 +51,7 @@ public class DailyBriefScheduler {
     private final SemesterRepository semesterRepository;
     private final ScheduleRepository scheduleRepository;
 
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("M월 d일");
 
@@ -109,12 +111,14 @@ public class DailyBriefScheduler {
                                 entry.endTime().format(TIME_FORMATTER),
                                 locationInfo);
 
-                        fcmService.sendDailyBriefNotification(
+                        fcmService.sendPreClassNotification(
                                 member.getId(),
                                 title,
                                 body,
                                 FcmMessageType.DAILY_BRIEF_TIMETABLE,
-                                "/timetable"
+                                "/timetable",
+                                PreClassLiveActivity.of(entry.title(), entry.location(), LocalDate.now(SEOUL),
+                                        entry.startTime(), entry.endTime(), alertMinutes, SEOUL)
                         );
                     }
                 }

@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.contorller;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityTokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
@@ -42,6 +43,14 @@ public class FcmController implements FcmApiSpecification {
                                                        @AuthenticationPrincipal Member member) {
         fcmService.saveToken(tokenRequestDto, member == null ? null : member.getId());
         return ResponseEntity.ok(ResponseDto.of(1L, "토큰 등록 성공"));
+    }
+
+    @PutMapping("/live-activity")
+    public ResponseEntity<ResponseDto<Long>> saveLiveActivityStartToken(
+            @Valid @RequestBody LiveActivityTokenRequestDto requestDto,
+            @AuthenticationPrincipal Member member) {
+        fcmService.saveLiveActivityStartToken(requestDto, member == null ? null : member.getId());
+        return ResponseEntity.ok(ResponseDto.of(1L, "Live Activity 토큰 등록 성공"));
     }
 
     @DeleteMapping("")

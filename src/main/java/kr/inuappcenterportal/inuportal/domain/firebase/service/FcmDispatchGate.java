@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,11 @@ import java.util.concurrent.TimeoutException;
  * 프로세스 전역에서 공유하는 세마포어여야 한다.
  *
  * <p>모든 팬아웃 호출은 이 게이트를 거친다. {@code FirebaseMessaging}을 직접 호출하면 상한이 깨진다.
+ *
+ * <p><b>SDK 버전 주의.</b> 위 분석은 9.2.0 기준이다. Live Activity 발송({@code ApnsConfig#setLiveActivityToken})
+ * 때문에 9.5.0으로 올렸는데, 9.4.0부터 전송 계층에 HTTP/2 구현이 들어가 {@code sendEachForMulticast}의
+ * 커넥션 사용 방식이 달라졌을 수 있다. 게이트는 그대로 동시 발송 상한 역할을 하지만, 청크 크기 기본값의
+ * 근거(청크 크기 = 동시 커넥션 수)는 재검증이 필요하다.
  */
 @Slf4j
 @Component
@@ -87,6 +93,22 @@ public class FcmDispatchGate {
         acquire();
         try {
             return firebaseMessaging.sendEachForMulticast(message);
+        } finally {
+            permits.release();
+        }
+    }
+
+    /**
+     * 단건 메시지를 허가를 받은 뒤 동기 발송한다. 수신 기기마다 내용이 달라 멀티캐스트로 묶을 수
+     * 없는 메시지(예: 기기별 ActivityKit 토큰을 싣는 Live Activity)에 쓴다.
+     *
+     * @return FCM 메시지 ID
+     */
+    public String sendOne(Message message)
+            throws FirebaseMessagingException, InterruptedException, TimeoutException {
+        acquire();
+        try {
+            return firebaseMessaging.send(message);
         } finally {
             permits.release();
         }
