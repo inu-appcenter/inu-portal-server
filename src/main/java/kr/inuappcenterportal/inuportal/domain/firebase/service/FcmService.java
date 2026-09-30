@@ -1180,48 +1180,13 @@ public class FcmService {
     }
 
     /**
-     * Daily Brief 스케줄러는 조회 성능을 위해 read-only 트랜잭션에서 실행된다.
-     * 발송 이력 저장은 반드시 별도의 쓰기 트랜잭션에서 수행해야 하며,
-     * 사용자 한 명의 저장 실패가 스케줄러 전체 트랜잭션을 rollback-only로
-     * 오염시키지 않도록 사용자별로 트랜잭션을 분리한다.
+     * 회원 한 명에게 Daily Brief 류 알림을 보낸다. 트랜잭션 처리는 {@link #sendPreClassNotification}과 같다:
+     * 발송(외부 HTTP)은 트랜잭션 밖에서 하고, 이력 생성과 결과 반영만 {@link FcmTransactionService}의
+     * 짧은 REQUIRES_NEW 쓰기 트랜잭션으로 끝낸다. 호출자가 read-only 트랜잭션 안이어도 쓰기가 그 트랜잭션을
+     * rollback-only로 오염시키지 않고, 사용자 한 명의 저장 실패가 다른 사용자에게 번지지 않는다.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendDailyBriefNotification(Long memberId, String title, String body, FcmMessageType type, String path) {
-        if (memberId == null) {
-            return;
-        }
-
-        List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(List.of(memberId));
-        List<String> tokens = fcmTokens.stream().map(FcmToken::getToken).distinct().toList();
-
-        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
-                .title(title)
-                .body(body)
-                .targetId(null)
-                .isAdminMessage(false)
-                .build());
-
-        batchInsertMemberFcmMessages(fcmMessage.getId(), List.of(memberId), type);
-
-        if (tokens.isEmpty()) {
-            fcmMessage.updateDeliveryResult(0, 0);
-            return;
-        }
-
-        MulticastMessage message = createMulticastMessage(tokens, title, body, type, null, path);
-        try {
-            BatchResponse response = fcmDispatchGate.send(message);
-            fcmMessage.updateDeliveryResult(response.getSuccessCount(), response.getFailureCount());
-            log.info("Daily Brief push sent: memberId={}, success={}, failure={}",
-                    memberId, response.getSuccessCount(), response.getFailureCount());
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            fcmMessage.markFailed(tokens.size());
-            log.warn("Daily Brief push interrupted: memberId={}", memberId);
-        } catch (Exception e) {
-            fcmMessage.markFailed(tokens.size());
-            log.error("Daily Brief push failed: memberId={}, error={}", memberId, e.getMessage(), e);
-        }
+        sendMemberNotification(memberId, title, body, type, path, null);
     }
 
     /**
@@ -1238,6 +1203,14 @@ public class FcmService {
      */
     public void sendPreClassNotification(Long memberId, String title, String body, FcmMessageType type, String path,
                                          LiveActivityStartPush liveActivity) {
+        sendMemberNotification(memberId, title, body, type, path, liveActivity);
+    }
+
+    /**
+     * @param liveActivity null이면 모든 기기에 일반 알림만 보낸다.
+     */
+    private void sendMemberNotification(Long memberId, String title, String body, FcmMessageType type, String path,
+                                        LiveActivityStartPush liveActivity) {
         if (memberId == null) {
             return;
         }
@@ -1270,15 +1243,15 @@ public class FcmService {
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 failure += notificationTokens.size();
-                log.warn("Pre-class push interrupted: memberId={}", memberId);
+                log.warn("Member push interrupted: type={}, memberId={}", type, memberId);
             } catch (Exception e) {
                 failure += notificationTokens.size();
-                log.error("Pre-class push failed: memberId={}, error={}", memberId, e.getMessage(), e);
+                log.error("Member push failed: type={}, memberId={}, error={}", type, memberId, e.getMessage(), e);
             }
         }
 
         fcmTransactionService.updateFinalStatus(fcmMessageId, success, failure);
-        log.info("Pre-class push sent: memberId={}, success={}, failure={}", memberId, success, failure);
+        log.info("Member push sent: type={}, memberId={}, success={}, failure={}", type, memberId, success, failure);
     }
 
     private boolean sendLiveActivityStart(FcmToken fcmToken, String title, String body, LiveActivityStartPush liveActivity) {
