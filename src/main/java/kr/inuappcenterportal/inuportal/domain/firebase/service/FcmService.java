@@ -94,8 +94,6 @@ public class FcmService {
     private final NotificationReadStatsReader notificationReadStatsReader;
     private final ApplicationEventPublisher eventPublisher;
 
-    /** 청크 간 최소 간격. 게이트가 동시성을 막고, 이 값은 버스트를 한 번 더 눕히는 용도다. */
-    private static final long INTER_CHUNK_DELAY_MILLIS = 50L;
     /** 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다. */
     private static final long BATCH_AWAIT_MILLIS = 60_000L;
     /**
@@ -435,6 +433,9 @@ public class FcmService {
         int unknownCount = 0;
         int maxRetries = 3;
 
+        // 청크 사이에 간격을 두지 않는다. 9.2.0 시절엔 버스트를 눕히려 50ms씩 쉬었지만, 9.5.0은
+        // SDK가 발송 스레드(100)와 커넥션(100)에 상한을 걸고 동시 요청은 FcmDispatchGate가 묶으므로
+        // 간격은 청크 수만큼 발송 시간만 늘린다.
         List<List<String>> chunks = fcmDispatchGate.chunk(tokens);
         int dispatched = 0;
 
@@ -443,14 +444,11 @@ public class FcmService {
         Set<Long> deliveredMemberIds = new HashSet<>();
 
         for (List<String> batchTokens : chunks) {
-            if (dispatched > 0) {
-                try {
-                    Thread.sleep(INTER_CHUNK_DELAY_MILLIS);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    unknownCount += (tokens.size() - dispatched);
-                    break;
-                }
+            // 중단 요청(종료 등)을 받았으면 남은 청크는 보내지 않고 미확인으로 남긴다.
+            // 그대로 진행하면 남은 청크마다 게이트에서 즉시 실패하며 에러 로그만 쌓인다.
+            if (Thread.currentThread().isInterrupted()) {
+                unknownCount += (tokens.size() - dispatched);
+                break;
             }
             dispatched += batchTokens.size();
 
