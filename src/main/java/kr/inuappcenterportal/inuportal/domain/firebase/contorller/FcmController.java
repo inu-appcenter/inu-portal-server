@@ -45,11 +45,12 @@ public class FcmController implements FcmApiSpecification {
         return ResponseEntity.ok(ResponseDto.of(1L, "토큰 등록 성공"));
     }
 
+    // 로그인 전용: POST /api/tokens와 달리 permitAll이 아니라 SecurityConfig의 anyRequest().authenticated()를 탄다.
     @PutMapping("/live-activity")
     public ResponseEntity<ResponseDto<Long>> saveLiveActivityStartToken(
             @Valid @RequestBody LiveActivityTokenRequestDto requestDto,
             @AuthenticationPrincipal Member member) {
-        fcmService.saveLiveActivityStartToken(requestDto, member == null ? null : member.getId());
+        fcmService.saveLiveActivityStartToken(requestDto, member.getId());
         return ResponseEntity.ok(ResponseDto.of(1L, "Live Activity 토큰 등록 성공"));
     }
 

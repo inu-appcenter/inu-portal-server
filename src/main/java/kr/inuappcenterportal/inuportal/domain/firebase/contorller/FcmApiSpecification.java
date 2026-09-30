@@ -29,7 +29,8 @@ public interface FcmApiSpecification {
 
     @Operation(summary = "iOS Live Activity push-to-start 토큰 등록/해제",
             description = "기기(FCM 토큰)의 ActivityKit push-to-start 토큰을 저장합니다. 등록된 기기는 수업 시작 전 알림을 "
-                    + "일반 알림 대신 시간표 Live Activity 시작 푸시로 받습니다. liveActivityStartToken이 비어 있으면 등록을 해제합니다.")
+                    + "일반 알림 대신 시간표 Live Activity 시작 푸시로 받습니다. liveActivityStartToken이 비어 있으면 등록을 해제합니다. "
+                    + "로그인이 필요합니다(Auth 헤더).")
     ResponseEntity<ResponseDto<Long>> saveLiveActivityStartToken(
             @Valid LiveActivityTokenRequestDto requestDto,
             @Parameter(hidden = true) Member member

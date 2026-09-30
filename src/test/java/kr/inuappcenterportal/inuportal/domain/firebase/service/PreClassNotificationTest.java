@@ -5,28 +5,30 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.LiveActivityStartPush;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
-import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
-import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,22 +45,17 @@ class PreClassNotificationTest {
     @Mock
     private FcmTokenRepository fcmTokenRepository;
     @Mock
-    private FcmMessageRepository fcmMessageRepository;
-    @Mock
-    private JdbcTemplate jdbcTemplate;
+    private FcmTransactionService fcmTransactionService;
     @Mock
     private FcmDispatchGate fcmDispatchGate;
 
     @InjectMocks
     private FcmService fcmService;
 
-    private FcmMessage savedMessage;
-
     @BeforeEach
     void setUp() {
-        savedMessage = FcmMessage.builder().title("t").body("b").isAdminMessage(false).build();
-        ReflectionTestUtils.setField(savedMessage, "id", 1L);
-        when(fcmMessageRepository.save(any(FcmMessage.class))).thenReturn(savedMessage);
+        when(fcmTransactionService.createMemberNotification(anyString(), anyString(), anyLong(), any()))
+                .thenReturn(1L);
     }
 
     private static FcmToken token(String value, String liveActivityToken) {
@@ -89,7 +86,7 @@ class PreClassNotificationTest {
         ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
         verify(fcmDispatchGate).send(captor.capture());
         assertThat((List<String>) ReflectionTestUtils.getField(captor.getValue(), "tokens")).containsExactly("android");
-        assertThat(savedMessage.getSendCount()).isEqualTo(2);
+        verify(fcmTransactionService).updateFinalStatus(1L, 2, 0);
     }
 
     @Test
@@ -106,7 +103,22 @@ class PreClassNotificationTest {
         ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
         verify(fcmDispatchGate).send(captor.capture());
         assertThat((List<String>) ReflectionTestUtils.getField(captor.getValue(), "tokens")).containsExactly("ios-la");
-        assertThat(savedMessage.getSendCount()).isEqualTo(1);
+        verify(fcmTransactionService).updateFinalStatus(1L, 1, 0);
+    }
+
+    @Test
+    @DisplayName("이력 생성 → 발송 → 결과 반영 순서이고, 이력은 회원 알림함에도 남긴다")
+    void recordsHistoryBeforeSendingAndResultAfter() throws Exception {
+        when(fcmTokenRepository.findFcmTokensByMemberIds(List.of(MEMBER_ID)))
+                .thenReturn(List.of(token("ios-la", "la-token")));
+        when(fcmDispatchGate.sendOne(any(Message.class))).thenReturn("msg-id");
+
+        fcmService.sendPreClassNotification(MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable", PUSH);
+
+        InOrder order = inOrder(fcmTransactionService, fcmDispatchGate);
+        order.verify(fcmTransactionService).createMemberNotification("title", "body", MEMBER_ID, FcmMessageType.DAILY_BRIEF_TIMETABLE);
+        order.verify(fcmDispatchGate).sendOne(any(Message.class));
+        order.verify(fcmTransactionService).updateFinalStatus(eq(1L), eq(1), eq(0));
     }
 
     @Test
@@ -119,6 +131,6 @@ class PreClassNotificationTest {
         fcmService.sendPreClassNotification(MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable", PUSH);
 
         verify(fcmDispatchGate, never()).send(any(MulticastMessage.class));
-        assertThat(savedMessage.getSendCount()).isEqualTo(1);
+        verify(fcmTransactionService).updateFinalStatus(1L, 1, 0);
     }
 }

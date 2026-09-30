@@ -122,16 +122,18 @@ public class FcmService {
 
     /**
      * 기기의 ActivityKit push-to-start 토큰을 그 기기의 FCM 토큰 행에 저장(또는 해제)한다.
-     * 앱이 FCM 토큰 등록보다 먼저 호출할 수도 있으므로 행이 없으면 {@link #saveToken}과 같은 규칙으로 만든다.
+     *
+     * <p>로그인 전용이다({@code PUT /api/tokens/live-activity}는 SecurityConfig의 authenticated 규칙).
+     * 이 토큰은 회원 시간표 기준의 수업 전 알림에만 쓰이므로 회원이 없는 기기의 토큰은 쓸 데가 없다.
+     * 앱이 FCM 토큰 등록보다 먼저 호출할 수도 있으므로 행이 없으면 만든다.
      */
     @Transactional
     public void saveLiveActivityStartToken(LiveActivityTokenRequestDto requestDto, Long memberId) {
+        Objects.requireNonNull(memberId, "memberId");
         FcmToken fcmToken = fcmTokenRepository.findByToken(requestDto.getToken())
                 .orElse(FcmToken.builder().token(requestDto.getToken()).memberId(memberId).deviceType("IOS").build());
 
-        if (memberId != null || fcmToken.getId() == null) {
-            fcmToken.updateMemberId(memberId);
-        }
+        fcmToken.updateMemberId(memberId);
         fcmToken.updateLiveActivityStartToken(requestDto.getLiveActivityStartToken());
 
         if (fcmToken.getId() == null) {
@@ -1228,9 +1230,12 @@ public class FcmService {
      * 사용자에겐 알림 한 번과 함께 잠금화면/Dynamic Island에 수업 카운트다운이 뜬다.
      *
      * <p>Live Activity 발송이 실패한 기기는 일반 알림으로 대체해, 알림 자체는 잃지 않는다.
-     * 트랜잭션 분리 이유는 {@link #sendDailyBriefNotification}과 같다.
+     *
+     * <p>일부러 트랜잭션을 걸지 않는다. FCM 발송(기기마다 단건 + 멀티캐스트)은 외부 HTTP라 수 초까지 걸릴 수
+     * 있어, 트랜잭션 안에 두면 그동안 DB 커넥션을 붙잡는다. 이력 생성과 결과 반영은 각각
+     * {@link FcmTransactionService}의 짧은 REQUIRES_NEW 트랜잭션으로 끝낸다. 호출하는 스케줄러가 read-only
+     * 트랜잭션이어도, 쓰기가 그 트랜잭션을 rollback-only로 오염시키지 않는다.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendPreClassNotification(Long memberId, String title, String body, FcmMessageType type, String path,
                                          LiveActivityStartPush liveActivity) {
         if (memberId == null) {
@@ -1238,15 +1243,7 @@ public class FcmService {
         }
 
         List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(List.of(memberId));
-
-        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
-                .title(title)
-                .body(body)
-                .targetId(null)
-                .isAdminMessage(false)
-                .build());
-
-        batchInsertMemberFcmMessages(fcmMessage.getId(), List.of(memberId), type);
+        Long fcmMessageId = fcmTransactionService.createMemberNotification(title, body, memberId, type);
 
         int success = 0;
         int failure = 0;
@@ -1280,7 +1277,7 @@ public class FcmService {
             }
         }
 
-        fcmMessage.updateDeliveryResult(success, failure);
+        fcmTransactionService.updateFinalStatus(fcmMessageId, success, failure);
         log.info("Pre-class push sent: memberId={}, success={}, failure={}", memberId, success, failure);
     }
 
