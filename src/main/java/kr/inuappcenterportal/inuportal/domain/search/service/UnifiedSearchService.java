@@ -203,7 +203,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(sanitizeScore(hits.getMaxScore()), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search notices in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -245,7 +245,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(sanitizeScore(hits.getMaxScore()), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search department notices in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -287,7 +287,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(sanitizeScore(hits.getMaxScore()), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search posts in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -327,7 +327,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(sanitizeScore(hits.getMaxScore()), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search schedules in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -373,7 +373,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(sanitizeScore(hits.getMaxScore()), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search directory in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -414,7 +414,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(sanitizeScore(hits.getMaxScore()), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search courses in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -453,7 +453,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(sanitizeScore(hits.getMaxScore()), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search clubs in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -527,5 +527,12 @@ public class UnifiedSearchService {
             return fragments.get(0);
         }
         return defaultValue;
+    }
+
+    private Float sanitizeScore(Float score) {
+        if (score == null || Float.isNaN(score) || Float.isInfinite(score)) {
+            return 0.0f;
+        }
+        return score;
     }
 }

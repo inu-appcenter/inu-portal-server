@@ -11,12 +11,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Map;
 
 @Slf4j
@@ -27,6 +31,7 @@ public class OpenApiToolRegistry implements SmartInitializingSingleton {
     private final ApplicationContext applicationContext;
     private final AgentToolRegistry agentToolRegistry;
     private final InProcessApiDispatcher dispatcher;
+    private final ParameterNameDiscoverer paramNameDiscoverer = new DefaultParameterNameDiscoverer();
 
     @Override
     public void afterSingletonsInstantiated() {
@@ -38,7 +43,7 @@ public class OpenApiToolRegistry implements SmartInitializingSingleton {
         int exposedCount = 0;
 
         for (Object bean : controllerBeans.values()) {
-            Class<?> clazz = bean.getClass();
+            Class<?> clazz = AopUtils.getTargetClass(bean);
             Method[] methods = clazz.getDeclaredMethods();
 
             for (Method method : methods) {
@@ -106,11 +111,21 @@ public class OpenApiToolRegistry implements SmartInitializingSingleton {
 
     private Map<String, AgentToolParameter> inferParameters(Method method) {
         Map<String, AgentToolParameter> parameters = new java.util.LinkedHashMap<>();
-        for (java.lang.reflect.Parameter parameter : method.getParameters()) {
+        String[] discoveredNames = paramNameDiscoverer.getParameterNames(method);
+        Parameter[] methodParams = method.getParameters();
+
+        for (int i = 0; i < methodParams.length; i++) {
+            Parameter parameter = methodParams[i];
             RequestParam requestParam = AnnotationUtils.findAnnotation(parameter, RequestParam.class);
             if (requestParam == null) continue;
+
+            String discoveredName = (discoveredNames != null && discoveredNames.length > i)
+                    ? discoveredNames[i]
+                    : parameter.getName();
+
             String name = !requestParam.name().isBlank() ? requestParam.name()
-                    : !requestParam.value().isBlank() ? requestParam.value() : parameter.getName();
+                    : !requestParam.value().isBlank() ? requestParam.value() : discoveredName;
+
             AgentToolParameter spec = (parameter.getType() == int.class || parameter.getType() == Integer.class
                     || parameter.getType() == long.class || parameter.getType() == Long.class)
                     ? AgentToolParameter.integer("API 요청 파라미터", requestParam.required())
