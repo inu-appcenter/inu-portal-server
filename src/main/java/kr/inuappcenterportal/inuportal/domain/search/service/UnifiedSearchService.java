@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -78,10 +79,13 @@ public class UnifiedSearchService {
         long totalCount = notices.getTotalCount() + deptNotices.getTotalCount() + posts.getTotalCount()
                 + schedules.getTotalCount() + directory.getTotalCount() + courses.getTotalCount() + clubs.getTotalCount();
 
+        List<SearchTab> sectionOrder = determineSectionOrder(notices, deptNotices, posts, schedules, directory, courses, clubs);
+
         return UnifiedSearchResponseDto.builder()
                 .query(query)
                 .tab(SearchTab.ALL)
                 .totalCount(totalCount)
+                .sectionOrder(sectionOrder)
                 .notices(notices)
                 .departmentNotices(deptNotices)
                 .posts(posts)
@@ -90,6 +94,39 @@ public class UnifiedSearchService {
                 .courses(courses)
                 .clubs(clubs)
                 .build();
+    }
+
+    private List<SearchTab> determineSectionOrder(
+            UnifiedSectionDto<NoticeSearchItemDto> notices,
+            UnifiedSectionDto<DepartmentNoticeSearchItemDto> deptNotices,
+            UnifiedSectionDto<PostSearchItemDto> posts,
+            UnifiedSectionDto<ScheduleSearchItemDto> schedules,
+            UnifiedSectionDto<DirectorySearchItemDto> directory,
+            UnifiedSectionDto<CourseSearchItemDto> courses,
+            UnifiedSectionDto<ClubSearchItemDto> clubs) {
+
+        record ScoredSection(SearchTab tab, float score, long count) {}
+
+        List<ScoredSection> sections = new ArrayList<>();
+        sections.add(new ScoredSection(SearchTab.NOTICE, notices.getMaxScore() != null ? notices.getMaxScore() : 0.0f, notices.getTotalCount()));
+        sections.add(new ScoredSection(SearchTab.DEPT_NOTICE, deptNotices.getMaxScore() != null ? deptNotices.getMaxScore() : 0.0f, deptNotices.getTotalCount()));
+        sections.add(new ScoredSection(SearchTab.POST, posts.getMaxScore() != null ? posts.getMaxScore() : 0.0f, posts.getTotalCount()));
+        sections.add(new ScoredSection(SearchTab.SCHEDULE, schedules.getMaxScore() != null ? schedules.getMaxScore() : 0.0f, schedules.getTotalCount()));
+        sections.add(new ScoredSection(SearchTab.DIRECTORY, directory.getMaxScore() != null ? directory.getMaxScore() : 0.0f, directory.getTotalCount()));
+        sections.add(new ScoredSection(SearchTab.COURSE, courses.getMaxScore() != null ? courses.getMaxScore() : 0.0f, courses.getTotalCount()));
+        sections.add(new ScoredSection(SearchTab.CLUB, clubs.getMaxScore() != null ? clubs.getMaxScore() : 0.0f, clubs.getTotalCount()));
+
+        return sections.stream()
+                .sorted((a, b) -> {
+                    boolean aHasItems = a.count() > 0;
+                    boolean bHasItems = b.count() > 0;
+                    if (aHasItems != bHasItems) {
+                        return aHasItems ? -1 : 1;
+                    }
+                    return Float.compare(b.score(), a.score());
+                })
+                .map(ScoredSection::tab)
+                .collect(Collectors.toList());
     }
 
     private UnifiedSearchResponseDto searchSingleTab(String query, SearchTab tab, Pageable pageable) {
@@ -139,7 +176,7 @@ public class UnifiedSearchService {
                         b.must(m -> m.multiMatch(mm -> mm
                                 .query(keyword)
                                 .fields("title^10", "content^1", "writer^1.5", "category^1.2")
-                                .operator(Operator.And)
+                                .minimumShouldMatch("2<75%")
                         ));
                         applyRecencyAndPhraseBoosts(b, keyword, "title", true);
                         return b;
@@ -166,7 +203,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search notices in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -180,7 +217,7 @@ public class UnifiedSearchService {
                         b.must(m -> m.multiMatch(mm -> mm
                                 .query(keyword)
                                 .fields("title^10", "content^1", "departmentName^3", "writer^1.5")
-                                .operator(Operator.And)
+                                .minimumShouldMatch("2<75%")
                         ));
                         applyRecencyAndPhraseBoosts(b, keyword, "title", false);
                         return b;
@@ -208,7 +245,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search department notices in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -222,7 +259,7 @@ public class UnifiedSearchService {
                         b.must(m -> m.multiMatch(mm -> mm
                                 .query(keyword)
                                 .fields("title^10", "content^1", "category^1.5")
-                                .operator(Operator.And)
+                                .minimumShouldMatch("2<75%")
                         ));
                         applyRecencyAndPhraseBoosts(b, keyword, "title", false);
                         return b;
@@ -250,7 +287,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search posts in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -260,10 +297,17 @@ public class UnifiedSearchService {
     public UnifiedSectionDto<ScheduleSearchItemDto> searchSchedules(String keyword, Pageable pageable) {
         try {
             NativeQuery query = new NativeQueryBuilder()
-                    .withQuery(q -> q.multiMatch(m -> m
-                            .query(keyword)
-                            .fields("content^3")
-                            .operator(Operator.And)
+                    .withQuery(q -> q.bool(b -> b
+                            .must(m -> m.multiMatch(mm -> mm
+                                    .query(keyword)
+                                    .fields("content^3")
+                                    .minimumShouldMatch("2<75%")
+                            ))
+                            .should(s -> s.matchPhrase(mp -> mp
+                                    .field("content")
+                                    .query(keyword)
+                                    .boost(10.0f)
+                            ))
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("content")))
                     .withPageable(pageable)
@@ -283,7 +327,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search schedules in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -293,10 +337,22 @@ public class UnifiedSearchService {
     public UnifiedSectionDto<DirectorySearchItemDto> searchDirectory(String keyword, Pageable pageable) {
         try {
             NativeQuery query = new NativeQueryBuilder()
-                    .withQuery(q -> q.multiMatch(m -> m
-                            .query(keyword)
-                            .fields("name^3", "affiliation^2", "detailAffiliation^2", "duties^1.5", "position^1")
-                            .operator(Operator.And)
+                    .withQuery(q -> q.bool(b -> b
+                            .must(m -> m.multiMatch(mm -> mm
+                                    .query(keyword)
+                                    .fields("name^5", "affiliation^3", "detailAffiliation^2", "duties^1.5", "position^1")
+                                    .minimumShouldMatch("2<75%")
+                            ))
+                            .should(s -> s.matchPhrase(mp -> mp
+                                    .field("name")
+                                    .query(keyword)
+                                    .boost(15.0f)
+                            ))
+                            .should(s -> s.matchPhrase(mp -> mp
+                                    .field("affiliation")
+                                    .query(keyword)
+                                    .boost(5.0f)
+                            ))
                     ))
                     .withHighlightQuery(createHighlightQuery(List.of("name", "affiliation", "detailAffiliation", "duties")))
                     .withPageable(pageable)
@@ -317,7 +373,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search directory in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -331,7 +387,7 @@ public class UnifiedSearchService {
                             .must(m -> m.multiMatch(mm -> mm
                                     .query(keyword)
                                     .fields("title^10", "professor^3", "subjectNumber^2", "englishTitle^2")
-                                    .operator(Operator.And)
+                                    .minimumShouldMatch("2<75%")
                             ))
                             .should(s -> s.matchPhrase(mp -> mp
                                     .field("title")
@@ -358,7 +414,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search courses in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
@@ -372,7 +428,7 @@ public class UnifiedSearchService {
                             .must(m -> m.multiMatch(mm -> mm
                                     .query(keyword)
                                     .fields("name^10", "recruitContent^1", "category^1.5")
-                                    .operator(Operator.And)
+                                    .minimumShouldMatch("2<75%")
                             ))
                             .should(s -> s.matchPhrase(mp -> mp
                                     .field("name")
@@ -397,7 +453,7 @@ public class UnifiedSearchService {
                         .build();
             }).collect(Collectors.toList());
 
-            return UnifiedSectionDto.of(hits.getTotalHits(), items);
+            return UnifiedSectionDto.of(hits.getMaxScore(), hits.getTotalHits(), items);
         } catch (Exception e) {
             log.error("Failed to search clubs in elasticsearch: {}", e.getMessage());
             return UnifiedSectionDto.empty();
