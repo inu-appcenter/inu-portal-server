@@ -30,6 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import kr.inuappcenterportal.inuportal.domain.search.event.PostIndexEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 @Service
 @Slf4j
@@ -54,6 +58,7 @@ public class PostService {
     private final ImageService imageService;
     private final ReportRepository reportRepository;
     private final BlockRepository blockRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${postImagePath}")
     private String path;
@@ -70,6 +75,7 @@ public class PostService {
                        ImageService imageService,
                        ReportRepository reportRepository,
                        BlockRepository blockRepository,
+                       ApplicationEventPublisher eventPublisher,
                        @Qualifier("cacheManager") CacheManager cacheManager,
                        @Qualifier("localCacheManager") CacheManager localCacheManager) {
         this.postRepository = postRepository;
@@ -82,6 +88,7 @@ public class PostService {
         this.imageService = imageService;
         this.reportRepository = reportRepository;
         this.blockRepository = blockRepository;
+        this.eventPublisher = eventPublisher;
         this.cacheManager = cacheManager;
         this.localCacheManager = localCacheManager;
     }
@@ -132,6 +139,7 @@ public class PostService {
             post.updateImageCount(images.size());
             imageService.saveImageWithThumbnail(post.getId(),images,path);
         }
+        eventPublisher.publishEvent(PostIndexEvent.save(post.getId()));
         return post.getId();
     }
 
@@ -139,6 +147,10 @@ public class PostService {
 
     public byte[] getPostImage(Long postId, Long imageId){
         return imageService.getImage(postId,imageId,path);
+    }
+
+    public MediaType getPostImageContentType(Long postId, Long imageId){
+        return imageService.getImageContentType(postId,imageId,path);
     }
 
     @Transactional
@@ -155,6 +167,7 @@ public class PostService {
             imageService.updateImages(postId,images,path);
             post.updateImageCount(images.size());
         }
+        eventPublisher.publishEvent(PostIndexEvent.update(postId));
     }
 
 
@@ -166,6 +179,7 @@ public class PostService {
             throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
         }
         post.delete();
+        eventPublisher.publishEvent(PostIndexEvent.delete(postId));
     }
 
     @Transactional

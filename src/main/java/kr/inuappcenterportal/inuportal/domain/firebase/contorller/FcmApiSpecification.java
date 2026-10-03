@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityInstanceRequestDto;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityTokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
@@ -23,6 +25,24 @@ public interface FcmApiSpecification {
     @Operation(summary = "FCM 토큰 등록", description = "FCM 토큰을 등록하거나 기존 토큰의 회원/기기 정보를 갱신합니다.")
     ResponseEntity<ResponseDto<Long>> saveToken(
             @Valid TokenRequestDto tokenRequestDto,
+            @Parameter(hidden = true) Member member
+    );
+
+    @Operation(summary = "iOS Live Activity push-to-start 토큰 등록/해제",
+            description = "기기(FCM 토큰)의 ActivityKit push-to-start 토큰을 저장합니다. 등록된 기기는 수업 시작 전 알림을 "
+                    + "일반 알림 대신 시간표 Live Activity 시작 푸시로 받습니다. liveActivityStartToken이 비어 있으면 등록을 해제합니다. "
+                    + "로그인이 필요합니다(Auth 헤더).")
+    ResponseEntity<ResponseDto<Long>> saveLiveActivityStartToken(
+            @Valid LiveActivityTokenRequestDto requestDto,
+            @Parameter(hidden = true) Member member
+    );
+
+    @Operation(summary = "iOS Live Activity 업데이트 토큰 등록",
+            description = "기기에 떠 있는 시간표 Live Activity와 그 ActivityKit 업데이트 push 토큰을 등록합니다. 서버는 이 토큰으로 "
+                    + "수업 시작 시각에 '수업 중'으로 갱신하고 수업 종료 시각에 Activity를 끝냅니다. 같은 activityId는 갱신합니다. "
+                    + "props에는 startTimestamp/endTimestamp(epoch ms)가 있어야 합니다. 로그인이 필요합니다(Auth 헤더).")
+    ResponseEntity<ResponseDto<Long>> saveLiveActivityInstance(
+            @Valid LiveActivityInstanceRequestDto requestDto,
             @Parameter(hidden = true) Member member
     );
 
@@ -87,11 +107,18 @@ public interface FcmApiSpecification {
     ResponseEntity<ResponseDto<Void>> cancelScheduledNotification(Long scheduledNotificationId);
 
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 성공 횟수 조회",
-            description = "관리자가 전송한 FCM 메세지들의 총 성공 횟수를 조회합니다.")
+            description = "관리자가 전송한 FCM 메세지들의 총 성공 횟수를 조회합니다. <br><br>" +
+                    "각 건에는 읽음/클릭 집계(recipientCount, readCount, clickCount, pushReadCount, " +
+                    "inboxReadCount)가 함께 담깁니다. 클릭율은 clickCount ÷ recipientCount로 계산합니다. " +
+                    "targetCount/sendCount는 토큰(기기) 단위라 분모로 쓰면 안 됩니다.")
     ResponseEntity<ResponseDto<List<AdminNotificationResponse>>> countAdminFcmMessagesSuccess(@Min(1) int page);
 
     @Operation(summary = "(관리자 전용) 관리자 전송 FCM 메시지 결과 조회",
-            description = "관리자가 전송한 FCM 메시지의 발송 결과를 조회합니다.")
+            description = "관리자가 전송한 FCM 메시지의 발송 결과를 조회합니다. <br><br>" +
+                    "읽음/클릭 집계도 함께 내려갑니다. clickCount는 푸시를 탭했거나(pushReadCount) " +
+                    "알림함에서 개별 알림을 연(inboxReadCount) 수만 세며, 전체 읽음·조회수 기반 자동 " +
+                    "읽음은 readCount에만 포함됩니다. read_source 컬럼 도입 이전 발송 건은 경로를 알 수 " +
+                    "없어 clickCount가 0으로 나옵니다.")
     ResponseEntity<ResponseDto<AdminNotificationResponse>> getAdminFcmMessageResult(Long fcmMessageId);
 
     @Operation(summary = "(관리자 전용) 실패한 관리자 알림 재발송",

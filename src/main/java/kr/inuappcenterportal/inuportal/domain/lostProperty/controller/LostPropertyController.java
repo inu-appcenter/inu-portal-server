@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import kr.inuappcenterportal.inuportal.domain.agent.openapi.annotation.AgentExposed;
 import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyDetail;
 import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyPreview;
 import kr.inuappcenterportal.inuportal.domain.lostProperty.dto.LostPropertyRegister;
@@ -51,6 +52,15 @@ public class LostPropertyController {
         return ResponseEntity.status(CREATED).body(ResponseDto.of(lostPropertyService.register(request, images), "분실물 등록 성공"));
     }
 
+    @AgentExposed(
+            name = "LOST_PROPERTY",
+            description = "학내 분실물 습득·신고 목록을 페이지별로 조회합니다.",
+            capabilities = {"분실물 습득 목록 조회", "분실물 신고 목록 조회"},
+            triggerExamples = {"최근 분실물 보여줘", "학교에 지갑 습득 신고 올라왔어?"},
+            negativeExamples = {"분실물 등록·수정·삭제 또는 상세 항목 조회는 지원하지 않음"},
+            redirectUrl = "/home",
+            cardTitle = "학내 분실물 목록"
+    )
     @Operation(summary = "분실물 리스트 조회", description = "헤더 Auth에 발급받은 토큰을 보내주세요. 페이지(공백일 시 1)를 보내주세요.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "분실물 리스트 조회 성공", content = @Content(schema = @Schema(implementation = ListResponseDto.class)))

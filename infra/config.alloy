@@ -1,0 +1,19 @@
+// 어떤 파일을 검사할지 찾는 컴포넌트
+local.file_match "intip_logs" {
+  path_targets = [{
+    __path__ = "/intip/logs/*.log",
+    job      = "intip",
+    env      = "prod",
+  }]
+}
+
+loki.source.file "intip" {
+  targets    = local.file_match.intip_logs.targets
+  forward_to = [loki.write.intip.receiver]
+}
+
+loki.write "intip" {
+  endpoint {
+    url = "http://intip-loki:3100/loki/api/v1/push"
+  }
+}

@@ -45,6 +45,7 @@ public class FcmRetryService {
     private final FcmMessageFailedTargetRepository fcmMessageFailedTargetRepository;
     private final MemberFcmMessageRepository memberFcmMessageRepository;
     private final FcmTokenRepository fcmTokenRepository;
+    private final NotificationReadStatsReader notificationReadStatsReader;
 
     /**
      * 재시도할 대상을 확정하고 원자적으로 선점한다. <b>실제 발송은 이 트랜잭션이 커밋된 뒤</b>
@@ -86,7 +87,8 @@ public class FcmRetryService {
         FcmMessage leased = fcmMessageRepository.findById(fcmMessageId).orElse(fcmMessage);
 
         return new RetryDispatch(
-                AdminNotificationResponse.of(leased, tokenAndMemberId.size()),
+                AdminNotificationResponse.of(leased, tokenAndMemberId.size(),
+                        notificationReadStatsReader.findOne(fcmMessageId)),
                 fcmMessageId,
                 tokenAndMemberId,
                 fcmMessage.getTitle(),

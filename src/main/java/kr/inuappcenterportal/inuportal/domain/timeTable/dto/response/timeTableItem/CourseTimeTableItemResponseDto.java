@@ -21,6 +21,8 @@ public record CourseTimeTableItemResponseDto(
         String subjectNumber,
         @Schema(description = "학점", example = "3")
         Integer credit,
+        @Schema(description = "성적 평가 방식", example = "상대평가", nullable = true)
+        String gradeEvaluationName,
         @Schema(description = "강의 시간 목록")
         List<TimeTableMeetingResponseDto> meetings
 ) {
@@ -37,6 +39,7 @@ public record CourseTimeTableItemResponseDto(
                 courseOffering.getProfessor(),
                 courseOffering.getSubjectNumber(),
                 course.getCredit(),
+                gradeEvaluationName(courseOffering),
                 meetings.stream()
                         .map(TimeTableMeetingResponseDto::from)
                         .toList()
@@ -59,10 +62,21 @@ public record CourseTimeTableItemResponseDto(
                 masked ? null : courseOffering.getProfessor(),
                 masked ? null : courseOffering.getSubjectNumber(),
                 masked ? null : course.getCredit(),
+                masked ? null : gradeEvaluationName(courseOffering),
                 meetings.stream()
                         .map(meeting -> TimeTableMeetingResponseDto.from(meeting, masked))
                         .toList()
         );
+    }
+
+    private static String gradeEvaluationName(CourseOffering courseOffering) {
+        String rawValue = courseOffering.getGradeEvaluationRaw();
+        if (rawValue != null && !rawValue.isBlank()) {
+            return rawValue;
+        }
+        return courseOffering.getGradeEvaluation() == null
+                ? null
+                : courseOffering.getGradeEvaluation().getDescription();
     }
 
 

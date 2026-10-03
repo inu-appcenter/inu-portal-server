@@ -24,6 +24,13 @@ public class FcmToken{
     private String deviceType;
     @Column(name = "create_date")
     private LocalDateTime createDate;
+    /**
+     * iOS ActivityKit push-to-start 토큰. 같은 기기(FCM 토큰)의 시간표 Live Activity를
+     * 앱이 꺼져 있어도 서버 푸시로 시작하기 위해 쓴다. iOS 17.2+ 기기만 가지며, 앱에서
+     * 기능을 끄면 null로 지워진다.
+     */
+    @Column(name = "live_activity_start_token", length = 512)
+    private String liveActivityStartToken;
 
     @Builder
     public FcmToken(Long memberId, String token, String deviceType) {
@@ -47,6 +54,11 @@ public class FcmToken{
             return;
         }
         this.deviceType = deviceType;
+    }
+    public void updateLiveActivityStartToken(String liveActivityStartToken) {
+        this.liveActivityStartToken = (liveActivityStartToken == null || liveActivityStartToken.isBlank())
+                ? null
+                : liveActivityStartToken;
     }
 
 }

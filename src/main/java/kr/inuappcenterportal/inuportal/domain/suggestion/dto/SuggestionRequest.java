@@ -7,21 +7,21 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Schema(description = "건의사항 등록 Dto")
+@Schema(description = "건의사항 등록 요청 본문. 등록 API에서는 multipart의 `suggestionRequest` 파트에 이 JSON을 담아 전송합니다.")
 @Getter
 @NoArgsConstructor
 public class SuggestionRequest {
 
-    @Schema(description = "건의 내용", example = "특정 게시판에서 이미지 업로드가 안 돼요.")
+    @Schema(description = "건의 내용 (필수, 최대 2000자)", example = "특정 게시판에서 이미지 업로드가 안 돼요.")
     @NotBlank
     @Size(max = 2000)
     private String content;
 
-    @Schema(description = "개발자 응원 메시지", example = "항상 잘 쓰고 있어요, 감사합니다!")
+    @Schema(description = "개발자 응원 메시지 (선택, 최대 1000자)", example = "항상 잘 쓰고 있어요, 감사합니다!")
     @Size(max = 1000)
     private String cheerMessage;
 
-    @Schema(description = "문의 유형", example = "BUG_REPORT", allowableValues = {"BUG_REPORT", "FEATURE_SUGGESTION", "SCHOOL_INFO_ERROR", "ETC", "CHEER"})
+    @Schema(description = "문의 유형 (필수)", example = "BUG_REPORT", allowableValues = {"BUG_REPORT", "FEATURE_SUGGESTION", "SCHOOL_INFO_ERROR", "ETC", "CHEER"})
     @NotBlank
     private String category;
 

@@ -84,6 +84,16 @@ jobs:
           source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/README.md"
           target: ${{ secrets.MOUNT_PATH }}
 
+      - name: Copy compose and infra files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_ADDRESS }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "compose.yaml,infra/**"
+          target: ${{ secrets.MOUNT_PATH }}
+
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -106,12 +116,21 @@ jobs:
             
             docker network create intip-dev || true
             
+            cd ${{ secrets.MOUNT_PATH }}
+            export DOCKERHUB_USERNAME=${{ secrets.USERNAME }}
+            export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
+            export MOUNT_PATH=${{ secrets.MOUNT_PATH }}
+            export KIBANA_URL=${{ secrets.KIBANA_URL || 'http://localhost:5601' }}
+            docker compose up -d --build elasticsearch || true
+            docker network connect intip-dev intip-elasticsearch || true
+            
             docker run -d \
               --init \
               --network intip-dev \
               --shm-size=2gb \
               -p 8104:8080 \
               -e TZ=Asia/Seoul \
+              -e ELASTICSEARCH_URIS="http://intip-elasticsearch:9200" \
               -e COURSE_OVERVIEW_DIRECTORY=/intip/overviews \
               -e COURSE_OVERVIEW_FILENAME_PATTERN='course-offering-{year}-{term-code}.xlsx' \
               -e COURSE_OVERVIEW_CAPACITY_FILENAME_PATTERN='course-offering-capacity-{year}-{term-code}.xlsx' \

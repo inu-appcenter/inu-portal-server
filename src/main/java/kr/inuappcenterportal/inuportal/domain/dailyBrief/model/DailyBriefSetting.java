@@ -56,6 +56,10 @@ public class DailyBriefSetting {
     @Column(name = "schedule_scope", nullable = false)
     private ScheduleScope scheduleScope = ScheduleScope.ALL;
 
+    @Lob
+    @Column(name = "card_settings_json", columnDefinition = "TEXT")
+    private String cardSettingsJson;
+
     @Builder
     public DailyBriefSetting(
             Member member,
@@ -66,7 +70,8 @@ public class DailyBriefSetting {
             String timetableDailyBriefTime,
             Boolean scheduleAlertEnabled,
             String scheduleDailyBriefTime,
-            ScheduleScope scheduleScope
+            ScheduleScope scheduleScope,
+            String cardSettingsJson
     ) {
         this.member = member;
         if (timetableAlertEnabled != null) this.timetableAlertEnabled = timetableAlertEnabled;
@@ -77,6 +82,7 @@ public class DailyBriefSetting {
         if (scheduleAlertEnabled != null) this.scheduleAlertEnabled = scheduleAlertEnabled;
         if (scheduleDailyBriefTime != null && !scheduleDailyBriefTime.isBlank()) this.scheduleDailyBriefTime = scheduleDailyBriefTime;
         if (scheduleScope != null) this.scheduleScope = scheduleScope;
+        this.cardSettingsJson = cardSettingsJson;
     }
 
     public static DailyBriefSetting createDefault(Member member) {
@@ -90,6 +96,7 @@ public class DailyBriefSetting {
                 .scheduleAlertEnabled(true)
                 .scheduleDailyBriefTime("08:30")
                 .scheduleScope(ScheduleScope.ALL)
+                .cardSettingsJson(null)
                 .build();
     }
 
@@ -118,5 +125,12 @@ public class DailyBriefSetting {
         if (dto.scheduleScope() != null) {
             this.scheduleScope = dto.scheduleScope();
         }
+        if (dto.cardSettingsJson() != null) {
+            this.cardSettingsJson = dto.cardSettingsJson();
+        }
+    }
+
+    public void updateCardSettings(String cardSettingsJson) {
+        this.cardSettingsJson = cardSettingsJson;
     }
 }

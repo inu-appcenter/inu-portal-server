@@ -14,15 +14,21 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class NoticeEventListener {
 
     private final KeywordService keywordService;
+    private final kr.inuappcenterportal.inuportal.domain.search.service.SearchIndexSyncService searchIndexSyncService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleNoticeCreatedEvent(NoticeCreatedEvent event) {
-        log.info("[학교공지 이벤트] 트랜잭션 커밋 완료, 알림 발송 시작: [{}] {}", 
+        log.info("[학교공지 이벤트] 트랜잭션 커밋 완료, 알림 발송 및 검색 색인 시작: [{}] {}", 
                 event.getNotice().getCategory(), event.getNotice().getTitle());
         try {
             keywordService.noticeNotifyMatchedUsers(event.getNotice());
         } catch (Exception e) {
             log.error("[학교공지 이벤트] 알림 발송 중 에러 발생: {}", e.getMessage(), e);
+        }
+        try {
+            searchIndexSyncService.indexNotice(event.getNotice());
+        } catch (Exception e) {
+            log.error("[학교공지 이벤트] Elasticsearch 색인 중 에러 발생: {}", e.getMessage(), e);
         }
     }
 }

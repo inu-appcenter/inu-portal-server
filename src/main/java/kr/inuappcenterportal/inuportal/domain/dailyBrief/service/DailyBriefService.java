@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.dailyBrief.service;
 
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.req.DailyBriefSettingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefCardSettingDto;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefSettingResponseDto;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.model.DailyBriefSetting;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.repository.DailyBriefSettingRepository;
@@ -42,6 +43,31 @@ public class DailyBriefService {
 
         setting.update(requestDto);
         return DailyBriefSettingResponseDto.from(setting);
+    }
+
+    @Transactional
+    public DailyBriefCardSettingDto getCardSettings(Member member) {
+        if (member == null) {
+            throw new MyException(MyErrorCode.MEMBER_NOT_FOUND);
+        }
+
+        DailyBriefSetting setting = dailyBriefSettingRepository.findByMember(member)
+                .orElseGet(() -> dailyBriefSettingRepository.save(DailyBriefSetting.createDefault(member)));
+
+        return DailyBriefCardSettingDto.of(setting.getCardSettingsJson());
+    }
+
+    @Transactional
+    public DailyBriefCardSettingDto updateCardSettings(Member member, DailyBriefCardSettingDto requestDto) {
+        if (member == null) {
+            throw new MyException(MyErrorCode.MEMBER_NOT_FOUND);
+        }
+
+        DailyBriefSetting setting = dailyBriefSettingRepository.findByMember(member)
+                .orElseGet(() -> dailyBriefSettingRepository.save(DailyBriefSetting.createDefault(member)));
+
+        setting.updateCardSettings(requestDto != null ? requestDto.cardSettingsJson() : null);
+        return DailyBriefCardSettingDto.of(setting.getCardSettingsJson());
     }
 
     @Transactional

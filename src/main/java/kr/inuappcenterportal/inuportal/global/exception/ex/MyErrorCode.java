@@ -14,6 +14,7 @@ public enum MyErrorCode {
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩하지 않은 게시물입니다."),
     FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 스크랩폴더입니다."),
     FOLDER_OR_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩폴더나 게시글이 존재하지 않습니다."),
+    HAS_NOT_FOLDER_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 스크랩폴더에 접근할 권한이 없습니다."),
     USER_OR_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "유저나 게시글이 존재하지 않습니다."),
     USER_OR_REPLY_NOT_FOUND(HttpStatus.NOT_FOUND, "유저나 댓글이 존재하지 않습니다."),
     NOT_REPLY_ON_REREPLY(HttpStatus.BAD_REQUEST, "대댓글에 댓글을 작성할 수 없습니다."),
@@ -36,6 +37,7 @@ public enum MyErrorCode {
     UNSUPPORTED_TOKEN(HttpStatus.UNAUTHORIZED, "잘못된 형식의 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
     UNKNOWN_TOKEN_ERROR(HttpStatus.BAD_REQUEST, "토큰의 값이 존재하지 않습니다."),
+    INVALID_LIVE_ACTIVITY_PROPS(HttpStatus.BAD_REQUEST, "Live Activity props에 수업 시작/종료 시각이 없습니다."),
     WRONG_SORT_TYPE(HttpStatus.BAD_REQUEST, "정렬의 기준값이 올바르지 않습니다."),
     WRONG_SEARCH_TYPE(HttpStatus.BAD_REQUEST, "검색옵션이 올바르지 않습니다."),
     EMPTY_REQUEST(HttpStatus.BAD_REQUEST, "닉네임, 횃불이 아이디 모두 공백입니다."),
@@ -103,6 +105,7 @@ public enum MyErrorCode {
     DUPLICATE_TIMETABLE_COURSE_ITEM(HttpStatus.CONFLICT, "이미 시간표에 추가된 개설 강의입니다."),
     PRIVATE_TIMETABLE(HttpStatus.FORBIDDEN, "비공개된 시간표입니다."),
     NOT_READABLE_TIMETABLE(HttpStatus.FORBIDDEN, "친구가 아닌 사용자의 시간표를 읽을 수 없습니다."),
+    NOT_CHATROOM_TIMETABLE_ACCESSIBLE(HttpStatus.FORBIDDEN, "이 채팅방에서는 참여자 시간표를 조회할 수 없습니다."),
     PRIMARY_TIMETABLE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 시간표가 존재하지 않습니다."),
     DUPLICATE_COURSE_OFFERING(HttpStatus.CONFLICT, "중복된 개설 강의입니다."),
     INVALID_DAY_OF_WEEK(HttpStatus.CONFLICT, "허용하지 않은 요일입니다."),
@@ -115,11 +118,15 @@ public enum MyErrorCode {
     DUPLICATE_GRADE_RECORD(HttpStatus.BAD_REQUEST, "동일한 과목(과목코드+과목명)의 성적이 중복 입력되었습니다."),
     HAS_NOT_GRADE_RECORD_AUTHORIZATION(HttpStatus.FORBIDDEN, "해당 성적에 접근할 수 없습니다."),
     INVALID_EXCEL_EXTENDER(HttpStatus.BAD_REQUEST, "잘못된 확장자입니다."),
+    SYLLABUS_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강의계획서입니다."),
 
+    // Suggestion 관련 에러코드
     SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 건의사항입니다."),
     HAS_NOT_SUGGESTION_AUTHORIZATION(HttpStatus.FORBIDDEN, "이 건의사항에 대한 권한이 없습니다."),
     WRONG_SUGGESTION_STATUS(HttpStatus.BAD_REQUEST, "잘못된 형식의 건의사항 상태를 요청했습니다."),
     WRONG_SUGGESTION_CATEGORY(HttpStatus.BAD_REQUEST, "잘못된 형식의 문의 유형을 요청했습니다."),
+    INVALID_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "이미지 파일만 업로드할 수 있습니다."),
+    SUGGESTION_IMAGE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지는 최대 5장까지 첨부할 수 있습니다."),
 
 
     // Chat 관련 에러 코드 추가

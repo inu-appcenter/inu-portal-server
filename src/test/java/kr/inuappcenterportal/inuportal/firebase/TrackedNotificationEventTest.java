@@ -14,6 +14,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncExecutor;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmDispatchGate;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmFailedTargetService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.NotificationReadStatsReader;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionService;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -36,7 +37,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RecordApplicationEvents
-@SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class, FcmTransactionService.class, FcmDispatchGate.class})
+@SpringBootTest(classes = {FcmTestAsyncConfig.class, FcmService.class, FcmTransactionService.class, FcmDispatchGate.class,
+        NotificationReadStatsReader.class})
 class TrackedNotificationEventTest {
 
     @MockBean

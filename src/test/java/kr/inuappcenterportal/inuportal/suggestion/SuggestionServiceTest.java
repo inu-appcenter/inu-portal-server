@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.suggestion;
 
+import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionListResponse;
 import kr.inuappcenterportal.inuportal.domain.suggestion.dto.SuggestionRequest;
@@ -13,9 +14,11 @@ import kr.inuappcenterportal.inuportal.domain.suggestion.service.SuggestionServi
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,16 +26,24 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 public class SuggestionServiceTest {
@@ -43,9 +54,20 @@ public class SuggestionServiceTest {
     @Mock
     private SuggestionRepository suggestionRepository;
 
+    @Mock
+    private ImageService imageService;
+
+    @TempDir
+    Path tempDir;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(suggestionService, "suggestionImagePath", tempDir.toString());
+    }
+
     @Test
-    @DisplayName("건의사항 등록 테스트")
-    public void saveSuggestion() {
+    @DisplayName("건의사항 등록 테스트 (이미지 없음)")
+    public void saveSuggestion() throws IOException {
         Member member = mock(Member.class);
 
         SuggestionRequest suggestionRequest = SuggestionRequest.builder()
@@ -63,10 +85,72 @@ public class SuggestionServiceTest {
 
         when(suggestionRepository.save(any(Suggestion.class))).thenReturn(suggestion);
 
-        Long suggestionId = suggestionService.saveSuggestion(suggestionRequest, member);
+        Long suggestionId = suggestionService.saveSuggestion(suggestionRequest, member, null);
 
         Assertions.assertThat(suggestionId).isEqualTo(1L);
         verify(suggestionRepository).save(any(Suggestion.class));
+        verifyNoInteractions(imageService);
+    }
+
+    @Test
+    @DisplayName("건의사항 등록 테스트 (이미지 2장 첨부)")
+    public void saveSuggestion_withImages() throws IOException {
+        Member member = mock(Member.class);
+
+        SuggestionRequest suggestionRequest = SuggestionRequest.builder()
+                .content("이미지 업로드가 안 돼요")
+                .category("BUG_REPORT")
+                .build();
+
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG_REPORT, null, null, null, null);
+        ReflectionTestUtils.setField(suggestion, "id", 1L);
+        when(suggestionRepository.save(any(Suggestion.class))).thenReturn(suggestion);
+
+        List<MultipartFile> images = new ArrayList<>();
+        images.add(new MockMultipartFile("images", "a.png", "image/png", new byte[]{1, 2, 3}));
+        images.add(new MockMultipartFile("images", "b.jpg", "image/jpeg", new byte[]{4, 5, 6}));
+
+        Long suggestionId = suggestionService.saveSuggestion(suggestionRequest, member, images);
+
+        Assertions.assertThat(suggestionId).isEqualTo(1L);
+        Assertions.assertThat(suggestion.getImageCount()).isEqualTo(2);
+        verify(imageService).saveImage(eq(1L), eq(images), anyString());
+    }
+
+    @Test
+    @DisplayName("건의사항 등록 실패 테스트 (이미지 6장 초과)")
+    public void saveSuggestion_fail_tooManyImages() {
+        Member member = mock(Member.class);
+        SuggestionRequest suggestionRequest = SuggestionRequest.builder()
+                .content("내용").category("BUG_REPORT").build();
+
+        List<MultipartFile> images = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            images.add(new MockMultipartFile("images", "img" + i + ".png", "image/png", new byte[]{1}));
+        }
+
+        Assertions.assertThatThrownBy(() -> suggestionService.saveSuggestion(suggestionRequest, member, images))
+                .isInstanceOf(MyException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.SUGGESTION_IMAGE_LIMIT_EXCEEDED);
+
+        verifyNoInteractions(suggestionRepository, imageService);
+    }
+
+    @Test
+    @DisplayName("건의사항 등록 실패 테스트 (이미지가 아닌 파일)")
+    public void saveSuggestion_fail_invalidImageType() {
+        Member member = mock(Member.class);
+        SuggestionRequest suggestionRequest = SuggestionRequest.builder()
+                .content("내용").category("BUG_REPORT").build();
+
+        List<MultipartFile> images = new ArrayList<>();
+        images.add(new MockMultipartFile("images", "doc.pdf", "application/pdf", new byte[]{1, 2, 3}));
+
+        Assertions.assertThatThrownBy(() -> suggestionService.saveSuggestion(suggestionRequest, member, images))
+                .isInstanceOf(MyException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.INVALID_IMAGE_TYPE);
+
+        verifyNoInteractions(suggestionRepository, imageService);
     }
 
     @Test
@@ -120,6 +204,59 @@ public class SuggestionServiceTest {
         Assertions.assertThatThrownBy(() -> suggestionService.getSuggestion(1L, member))
                 .isInstanceOf(MyException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.SUGGESTION_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("건의사항 이미지 조회 성공 테스트 (작성자 본인)")
+    public void getSuggestionImage_success() {
+        Member member = mock(Member.class);
+        when(member.getId()).thenReturn(1L);
+
+        Suggestion suggestion = Suggestion.create("내용", null, member, SuggestionCategory.BUG_REPORT, null, null, null, null);
+        ReflectionTestUtils.setField(suggestion, "id", 1L);
+
+        when(suggestionRepository.findByIdWithMember(1L)).thenReturn(Optional.of(suggestion));
+        when(imageService.getImage(eq(1L), eq(1L), anyString())).thenReturn(new byte[]{1, 2, 3});
+
+        byte[] result = suggestionService.getSuggestionImage(1L, 1L, member);
+
+        Assertions.assertThat(result).containsExactly(1, 2, 3);
+    }
+
+    @Test
+    @DisplayName("건의사항 이미지 조회 실패 테스트 (작성자도 관리자도 아님)")
+    public void getSuggestionImage_fail_authorization() {
+        Member writer = mock(Member.class);
+        when(writer.getId()).thenReturn(1L);
+
+        Member other = mock(Member.class);
+        when(other.getId()).thenReturn(2L);
+        when(other.getRoles()).thenReturn(List.of("ROLE_USER"));
+
+        Suggestion suggestion = Suggestion.create("내용", null, writer, SuggestionCategory.BUG_REPORT, null, null, null, null);
+        ReflectionTestUtils.setField(suggestion, "id", 1L);
+
+        when(suggestionRepository.findByIdWithMember(1L)).thenReturn(Optional.of(suggestion));
+
+        Assertions.assertThatThrownBy(() -> suggestionService.getSuggestionImage(1L, 1L, other))
+                .isInstanceOf(MyException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.HAS_NOT_SUGGESTION_AUTHORIZATION);
+
+        verifyNoInteractions(imageService);
+    }
+
+    @Test
+    @DisplayName("건의사항 이미지 조회 실패 테스트 (건의사항 없음)")
+    public void getSuggestionImage_fail_notFound() {
+        Member member = mock(Member.class);
+
+        when(suggestionRepository.findByIdWithMember(1L)).thenReturn(Optional.empty());
+
+        Assertions.assertThatThrownBy(() -> suggestionService.getSuggestionImage(1L, 1L, member))
+                .isInstanceOf(MyException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MyErrorCode.SUGGESTION_NOT_FOUND);
+
+        verifyNoInteractions(imageService);
     }
 
     @Test

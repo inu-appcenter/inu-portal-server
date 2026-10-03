@@ -358,6 +358,7 @@ public class ChatRoomService {
                     String lastMessageContent = "아직 대화가 없습니다.";
                     String friendAlias = null;
 
+                    List<Long> participantProfileImageNumbers = new ArrayList<>();
                     // 개인 채팅방 처리
                     if (room.getType() == ChatRoomType.PERSONAL) {
                         if (room.isOfficial() && !member.getRoles().contains("ROLE_ADMIN")) {
@@ -365,6 +366,14 @@ public class ChatRoomService {
                         } else {
                             List<ChatRoomMember> roomMembers = chatRoomMemberRepository.findAllByChatRoomAndStatus(room,
                                     ChatMemberStatus.JOINED);
+                            
+                            // 참여자들 중 본인을 제외한 멤버들의 프로필 이미지 번호 추출 (최대 4개)
+                            participantProfileImageNumbers = roomMembers.stream()
+                                    .filter(orm -> !orm.getMember().getId().equals(memberId))
+                                    .map(orm -> orm.getMember().getFireId())
+                                    .limit(4)
+                                    .collect(Collectors.toList());
+
                             // 1:1 채팅방(참여 인원 2명)인 경우 항상 상대방 정보 사용
                             if (roomMembers.size() == 2) {
                                 Optional<ChatRoomMember> otherMemberOpt = roomMembers.stream()
@@ -383,19 +392,21 @@ public class ChatRoomService {
                                 senderProfileImageNumber = null;
                             }
                             
-                            // 단체방인데 제목이 없는 경우만 상대방 닉네임들 노출
-                            if ((title == null || title.isEmpty()) && roomMembers.size() > 2) {
+                            // 본인의 커스텀 방 제목이 있으면 최우선 적용
+                            if (m.getCustomTitle() != null && !m.getCustomTitle().trim().isEmpty()) {
+                                title = m.getCustomTitle().trim();
+                            } else if (roomMembers.size() > 2) {
+                                // 커스텀 제목이 없는 단체방의 경우 상대방 닉네임들 노출
                                 title = roomMembers.stream()
                                         .filter(orm -> !orm.getMember().getId().equals(memberId))
                                         .map(crm -> crm.getMember().getNickname())
                                         .collect(Collectors.joining(", "));
-                            } else if ((title == null || title.isEmpty())) {
-                                title = roomMembers.stream()
-                                        .filter(orm -> !orm.getMember().getId().equals(memberId))
-                                        .findFirst()
-                                        .map(crm -> crm.getMember().getNickname())
-                                        .orElse("알 수 없음");
                             }
+                        }
+                    } else {
+                        // 오픈채팅방의 경우에도 개인이 커스텀 방 제목을 설정했으면 우선 적용
+                        if (m.getCustomTitle() != null && !m.getCustomTitle().trim().isEmpty()) {
+                            title = m.getCustomTitle().trim();
                         }
                     }
 
@@ -421,6 +432,7 @@ public class ChatRoomService {
                             .unreadCount(unreadCount)
                             .senderName(senderName)
                             .senderProfileImageNumber(senderProfileImageNumber)
+                            .participantProfileImageNumbers(participantProfileImageNumbers)
                             .isOwner(room.getCreator().getId().equals(memberId))
                             .isOfficial(room.isOfficial())
                             .currentParticipants(memberCount)
@@ -560,7 +572,9 @@ public class ChatRoomService {
         if (isOfficial) {
             title = "INTIP 운영자";
         } else if (title == null || title.trim().isEmpty()) {
-            title = (allMemberIds.size() == 2) ? "" : "그룹 채팅";
+            title = "";
+        } else {
+            title = title.trim();
         }
 
         ChatRoom chatRoom = ChatRoom.builder()
@@ -573,12 +587,15 @@ public class ChatRoomService {
                 .build();
         chatRoomRepository.save(chatRoom);
 
+        String initialCustomTitle = (!isOfficial && title != null && !title.trim().isEmpty()) ? title.trim() : null;
+
         for (Long id : allMemberIds) {
             Member member = memberRepository.findById(id)
                     .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
             ChatRoomMember chatRoomMember = ChatRoomMember.builder()
                     .chatRoom(chatRoom)
                     .member(member)
+                    .customTitle(id.equals(memberId) ? initialCustomTitle : null)
                     .build();
             chatRoomMemberRepository.save(chatRoomMember);
         }
@@ -924,7 +941,22 @@ public class ChatRoomService {
                     } else {
                         title = "알 수 없음";
                     }
+                } else if (roomParticipants.size() > 2) {
+                    title = roomParticipants.stream()
+                            .filter(m -> !m.getMember().getId().equals(memberId))
+                            .map(crm -> crm.getMember().getNickname())
+                            .collect(Collectors.joining(", "));
                 }
+
+                // 본인의 커스텀 방 제목이 있으면 최우선 적용
+                if (chatRoomMember.getCustomTitle() != null && !chatRoomMember.getCustomTitle().trim().isEmpty()) {
+                    title = chatRoomMember.getCustomTitle().trim();
+                }
+            }
+        } else {
+            // 오픈채팅방의 경우에도 개인이 커스텀 방 제목을 설정했으면 우선 적용
+            if (chatRoomMember.getCustomTitle() != null && !chatRoomMember.getCustomTitle().trim().isEmpty()) {
+                title = chatRoomMember.getCustomTitle().trim();
             }
         }
 
@@ -1087,7 +1119,10 @@ public class ChatRoomService {
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         // 1. 채팅방 멤버인지 확인
-        if (!chatRoomMemberRepository.existsByChatRoomAndMember(chatRoom, member)) {
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        if (chatRoomMember.getStatus() != ChatMemberStatus.JOINED) {
             throw new MyException(MyErrorCode.NOT_CHATROOM_MEMBER);
         }
 
@@ -1097,14 +1132,11 @@ public class ChatRoomService {
             if (!chatRoom.getCreator().getId().equals(memberId) && !isAdmin) {
                 throw new MyException(MyErrorCode.NOT_CHATROOM_OWNER);
             }
+            chatRoom.updateTitle(requestDto.getTitle());
         } else if (chatRoom.getType() == ChatRoomType.PERSONAL) {
-            // 1:1 채팅방은 이름 변경 불가
-            if (chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED) == 2) {
-                throw new MyException(MyErrorCode.HAS_NOT_POST_AUTHORIZATION);
-            }
+            // 개인/단체 채팅방: 본인의 커스텀 방 제목만 수정 (다른 참여자에게 영향 없음)
+            chatRoomMember.updateCustomTitle(requestDto.getTitle());
         }
-
-        chatRoom.updateTitle(requestDto.getTitle());
     }
 
     @Transactional
@@ -1364,11 +1396,19 @@ public class ChatRoomService {
                     title = resolvedName;
                     body = content;
                 } else {
-                    title = (room.getTitle() == null || room.getTitle().isEmpty()) ? "그룹 채팅" : room.getTitle();
+                    if (m.getCustomTitle() != null && !m.getCustomTitle().trim().isEmpty()) {
+                        title = m.getCustomTitle().trim();
+                    } else {
+                        title = (room.getTitle() == null || room.getTitle().isEmpty()) ? "그룹 채팅" : room.getTitle();
+                    }
                     body = resolvedName + ": " + content;
                 }
             } else {
-                title = room.getTitle();
+                if (m.getCustomTitle() != null && !m.getCustomTitle().trim().isEmpty()) {
+                    title = m.getCustomTitle().trim();
+                } else {
+                    title = room.getTitle();
+                }
                 body = resolvedName + ": " + content;
             }
 

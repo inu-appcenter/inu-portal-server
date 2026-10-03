@@ -37,12 +37,20 @@ public class ChatRoomMember extends BaseTimeEntity {
     @Column(name = "push_enabled")
     private Boolean pushEnabled = true;
 
+    @Column(name = "custom_title")
+    private String customTitle;
+
     @Builder
-    public ChatRoomMember(ChatRoom chatRoom, Member member) {
+    public ChatRoomMember(ChatRoom chatRoom, Member member, String customTitle) {
         this.chatRoom = chatRoom;
         this.member = member;
         this.status = ChatMemberStatus.JOINED;
         this.lastReadMessageId = 0L;
+        this.customTitle = customTitle;
+    }
+
+    public void updateCustomTitle(String customTitle) {
+        this.customTitle = customTitle;
     }
 
     public void leave() {

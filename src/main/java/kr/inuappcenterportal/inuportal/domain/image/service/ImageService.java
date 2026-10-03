@@ -1,11 +1,11 @@
 package kr.inuappcenterportal.inuportal.domain.image.service;
 
-import kr.inuappcenterportal.inuportal.domain.image.repository.ImageRepository;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,13 +26,20 @@ import java.util.stream.Stream;
 @Service
 public class ImageService {
 
-    private final ImageRepository imageRepository;
+    // 이미지 확장자 순서대로
+    private static final List<String> EXTENSION_PRIORITY = List.of(".webp", ".png", ".jpg", ".jpeg", ".gif", ".svg");
 
+    /**
+     * 이미지/썸네일 저장 메서드
+     */
     public void saveImageWithThumbnail(Long id, List<MultipartFile> images, String path) throws IOException {
-        saveImage(id,images,path);
-        saveThumbnail(images.get(0),path+"/thumbnail",id);
+        saveImage(id, images, path);
+        saveThumbnail(images.get(0), path + "/thumbnail", id);
     }
 
+    /**
+     * 채팅방 이미지 저장 메서드
+     */
     public void saveChatImage(Long roomId, Long messageId, List<MultipartFile> images, String basePath) throws IOException {
         Path roomPath = Paths.get(basePath, roomId.toString());
         Path thumbnailPath = roomPath.resolve("thumbnail");
@@ -52,9 +59,12 @@ public class ImageService {
         saveThumbnail(images.get(0), thumbnailPath.toString(), messageId);
     }
 
+    /**
+     * 이미지 저장 메서드(게시글 등)
+     */
     public void saveImage(Long id, List<MultipartFile> images, String path) throws IOException {
         for (int i = 1; i < images.size() + 1; i++) {
-            MultipartFile file = images.get(i-1);
+            MultipartFile file = images.get(i - 1);
             BufferedImage resizedImage = Thumbnails.of(file.getInputStream())
                     .size(1080, 1080)
                     .keepAspectRatio(true)
@@ -64,16 +74,8 @@ public class ImageService {
             ImageIO.write(resizedImage, "webp", outputFile);
         }
     }
-    private String getExtension(String filename) {
-        // 파일 확장자 추출 (예: .jpg, .png)
-        int dotIndex = filename.lastIndexOf(".");
-        if (dotIndex != -1 && dotIndex < filename.length() - 1) {
-            return filename.substring(dotIndex);
-        }
-        return "";
-    }
 
-    private void saveThumbnail(MultipartFile image,String path, Long id) throws IOException {
+    private void saveThumbnail(MultipartFile image, String path, Long id) throws IOException {
         BufferedImage thumbnail = Thumbnails.of(image.getInputStream())
                 .size(400, 400)
                 .keepAspectRatio(true)
@@ -83,30 +85,84 @@ public class ImageService {
         ImageIO.write(thumbnail, "webp", outputFile);
     }
 
-    public byte[] getImage(Long id, Long imageId, String path){
-        String fileName = id+"-"+imageId;
+    public byte[] getImage(Long id, Long imageId, String path) {
         try {
-            File directory = new File(path);
-            File[] matchingFiles = directory.listFiles((dir, name) -> name.startsWith(fileName));
-            File file = matchingFiles[0];
-            Path filePath = file.toPath();
-            return Files.readAllBytes(filePath);
-        }
-        catch (Exception e) {
+            File file = findImageFile(id, imageId, path);
+            return Files.readAllBytes(file.toPath());
+        } catch (Exception e) {
             throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
         }
     }
 
-    public void deleteAllImage(Long id, Long imageCount,String path) throws IOException {
-        for(int i = 1 ; i < imageCount + 1 ; i++){
+    
+    /**
+     * 저장된 파일의 확장자를 보고 맞는 MediaType 리턴해주는 메서드
+     */
+    public MediaType getImageContentType(Long id, Long imageId, String path) {
+        try {
+            File file = findImageFile(id, imageId, path);
+            return resolveContentType(file.getName());
+        } catch (Exception e) {
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
+        }
+    }
+
+    private File findImageFile(Long id, Long imageId, String path) {
+        String fileName = id + "-" + imageId;
+        File directory = new File(path);
+        File[] matchingFiles = directory.listFiles((dir, name) -> name.startsWith(fileName));
+        if (matchingFiles == null || matchingFiles.length == 0) {
+            throw new MyException(MyErrorCode.IMAGE_NOT_FOUND);
+        }
+        if (matchingFiles.length == 1) {
+            return matchingFiles[0];
+        }
+        for (String extension : EXTENSION_PRIORITY) {
+            for (File file : matchingFiles) {
+                if (file.getName().toLowerCase().endsWith(extension)) {
+                    return file;
+                }
+            }
+        }
+        return matchingFiles[0];
+    }
+
+    private MediaType resolveContentType(String fileName) {
+        String lowerFileName = fileName.toLowerCase();
+        if (lowerFileName.endsWith(".webp")) {
+            return MediaType.valueOf("image/webp");
+        }
+        if (lowerFileName.endsWith(".png")) {
+            return MediaType.IMAGE_PNG;
+        }
+        if (lowerFileName.endsWith(".jpg") || lowerFileName.endsWith(".jpeg")) {
+            return MediaType.IMAGE_JPEG;
+        }
+        if (lowerFileName.endsWith(".gif")) {
+            return MediaType.IMAGE_GIF;
+        }
+        if (lowerFileName.endsWith(".svg")) {
+            return MediaType.valueOf("image/svg+xml");
+        }
+        return MediaType.APPLICATION_OCTET_STREAM;
+    }
+
+    /**
+     * 모든 이미지 삭제 메서드
+     */
+    public void deleteAllImage(Long id, Long imageCount, String path) throws IOException {
+        for (int i = 1; i < imageCount + 1; i++) {
             String fileName = id + "-" + i;
             Path filePath = Paths.get(path, fileName);
             Files.deleteIfExists(filePath);
         }
-        Path filePath = Paths.get(path+"/thumbnail", id.toString());
+        Path filePath = Paths.get(path + "/thumbnail", id.toString());
         Files.deleteIfExists(filePath);
     }
 
+    /**
+     * 이미지 삭제 메서드
+     */
     public void deleteImages(Long id, String path) {
         try (Stream<Path> paths = Files.list(Paths.get(path))) {
             for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id + "-"))
@@ -116,7 +172,7 @@ public class ImageService {
         } catch (IOException e) {
             log.error("이미지가 없어서 삭제시 오류 발생", e);
         }
-        try (Stream<Path> paths = Files.list(Paths.get(path+"/thumbnail"))) {
+        try (Stream<Path> paths = Files.list(Paths.get(path + "/thumbnail"))) {
             for (Path filePath : paths.filter(filePath -> filePath.getFileName().toString().startsWith(id.toString()))
                     .toList()) {
                 Files.delete(filePath);
@@ -126,7 +182,7 @@ public class ImageService {
         }
     }
 
-    public void updateImages(Long id, List<MultipartFile> images,String path) throws IOException {
+    public void updateImages(Long id, List<MultipartFile> images, String path) throws IOException {
         deleteImages(id, path);
         if (images == null) images = new ArrayList<>();
         saveImageWithThumbnail(id, images, path);
@@ -137,8 +193,8 @@ public class ImageService {
         if (Files.exists(roomPath)) {
             try (Stream<Path> walk = Files.walk(roomPath)) {
                 walk.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+                        .map(Path::toFile)
+                        .forEach(File::delete);
             }
         }
     }

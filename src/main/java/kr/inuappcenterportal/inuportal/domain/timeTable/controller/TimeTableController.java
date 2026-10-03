@@ -67,6 +67,7 @@ public class TimeTableController implements TimeTableApiSpecification {
         );
     }
 
+    @Override
     @GetMapping("/chat-rooms/{roomId}/primary")
     public ResponseEntity<ResponseDto<List<ChatRoomTimeTableResponseDto>>> getChatRoomPrimaryTimeTables(
             @AuthenticationPrincipal Member member,

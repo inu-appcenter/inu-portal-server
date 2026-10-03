@@ -229,6 +229,13 @@ public class MemberService {
     }
 
     @Transactional
+    public boolean updateChatPush(Long memberId, boolean enabled) {
+        Member member = findMemberById(memberId);
+        member.setChatPushEnabled(enabled);
+        return Boolean.TRUE.equals(member.getChatPushEnabled());
+    }
+
+    @Transactional
     public void updateNearbyVisibility(Long memberId, Boolean enabled) {
         Member member = findMemberById(memberId);
         member.updateNearbyVisibility(enabled);

@@ -362,15 +362,14 @@ public class BusService {
         for (int i = 1; i <= 4; i++) {
             LocalDate pastDate = now.toLocalDate().minusWeeks(i);
             LocalDateTime startWindow = pastDate.atTime(currentTime);
-            LocalDateTime endWindow = pastDate.atTime(currentTime.plusMinutes(45));
+            LocalDateTime endWindow = startWindow.plusMinutes(45);
 
             // findFirstBy 사용으로 LIMIT 1 적용 (최초 1건만 조회하여 메모리 및 네트워크 오버헤드 최소화)
             Optional<BusArrivalHistory> pastLogOpt = busArrivalHistoryRepository
                     .findFirstByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(bstopId, routeId, startWindow, endWindow);
 
             if (pastLogOpt.isPresent()) {
-                LocalTime nextArrivalTime = pastLogOpt.get().getCreateDate().toLocalTime();
-                long diff = java.time.Duration.between(currentTime, nextArrivalTime).getSeconds();
+                long diff = java.time.Duration.between(startWindow, pastLogOpt.get().getCreateDate()).getSeconds();
                 if (diff > 0 && diff <= 45 * 60) {
                     remainingSecondsList.add((int) diff);
                 }
@@ -387,6 +386,7 @@ public class BusService {
         int medianSeconds = remainingSecondsList.get(remainingSecondsList.size() / 2);
 
         BusArrivalItemDto estimated = BusArrivalItemDto.builder()
+                .observedAt(System.currentTimeMillis())
                 .bstopId(bstopId)
                 .routeId(routeId)
                 .routeNo(routeNo)

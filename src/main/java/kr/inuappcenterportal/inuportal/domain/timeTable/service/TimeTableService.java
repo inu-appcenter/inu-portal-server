@@ -17,6 +17,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatMemberStatus;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatRoomType;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -389,26 +390,34 @@ public class TimeTableService {
         return TimeTableDetailResponseDto.from(timeTable, items);
     }
 
-    /** 일반 단체톡의 현재 참여자 대표 시간표를 한 번에 조회한다. */
+    /** 일반 단체톡의 현재 참여자 대표 시간표를 한 번에 조회한다. year/term을 생략하면 진행 중인 학기를 기준으로 조회한다. */
     public List<ChatRoomTimeTableResponseDto> getChatRoomPrimaryTimeTables(
             Long viewerId, Long roomId, Integer year, SemesterTerm term
     ) {
-        if (year == null || term == null) throw new MyException(MyErrorCode.INPUT_YEAR_AND_TERM);
-
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
         // 익명방에서는 별칭과 실회원 정보를 연결하지 않기 위해 시간표 비교도 제공하지 않는다.
         if (room.getType() == ChatRoomType.OPEN || room.isAnonymous() ||
                 !chatRoomMemberRepository.existsByChatRoomIdAndMemberIdAndStatus(roomId, viewerId, ChatMemberStatus.JOINED)) {
-            throw new MyException(MyErrorCode.NOT_READABLE_TIMETABLE);
+            throw new MyException(MyErrorCode.NOT_CHATROOM_TIMETABLE_ACCESSIBLE);
         }
 
-        Long semesterId = semesterRepository.findByYearAndTerm(year, term)
-                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND)).getId();
+        Long semesterId = resolveSemester(year, term).getId();
 
         return chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED).stream()
                 .map(member -> toChatRoomTimeTable(member, semesterId))
                 .toList();
+    }
+
+    /** year/term이 모두 주어지면 해당 학기를, 아니면 진행 중(OPEN)인 학기를, 그마저 없으면 가장 최신 학기를 반환한다. */
+    private Semester resolveSemester(Integer year, SemesterTerm term) {
+        if (year != null && term != null) {
+            return semesterRepository.findByYearAndTerm(year, term)
+                    .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
+        }
+        return semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)
+                .or(() -> semesterRepository.findAllByOrderByStartDateDesc().stream().findFirst())
+                .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
     }
 
     private ChatRoomTimeTableResponseDto toChatRoomTimeTable(ChatRoomMember roomMember, Long semesterId) {
@@ -462,5 +471,79 @@ public class TimeTableService {
                 );
             }
         };
+    }
+
+    public record DailyLectureDto(
+            String title,
+            String location,
+            java.time.LocalTime startTime,
+            java.time.LocalTime endTime,
+            String professor
+    ) {}
+
+    /**
+     * 회원의 특정 일자 대표 시간표 강의 목록을 시간순으로 정렬하여 조회합니다.
+     */
+    public List<DailyLectureDto> getMemberDailyLectures(Long memberId, java.time.LocalDate date) {
+        if (memberId == null || date == null) return java.util.Collections.emptyList();
+
+        List<TimeTableResponseDto> tables = getTimeTables(memberId);
+        TimeTableResponseDto primary = tables.stream()
+                .filter(t -> Boolean.TRUE.equals(t.isPrimary()))
+                .findFirst()
+                .orElse(tables.isEmpty() ? null : tables.get(0));
+
+        if (primary == null) return java.util.Collections.emptyList();
+
+        TimeTableDetailResponseDto detail;
+        try {
+            detail = getTimeTableDetail(memberId, primary.id());
+        } catch (Exception e) {
+            return java.util.Collections.emptyList();
+        }
+
+        if (detail == null || detail.items() == null) return java.util.Collections.emptyList();
+
+        kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek targetDay;
+        try {
+            targetDay = kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek.valueOf(date.getDayOfWeek().name());
+        } catch (Exception e) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<DailyLectureDto> result = new java.util.ArrayList<>();
+        for (TimeTableDetailItemResponseDto item : detail.items()) {
+            String title = "";
+            String professor = "";
+            List<?> meetings = java.util.Collections.emptyList();
+
+            if (item.type() == kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType.COURSE && item.course() != null) {
+                title = item.course().title();
+                professor = item.course().professor();
+                meetings = item.course().meetings();
+            } else if (item.type() == kr.inuappcenterportal.inuportal.domain.timeTable.enums.TimeTableItemType.CUSTOM && item.customSchedule() != null) {
+                title = item.customSchedule().title();
+                meetings = item.customSchedule().meetings();
+            }
+
+            if (meetings != null) {
+                for (Object mObj : meetings) {
+                    if (mObj instanceof kr.inuappcenterportal.inuportal.domain.timeTable.dto.response.timeTableItem.TimeTableMeetingResponseDto m) {
+                        if (m.day() == targetDay && m.startTime() != null && m.endTime() != null) {
+                            result.add(new DailyLectureDto(
+                                    title,
+                                    m.location() != null ? m.location() : "",
+                                    m.startTime(),
+                                    m.endTime(),
+                                    professor != null ? professor : ""
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        result.sort(java.util.Comparator.comparing(DailyLectureDto::startTime));
+        return result;
     }
 }

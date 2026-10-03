@@ -73,7 +73,8 @@ class DailyBriefServiceTest {
                 "09:00",
                 false,
                 "10:00",
-                ScheduleScope.DEPT_ONLY
+                ScheduleScope.DEPT_ONLY,
+                "{\"mode\":\"custom\"}"
         );
 
         // when
@@ -85,6 +86,31 @@ class DailyBriefServiceTest {
         assertThat(result.scheduleAlertEnabled()).isFalse();
         assertThat(result.scheduleDailyBriefTime()).isEqualTo("10:00");
         assertThat(result.scheduleScope()).isEqualTo(ScheduleScope.DEPT_ONLY);
+        assertThat(result.cardSettingsJson()).isEqualTo("{\"mode\":\"custom\"}");
+    }
+
+    @Test
+    @DisplayName("카드 설정 조회 및 수정 테스트")
+    void cardSettings_get_and_update() {
+        // given
+        Member member = Member.builder()
+                .studentId("202000001")
+                .roles(List.of("ROLE_USER"))
+                .build();
+
+        DailyBriefSetting setting = DailyBriefSetting.createDefault(member);
+        given(dailyBriefSettingRepository.findByMember(member)).willReturn(Optional.of(setting));
+
+        // when (get)
+        var getRes = dailyBriefService.getCardSettings(member);
+        assertThat(getRes.cardSettingsJson()).isNull();
+
+        // when (update)
+        var updateDto = kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefCardSettingDto.of("{\"mode\":\"auto\",\"order\":[\"timetable\"]}");
+        var updateRes = dailyBriefService.updateCardSettings(member, updateDto);
+
+        // then
+        assertThat(updateRes.cardSettingsJson()).isEqualTo("{\"mode\":\"auto\",\"order\":[\"timetable\"]}");
     }
 
     @Test

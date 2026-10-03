@@ -42,7 +42,6 @@ public class BusApiService {
                     .maximumSize(1000)
                     .build();
 
-    private static final java.util.Map<String, List<BusArrivalItemDto>> ARRIVAL_FALLBACK_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     // API 키 만료 시 false로 변경하여 공공데이터포털 연동 일시 중단 가능
     private static final boolean IS_API_ENABLED = true;
@@ -146,18 +145,19 @@ public class BusApiService {
                     .block();
 
             if (xmlResponse == null || xmlResponse.isBlank()) {
-                return ARRIVAL_FALLBACK_CACHE.getOrDefault(bstopId, List.of());
+                return List.of();
             }
 
-            List<BusArrivalItemDto> result = parseArrivalXml(xmlResponse);
+            List<BusArrivalItemDto> result = parseArrivalXml(xmlResponse).stream()
+                    .filter(item -> trimmedStopId.equals(item.getBstopId()))
+                    .toList();
             if (!result.isEmpty()) {
                 ARRIVAL_CACHE.put(bstopId, result);
-                ARRIVAL_FALLBACK_CACHE.put(bstopId, result);
             }
             return result;
         } catch (Exception e) {
             log.error("버스 도착 정보 API 호출 실패 (bstopId: {})", bstopId, e);
-            return ARRIVAL_FALLBACK_CACHE.getOrDefault(bstopId, List.of());
+            return List.of();
         }
     }
 
@@ -377,6 +377,7 @@ public class BusApiService {
     }
 
     private List<BusArrivalItemDto> parseArrivalXml(String xmlData) throws Exception {
+        long observedAt = System.currentTimeMillis();
         List<BusArrivalItemDto> result = new ArrayList<>();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
@@ -396,6 +397,7 @@ public class BusApiService {
             }
 
             result.add(BusArrivalItemDto.builder()
+                    .observedAt(observedAt)
                     .arrivalEstimateTime(getTagValue("ARRIVALESTIMATETIME", item))
                     .bstopId(getTagValue("BSTOPID", item))
                     .busId(getTagValue("BUSID", item))
