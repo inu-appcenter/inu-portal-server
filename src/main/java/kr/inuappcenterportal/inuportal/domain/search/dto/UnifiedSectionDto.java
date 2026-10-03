@@ -16,6 +16,9 @@ import java.util.List;
 @Schema(description = "통합 검색 섹션 결과")
 public class UnifiedSectionDto<T> {
 
+    @Schema(description = "해당 섹션의 최고 연관도 점수 (Elasticsearch _score)")
+    private Float maxScore;
+
     @Schema(description = "해당 섹션의 총 검색 일치 건수")
     private long totalCount;
 
@@ -23,11 +26,15 @@ public class UnifiedSectionDto<T> {
     @Builder.Default
     private List<T> items = Collections.emptyList();
 
+    public static <T> UnifiedSectionDto<T> of(Float maxScore, long totalCount, List<T> items) {
+        return new UnifiedSectionDto<>(maxScore != null ? maxScore : 0.0f, totalCount, items != null ? items : Collections.emptyList());
+    }
+
     public static <T> UnifiedSectionDto<T> of(long totalCount, List<T> items) {
-        return new UnifiedSectionDto<>(totalCount, items != null ? items : Collections.emptyList());
+        return of(0.0f, totalCount, items);
     }
 
     public static <T> UnifiedSectionDto<T> empty() {
-        return new UnifiedSectionDto<>(0L, Collections.emptyList());
+        return new UnifiedSectionDto<>(0.0f, 0L, Collections.emptyList());
     }
 }
