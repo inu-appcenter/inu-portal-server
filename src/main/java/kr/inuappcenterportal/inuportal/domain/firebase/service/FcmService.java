@@ -1201,18 +1201,19 @@ public class FcmService {
      * {@link FcmTransactionService}의 짧은 REQUIRES_NEW 트랜잭션으로 끝낸다. 호출하는 스케줄러가 read-only
      * 트랜잭션이어도, 쓰기가 그 트랜잭션을 rollback-only로 오염시키지 않는다.
      */
-    public void sendPreClassNotification(Long memberId, String title, String body, FcmMessageType type, String path,
-                                         LiveActivityStartPush liveActivity) {
-        sendMemberNotification(memberId, title, body, type, path, liveActivity);
+    public Set<String> sendPreClassNotification(Long memberId, String title, String body, FcmMessageType type,
+                                                String path, LiveActivityStartPush liveActivity) {
+        return sendMemberNotification(memberId, title, body, type, path, liveActivity);
     }
 
     /**
      * @param liveActivity null이면 모든 기기에 일반 알림만 보낸다.
+     * @return Live Activity 시작 푸시를 받은 기기의 FCM 토큰 (나머지는 일반 알림으로 받았다)
      */
-    private void sendMemberNotification(Long memberId, String title, String body, FcmMessageType type, String path,
-                                        LiveActivityStartPush liveActivity) {
+    private Set<String> sendMemberNotification(Long memberId, String title, String body, FcmMessageType type,
+                                               String path, LiveActivityStartPush liveActivity) {
         if (memberId == null) {
-            return;
+            return Set.of();
         }
 
         List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(List.of(memberId));
@@ -1221,6 +1222,7 @@ public class FcmService {
         int success = 0;
         int failure = 0;
         Set<String> seen = new HashSet<>();
+        Set<String> liveActivityTokens = new HashSet<>();
         List<String> notificationTokens = new ArrayList<>();
         for (FcmToken fcmToken : fcmTokens) {
             if (!seen.add(fcmToken.getToken())) {
@@ -1229,6 +1231,7 @@ public class FcmService {
             if (liveActivity != null && fcmToken.getLiveActivityStartToken() != null
                     && sendLiveActivityStart(fcmToken, title, body, liveActivity)) {
                 success++;
+                liveActivityTokens.add(fcmToken.getToken());
                 continue;
             }
             notificationTokens.add(fcmToken.getToken());
@@ -1252,6 +1255,7 @@ public class FcmService {
 
         fcmTransactionService.updateFinalStatus(fcmMessageId, success, failure);
         log.info("Member push sent: type={}, memberId={}, success={}, failure={}", type, memberId, success, failure);
+        return liveActivityTokens;
     }
 
     private boolean sendLiveActivityStart(FcmToken fcmToken, String title, String body, LiveActivityStartPush liveActivity) {

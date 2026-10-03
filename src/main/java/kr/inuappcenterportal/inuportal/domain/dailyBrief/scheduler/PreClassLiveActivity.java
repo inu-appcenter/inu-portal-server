@@ -55,6 +55,6 @@ final class PreClassLiveActivity {
         // 두면 시스템이 그때 뷰를 다시 그리고, 레이아웃은 현재 시각으로 "수업 중"을 판단한다.
         // 수업이 시작된 뒤에 도착하는 시작 푸시는 의미가 없으므로 APNs 전달 시한도 시작 시각으로 둔다.
         long startSec = startMs / 1000;
-        return new LiveActivityStartPush(ACTIVITY_NAME, propsJson, startSec, startSec);
+        return new LiveActivityStartPush(ACTIVITY_NAME, propsJson, startMs, startSec, startSec);
     }
 }

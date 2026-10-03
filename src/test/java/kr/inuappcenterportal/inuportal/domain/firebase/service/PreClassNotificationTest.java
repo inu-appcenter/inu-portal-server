@@ -40,7 +40,7 @@ class PreClassNotificationTest {
 
     private static final Long MEMBER_ID = 7L;
     private static final LiveActivityStartPush PUSH =
-            new LiveActivityStartPush("TimetableLiveActivity", "{}", 1_800_000_000L, 1_800_000_000L);
+            new LiveActivityStartPush("TimetableLiveActivity", "{}", 1_800_000_000_000L, 1_800_000_000L, 1_800_000_000L);
 
     @Mock
     private FcmTokenRepository fcmTokenRepository;
@@ -80,8 +80,10 @@ class PreClassNotificationTest {
         BatchResponse response = batch(1, 0);
         when(fcmDispatchGate.send(any(MulticastMessage.class))).thenReturn(response);
 
-        fcmService.sendPreClassNotification(MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable", PUSH);
+        java.util.Set<String> liveActivityDevices = fcmService.sendPreClassNotification(
+                MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable", PUSH);
 
+        assertThat(liveActivityDevices).containsExactly("ios-la");
         verify(fcmDispatchGate, times(1)).sendOne(any(Message.class));
         ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
         verify(fcmDispatchGate).send(captor.capture());
@@ -98,7 +100,9 @@ class PreClassNotificationTest {
         BatchResponse response = batch(1, 0);
         when(fcmDispatchGate.send(any(MulticastMessage.class))).thenReturn(response);
 
-        fcmService.sendPreClassNotification(MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable", PUSH);
+        // 일반 알림으로 대체된 기기는 Live Activity를 받은 기기에 넣지 않는다 (앞 수업 Activity를 남겨야 한다)
+        assertThat(fcmService.sendPreClassNotification(
+                MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable", PUSH)).isEmpty();
 
         ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
         verify(fcmDispatchGate).send(captor.capture());
