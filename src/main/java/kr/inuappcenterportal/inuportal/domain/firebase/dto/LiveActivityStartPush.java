@@ -20,4 +20,7 @@ public record LiveActivityStartPush(
 ) {
     /** 앱 쪽 ActivityAttributes 타입 이름 (expo-widgets WidgetLiveActivity.swift). */
     public static final String ATTRIBUTES_TYPE = "LiveActivityAttributes";
+
+    /** 앱의 시간표 Live Activity 이름 (createLiveActivity, ContentState.name). */
+    public static final String TIMETABLE_ACTIVITY_NAME = "TimetableLiveActivity";
 }
