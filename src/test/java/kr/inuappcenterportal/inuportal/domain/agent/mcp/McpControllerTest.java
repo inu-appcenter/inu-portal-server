@@ -105,6 +105,46 @@ class McpControllerTest {
     }
 
     @Test
+    @DisplayName("POST /mcp tools/list ARRAY 타입 파라미터의 items 스키마 변환 테스트")
+    void testToolsListArrayParameter() {
+        AgentToolDefinition arrayDef = new AgentToolDefinition(
+                "API_COURSE_OFFERINGS",
+                "개설 강의 목록 검색",
+                List.of("개설 강의"),
+                List.of(),
+                List.of(),
+                Map.of("hyNames", AgentToolParameter.array("수강 학년", false, "1", "2", "3", "4")),
+                false,
+                true
+        );
+        given(mockTool.getDefinition()).willReturn(arrayDef);
+        given(agentToolRegistry.getAllTools()).willReturn(List.of(mockTool));
+
+        McpJsonRpcRequest request = new McpJsonRpcRequest("2.0", 2, "tools/list", Map.of());
+        ResponseEntity<McpJsonRpcResponse> response = mcpController.handleMcp(request, null);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) response.getBody().result();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tools = (List<Map<String, Object>>) result.get("tools");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> inputSchema = (Map<String, Object>) tools.get(0).get("inputSchema");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> properties = (Map<String, Object>) inputSchema.get("properties");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> hyNamesProp = (Map<String, Object>) properties.get("hyNames");
+
+        assertThat(hyNamesProp.get("type")).isEqualTo("array");
+        assertThat(hyNamesProp).containsKey("items");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> items = (Map<String, Object>) hyNamesProp.get("items");
+        assertThat(items.get("type")).isEqualTo("string");
+        @SuppressWarnings("unchecked")
+        List<String> enums = (List<String>) items.get("enum");
+        assertThat(enums).containsExactly("1", "2", "3", "4");
+    }
+
+    @Test
     @DisplayName("POST /mcp tools/call 실행 테스트")
     void testToolsCall() {
         AgentTool.ToolResult toolResult = new AgentTool.ToolResult(
