@@ -20,7 +20,7 @@ import java.util.Map;
 final class PreClassLiveActivity {
 
     /** 앱의 createLiveActivity 이름. */
-    static final String ACTIVITY_NAME = "TimetableLiveActivity";
+    static final String ACTIVITY_NAME = LiveActivityStartPush.TIMETABLE_ACTIVITY_NAME;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

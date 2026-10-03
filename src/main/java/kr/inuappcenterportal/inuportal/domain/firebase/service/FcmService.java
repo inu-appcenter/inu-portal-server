@@ -1271,6 +1271,49 @@ public class FcmService {
     }
 
     /**
+     * 떠 있는 Live Activity를 갱신({@code update})하거나 끝낸다({@code end}). 기기 FCM 토큰과 그 Activity의
+     * 업데이트 push 토큰으로 보낸다. 실패하면 예외를 그대로 던진다 — 재시도 여부는 호출자가 정한다.
+     *
+     * @param staleDateSec     update일 때 이 시각 이후 내용이 낡은 것으로 표시된다. null이면 싣지 않는다.
+     * @param dismissalDateSec end일 때 잠금화면에서 이 시각에 사라진다. null이면 시스템 기본(최대 4시간).
+     */
+    public void sendLiveActivityEvent(String fcmToken, String activityPushToken, String event, String propsJson,
+                                      Long staleDateSec, Long dismissalDateSec) throws Exception {
+        fcmDispatchGate.sendOne(createLiveActivityEventMessage(fcmToken, activityPushToken, event,
+                LiveActivityStartPush.TIMETABLE_ACTIVITY_NAME, propsJson, staleDateSec, dismissalDateSec,
+                Instant.now().getEpochSecond()));
+    }
+
+    /** ActivityKit update/end 규격. alert는 싣지 않는다(조용히 갱신·종료). */
+    static Message createLiveActivityEventMessage(String fcmToken, String activityPushToken, String event,
+                                                  String activityName, String propsJson, Long staleDateSec,
+                                                  Long dismissalDateSec, long nowEpochSec) {
+        Map<String, Object> contentState = new LinkedHashMap<>();
+        contentState.put("name", activityName);
+        contentState.put("props", propsJson);
+
+        Aps.Builder aps = Aps.builder()
+                .putCustomData("event", event)
+                .putCustomData("timestamp", nowEpochSec)
+                .putCustomData("content-state", contentState);
+        if (staleDateSec != null) {
+            aps.putCustomData("stale-date", staleDateSec);
+        }
+        if (dismissalDateSec != null) {
+            aps.putCustomData("dismissal-date", dismissalDateSec);
+        }
+
+        return Message.builder()
+                .setToken(fcmToken)
+                .setApnsConfig(ApnsConfig.builder()
+                        .setLiveActivityToken(activityPushToken)
+                        .putHeader("apns-priority", "10")
+                        .setAps(aps.build())
+                        .build())
+                .build();
+    }
+
+    /**
      * FCM HTTP v1의 Live Activity 발송 형식. {@code apns.live_activity_token}을 실으면 FCM이
      * apns-push-type(liveactivity)과 토픽({bundleId}.push-type.liveactivity)을 맞춰 APNs로 보낸다.
      * aps 본문은 ActivityKit push-to-start 규격이다: event=start에는 attributes-type/attributes와

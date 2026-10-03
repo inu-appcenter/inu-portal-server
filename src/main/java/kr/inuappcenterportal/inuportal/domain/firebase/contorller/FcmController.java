@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.contorller;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityInstanceRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityTokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
@@ -12,6 +13,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.model.ScheduledNotificati
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmRetryService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.LiveActivityLifecycleService;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.ScheduledNotificationService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
@@ -37,6 +39,7 @@ public class FcmController implements FcmApiSpecification {
     private final FcmAsyncService fcmAsyncService;
     private final ScheduledNotificationService scheduledNotificationService;
     private final FcmRetryService fcmRetryService;
+    private final LiveActivityLifecycleService liveActivityLifecycleService;
 
     @PostMapping("")
     public ResponseEntity<ResponseDto<Long>> saveToken(@Valid @RequestBody TokenRequestDto tokenRequestDto,
@@ -52,6 +55,15 @@ public class FcmController implements FcmApiSpecification {
             @AuthenticationPrincipal Member member) {
         fcmService.saveLiveActivityStartToken(requestDto, member.getId());
         return ResponseEntity.ok(ResponseDto.of(1L, "Live Activity 토큰 등록 성공"));
+    }
+
+    // 로그인 전용 (SecurityConfig의 anyRequest().authenticated())
+    @PutMapping("/live-activity/activities")
+    public ResponseEntity<ResponseDto<Long>> saveLiveActivityInstance(
+            @Valid @RequestBody LiveActivityInstanceRequestDto requestDto,
+            @AuthenticationPrincipal Member member) {
+        liveActivityLifecycleService.register(requestDto, member.getId());
+        return ResponseEntity.ok(ResponseDto.of(1L, "Live Activity 등록 성공"));
     }
 
     @DeleteMapping("")
