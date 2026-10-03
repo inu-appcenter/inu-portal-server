@@ -145,15 +145,22 @@ public class OpenApiToolRegistry implements SmartInitializingSingleton {
                 }
             }
 
+            String defaultValue = requestParam.defaultValue();
+            boolean hasDefault = defaultValue != null && !defaultValue.equals(org.springframework.web.bind.annotation.ValueConstants.DEFAULT_NONE);
+            boolean isRequired = requestParam.required() && !hasDefault;
+            if (swaggerParam != null && swaggerParam.required()) {
+                isRequired = true;
+            }
+
             AgentToolParameter spec;
             if (isList) {
-                spec = AgentToolParameter.array(desc, requestParam.required(), enumValues.toArray(new String[0]));
+                spec = AgentToolParameter.array(desc, isRequired, enumValues.toArray(new String[0]));
             } else if (isInteger) {
-                spec = AgentToolParameter.integer(desc, requestParam.required());
+                spec = AgentToolParameter.integer(desc, isRequired);
             } else if (isBool) {
-                spec = AgentToolParameter.bool(desc, requestParam.required());
+                spec = AgentToolParameter.bool(desc, isRequired);
             } else {
-                spec = AgentToolParameter.string(desc, requestParam.required(), enumValues.toArray(new String[0]));
+                spec = AgentToolParameter.string(desc, isRequired, enumValues.toArray(new String[0]));
             }
             parameters.put(name, spec);
         }

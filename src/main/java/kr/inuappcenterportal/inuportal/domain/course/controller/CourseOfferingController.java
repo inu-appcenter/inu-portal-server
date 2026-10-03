@@ -87,7 +87,8 @@ public class CourseOfferingController implements CourseOfferingApiSpecification 
             @RequestParam(required = false) List<String> meetings,
             @Parameter(description = "정렬 기준 (DEFAULT, SAVED_COUNT_DESC, SAVED_COUNT_ASC)")
             @RequestParam(required = false) CourseOfferingSort sort,
-            @RequestParam(defaultValue = "0") Integer page
+            @Parameter(description = "페이지 번호 (0부터 시작, 기본값 0)")
+            @RequestParam(required = false, defaultValue = "0") Integer page
     ) {
         Pageable pageable = PageRequest.of(page, COURSE_OFFERING_PAGE_SIZE);
 
