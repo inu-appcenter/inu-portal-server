@@ -106,6 +106,11 @@ public class InProcessApiDispatcher {
                 if (listResp.getContents() != null) {
                     items.addAll(listResp.getContents());
                 }
+            } else if (rawResult instanceof org.springframework.data.domain.Page<?> pageObj) {
+                totalCount = pageObj.getTotalElements();
+                if (pageObj.getContent() != null) {
+                    items.addAll(pageObj.getContent());
+                }
             } else if (rawResult instanceof Collection<?> coll) {
                 totalCount = coll.size();
                 items.addAll(coll);
@@ -187,9 +192,16 @@ public class InProcessApiDispatcher {
             if (map.containsKey("name") && map.get("name") != null) title = String.valueOf(map.get("name"));
             else if (map.containsKey("title") && map.get("title") != null) title = String.valueOf(map.get("title"));
             else if (map.containsKey("clubName") && map.get("clubName") != null) title = String.valueOf(map.get("clubName"));
+            else if (map.containsKey("courseTitle") && map.get("courseTitle") != null) {
+                title = String.valueOf(map.get("courseTitle"));
+                if (map.containsKey("professor") && map.get("professor") != null) {
+                    title += " (" + map.get("professor") + " 교수)";
+                }
+            }
 
             String sub = "";
             if (map.containsKey("category") && map.get("category") != null) sub = String.valueOf(map.get("category"));
+            else if (map.containsKey("isuName") && map.get("isuName") != null) sub = String.valueOf(map.get("isuName"));
             else if (map.containsKey("content") && map.get("content") != null) sub = String.valueOf(map.get("content"));
 
             if (!title.isBlank() && !sub.isBlank()) {

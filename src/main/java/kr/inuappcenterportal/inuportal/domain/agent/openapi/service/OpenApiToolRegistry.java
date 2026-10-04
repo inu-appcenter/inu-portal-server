@@ -126,12 +126,57 @@ public class OpenApiToolRegistry implements SmartInitializingSingleton {
             String name = !requestParam.name().isBlank() ? requestParam.name()
                     : !requestParam.value().isBlank() ? requestParam.value() : discoveredName;
 
-            AgentToolParameter spec = (parameter.getType() == int.class || parameter.getType() == Integer.class
-                    || parameter.getType() == long.class || parameter.getType() == Long.class)
-                    ? AgentToolParameter.integer("API 요청 파라미터", requestParam.required())
-                    : AgentToolParameter.string("API 요청 파라미터", requestParam.required());
+            // Swagger @Parameter 어노테이션에서 설명(description)과 예시(example) 추출
+            io.swagger.v3.oas.annotations.Parameter swaggerParam =
+                    AnnotationUtils.findAnnotation(parameter, io.swagger.v3.oas.annotations.Parameter.class);
+            String desc = (swaggerParam != null && !swaggerParam.description().isBlank())
+                    ? swaggerParam.description().trim()
+                    : inferFriendlyDescription(name);
+
+            Class<?> paramType = parameter.getType();
+            boolean isList = java.util.List.class.isAssignableFrom(paramType) || paramType.isArray();
+            boolean isInteger = paramType == int.class || paramType == Integer.class || paramType == long.class || paramType == Long.class;
+            boolean isBool = paramType == boolean.class || paramType == Boolean.class;
+
+            java.util.List<String> enumValues = new java.util.ArrayList<>();
+            if (paramType.isEnum()) {
+                for (Object constant : paramType.getEnumConstants()) {
+                    enumValues.add(constant.toString());
+                }
+            }
+
+            String defaultValue = requestParam.defaultValue();
+            boolean hasDefault = defaultValue != null && !defaultValue.equals(org.springframework.web.bind.annotation.ValueConstants.DEFAULT_NONE);
+            boolean isRequired = requestParam.required() && !hasDefault;
+            if (swaggerParam != null && swaggerParam.required()) {
+                isRequired = true;
+            }
+
+            AgentToolParameter spec;
+            if (isList) {
+                spec = AgentToolParameter.array(desc, isRequired, enumValues.toArray(new String[0]));
+            } else if (isInteger) {
+                spec = AgentToolParameter.integer(desc, isRequired);
+            } else if (isBool) {
+                spec = AgentToolParameter.bool(desc, isRequired);
+            } else {
+                spec = AgentToolParameter.string(desc, isRequired, enumValues.toArray(new String[0]));
+            }
             parameters.put(name, spec);
         }
         return parameters;
+    }
+
+    private String inferFriendlyDescription(String name) {
+        return switch (name) {
+            case "year" -> "조회 연도 (예: 2026, 4자리 숫자)";
+            case "term" -> "학기 구분 (FIRST: 1학기, SECOND: 2학기, SUMMER: 여름계절학기, WINTER: 겨울계절학기)";
+            case "deptName" -> "공식 학과/학부명 (예: 컴퓨터공학부, 경영학부, 데이터과학과 등)";
+            case "hyNames" -> "수강 대상 학년 필터 (예: ['1'], ['2'], ['3'], ['4'])";
+            case "keyword", "q", "query" -> "검색 키워드";
+            case "sort" -> "정렬 기준 (DEFAULT, SAVED_COUNT_DESC 등)";
+            case "page" -> "조회 페이지 번호 (0부터 시작)";
+            default -> name + " 파라미터";
+        };
     }
 }

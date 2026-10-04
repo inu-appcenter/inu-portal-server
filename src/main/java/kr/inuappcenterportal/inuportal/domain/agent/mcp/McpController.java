@@ -142,7 +142,14 @@ public class McpController {
             if (param.description() != null && !param.description().isBlank()) {
                 propMap.put("description", param.description());
             }
-            if (!param.enumValues().isEmpty()) {
+            if (param.type() == AgentToolParameter.Type.ARRAY) {
+                Map<String, Object> itemsMap = new LinkedHashMap<>();
+                itemsMap.put("type", "string");
+                if (!param.enumValues().isEmpty()) {
+                    itemsMap.put("enum", param.enumValues());
+                }
+                propMap.put("items", itemsMap);
+            } else if (!param.enumValues().isEmpty()) {
                 propMap.put("enum", param.enumValues());
             }
             properties.put(paramName, propMap);
