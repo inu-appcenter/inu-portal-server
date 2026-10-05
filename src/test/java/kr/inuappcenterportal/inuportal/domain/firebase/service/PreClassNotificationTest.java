@@ -85,7 +85,15 @@ class PreClassNotificationTest {
         verify(fcmDispatchGate, times(1)).sendOne(any(Message.class));
         ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
         verify(fcmDispatchGate).send(captor.capture());
-        assertThat((List<String>) ReflectionTestUtils.getField(captor.getValue(), "tokens")).containsExactly("android");
+        MulticastMessage sentMessage = captor.getValue();
+        assertThat((List<String>) ReflectionTestUtils.getField(sentMessage, "tokens")).containsExactly("android");
+        // Android 중복 시스템 알림 방지: 최상위 notification은 null이어야 하고 data 블록에 title/body가 실려야 한다
+        assertThat(ReflectionTestUtils.getField(sentMessage, "notification")).isNull();
+        java.util.Map<String, String> data = (java.util.Map<String, String>) ReflectionTestUtils.getField(sentMessage, "data");
+        assertThat(data).containsEntry("type", "DAILY_BRIEF_TIMETABLE")
+                .containsEntry("title", "title")
+                .containsEntry("body", "body")
+                .containsEntry("path", "/timetable");
         verify(fcmTransactionService).updateFinalStatus(1L, 2, 0);
     }
 

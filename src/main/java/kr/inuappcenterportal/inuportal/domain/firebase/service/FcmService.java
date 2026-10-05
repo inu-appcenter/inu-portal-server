@@ -1235,7 +1235,9 @@ public class FcmService {
         }
 
         if (!notificationTokens.isEmpty()) {
-            MulticastMessage message = createMulticastMessage(notificationTokens, title, body, type, null, path);
+            MulticastMessage message = isOngoingCandidateType(type)
+                    ? createOngoingMemberMessage(notificationTokens, title, body, type, path, fcmMessageId)
+                    : createMulticastMessage(notificationTokens, title, body, type, null, path, fcmMessageId);
             try {
                 BatchResponse response = fcmDispatchGate.send(message);
                 success += response.getSuccessCount();
@@ -1252,6 +1254,52 @@ public class FcmService {
 
         fcmTransactionService.updateFinalStatus(fcmMessageId, success, failure);
         log.info("Member push sent: type={}, memberId={}, success={}, failure={}", type, memberId, success, failure);
+    }
+
+    private boolean isOngoingCandidateType(FcmMessageType type) {
+        return type == FcmMessageType.DAILY_BRIEF_TIMETABLE;
+    }
+
+    /**
+     * 시간표 수업 시작 전 알림({@link FcmMessageType#DAILY_BRIEF_TIMETABLE}) 등 실시간 Ongoing Activity로
+     * 승격될 수 있는 회원 알림 메시지를 생성한다.
+     *
+     * <p>Android: <b>data-only (priority: HIGH)</b>. 최상위 notification 블록이 있으면 Android OS가
+     * 알림 카드를 시스템 트레이에 먼저 그려 버려, 클라이언트의 Live Update / Now Bar와 함께 2개가 중복으로
+     * 표시되는 문제가 발생한다. data-only로 발송하여 클라이언트 백그라운드 핸들러가 사용자 나우바 설정에 따라
+     * 실시간 나우바로 승격하거나(중복 없음) 일반 알림으로 표시하도록 제어권을 넘긴다.
+     *
+     * <p>iOS: push-to-start 토큰이 없는 기기이거나 Live Activity 발송에 실패한 폴백 대상이므로,
+     * APNs alert와 sound를 aps 블록에 실어 일반 알림 센터에 정상 노출되도록 한다.
+     */
+    private MulticastMessage createOngoingMemberMessage(List<String> tokens, String title, String body, FcmMessageType type, String path, Long fcmMessageId) {
+        Aps.Builder apsBuilder = Aps.builder()
+                .setAlert(ApsAlert.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .setSound("default");
+
+        MulticastMessage.Builder builder = MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .putData("type", type != null ? type.name() : "")
+                .putData("title", title)
+                .putData("body", body)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .build())
+                .setApnsConfig(ApnsConfig.builder()
+                        .putHeader("apns-priority", "10")
+                        .setAps(apsBuilder.build())
+                        .build());
+
+        if (path != null && !path.isBlank()) {
+            builder.putData("path", path);
+        }
+        if (fcmMessageId != null) {
+            builder.putData("fcmMessageId", String.valueOf(fcmMessageId));
+        }
+        return builder.build();
     }
 
     private boolean sendLiveActivityStart(FcmToken fcmToken, String title, String body, LiveActivityStartPush liveActivity) {
