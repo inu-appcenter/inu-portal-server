@@ -58,22 +58,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FcmService {
 
-    private static final long UNLINKED_MEMBER_ID = -1L;
-    /**
-     * 청크 간 최소 간격. 게이트가 동시성을 막고, 이 값은 버스트를 한 번 더 눕히는 용도다.
-     */
-    private static final long INTER_CHUNK_DELAY_MILLIS = 50L;
-    /**
-     * 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다.
-     */
-    private static final long BATCH_AWAIT_MILLIS = 60_000L;
-    /**
-     * 지수 백오프의 기준 간격. 재시도 n회차 대기 = BACKOFF_BASE × 2^(n-1) + 지터.
-     * maxRetries=3이면 실제 대기는 1초, 2초 두 번뿐이라 선형과 값이 같다.
-     * 지터가 없으면 한 청크에서 함께 실패한 토큰들이 동시에 재시도로 몰려 같은 고갈을 재현한다.
-     */
-    private static final long BACKOFF_BASE_MILLIS = 1000L;
-    private static final int BACKOFF_JITTER_MILLIS = 500;
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmMessageRepository fcmMessageRepository;
     private final MemberFcmMessageRepository memberFcmMessageRepository;
@@ -90,7 +74,10 @@ public class FcmService {
     private final NotificationReadStatsReader notificationReadStatsReader;
     private final ApplicationEventPublisher eventPublisher;
 
-    /** 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다. */
+    private static final long UNLINKED_MEMBER_ID = -1L;
+    /**
+     * 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다.
+     */
     private static final long BATCH_AWAIT_MILLIS = 60_000L;
     /**
      * 지수 백오프의 기준 간격. 재시도 n회차 대기 = BACKOFF_BASE × 2^(n-1) + 지터.
@@ -1321,7 +1308,9 @@ public class FcmService {
                 Instant.now().getEpochSecond()));
     }
 
-    /** ActivityKit update/end 규격. alert는 싣지 않는다(조용히 갱신·종료). */
+    /**
+     * ActivityKit update/end 규격. alert는 싣지 않는다(조용히 갱신·종료).
+     */
     static Message createLiveActivityEventMessage(String fcmToken, String activityPushToken, String event,
                                                   String activityName, String propsJson, Long staleDateSec,
                                                   Long dismissalDateSec, long nowEpochSec) {

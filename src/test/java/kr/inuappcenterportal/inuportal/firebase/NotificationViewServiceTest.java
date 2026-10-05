@@ -85,7 +85,7 @@ class NotificationViewServiceTest {
     void controllerRecordsVisitOnlyOnFirstPage() {
         FcmService fcmService = mock(FcmService.class);
         NotificationViewService viewService = mock(NotificationViewService.class);
-        FcmController controller = new FcmController(fcmService, null, null, null, viewService);
+        FcmController controller = new FcmController(fcmService, null, null, null, viewService, null);
         Member member = Member.builder()
                 .studentId("202000005")
                 .roles(Collections.singletonList("ROLE_USER"))
