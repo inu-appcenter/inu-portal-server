@@ -409,8 +409,9 @@ public class AgentReminderService {
                     }
 
                     Optional<AgentTool> toolOpt = agentToolRegistry.findTool(tName);
-                    String line = toolOpt.map(t -> t.formatNotification(toolResult, params))
-                            .orElse(toolResult.summary());
+                    String line = toolOpt.isPresent()
+                            ? toolOpt.get().formatNotification(toolResult, params)
+                            : toolResult.summary();
                     if (line != null && !line.isBlank()) {
                         formattedSummaries.add(line);
                     }
@@ -418,6 +419,15 @@ public class AgentReminderService {
             } catch (Exception e) {
                 log.warn("[AgentReminderService] 개별 도구({}) 실행 오류: {}", tName, e.getMessage());
             }
+        }
+
+        if (formattedSummaries.isEmpty()) {
+            log.info("[AgentReminderService] 발송할 알림 내용(강의/일정 등)이 없어 발송을 생략합니다: reminderId={}, memberId={}",
+                    reminder.getId(), reminder.getMember().getId());
+            if (recordDate) {
+                reminder.recordSent(today, sentTime);
+            }
+            return;
         }
 
         String autoSummary = String.join("\n", formattedSummaries);
