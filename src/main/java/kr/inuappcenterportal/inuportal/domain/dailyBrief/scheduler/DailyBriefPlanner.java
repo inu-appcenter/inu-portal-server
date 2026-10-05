@@ -7,9 +7,11 @@ import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRep
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseMeetingService;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.PreClassAlertMethod;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.model.DailyBriefSetting;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.repository.DailyBriefSettingRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.LiveActivityStartPush;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
@@ -115,14 +117,18 @@ public class DailyBriefPlanner {
                                 entry.endTime().format(TIME_FORMATTER),
                                 locationInfo);
 
+                        LiveActivityStartPush liveActivity = (setting.getTimetablePreAlertMethod() == PreClassAlertMethod.NOW_BAR)
+                                ? PreClassLiveActivity.of(entry.title(), entry.location(), LocalDate.now(SEOUL),
+                                        entry.startTime(), entry.endTime(), alertMinutes, SEOUL)
+                                : null;
+
                         notifications.add(new BriefNotification(
                                 member.getId(),
                                 title,
                                 body,
                                 FcmMessageType.DAILY_BRIEF_TIMETABLE,
                                 "/timetable",
-                                PreClassLiveActivity.of(entry.title(), entry.location(), LocalDate.now(SEOUL),
-                                        entry.startTime(), entry.endTime(), alertMinutes, SEOUL)
+                                liveActivity
                         ));
                     }
                 }

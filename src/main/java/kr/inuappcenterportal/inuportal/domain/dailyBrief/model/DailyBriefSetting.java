@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.dailyBrief.model;
 
 import jakarta.persistence.*;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.req.DailyBriefSettingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.PreClassAlertMethod;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import lombok.AccessLevel;
@@ -37,6 +38,10 @@ public class DailyBriefSetting {
     @Column(name = "timetable_pre_alert_enabled", nullable = false)
     private boolean timetablePreAlertEnabled = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "timetable_pre_alert_method")
+    private PreClassAlertMethod timetablePreAlertMethod = PreClassAlertMethod.NOW_BAR;
+
     @Column(name = "timetable_pre_alert_minutes", nullable = false)
     private int timetablePreAlertMinutes = 10;
 
@@ -65,6 +70,7 @@ public class DailyBriefSetting {
             Member member,
             Boolean timetableAlertEnabled,
             Boolean timetablePreAlertEnabled,
+            PreClassAlertMethod timetablePreAlertMethod,
             Integer timetablePreAlertMinutes,
             Boolean timetableDailyBriefEnabled,
             String timetableDailyBriefTime,
@@ -76,6 +82,7 @@ public class DailyBriefSetting {
         this.member = member;
         if (timetableAlertEnabled != null) this.timetableAlertEnabled = timetableAlertEnabled;
         if (timetablePreAlertEnabled != null) this.timetablePreAlertEnabled = timetablePreAlertEnabled;
+        if (timetablePreAlertMethod != null) this.timetablePreAlertMethod = timetablePreAlertMethod;
         if (timetablePreAlertMinutes != null) this.timetablePreAlertMinutes = timetablePreAlertMinutes;
         if (timetableDailyBriefEnabled != null) this.timetableDailyBriefEnabled = timetableDailyBriefEnabled;
         if (timetableDailyBriefTime != null && !timetableDailyBriefTime.isBlank()) this.timetableDailyBriefTime = timetableDailyBriefTime;
@@ -90,6 +97,7 @@ public class DailyBriefSetting {
                 .member(member)
                 .timetableAlertEnabled(true)
                 .timetablePreAlertEnabled(true)
+                .timetablePreAlertMethod(PreClassAlertMethod.NOW_BAR)
                 .timetablePreAlertMinutes(10)
                 .timetableDailyBriefEnabled(true)
                 .timetableDailyBriefTime("08:00")
@@ -106,6 +114,9 @@ public class DailyBriefSetting {
         }
         if (dto.timetablePreAlertEnabled() != null) {
             this.timetablePreAlertEnabled = dto.timetablePreAlertEnabled();
+        }
+        if (dto.timetablePreAlertMethod() != null) {
+            this.timetablePreAlertMethod = dto.timetablePreAlertMethod();
         }
         if (dto.timetablePreAlertMinutes() != null) {
             this.timetablePreAlertMinutes = dto.timetablePreAlertMinutes();
