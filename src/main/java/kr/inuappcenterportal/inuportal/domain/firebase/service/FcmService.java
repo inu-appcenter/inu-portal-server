@@ -1,21 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import com.google.firebase.messaging.AndroidConfig;
-import com.google.firebase.messaging.ApnsConfig;
-import com.google.firebase.messaging.Aps;
-import com.google.firebase.messaging.ApsAlert;
-import com.google.firebase.messaging.BatchResponse;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.MessagingErrorCode;
-import com.google.firebase.messaging.MulticastMessage;
-import com.google.firebase.messaging.Notification;
-import com.google.firebase.messaging.SendResponse;
+import com.google.firebase.messaging.*;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.LiveActivityStartPush;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
-import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityTokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
@@ -36,7 +25,6 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenReposi
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -60,13 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.PreparedStatement;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -77,7 +59,21 @@ import java.util.stream.Collectors;
 public class FcmService {
 
     private static final long UNLINKED_MEMBER_ID = -1L;
-
+    /**
+     * 청크 간 최소 간격. 게이트가 동시성을 막고, 이 값은 버스트를 한 번 더 눕히는 용도다.
+     */
+    private static final long INTER_CHUNK_DELAY_MILLIS = 50L;
+    /**
+     * 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다.
+     */
+    private static final long BATCH_AWAIT_MILLIS = 60_000L;
+    /**
+     * 지수 백오프의 기준 간격. 재시도 n회차 대기 = BACKOFF_BASE × 2^(n-1) + 지터.
+     * maxRetries=3이면 실제 대기는 1초, 2초 두 번뿐이라 선형과 값이 같다.
+     * 지터가 없으면 한 청크에서 함께 실패한 토큰들이 동시에 재시도로 몰려 같은 고갈을 재현한다.
+     */
+    private static final long BACKOFF_BASE_MILLIS = 1000L;
+    private static final int BACKOFF_JITTER_MILLIS = 500;
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmMessageRepository fcmMessageRepository;
     private final MemberFcmMessageRepository memberFcmMessageRepository;
@@ -760,16 +756,9 @@ public class FcmService {
         return counts;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
         int pageIndex = page > 0 ? page - 1 : page;
-
-        if (pageIndex == 0 && member != null) {
-            // 1. 이전 방문들에서 이미 2회 이상 조회된 알림들을 일괄 읽음 처리
-            memberFcmMessageRepository.markAsReadByViewCount(member.getId(), 2, LocalDateTime.now());
-            // 2. 현재 회원의 모든 안 읽은 알림의 viewCount를 일괄 1 증가 (페이지 스크롤 여부에 상관없이 전체 적용)
-            memberFcmMessageRepository.incrementViewCountForAllUnread(member.getId());
-        }
 
         Pageable pageable = PageRequest.of(pageIndex, 10, Sort.by(Sort.Direction.DESC, "id"));
         Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
@@ -861,7 +850,7 @@ public class FcmService {
         if (member == null) {
             return false;
         }
-        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalseAndViewCountLessThan(member.getId(), 2);
+        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalseAndViewCountLessThan(member.getId(), NotificationViewService.AUTO_READ_VIEW_THRESHOLD); // 2
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path) {
