@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.model.MemberFcmMessage;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.NotificationViewService;
 import kr.inuappcenterportal.inuportal.domain.image.service.ImageService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
@@ -19,11 +20,13 @@ import kr.inuappcenterportal.inuportal.domain.weather.service.WeatherService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.service.RedisService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -72,6 +75,28 @@ class FcmNotificationSortTest {
 
     @Autowired
     MemberFcmMessageRepository memberFcmMessageRepository;
+
+    @Autowired
+    NotificationViewService notificationViewService;
+
+    /**
+     * 프록시를 벗긴 원본. 전체 컨텍스트에서는 @Async가 살아 있어 별도 스레드에서 실행되는데,
+     * 그 스레드는 테스트 트랜잭션이 아직 커밋하지 않은 데이터를 보지 못한다.
+     * 방문 기록 로직 자체를 검증하려고 테스트 트랜잭션 안에서 동기로 호출한다.
+     */
+    NotificationViewService syncNotificationViewService;
+
+    @BeforeEach
+    void unwrapAsyncProxy() {
+        syncNotificationViewService = AopTestUtils.getTargetObject(notificationViewService);
+    }
+
+    /** 컨트롤러의 GET /api/tokens 1페이지 흐름(조회 후 방문 기록)을 재현한다. */
+    private ListResponseDto<NotificationResponse> visitFirstPage(Member member) {
+        ListResponseDto<NotificationResponse> response = fcmService.findNotifications(member, 1);
+        syncNotificationViewService.recordVisit(member.getId());
+        return response;
+    }
 
     @Test
     @DisplayName("알림 조회 시 모든 알림이 최신순(id DESC)으로 정렬되어 반환된다.")
@@ -124,7 +149,7 @@ class FcmNotificationSortTest {
         }
 
         // [1번째 방문]: 1페이지(최신 10개)만 조회하고 나감
-        ListResponseDto<NotificationResponse> visit1 = fcmService.findNotifications(member, 1);
+        ListResponseDto<NotificationResponse> visit1 = visitFirstPage(member);
         assertEquals(10, visit1.getContents().size());
         assertFalse(visit1.getContents().get(0).isRead());
         assertTrue(fcmService.hasUnreadNotification(member));
@@ -137,7 +162,7 @@ class FcmNotificationSortTest {
         }
 
         // [2번째 방문]: 1페이지 조회 -> viewCount = 2, 화면에는 여전히 isRead = false
-        ListResponseDto<NotificationResponse> visit2 = fcmService.findNotifications(member, 1);
+        ListResponseDto<NotificationResponse> visit2 = visitFirstPage(member);
         assertFalse(visit2.getContents().get(0).isRead());
         assertFalse(fcmService.hasUnreadNotification(member));
 
@@ -146,15 +171,37 @@ class FcmNotificationSortTest {
             assertEquals(2, loaded.getViewCount());
         }
 
-        // [3번째 방문]: 1페이지 조회 -> 2회 조회가 완료되었으므로 15개 전체 알림이 일괄 isRead = true로 전환됨
-        ListResponseDto<NotificationResponse> visit3 = fcmService.findNotifications(member, 1);
-        assertTrue(visit3.getContents().get(0).isRead());
+        // [3번째 방문]: 2회 조회가 완료되었으므로 15개 전체 알림이 일괄 isRead = true로 전환됨
+        // 방문 기록은 응답 이후 비동기로 반영되므로, 이번 응답에는 아직 안 읽음으로 보이고 DB에는 읽음으로 남는다.
+        ListResponseDto<NotificationResponse> visit3 = visitFirstPage(member);
+        assertFalse(visit3.getContents().get(0).isRead());
 
         for (MemberFcmMessage msg : messages) {
             MemberFcmMessage loaded = memberFcmMessageRepository.findById(msg.getId()).orElseThrow();
             assertTrue(loaded.isRead());
             assertNotNull(loaded.getReadAt());
         }
+    }
+
+    @Test
+    @DisplayName("알림 조회 자체는 조회수와 읽음 상태를 바꾸지 않는다(방문 기록은 컨트롤러가 비동기로 따로 남긴다).")
+    void findNotificationsHasNoSideEffectTest() {
+        Member member = memberRepository.save(Member.builder()
+                .studentId("202000004")
+                .roles(Collections.singletonList("ROLE_USER"))
+                .build());
+        FcmMessage msg = fcmMessageRepository.save(FcmMessage.builder().title("알림").body("본문").build());
+        MemberFcmMessage saved = memberFcmMessageRepository.save(
+                MemberFcmMessage.of(msg.getId(), member.getId(), FcmMessageType.GENERAL));
+
+        for (int i = 0; i < 3; i++) {
+            fcmService.findNotifications(member, 1);
+        }
+
+        MemberFcmMessage loaded = memberFcmMessageRepository.findById(saved.getId()).orElseThrow();
+        assertEquals(0, loaded.getViewCount());
+        assertFalse(loaded.isRead());
+        assertTrue(fcmService.hasUnreadNotification(member));
     }
 
     @Test
