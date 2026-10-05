@@ -180,7 +180,7 @@ public class DailyBriefPlanner {
                 // 시작 시간 순 정렬
                 todayEntries.sort(Comparator.comparing(ClassScheduleEntry::startTime));
 
-                String title = String.format("[Daily Brief] 오늘 예정된 강의가 %d개 있어요 📚", todayEntries.size());
+                String title = String.format("[Daily Brief] 오늘 예정된 강의가 %d개 있어요", todayEntries.size());
                 StringBuilder bodyBuilder = new StringBuilder();
                 for (int i = 0; i < todayEntries.size(); i++) {
                     ClassScheduleEntry entry = todayEntries.get(i);
