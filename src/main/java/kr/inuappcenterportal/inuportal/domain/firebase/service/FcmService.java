@@ -3,8 +3,10 @@ package kr.inuappcenterportal.inuportal.domain.firebase.service;
 import com.google.firebase.messaging.*;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.LiveActivityStartPush;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityTokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationReadStats;
@@ -44,6 +46,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -87,6 +90,16 @@ public class FcmService {
     private final NotificationReadStatsReader notificationReadStatsReader;
     private final ApplicationEventPublisher eventPublisher;
 
+    /** 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다. */
+    private static final long BATCH_AWAIT_MILLIS = 60_000L;
+    /**
+     * 지수 백오프의 기준 간격. 재시도 n회차 대기 = BACKOFF_BASE × 2^(n-1) + 지터.
+     * maxRetries=3이면 실제 대기는 1초, 2초 두 번뿐이라 선형과 값이 같다.
+     * 지터가 없으면 한 청크에서 함께 실패한 토큰들이 동시에 재시도로 몰려 같은 고갈을 재현한다.
+     */
+    private static final long BACKOFF_BASE_MILLIS = 1000L;
+    private static final int BACKOFF_JITTER_MILLIS = 500;
+
     @Transactional
     public void saveToken(TokenRequestDto tokenRequestDto, Long memberId) {
         FcmToken fcmToken = fcmTokenRepository.findByToken(tokenRequestDto.getToken())
@@ -97,6 +110,27 @@ public class FcmService {
         }
         fcmToken.updateTimeNow();
         fcmToken.updateDeviceType(tokenRequestDto.getDeviceType());
+
+        if (fcmToken.getId() == null) {
+            fcmTokenRepository.save(fcmToken);
+        }
+    }
+
+    /**
+     * 기기의 ActivityKit push-to-start 토큰을 그 기기의 FCM 토큰 행에 저장(또는 해제)한다.
+     *
+     * <p>로그인 전용이다({@code PUT /api/tokens/live-activity}는 SecurityConfig의 authenticated 규칙).
+     * 이 토큰은 회원 시간표 기준의 수업 전 알림에만 쓰이므로 회원이 없는 기기의 토큰은 쓸 데가 없다.
+     * 앱이 FCM 토큰 등록보다 먼저 호출할 수도 있으므로 행이 없으면 만든다.
+     */
+    @Transactional
+    public void saveLiveActivityStartToken(LiveActivityTokenRequestDto requestDto, Long memberId) {
+        Objects.requireNonNull(memberId, "memberId");
+        FcmToken fcmToken = fcmTokenRepository.findByToken(requestDto.getToken())
+                .orElse(FcmToken.builder().token(requestDto.getToken()).memberId(memberId).deviceType("IOS").build());
+
+        fcmToken.updateMemberId(memberId);
+        fcmToken.updateLiveActivityStartToken(requestDto.getLiveActivityStartToken());
 
         if (fcmToken.getId() == null) {
             fcmTokenRepository.save(fcmToken);
@@ -397,6 +431,9 @@ public class FcmService {
         int unknownCount = 0;
         int maxRetries = 3;
 
+        // 청크 사이에 간격을 두지 않는다. 9.2.0 시절엔 버스트를 눕히려 50ms씩 쉬었지만, 9.5.0은
+        // SDK가 발송 스레드(100)와 커넥션(100)에 상한을 걸고 동시 요청은 FcmDispatchGate가 묶으므로
+        // 간격은 청크 수만큼 발송 시간만 늘린다.
         List<List<String>> chunks = fcmDispatchGate.chunk(tokens);
         int dispatched = 0;
 
@@ -405,14 +442,11 @@ public class FcmService {
         Set<Long> deliveredMemberIds = new HashSet<>();
 
         for (List<String> batchTokens : chunks) {
-            if (dispatched > 0) {
-                try {
-                    Thread.sleep(INTER_CHUNK_DELAY_MILLIS);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    unknownCount += (tokens.size() - dispatched);
-                    break;
-                }
+            // 중단 요청(종료 등)을 받았으면 남은 청크는 보내지 않고 미확인으로 남긴다.
+            // 그대로 진행하면 남은 청크마다 게이트에서 즉시 실패하며 에러 로그만 쌓인다.
+            if (Thread.currentThread().isInterrupted()) {
+                unknownCount += (tokens.size() - dispatched);
+                break;
             }
             dispatched += batchTokens.size();
 
@@ -1135,48 +1169,219 @@ public class FcmService {
     }
 
     /**
-     * Daily Brief 스케줄러는 조회 성능을 위해 read-only 트랜잭션에서 실행된다.
-     * 발송 이력 저장은 반드시 별도의 쓰기 트랜잭션에서 수행해야 하며,
-     * 사용자 한 명의 저장 실패가 스케줄러 전체 트랜잭션을 rollback-only로
-     * 오염시키지 않도록 사용자별로 트랜잭션을 분리한다.
+     * 회원 한 명에게 Daily Brief 류 알림을 보낸다. 트랜잭션 처리는 {@link #sendPreClassNotification}과 같다:
+     * 발송(외부 HTTP)은 트랜잭션 밖에서 하고, 이력 생성과 결과 반영만 {@link FcmTransactionService}의
+     * 짧은 REQUIRES_NEW 쓰기 트랜잭션으로 끝낸다. 호출자가 read-only 트랜잭션 안이어도 쓰기가 그 트랜잭션을
+     * rollback-only로 오염시키지 않고, 사용자 한 명의 저장 실패가 다른 사용자에게 번지지 않는다.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendDailyBriefNotification(Long memberId, String title, String body, FcmMessageType type, String path) {
+        sendMemberNotification(memberId, title, body, type, path, null);
+    }
+
+    /**
+     * 수업 시작 전 알림. {@link #sendDailyBriefNotification}과 같은 알림을 보내되, push-to-start 토큰이
+     * 등록된 iOS 기기에는 일반 알림 대신 같은 제목/본문을 alert로 실은 Live Activity 시작 푸시를 보낸다.
+     * 사용자에겐 알림 한 번과 함께 잠금화면/Dynamic Island에 수업 카운트다운이 뜬다.
+     *
+     * <p>Live Activity 발송이 실패한 기기는 일반 알림으로 대체해, 알림 자체는 잃지 않는다.
+     *
+     * <p>일부러 트랜잭션을 걸지 않는다. FCM 발송(기기마다 단건 + 멀티캐스트)은 외부 HTTP라 수 초까지 걸릴 수
+     * 있어, 트랜잭션 안에 두면 그동안 DB 커넥션을 붙잡는다. 이력 생성과 결과 반영은 각각
+     * {@link FcmTransactionService}의 짧은 REQUIRES_NEW 트랜잭션으로 끝낸다. 호출하는 스케줄러가 read-only
+     * 트랜잭션이어도, 쓰기가 그 트랜잭션을 rollback-only로 오염시키지 않는다.
+     */
+    public void sendPreClassNotification(Long memberId, String title, String body, FcmMessageType type, String path,
+                                         LiveActivityStartPush liveActivity) {
+        sendMemberNotification(memberId, title, body, type, path, liveActivity);
+    }
+
+    /**
+     * @param liveActivity null이면 모든 기기에 일반 알림만 보낸다.
+     */
+    private void sendMemberNotification(Long memberId, String title, String body, FcmMessageType type, String path,
+                                        LiveActivityStartPush liveActivity) {
         if (memberId == null) {
             return;
         }
 
         List<FcmToken> fcmTokens = fcmTokenRepository.findFcmTokensByMemberIds(List.of(memberId));
-        List<String> tokens = fcmTokens.stream().map(FcmToken::getToken).distinct().toList();
+        Long fcmMessageId = fcmTransactionService.createMemberNotification(title, body, memberId, type);
 
-        FcmMessage fcmMessage = fcmMessageRepository.save(FcmMessage.builder()
-                .title(title)
-                .body(body)
-                .targetId(null)
-                .isAdminMessage(false)
-                .build());
-
-        batchInsertMemberFcmMessages(fcmMessage.getId(), List.of(memberId), type);
-
-        if (tokens.isEmpty()) {
-            fcmMessage.updateDeliveryResult(0, 0);
-            return;
+        int success = 0;
+        int failure = 0;
+        Set<String> seen = new HashSet<>();
+        List<String> notificationTokens = new ArrayList<>();
+        for (FcmToken fcmToken : fcmTokens) {
+            if (!seen.add(fcmToken.getToken())) {
+                continue;
+            }
+            if (liveActivity != null && fcmToken.getLiveActivityStartToken() != null
+                    && sendLiveActivityStart(fcmToken, title, body, liveActivity)) {
+                success++;
+                continue;
+            }
+            notificationTokens.add(fcmToken.getToken());
         }
 
-        MulticastMessage message = createMulticastMessage(tokens, title, body, type, null, path);
+        if (!notificationTokens.isEmpty()) {
+            MulticastMessage message = isOngoingCandidateType(type)
+                    ? createOngoingMemberMessage(notificationTokens, title, body, type, path, fcmMessageId)
+                    : createMulticastMessage(notificationTokens, title, body, type, null, path, fcmMessageId);
+            try {
+                BatchResponse response = fcmDispatchGate.send(message);
+                success += response.getSuccessCount();
+                failure += response.getFailureCount();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                failure += notificationTokens.size();
+                log.warn("Member push interrupted: type={}, memberId={}", type, memberId);
+            } catch (Exception e) {
+                failure += notificationTokens.size();
+                log.error("Member push failed: type={}, memberId={}, error={}", type, memberId, e.getMessage(), e);
+            }
+        }
+
+        fcmTransactionService.updateFinalStatus(fcmMessageId, success, failure);
+        log.info("Member push sent: type={}, memberId={}, success={}, failure={}", type, memberId, success, failure);
+    }
+
+    private boolean isOngoingCandidateType(FcmMessageType type) {
+        return type == FcmMessageType.DAILY_BRIEF_TIMETABLE;
+    }
+
+    /**
+     * 시간표 수업 시작 전 알림({@link FcmMessageType#DAILY_BRIEF_TIMETABLE}) 등 실시간 Ongoing Activity로
+     * 승격될 수 있는 회원 알림 메시지를 생성한다.
+     *
+     * <p>Android: <b>data-only (priority: HIGH)</b>. 최상위 notification 블록이 있으면 Android OS가
+     * 알림 카드를 시스템 트레이에 먼저 그려 버려, 클라이언트의 Live Update / Now Bar와 함께 2개가 중복으로
+     * 표시되는 문제가 발생한다. data-only로 발송하여 클라이언트 백그라운드 핸들러가 사용자 나우바 설정에 따라
+     * 실시간 나우바로 승격하거나(중복 없음) 일반 알림으로 표시하도록 제어권을 넘긴다.
+     *
+     * <p>iOS: push-to-start 토큰이 없는 기기이거나 Live Activity 발송에 실패한 폴백 대상이므로,
+     * APNs alert와 sound를 aps 블록에 실어 일반 알림 센터에 정상 노출되도록 한다.
+     */
+    private MulticastMessage createOngoingMemberMessage(List<String> tokens, String title, String body, FcmMessageType type, String path, Long fcmMessageId) {
+        Aps.Builder apsBuilder = Aps.builder()
+                .setAlert(ApsAlert.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .setSound("default");
+
+        MulticastMessage.Builder builder = MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .putData("type", type != null ? type.name() : "")
+                .putData("title", title)
+                .putData("body", body)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .build())
+                .setApnsConfig(ApnsConfig.builder()
+                        .putHeader("apns-priority", "10")
+                        .setAps(apsBuilder.build())
+                        .build());
+
+        if (path != null && !path.isBlank()) {
+            builder.putData("path", path);
+        }
+        if (fcmMessageId != null) {
+            builder.putData("fcmMessageId", String.valueOf(fcmMessageId));
+        }
+        return builder.build();
+    }
+
+    private boolean sendLiveActivityStart(FcmToken fcmToken, String title, String body, LiveActivityStartPush liveActivity) {
         try {
-            BatchResponse response = fcmDispatchGate.send(message);
-            fcmMessage.updateDeliveryResult(response.getSuccessCount(), response.getFailureCount());
-            log.info("Daily Brief push sent: memberId={}, success={}, failure={}",
-                    memberId, response.getSuccessCount(), response.getFailureCount());
+            fcmDispatchGate.sendOne(createLiveActivityStartMessage(
+                    fcmToken.getToken(), fcmToken.getLiveActivityStartToken(), title, body, liveActivity,
+                    Instant.now().getEpochSecond()));
+            return true;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            fcmMessage.markFailed(tokens.size());
-            log.warn("Daily Brief push interrupted: memberId={}", memberId);
+            return false;
         } catch (Exception e) {
-            fcmMessage.markFailed(tokens.size());
-            log.error("Daily Brief push failed: memberId={}, error={}", memberId, e.getMessage(), e);
+            log.warn("Live Activity push-to-start failed, falling back to notification: fcmTokenId={}, error={}",
+                    fcmToken.getId(), e.getMessage());
+            return false;
         }
+    }
+
+    /**
+     * 떠 있는 Live Activity를 갱신({@code update})하거나 끝낸다({@code end}). 기기 FCM 토큰과 그 Activity의
+     * 업데이트 push 토큰으로 보낸다. 실패하면 예외를 그대로 던진다 — 재시도 여부는 호출자가 정한다.
+     *
+     * @param staleDateSec     update일 때 이 시각 이후 내용이 낡은 것으로 표시된다. null이면 싣지 않는다.
+     * @param dismissalDateSec end일 때 잠금화면에서 이 시각에 사라진다. null이면 시스템 기본(최대 4시간).
+     */
+    public void sendLiveActivityEvent(String fcmToken, String activityPushToken, String event, String propsJson,
+                                      Long staleDateSec, Long dismissalDateSec) throws Exception {
+        fcmDispatchGate.sendOne(createLiveActivityEventMessage(fcmToken, activityPushToken, event,
+                LiveActivityStartPush.TIMETABLE_ACTIVITY_NAME, propsJson, staleDateSec, dismissalDateSec,
+                Instant.now().getEpochSecond()));
+    }
+
+    /** ActivityKit update/end 규격. alert는 싣지 않는다(조용히 갱신·종료). */
+    static Message createLiveActivityEventMessage(String fcmToken, String activityPushToken, String event,
+                                                  String activityName, String propsJson, Long staleDateSec,
+                                                  Long dismissalDateSec, long nowEpochSec) {
+        Map<String, Object> contentState = new LinkedHashMap<>();
+        contentState.put("name", activityName);
+        contentState.put("props", propsJson);
+
+        Aps.Builder aps = Aps.builder()
+                .putCustomData("event", event)
+                .putCustomData("timestamp", nowEpochSec)
+                .putCustomData("content-state", contentState);
+        if (staleDateSec != null) {
+            aps.putCustomData("stale-date", staleDateSec);
+        }
+        if (dismissalDateSec != null) {
+            aps.putCustomData("dismissal-date", dismissalDateSec);
+        }
+
+        return Message.builder()
+                .setToken(fcmToken)
+                .setApnsConfig(ApnsConfig.builder()
+                        .setLiveActivityToken(activityPushToken)
+                        .putHeader("apns-priority", "10")
+                        .setAps(aps.build())
+                        .build())
+                .build();
+    }
+
+    /**
+     * FCM HTTP v1의 Live Activity 발송 형식. {@code apns.live_activity_token}을 실으면 FCM이
+     * apns-push-type(liveactivity)과 토픽({bundleId}.push-type.liveactivity)을 맞춰 APNs로 보낸다.
+     * aps 본문은 ActivityKit push-to-start 규격이다: event=start에는 attributes-type/attributes와
+     * alert가 필수다.
+     */
+    static Message createLiveActivityStartMessage(String fcmToken, String liveActivityToken, String title, String body,
+                                                  LiveActivityStartPush liveActivity, long nowEpochSec) {
+        Map<String, Object> contentState = new LinkedHashMap<>();
+        contentState.put("name", liveActivity.activityName());
+        contentState.put("props", liveActivity.propsJson());
+
+        Aps aps = Aps.builder()
+                .setAlert(ApsAlert.builder().setTitle(title).setBody(body).build())
+                .setSound("default")
+                .putCustomData("event", "start")
+                .putCustomData("timestamp", nowEpochSec)
+                .putCustomData("attributes-type", LiveActivityStartPush.ATTRIBUTES_TYPE)
+                .putCustomData("attributes", Map.of())
+                .putCustomData("content-state", contentState)
+                .putCustomData("stale-date", liveActivity.staleDateSec())
+                .build();
+
+        return Message.builder()
+                .setToken(fcmToken)
+                .setApnsConfig(ApnsConfig.builder()
+                        .setLiveActivityToken(liveActivityToken)
+                        .putHeader("apns-priority", "10")
+                        .putHeader("apns-expiration", String.valueOf(liveActivity.expirationSec()))
+                        .setAps(aps)
+                        .build())
+                .build();
     }
 
     private record DeliveryResult(

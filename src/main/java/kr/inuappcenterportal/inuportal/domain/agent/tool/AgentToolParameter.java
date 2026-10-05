@@ -33,6 +33,10 @@ public record AgentToolParameter(
         return new AgentToolParameter(Type.BOOLEAN, description, required, List.of(), null, Map.of());
     }
 
+    public static AgentToolParameter array(String description, boolean required, String... enumValues) {
+        return new AgentToolParameter(Type.ARRAY, description, required, List.of(enumValues), null, Map.of());
+    }
+
     public static AgentToolParameter object(String description, boolean required, Map<String, AgentToolParameter> properties) {
         return new AgentToolParameter(Type.OBJECT, description, required, List.of(), null, properties);
     }

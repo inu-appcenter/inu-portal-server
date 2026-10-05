@@ -22,6 +22,7 @@ import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -65,7 +66,15 @@ class DailyBriefSchedulerTest {
     private ScheduleRepository scheduleRepository;
 
     @InjectMocks
+    private DailyBriefPlanner dailyBriefPlanner;
+
+    // 조회(Planner)와 발송(Scheduler)을 함께 엮어, 기존처럼 스케줄러 실행 → fcmService 호출까지 검증한다.
     private DailyBriefScheduler dailyBriefScheduler;
+
+    @BeforeEach
+    void setUpScheduler() {
+        dailyBriefScheduler = new DailyBriefScheduler(dailyBriefPlanner, fcmService);
+    }
 
     @Test
     void dailyScheduleBriefing_targetsOnlySchedulesStartingToday() {
