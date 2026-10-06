@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -132,5 +133,33 @@ class LiveActivityLifecycleSchedulerTest {
         scheduler.run();
 
         verify(service).deleteEndedBefore(now - LiveActivityLifecycleScheduler.RETENTION_MILLIS);
+    }
+
+    @Test
+    @DisplayName("다음 수업 Activity를 띄운 기기에서 앞 수업 Activity를 바로 끝낸다")
+    void endsEarlierActivitiesForNextClass() throws Exception {
+        now = END - 5 * 60_000;   // 앞 수업 종료 5분 전에 다음 수업 알림이 왔다
+        long nextStart = END + 60_000;
+        when(service.findEarlierActive(7L, Set.of("fcm"), nextStart)).thenReturn(List.of(
+                new DueLiveActivity(1L, "fcm", "activity-token", PROPS, START, END, true)));
+
+        scheduler.endEarlierActivities(7L, Set.of("fcm"), nextStart);
+
+        verify(fcmService).sendLiveActivityEvent("fcm", "activity-token", "end", ONGOING_PROPS, null, now / 1000);
+        verify(service).markEnded(1L);
+    }
+
+    @Test
+    @DisplayName("앞 수업 종료 발송이 실패하면 남겨 두어 수업 종료 시각에 다시 끝낸다")
+    void keepsEarlierActivityWhenEndFails() throws Exception {
+        now = END - 5 * 60_000;
+        when(service.findEarlierActive(any(), any(), anyLong())).thenReturn(List.of(
+                new DueLiveActivity(1L, "fcm", "activity-token", PROPS, START, END, true)));
+        doThrow(new RuntimeException("unavailable")).when(fcmService)
+                .sendLiveActivityEvent(anyString(), anyString(), anyString(), anyString(), any(), any());
+
+        scheduler.endEarlierActivities(7L, Set.of("fcm"), END + 60_000);
+
+        verify(service, never()).markEnded(anyLong());
     }
 }

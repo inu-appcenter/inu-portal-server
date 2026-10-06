@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -62,6 +63,20 @@ public class LiveActivityLifecycleService {
     @Transactional(readOnly = true)
     public List<DueLiveActivity> findDue(long nowMs) {
         return liveActivityInstanceRepository.findAllByEndedFalseAndStartAtLessThanEqual(nowMs).stream()
+                .map(i -> new DueLiveActivity(i.getId(), i.getFcmToken(), i.getPushToken(), i.getPropsJson(),
+                        i.getStartAt(), i.getEndAt(), i.isOngoingSent()))
+                .toList();
+    }
+
+    /** 이 기기들에 떠 있는 Activity 중 {@code classStartMs}보다 먼저 시작한 수업의 것. */
+    @Transactional(readOnly = true)
+    public List<DueLiveActivity> findEarlierActive(Long memberId, Collection<String> fcmTokens, long classStartMs) {
+        if (memberId == null || fcmTokens.isEmpty()) {
+            return List.of();
+        }
+        return liveActivityInstanceRepository
+                .findAllByMemberIdAndEndedFalseAndFcmTokenInAndStartAtLessThan(memberId, fcmTokens, classStartMs)
+                .stream()
                 .map(i -> new DueLiveActivity(i.getId(), i.getFcmToken(), i.getPushToken(), i.getPropsJson(),
                         i.getStartAt(), i.getEndAt(), i.isOngoingSent()))
                 .toList();
