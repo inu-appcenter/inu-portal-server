@@ -16,10 +16,10 @@ public interface DailyBriefSettingRepository extends JpaRepository<DailyBriefSet
 
     Optional<DailyBriefSetting> findByMemberId(Long memberId);
 
-    @Query("SELECT s FROM DailyBriefSetting s JOIN FETCH s.member WHERE s.timetableAlertEnabled = true AND s.timetablePreAlertEnabled = true")
+    @Query("SELECT s FROM DailyBriefSetting s JOIN FETCH s.member WHERE s.timetablePreAlertEnabled = true")
     List<DailyBriefSetting> findAllTimetablePreAlertEnabled();
 
-    @Query("SELECT s FROM DailyBriefSetting s JOIN FETCH s.member WHERE s.timetableAlertEnabled = true AND s.timetableDailyBriefEnabled = true AND s.timetableDailyBriefTime = :time")
+    @Query("SELECT s FROM DailyBriefSetting s JOIN FETCH s.member WHERE s.timetableDailyBriefEnabled = true AND s.timetableDailyBriefTime = :time")
     List<DailyBriefSetting> findAllTimetableDailyBriefByTime(@Param("time") String time);
 
     @Query("SELECT s FROM DailyBriefSetting s JOIN FETCH s.member WHERE s.scheduleAlertEnabled = true AND s.scheduleDailyBriefTime = :time")

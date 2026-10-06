@@ -1212,7 +1212,7 @@ public class FcmService {
 
         if (!notificationTokens.isEmpty()) {
             MulticastMessage message = isOngoingCandidateType(type)
-                    ? createOngoingMemberMessage(notificationTokens, title, body, type, path, fcmMessageId)
+                    ? createOngoingMemberMessage(notificationTokens, title, body, type, path, fcmMessageId, liveActivity)
                     : createMulticastMessage(notificationTokens, title, body, type, null, path, fcmMessageId);
             try {
                 BatchResponse response = fcmDispatchGate.send(message);
@@ -1248,7 +1248,7 @@ public class FcmService {
      * <p>iOS: push-to-start 토큰이 없는 기기이거나 Live Activity 발송에 실패한 폴백 대상이므로,
      * APNs alert와 sound를 aps 블록에 실어 일반 알림 센터에 정상 노출되도록 한다.
      */
-    private MulticastMessage createOngoingMemberMessage(List<String> tokens, String title, String body, FcmMessageType type, String path, Long fcmMessageId) {
+    private MulticastMessage createOngoingMemberMessage(List<String> tokens, String title, String body, FcmMessageType type, String path, Long fcmMessageId, LiveActivityStartPush liveActivity) {
         Aps.Builder apsBuilder = Aps.builder()
                 .setAlert(ApsAlert.builder()
                         .setTitle(title)
@@ -1269,6 +1269,9 @@ public class FcmService {
                         .setAps(apsBuilder.build())
                         .build());
 
+        if (liveActivity != null && liveActivity.propsJson() != null) {
+            builder.putData("liveProps", liveActivity.propsJson());
+        }
         if (path != null && !path.isBlank()) {
             builder.putData("path", path);
         }

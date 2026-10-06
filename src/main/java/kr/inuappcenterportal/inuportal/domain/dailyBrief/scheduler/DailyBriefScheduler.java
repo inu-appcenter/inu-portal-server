@@ -32,17 +32,17 @@ public class DailyBriefScheduler {
     }
 
     /**
-     * 2. 당일 강의 목록 묶음 브리핑 (10분마다 실행)
+     * 2. 당일 강의 목록 묶음 브리핑 (1분마다 실행)
      */
-    @Scheduled(cron = "0 0/10 7-22 * * MON-FRI", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 * 7-22 * * MON-FRI", zone = "Asia/Seoul")
     public void sendDailyClassBriefing() {
         send(dailyBriefPlanner.planDailyClassBriefing(), "daily class brief");
     }
 
     /**
-     * 3. 당일 학사/학과 일정 브리핑 (10분마다 실행)
+     * 3. 당일 학사/학과 일정 브리핑 (1분마다 실행)
      */
-    @Scheduled(cron = "0 0/10 7-22 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 * 7-22 * * *", zone = "Asia/Seoul")
     public void sendDailyScheduleBriefing() {
         send(dailyBriefPlanner.planDailyScheduleBriefing(), "daily schedule brief");
     }

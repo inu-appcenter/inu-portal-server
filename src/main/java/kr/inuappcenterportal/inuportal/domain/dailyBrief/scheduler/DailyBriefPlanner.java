@@ -73,12 +73,12 @@ public class DailyBriefPlanner {
         }
 
         Semester currentSemester = openSemesterOpt.get();
-        DayOfWeek today = toDomainDayOfWeek(LocalDate.now().getDayOfWeek());
+        DayOfWeek today = toDomainDayOfWeek(LocalDate.now(SEOUL).getDayOfWeek());
         if (today == null) {
             return notifications;
         }
 
-        LocalTime now = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+        LocalTime now = LocalTime.now(SEOUL).truncatedTo(ChronoUnit.MINUTES);
         List<DailyBriefSetting> settings = dailyBriefSettingRepository.findAllTimetablePreAlertEnabled();
 
         for (DailyBriefSetting setting : settings) {
@@ -151,12 +151,12 @@ public class DailyBriefPlanner {
         }
 
         Semester currentSemester = openSemesterOpt.get();
-        DayOfWeek today = toDomainDayOfWeek(LocalDate.now().getDayOfWeek());
+        DayOfWeek today = toDomainDayOfWeek(LocalDate.now(SEOUL).getDayOfWeek());
         if (today == null) {
             return notifications;
         }
 
-        String currentTimeStr = LocalTime.now().format(TIME_FORMATTER);
+        String currentTimeStr = LocalTime.now(SEOUL).format(TIME_FORMATTER);
         List<DailyBriefSetting> settings = dailyBriefSettingRepository.findAllTimetableDailyBriefByTime(currentTimeStr);
 
         for (DailyBriefSetting setting : settings) {
@@ -220,14 +220,14 @@ public class DailyBriefPlanner {
     @Transactional(readOnly = true)
     public List<BriefNotification> planDailyScheduleBriefing() {
         List<BriefNotification> notifications = new ArrayList<>();
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(SEOUL);
         // 연속 일정은 시작일에만 브리핑한다.
         List<Schedule> todayStartingSchedules = scheduleRepository.findAllStartingOn(today);
         if (todayStartingSchedules.isEmpty()) {
             return notifications;
         }
 
-        String currentTimeStr = LocalTime.now().format(TIME_FORMATTER);
+        String currentTimeStr = LocalTime.now(SEOUL).format(TIME_FORMATTER);
         List<DailyBriefSetting> settings = dailyBriefSettingRepository.findAllScheduleDailyBriefByTime(currentTimeStr);
 
         for (DailyBriefSetting setting : settings) {
