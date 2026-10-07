@@ -106,10 +106,11 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
             }
 
             // 듣고 싶은 시간대 선택 모드: 모든 수업 시간이 선택한 시간대 안에 들어오는 강의만
-            // 예를 들어, A수업의 시간대가 월 10-12/수 10-12이고, B수업의 시간대가 수 9-10일때 선택한 시간대에 수 9-14라면
-            // B수업의 시간대는 선택한 시간대에 온전히 들어오므로 검색이 되지만, A수업의 경우 수요일 수업은 시간대에 들어오지만 월요일 수업은 들어오지 않기 때문에 검색이 되지 않음
+            // 예를 들어 선택한 시간대가 수 9-14일 때,
+            // B수업(수 9-10)은 수업 시간이 모두 선택한 시간대 안에 들어오므로 검색되지만,
+            // A수업(월 10-12, 수 10-12)은 수요일 수업은 들어와도 월요일 수업이 밖에 있으므로 검색되지 않는다.
             if (condition.filterMode() == MeetingFilterMode.HAS_CLASS) {
-                // 선택한 시간대 안에 온전히 들어오나?
+                // 선택한 시간대 안에 들어오는 수업 시간이 하나 이상 있어야 한다 (수업 시간이 없는 강의 제외)
                 builder.and(
                         JPAExpressions
                                 .selectOne()
@@ -120,7 +121,7 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
                                 )
                                 .exists()
                 );
-                // 선택한 시간에 안에 들어오지 않는 것이 있나?
+                // 선택한 시간대 밖으로 나가는 수업 시간은 하나도 없어야 한다
                 builder.and(
                         JPAExpressions
                                 .selectOne()
@@ -133,9 +134,9 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
                 );
             }
 
-            // 선택한 시간대와 조금이라도 겹치는 수업 시간이 하나도 없는 강의만 (수업 시간이 없는 강의도 포함)
+            // 듣기 싫은 시간대 선택 모드: 선택한 시간대와 조금이라도 겹치는 수업 시간이 하나도 없는 강의만
+            // (수업 시간이 없는 강의도 포함된다)
             if (condition.filterMode() == MeetingFilterMode.NO_CLASS) {
-                // notExists이므로 선택된 시간대를 제외한 모든 시간대를 검색
                 builder.and(
                         JPAExpressions
                                 .selectOne()
