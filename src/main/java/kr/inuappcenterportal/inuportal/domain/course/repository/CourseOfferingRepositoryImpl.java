@@ -84,37 +84,65 @@ public class CourseOfferingRepositoryImpl implements CourseOfferingRepositoryCus
         }
 
         if (!condition.meetings().isEmpty()) {
-            BooleanBuilder meetingOverlapBuilder = new BooleanBuilder();
+            BooleanBuilder meetingOverlapBuilderNoClass = new BooleanBuilder();
+            BooleanBuilder meetingWithinBuilderHasClass = new BooleanBuilder();
 
+            // 해당 수업 시간이 선택 시간대와 겹치나
             for (CourseOfferingMeetingFilter meeting : condition.meetings()) {
-                meetingOverlapBuilder.or(
+                meetingOverlapBuilderNoClass.or(
                         courseMeeting.day.eq(meeting.day())
                                 .and(courseMeeting.startTime.lt(meeting.endTime()))
                                 .and(courseMeeting.endTime.gt(meeting.startTime()))
                 );
             }
 
-            if (condition.filterMode() == MeetingFilterMode.HAS_CLASS) {
-                builder.and(
-                        JPAExpressions
-                                .selectOne()
-                                .from(courseMeeting)
-                                .where(
-                                        courseMeeting.courseOffering.eq(courseOffering),
-                                        meetingOverlapBuilder
-                                )
-                                .exists()
+            // 해당 수업 시간이 선택 시간대 안에 완전히 들어가나
+            for (CourseOfferingMeetingFilter meeting : condition.meetings()) {
+                meetingWithinBuilderHasClass.or(
+                        courseMeeting.day.eq(meeting.day())
+                                .and(courseMeeting.startTime.goe(meeting.startTime()))
+                                .and(courseMeeting.endTime.loe(meeting.endTime()))
                 );
             }
 
-            if (condition.filterMode() == MeetingFilterMode.NO_CLASS) {
+            // 듣고 싶은 시간대 선택 모드: 모든 수업 시간이 선택한 시간대 안에 들어오는 강의만
+            // 예를 들어, A수업의 시간대가 월 10-12/수 10-12이고, B수업의 시간대가 수 9-10일때 선택한 시간대에 수 9-14라면
+            // B수업의 시간대는 선택한 시간대에 온전히 들어오므로 검색이 되지만, A수업의 경우 수요일 수업은 시간대에 들어오지만 월요일 수업은 들어오지 않기 때문에 검색이 되지 않음
+            if (condition.filterMode() == MeetingFilterMode.HAS_CLASS) {
+                // 선택한 시간대 안에 온전히 들어오나?
                 builder.and(
                         JPAExpressions
                                 .selectOne()
                                 .from(courseMeeting)
                                 .where(
                                         courseMeeting.courseOffering.eq(courseOffering),
-                                        meetingOverlapBuilder
+                                        meetingWithinBuilderHasClass
+                                )
+                                .exists()
+                );
+                // 선택한 시간에 안에 들어오지 않는 것이 있나?
+                builder.and(
+                        JPAExpressions
+                                .selectOne()
+                                .from(courseMeeting)
+                                .where(
+                                        courseMeeting.courseOffering.eq(courseOffering),
+                                        new BooleanBuilder(meetingWithinBuilderHasClass).not()
+                                )
+                                .notExists()
+                );
+            }
+
+            // 선택한 시간대와 조금이라도 겹치는 수업 시간이 하나도 없는 강의만 (수업 시간이 없는 강의도 포함)
+            if (condition.filterMode() == MeetingFilterMode.NO_CLASS) {
+                // notExists이므로 선택된 시간대를 제외한 모든 시간대를 검색
+                builder.and(
+                        JPAExpressions
+                                .selectOne()
+                                .from(courseMeeting)
+                                .where(
+                                        courseMeeting.courseOffering.eq(courseOffering),
+                                        meetingOverlapBuilderNoClass
                                 )
                                 .notExists()
                 );
