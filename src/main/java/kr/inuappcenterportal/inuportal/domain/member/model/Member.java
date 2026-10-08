@@ -52,6 +52,10 @@ public class Member implements UserDetails {
     @Column(nullable = false)
     private String nickname;
 
+    // 실명. 온보딩에서 입력받으며 본인 조회(GET /api/members)에만 노출한다.
+    @Column(length = 20)
+    private String name;
+
     @Enumerated(EnumType.STRING)
     private Department department;
 
@@ -117,6 +121,11 @@ public class Member implements UserDetails {
     public void updateNicknameAndFire(String nickname, Long fireId) {
         this.nickname = nickname;
         this.fireId = fireId;
+        touchProfileModifiedAt();
+    }
+
+    public void updateName(String name) {
+        this.name = name;
         touchProfileModifiedAt();
     }
 
