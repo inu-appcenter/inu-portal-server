@@ -141,4 +141,24 @@ class PreClassNotificationTest {
         verify(fcmDispatchGate, never()).send(any(MulticastMessage.class));
         verify(fcmTransactionService).updateFinalStatus(1L, 1, 0);
     }
+
+    @Test
+    @DisplayName("liveActivity가 없는 시간표 데일리 브리프는 시스템 알림 노출을 위해 notification 블록을 포함한다")
+    void dailyBriefWithoutLiveActivityIncludesNotificationPayload() throws Exception {
+        when(fcmTokenRepository.findFcmTokensByMemberIds(List.of(MEMBER_ID)))
+                .thenReturn(List.of(token("android", null)));
+        BatchResponse response = batch(1, 0);
+        when(fcmDispatchGate.send(any(MulticastMessage.class))).thenReturn(response);
+
+        fcmService.sendDailyBriefNotification(MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable");
+
+        ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
+        verify(fcmDispatchGate).send(captor.capture());
+        MulticastMessage sentMessage = captor.getValue();
+        assertThat(ReflectionTestUtils.getField(sentMessage, "notification")).isNotNull();
+        java.util.Map<String, String> data = (java.util.Map<String, String>) ReflectionTestUtils.getField(sentMessage, "data");
+        assertThat(data).containsEntry("type", "DAILY_BRIEF_TIMETABLE")
+                .containsEntry("path", "/timetable");
+        verify(fcmTransactionService).updateFinalStatus(1L, 1, 0);
+    }
 }

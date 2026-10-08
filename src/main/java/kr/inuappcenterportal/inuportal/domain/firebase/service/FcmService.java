@@ -1211,7 +1211,7 @@ public class FcmService {
         }
 
         if (!notificationTokens.isEmpty()) {
-            MulticastMessage message = isOngoingCandidateType(type)
+            MulticastMessage message = isOngoingCandidateType(type, liveActivity)
                     ? createOngoingMemberMessage(notificationTokens, title, body, type, path, fcmMessageId, liveActivity)
                     : createMulticastMessage(notificationTokens, title, body, type, null, path, fcmMessageId);
             try {
@@ -1232,8 +1232,8 @@ public class FcmService {
         log.info("Member push sent: type={}, memberId={}, success={}, failure={}", type, memberId, success, failure);
     }
 
-    private boolean isOngoingCandidateType(FcmMessageType type) {
-        return type == FcmMessageType.DAILY_BRIEF_TIMETABLE;
+    private boolean isOngoingCandidateType(FcmMessageType type, LiveActivityStartPush liveActivity) {
+        return type == FcmMessageType.DAILY_BRIEF_TIMETABLE && liveActivity != null;
     }
 
     /**
