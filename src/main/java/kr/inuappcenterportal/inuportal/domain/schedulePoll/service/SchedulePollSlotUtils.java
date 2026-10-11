@@ -55,6 +55,7 @@ public class SchedulePollSlotUtils {
     }
 
     // 제출된 구간을 검증하고 저장할 모양으로 정리한다.
+    // - 값이 비었거나 시각 형식("HH:mm")이 아니면 400 VALIDATION_ERROR
     // - key가 조율의 열이 아니거나, 30분 단위가 아니거나, rangeStart ≤ start < end ≤ rangeEnd를 어기면 400 INVALID_SLOT
     // - 같은 열에서 겹치거나 붙은 구간은 하나로 합친다
     // - 결과는 열 순서, 시작 시각 순으로 정렬한다
@@ -63,7 +64,7 @@ public class SchedulePollSlotUtils {
         List<int[]> parsed = new ArrayList<>(); // {열 번호, 시작 분, 끝 분}
         for (AvailableRangeDto range : ranges) {
             if (range == null || range.key() == null) {
-                throw new SchedulePollException(SchedulePollErrorCode.INVALID_SLOT);
+                throw new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR);
             }
             int column = columns.indexOf(range.key());
             int start = parseSlotTime(range.start());
@@ -93,12 +94,17 @@ public class SchedulePollSlotUtils {
         return merged;
     }
 
+    // 형식이 틀리면 VALIDATION_ERROR, 형식은 맞는데 30분 단위가 아니면 INVALID_SLOT.
+    // 24:00을 넘는 값은 rangeEnd(최대 24:00) 검사에서 INVALID_SLOT이 된다.
     private static int parseSlotTime(String time) {
-        try {
-            return toMinutes(time);
-        } catch (IllegalArgumentException e) {
+        if (time == null || !time.matches("\\d{2}:\\d{2}") || Integer.parseInt(time.substring(3, 5)) >= 60) {
+            throw new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR);
+        }
+        int minutes = Integer.parseInt(time.substring(0, 2)) * 60 + Integer.parseInt(time.substring(3, 5));
+        if (minutes % SLOT_MINUTES != 0) {
             throw new SchedulePollException(SchedulePollErrorCode.INVALID_SLOT);
         }
+        return minutes;
     }
 
     private static AvailableRangeDto toDto(List<String> columns, int[] range) {
