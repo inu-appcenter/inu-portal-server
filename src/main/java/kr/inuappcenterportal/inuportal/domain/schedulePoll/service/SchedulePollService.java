@@ -5,7 +5,6 @@ import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepo
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollCreateRequestDto;
-import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollColumnResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
@@ -14,7 +13,6 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.DurationMode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.JoinBlockReason;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.ParticipantStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.PollDay;
-import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollErrorCode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollException;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
@@ -29,8 +27,6 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HashSet;
@@ -38,11 +34,16 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.columns;
+import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.displayName;
+import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.displayStatus;
+import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.toOffset;
+import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.toSeoul;
+
 @Service
 @RequiredArgsConstructor
 public class SchedulePollService {
 
-    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final String DEFAULT_TITLE = "회의 시간 맞추기";
     private static final int MIN_RANGE_START_MINUTES = 9 * 60;
     private static final int MAX_ONE_TIME_DAYS = 14;
@@ -194,7 +195,7 @@ public class SchedulePollService {
     }
 
     // 내가 개설자를 차단했거나 개설자가 나를 차단한 경우
-    private boolean isBlockedEitherWay(Member member, Member creator) {
+    public boolean isBlockedEitherWay(Member member, Member creator) {
         if (member.getId().equals(creator.getId())) {
             return false;
         }
@@ -205,36 +206,6 @@ public class SchedulePollService {
     private SchedulePoll findPoll(Long pollId) {
         return schedulePollRepository.findById(pollId)
                 .orElseThrow(() -> new SchedulePollException(SchedulePollErrorCode.POLL_NOT_FOUND));
-    }
-
-    // 마감 시각이 지났으면 스케줄러가 처리하기 전(최대 1분)이라도 CLOSED로 보여 준다.
-    private SchedulePollStatus displayStatus(SchedulePollStatus status, LocalDateTime deadlineAt, LocalDateTime now) {
-        if (status != SchedulePollStatus.CLOSED && deadlineAt != null && !now.isBefore(deadlineAt)) {
-            return SchedulePollStatus.CLOSED;
-        }
-        return status;
-    }
-
-    // 정기면 요일(월), 일회성이면 날짜(10/12 (월))
-    private List<SchedulePollColumnResponseDto> columns(SchedulePoll poll) {
-        return SchedulePollSlotUtils.columnKeys(poll).stream()
-                .map(key -> new SchedulePollColumnResponseDto(key, columnLabel(poll.isRecurring(), key)))
-                .toList();
-    }
-
-    private String columnLabel(boolean recurring, String key) {
-        if (recurring) {
-            return PollDay.valueOf(key).getLabel();
-        }
-        LocalDate date = LocalDate.parse(key);
-        String day = PollDay.values()[date.getDayOfWeek().getValue() - 1].getLabel();
-        return date.getMonthValue() + "/" + date.getDayOfMonth() + " (" + day + ")";
-    }
-
-    // 표시 이름: 실명이 있으면 실명, 없으면 닉네임
-    // TODO(8단계): 실명 필드가 생기면 실명을 먼저 쓴다.
-    private String displayName(Member member) {
-        return member.getNickname();
     }
 
     // 형식(HH:mm)은 DTO에서 검증했다. 30분 단위가 아니거나 24:00을 넘으면 INVALID_RANGE
@@ -287,13 +258,5 @@ public class SchedulePollService {
 
     private String linkUrl(String linkToken) {
         return baseUrl + "/schedule-polls/join/" + linkToken;
-    }
-
-    private static LocalDateTime toSeoul(OffsetDateTime dateTime) {
-        return dateTime.atZoneSameInstant(SEOUL).toLocalDateTime();
-    }
-
-    private static OffsetDateTime toOffset(LocalDateTime dateTime) {
-        return dateTime == null ? null : dateTime.atZone(SEOUL).toOffsetDateTime();
     }
 }

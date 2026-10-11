@@ -166,14 +166,27 @@ public class SchedulePoll extends BaseTimeEntity {
         return deadlineProcessedAt != null;
     }
 
+    // 마감 때문에 끝나면 끝난 시각은 마감 시각이다(처리 전 조회 응답과 같은 값). 개설자 종료면 지금 시각.
+    // 실제로 처리한 시각은 deadlineProcessedAt에 남긴다.
     public void close(LocalDateTime now) {
         changeStatus(SchedulePollStatus.CLOSED);
-        this.closedAt = now;
+        this.closedAt = deadlineAt != null && !now.isBefore(deadlineAt) ? deadlineAt : now;
         this.deadlineProcessedAt = now;
     }
 
     public void increaseRevision() {
         this.revision++;
+    }
+
+    // 첫 제출로 참여자가 늘었을 때. 나가기가 없어 줄지 않는다.
+    public void addParticipant() {
+        this.participantCount++;
+    }
+
+    // 결과를 새로 계산했을 때. 결과 번호 +1, 참여자 2명 이상이므로 RESULT_READY
+    public int nextResultVersion() {
+        changeStatus(SchedulePollStatus.RESULT_READY);
+        return ++this.resultVersion;
     }
 
     private static String joinDays(List<PollDay> days) {

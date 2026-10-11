@@ -63,4 +63,33 @@ public class SchedulePollSubmission {
     // 마지막으로 제출한 시각
     @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt;
+
+    private SchedulePollSubmission(SchedulePoll poll, Member member, String available, String importedCourseOfferingIds,
+                                   SubmissionVia via, JoinSource joinSource, LocalDateTime now) {
+        this.poll = poll;
+        this.member = member;
+        this.available = available;
+        this.importedCourseOfferingIds = importedCourseOfferingIds;
+        this.submissionRevision = 1;
+        this.via = via;
+        this.joinSource = joinSource;
+        this.joinedAt = now;
+        this.submittedAt = now;
+    }
+
+    // 첫 제출
+    public static SchedulePollSubmission create(SchedulePoll poll, Member member, String available,
+                                                String importedCourseOfferingIds, SubmissionVia via,
+                                                JoinSource joinSource, LocalDateTime now) {
+        return new SchedulePollSubmission(poll, member, available, importedCourseOfferingIds, via, joinSource, now);
+    }
+
+    // 재제출. 덮어쓰고 제출 번호 +1. 참여 경로(joinSource)와 참여 시각은 처음 값을 유지한다.
+    public void resubmit(String available, String importedCourseOfferingIds, SubmissionVia via, LocalDateTime now) {
+        this.available = available;
+        this.importedCourseOfferingIds = importedCourseOfferingIds;
+        this.via = via;
+        this.submissionRevision++;
+        this.submittedAt = now;
+    }
 }

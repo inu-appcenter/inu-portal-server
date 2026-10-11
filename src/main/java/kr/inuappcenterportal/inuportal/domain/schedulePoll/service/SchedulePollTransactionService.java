@@ -15,7 +15,8 @@ import java.util.Optional;
 
 // 데이터를 바꾸는 요청(제출, 마감 변경, 종료, 공유)의 공통 처리 순서와 마감 처리.
 // 1. 트랜잭션 시작  2. 조율 행 잠금  3. 이미 CLOSED면 409
-// 4. 마감이 지났으면 마감 처리를 커밋한 뒤 409  5. API별 작업  6. revision + 1 후 커밋
+// 4. 마감이 지났으면 마감 처리를 커밋한 뒤 409  5. revision + 1  6. API별 작업 후 커밋
+// (revision을 작업보다 먼저 올려 응답에 커밋될 값이 담기게 한다. 한 트랜잭션이라 밖에서 보는 결과는 같다.)
 //
 // 4번에서 예외를 트랜잭션 안에서 던지면 마감 처리까지 롤백되므로,
 // 트랜잭션은 결과만 돌려주고 커밋이 끝난 뒤에 POLL_CLOSED를 던진다.
@@ -72,9 +73,8 @@ public class SchedulePollTransactionService {
                 return Outcome.closed();
             }
 
-            T result = write.apply(poll, now);
             poll.increaseRevision();
-            return Outcome.done(result);
+            return Outcome.done(write.apply(poll, now));
         });
 
         if (outcome.closedByDeadline()) {
