@@ -174,6 +174,12 @@ public class SchedulePoll extends BaseTimeEntity {
         this.deadlineProcessedAt = now;
     }
 
+    // 마감 변경·해제(null). 1시간 전 알림 기록을 지워 새 마감 기준으로 다시 알림이 가게 한다.
+    public void changeDeadline(LocalDateTime deadlineAt) {
+        this.deadlineAt = deadlineAt;
+        this.deadlineRemindedAt = null;
+    }
+
     public void increaseRevision() {
         this.revision++;
     }

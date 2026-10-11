@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollSubmitRequestDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
@@ -216,4 +217,33 @@ public interface SchedulePollApiSpecification {
             @Parameter(hidden = true) @AuthenticationPrincipal Member member,
             @Parameter(description = "조율 ID") @PathVariable Long pollId,
             @Parameter(description = "결과 버전") @PathVariable int version);
+
+    @Operation(
+            summary = "마감 변경·해제·즉시 종료",
+            description = """
+                    개설자만 할 수 있습니다. 요청은 셋 중 하나입니다.
+                    <br>
+                    {"deadlineAt": "2026-10-12T23:00:00+09:00"} 마감 변경 / {"deadlineAt": null} 마감 해제 / {"close": true} 즉시 종료
+                    <br>
+                    두 필드를 함께 보내거나 둘 다 없으면 400 VALIDATION_ERROR입니다.
+                    <br><br>
+                    종료하면 참여자 2명 이상일 때 최신 결과를 최종 결과로 고정하고 참여자에게 푸시를 보냅니다.
+                    <br>
+                    마감을 바꾸면 마감 1시간 전 알림을 새 마감 기준으로 다시 보냅니다.
+                    <br>
+                    응답은 변경 확인(폴링) API와 같은 모양입니다.
+                    <br><br>
+                    """ + ERROR_DESCRIPTION
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "시간 맞추기 수정 성공"),
+            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR / INVALID_RANGE(새 마감이 현재 이전)"),
+            @ApiResponse(responseCode = "403", description = "NOT_HOST"),
+            @ApiResponse(responseCode = "404", description = "POLL_NOT_FOUND"),
+            @ApiResponse(responseCode = "409", description = "POLL_CLOSED")
+    })
+    ResponseEntity<ResponseDto<SchedulePollRevisionResponseDto>> update(
+            @Parameter(hidden = true) @AuthenticationPrincipal Member member,
+            @Parameter(description = "조율 ID") @PathVariable Long pollId,
+            @RequestBody SchedulePollUpdateRequestDto request);
 }

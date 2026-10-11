@@ -68,6 +68,13 @@ public class SchedulePollResultService {
         return version;
     }
 
+    // 조율이 끝날 때 최신 결과를 최종 결과로 고정한다. 결과가 없으면(참여자 2명 미만) 아무것도 하지 않는다.
+    // 조율 행을 잠근 트랜잭션 안에서만 호출한다.
+    public void finalizeLatest(SchedulePoll poll) {
+        schedulePollResultRepository.findByPollIdAndState(poll.getId(), ResultState.LATEST)
+                .ifPresent(SchedulePollResult::markFinal);
+    }
+
     // 8. 최신 결과. 참여자만 볼 수 있고, 참여자 2명 미만이라 결과가 없으면 409 RESULT_NOT_READY
     @Transactional(readOnly = true)
     public SchedulePollResultResponseDto getLatest(Member member, Long pollId) {

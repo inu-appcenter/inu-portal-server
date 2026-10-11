@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepo
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
@@ -32,6 +33,7 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.columns;
@@ -54,6 +56,7 @@ public class SchedulePollService {
     private final SchedulePollSubmissionRepository schedulePollSubmissionRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final BlockRepository blockRepository;
+    private final SchedulePollTransactionService schedulePollTransactionService;
     private final Clock clock;
 
     @Value("${schedulePollBaseUrl:https://intip.inuappcenter.kr}")
@@ -146,6 +149,46 @@ public class SchedulePollService {
                 view.getParticipantCount(),
                 view.getSubmittedCount() > 0 ? ParticipantStatus.SUBMITTED : null,
                 toOffset(view.getDeadlineAt()));
+    }
+
+    // 10. 마감 변경·해제·즉시 종료. 개설자만 할 수 있다.
+    // 공통 처리 위에서 돈다. 개설자 확인은 끝났는지 확인보다 먼저 한다(명세서 순서).
+    // 트랜잭션은 SchedulePollTransactionService가 연다. 이 메서드에 @Transactional을 붙이지 않는다.
+    public SchedulePollRevisionResponseDto update(Member member, Long pollId, SchedulePollUpdateRequestDto request) {
+        if (!request.isValidShape()) {
+            throw new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR);
+        }
+        return schedulePollTransactionService.execute(pollId, new SchedulePollTransactionService.Write<>() {
+
+            @Override
+            public Optional<SchedulePollRevisionResponseDto> beforeStatusCheck(SchedulePoll poll) {
+                if (!poll.getCreator().getId().equals(member.getId())) {
+                    throw new SchedulePollException(SchedulePollErrorCode.NOT_HOST);
+                }
+                return Optional.empty();
+            }
+
+            @Override
+            public SchedulePollRevisionResponseDto apply(SchedulePoll poll, LocalDateTime now) {
+                if (request.isCloseRequest()) {
+                    schedulePollTransactionService.close(poll, now);
+                } else {
+                    LocalDateTime deadlineAt = request.getDeadlineAt() == null ? null : toSeoul(request.getDeadlineAt());
+                    if (deadlineAt != null && !deadlineAt.isAfter(now)) {
+                        throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
+                    }
+                    poll.changeDeadline(deadlineAt);
+                }
+                boolean submitted = schedulePollSubmissionRepository.existsByPollIdAndMemberId(poll.getId(), member.getId());
+                return new SchedulePollRevisionResponseDto(
+                        poll.getRevision(),
+                        poll.getStatus(),
+                        poll.getResultVersion(),
+                        poll.getParticipantCount(),
+                        submitted ? ParticipantStatus.SUBMITTED : null,
+                        toOffset(poll.getDeadlineAt()));
+            }
+        });
     }
 
     // 4. 링크 미리보기. 비로그인(member == null)도 호출할 수 있고, 참여 처리는 하지 않는다.

@@ -1,9 +1,12 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.service;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollErrorCode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollException;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollRepository;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollSubmissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -11,6 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 // 데이터를 바꾸는 요청(제출, 마감 변경, 종료, 공유)의 공통 처리 순서와 마감 처리.
@@ -23,15 +27,27 @@ import java.util.Optional;
 @Service
 public class SchedulePollTransactionService {
 
+    private static final int MIN_PARTICIPANTS_FOR_RESULT = 2;
+    private static final String CLOSED_PUSH_TITLE = "시간 맞추기가 마감됐어요";
+
     private final TransactionTemplate transactionTemplate;
     private final SchedulePollRepository schedulePollRepository;
+    private final SchedulePollSubmissionRepository schedulePollSubmissionRepository;
+    private final SchedulePollResultService schedulePollResultService;
+    private final FcmService fcmService;
     private final Clock clock;
 
     public SchedulePollTransactionService(PlatformTransactionManager transactionManager,
                                           SchedulePollRepository schedulePollRepository,
+                                          SchedulePollSubmissionRepository schedulePollSubmissionRepository,
+                                          SchedulePollResultService schedulePollResultService,
+                                          FcmService fcmService,
                                           Clock clock) {
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.schedulePollRepository = schedulePollRepository;
+        this.schedulePollSubmissionRepository = schedulePollSubmissionRepository;
+        this.schedulePollResultService = schedulePollResultService;
+        this.fcmService = fcmService;
         this.clock = clock;
     }
 
@@ -83,15 +99,43 @@ public class SchedulePollTransactionService {
         return outcome.result();
     }
 
+    // 마감 스케줄러용. 마감이 지난 조율 하나를 자기 트랜잭션에서 정리한다.
+    // 잠근 뒤 다시 확인해서, 이미 처리됐거나(요청이 먼저 정리) 그 사이 마감이 연장·해제됐으면 건너뛴다.
+    public boolean closeIfDue(Long pollId) {
+        Boolean closed = transactionTemplate.execute(status -> {
+            SchedulePoll poll = schedulePollRepository.findByIdForUpdate(pollId).orElse(null);
+            LocalDateTime now = LocalDateTime.now(clock);
+            if (poll == null || poll.isDeadlineProcessed() || !poll.isDeadlinePassed(now)) {
+                return false;
+            }
+            close(poll, now);
+            poll.increaseRevision();
+            return true;
+        });
+        return Boolean.TRUE.equals(closed);
+    }
+
     // 마감 처리. 요청 중 마감 도래, 개설자 종료, 마감 스케줄러가 모두 이 로직을 쓴다.
     // 조율 행을 잠근 트랜잭션 안에서만 호출한다. revision 증가는 호출하는 쪽이 한다.
     // 이미 처리했으면 아무것도 하지 않는다(여러 번 불려도 한 번만 처리).
-    // TODO(5단계): 참여자 2명 이상이면 최신 결과를 최종 결과로 고정하고 참여자에게 푸시
+    // 참여자 2명 이상이면 최신 결과를 최종 결과로 고정하고 참여자에게 푸시한다(푸시는 커밋 뒤 발송).
     public void close(SchedulePoll poll, LocalDateTime now) {
         if (poll.isClosed() || poll.isDeadlineProcessed()) {
             return;
         }
         poll.close(now);
+        if (poll.getParticipantCount() < MIN_PARTICIPANTS_FOR_RESULT) {
+            return;
+        }
+        schedulePollResultService.finalizeLatest(poll);
+
+        List<Long> memberIds = schedulePollSubmissionRepository.findAllInJoinOrder(poll.getId()).stream()
+                .map(submission -> submission.getMember().getId())
+                .toList();
+        // TODO: path는 웹(앱)이 실제로 처리하는 결과 화면 주소를 받아 바꾼다.
+        fcmService.prepareTrackedNotification(memberIds, CLOSED_PUSH_TITLE,
+                "「" + poll.getTitle() + "」 최종 결과를 확인해 보세요",
+                FcmMessageType.SCHEDULE_POLL, poll.getId(), "/schedule-polls/" + poll.getId());
     }
 
     private record Outcome<T>(T result, boolean closedByDeadline) {

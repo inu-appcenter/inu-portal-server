@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollSubmitRequestDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
@@ -98,5 +99,13 @@ public class SchedulePollController implements SchedulePollApiSpecification {
             @PathVariable Long pollId,
             @PathVariable int version) {
         return ResponseEntity.ok(ResponseDto.of(schedulePollResultService.getVersion(member, pollId, version), "결과 조회 성공"));
+    }
+
+    @PatchMapping("/{pollId}")
+    public ResponseEntity<ResponseDto<SchedulePollRevisionResponseDto>> update(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long pollId,
+            @RequestBody SchedulePollUpdateRequestDto request) {
+        return ResponseEntity.ok(ResponseDto.of(schedulePollService.update(member, pollId, request), "시간 맞추기 수정 성공"));
     }
 }

@@ -74,6 +74,11 @@ public class SchedulePollResult extends BaseTimeEntity {
         return new SchedulePollResult(poll, version, basedOnSubmittedAt, participantMemberIds, heatmap, candidates);
     }
 
+    // 조율이 끝날 때 최신 결과를 최종 결과로 고정한다.
+    public void markFinal() {
+        this.isFinal = true;
+    }
+
     public void markStale() {
         this.state = ResultState.STALE;
     }

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface SchedulePollRepository extends JpaRepository<SchedulePoll, Long> {
@@ -21,6 +22,10 @@ public interface SchedulePollRepository extends JpaRepository<SchedulePoll, Long
     Optional<SchedulePoll> findByLinkToken(String linkToken);
 
     boolean existsByLinkToken(String linkToken);
+
+    // 마감 스케줄러용. 마감 시각이 지났는데 아직 끝나지 않은 조율
+    @Query("SELECT p.id FROM SchedulePoll p WHERE p.status <> :closed AND p.deadlineAt <= :now ORDER BY p.deadlineAt ASC")
+    List<Long> findDueIds(@Param("closed") SchedulePollStatus closed, @Param("now") LocalDateTime now);
 
     // 폴링용. 조율 정보와 내 제출 여부를 쿼리 한 번으로 가져온다.
     @Query("""
