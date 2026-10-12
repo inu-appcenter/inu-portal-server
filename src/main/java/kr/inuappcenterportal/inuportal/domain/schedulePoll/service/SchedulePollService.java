@@ -1,10 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.service;
 
-import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollStatus;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Page;
-import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.MyPollFilter;
-import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollMyListItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatMemberStatus;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -14,11 +9,14 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.ScheduleP
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollMyListItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollRevisionResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.DurationMode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.JoinBlockReason;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.MyPollFilter;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.ParticipantStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.PollDay;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollErrorCode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollException;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
@@ -26,6 +24,8 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePo
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollSubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
