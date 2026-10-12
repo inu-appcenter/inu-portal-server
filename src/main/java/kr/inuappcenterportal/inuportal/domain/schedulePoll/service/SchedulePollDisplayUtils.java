@@ -21,17 +21,8 @@ public class SchedulePollDisplayUtils {
     }
 
     // 표시 이름: 실명이 있으면 실명, 없으면 닉네임
-    // TODO(8단계): 실명 필드가 생기면 실명을 먼저 쓴다.
     public static String displayName(Member member) {
-        return member.getNickname();
-    }
-
-    // 앞 4자리 + *** + 끝 2자리 (202401001 → 2024***01). 6자리 이하면 가릴 부분이 없어 전부 가린다.
-    public static String maskStudentId(String studentId) {
-        if (studentId == null || studentId.length() <= 6) {
-            return "***";
-        }
-        return studentId.substring(0, 4) + "***" + studentId.substring(studentId.length() - 2);
+        return member.getDisplayName();
     }
 
     // 정기면 요일(월), 일회성이면 날짜(10/12 (월))

@@ -1,9 +1,12 @@
 package kr.inuappcenterportal.inuportal.domain.member.service;
 
 import kr.inuappcenterportal.inuportal.domain.member.dto.*;
+import kr.inuappcenterportal.inuportal.domain.member.enums.RealNameSource;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.member.model.MemberNameConsent;
 import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
+import kr.inuappcenterportal.inuportal.domain.member.repository.MemberNameConsentRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
@@ -22,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +33,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class MemberService {
     private static final long LAST_SEEN_UPDATE_THRESHOLD_MINUTES = 5L;
+    // 실명: 2~30자, 한글·영문·공백
+    private static final Pattern REAL_NAME_PATTERN = Pattern.compile("[가-힣a-zA-Z ]{2,30}");
 
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
@@ -37,6 +43,7 @@ public class MemberService {
     private final BlockRepository blockRepository;
     private final SchoolDepartmentRepository schoolDepartmentRepository;
     private final DailyBriefService dailyBriefService;
+    private final MemberNameConsentRepository memberNameConsentRepository;
 
     private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
             "알림", "공지", "알람", "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
@@ -56,7 +63,12 @@ public class MemberService {
     @Transactional
     public Long updateMemberNicknameFireId(Long id, MemberUpdateNicknameDto memberUpdateNicknameDto) {
         Member member = memberRepository.findById(id).orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-        if (memberUpdateNicknameDto.getNickname() != null) {
+        boolean hasRealName = memberUpdateNicknameDto.getRealName() != null;
+        if (memberUpdateNicknameDto.getNickname() == null && memberUpdateNicknameDto.getFireId() == null) {
+            if (!hasRealName) {
+                throw new MyException(MyErrorCode.EMPTY_REQUEST);
+            }
+        } else if (memberUpdateNicknameDto.getNickname() != null) {
             validateNicknameKeywords(memberUpdateNicknameDto.getNickname());
             if (memberRepository.existsByNickname(memberUpdateNicknameDto.getNickname())) {
                 throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
@@ -69,12 +81,40 @@ public class MemberService {
             } else {
                 member.updateNickName(memberUpdateNicknameDto.getNickname());
             }
-        } else if (memberUpdateNicknameDto.getFireId() != null) {
-            member.updateFire(memberUpdateNicknameDto.getFireId());
         } else {
-            throw new MyException(MyErrorCode.EMPTY_REQUEST);
+            member.updateFire(memberUpdateNicknameDto.getFireId());
+        }
+        if (hasRealName) {
+            updateRealName(member, memberUpdateNicknameDto);
         }
         return member.getId();
+    }
+
+    // 실명: ""이면 삭제(포털 동의가 있었으면 철회 기록), 아니면 2~30자 한글·영문·공백.
+    // PORTAL_SCRAPE면 약관 버전이 필요하고 동의 기록을 시각과 함께 남긴다.
+    private void updateRealName(Member member, MemberUpdateNicknameDto dto) {
+        LocalDateTime now = LocalDateTime.now();
+        if (dto.getRealName().isEmpty()) {
+            if (member.getRealNameSource() == RealNameSource.PORTAL_SCRAPE) {
+                memberNameConsentRepository.save(MemberNameConsent.withdraw(member.getId(), now));
+            }
+            member.clearRealName();
+            return;
+        }
+        String realName = dto.getRealName().trim();
+        if (!REAL_NAME_PATTERN.matcher(realName).matches()) {
+            throw new MyException(MyErrorCode.INVALID_REAL_NAME);
+        }
+        if (dto.getRealNameSource() == null) {
+            throw new MyException(MyErrorCode.REAL_NAME_SOURCE_REQUIRED);
+        }
+        if (dto.getRealNameSource() == RealNameSource.PORTAL_SCRAPE) {
+            if (dto.getConsentTermsVersion() == null || dto.getConsentTermsVersion().isBlank()) {
+                throw new MyException(MyErrorCode.CONSENT_TERMS_VERSION_REQUIRED);
+            }
+            memberNameConsentRepository.save(MemberNameConsent.agree(member.getId(), dto.getConsentTermsVersion(), now));
+        }
+        member.updateRealName(realName, dto.getRealNameSource());
     }
 
     @Transactional

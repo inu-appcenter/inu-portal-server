@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.displayName;
-import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.maskStudentId;
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.toOffset;
 
 @Service
@@ -158,7 +157,7 @@ public class SchedulePollSubmissionService {
                         .map(s -> new SchedulePollParticipantsResponseDto.Participant(
                                 s.getMember().getId(),
                                 displayName(s.getMember()),
-                                maskStudentId(s.getMember().getStudentId()),
+                                s.getMember().getMaskedStudentId(),
                                 s.getMember().getId().equals(creatorId),
                                 toOffset(s.getJoinedAt()),
                                 toOffset(s.getSubmittedAt())))

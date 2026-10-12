@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.member.model;
 
+import kr.inuappcenterportal.inuportal.domain.member.enums.RealNameSource;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -51,6 +52,14 @@ public class Member implements UserDetails {
 
     @Column(nullable = false)
     private String nickname;
+
+    // 실명. 시간 맞추기 등에서 표시 이름으로 쓴다. 없으면 닉네임을 쓴다.
+    @Column(name = "real_name", length = 30)
+    private String realName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "real_name_source", length = 20)
+    private RealNameSource realNameSource;
 
     @Enumerated(EnumType.STRING)
     private Department department;
@@ -123,6 +132,28 @@ public class Member implements UserDetails {
     public void updateNickName(String nickname) {
         this.nickname = nickname;
         touchProfileModifiedAt();
+    }
+
+    public void updateRealName(String realName, RealNameSource realNameSource) {
+        this.realName = realName;
+        this.realNameSource = realNameSource;
+        touchProfileModifiedAt();
+    }
+
+    public void clearRealName() {
+        this.realName = null;
+        this.realNameSource = null;
+        touchProfileModifiedAt();
+    }
+
+    // 표시 이름: 실명이 있으면 실명, 없으면 닉네임
+    public String getDisplayName() {
+        return this.realName != null ? this.realName : this.nickname;
+    }
+
+    // 닉네임이 가입 때 정해진 학번 그대로이고 실명도 없으면, 앱이 이름 설정 화면으로 한 번 보낸다.
+    public boolean needsRealName() {
+        return this.realName == null && this.nickname != null && this.nickname.equals(this.studentId);
     }
 
     public void updateFire(Long fireId) {
