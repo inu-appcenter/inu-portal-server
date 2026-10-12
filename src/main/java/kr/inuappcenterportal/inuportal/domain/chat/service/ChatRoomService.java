@@ -102,6 +102,15 @@ public class ChatRoomService {
         int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
         MessageType messageType = messageDto.getMessageType() != null ? messageDto.getMessageType() : MessageType.TEXT;
+        String extraData = messageDto.getExtraData();
+        // 챗불이 답변·시간 맞추기 카드는 서버만 만든다. 사용자가 그 종류로 보내면 일반 메시지로 낮춰
+        // 다른 사람이 만든 카드나 챗불이 답변인 척하는 메시지가 남지 않게 한다.
+        if (messageType.isServerOnly()) {
+            log.warn("서버 전용 메시지 종류로 전송 시도 memberId:{}, roomId:{}, messageType:{}",
+                    memberId, messageDto.getRoomId(), messageType);
+            messageType = MessageType.TEXT;
+            extraData = null;
+        }
         boolean isBotQuestion = messageType == MessageType.BOT_QUESTION
                 || (messageDto.getContent() != null && messageDto.getContent().contains("[CHATBULI_QUESTION]"));
         if (isBotQuestion) {
@@ -117,7 +126,7 @@ public class ChatRoomService {
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
                 .messageType(messageType)
-                .extraData(messageDto.getExtraData())
+                .extraData(extraData)
                 .unreadCount(initialUnreadCount)
                 .createDate(now)
                 .build();
@@ -136,7 +145,7 @@ public class ChatRoomService {
                 .senderNickname(nickname)
                 .imageCount(messageDto.getImageCount())
                 .messageType(messageType)
-                .extraData(messageDto.getExtraData())
+                .extraData(extraData)
                 .createDate(now)
                 .modifiedDate(now)
                 .build();

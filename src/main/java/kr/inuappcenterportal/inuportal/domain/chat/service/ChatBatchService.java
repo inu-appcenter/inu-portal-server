@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.chat.service;
 
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatMessage;
+import kr.inuappcenterportal.inuportal.domain.chat.enums.MessageType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
@@ -22,6 +23,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ChatBatchService {
 
     private static final String INSERT_SQL = "INSERT INTO chat_message (id, chat_room_id, member_id, content, senderNickname, imageCount, messageType, extraData, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    // chat_message.extraData 컬럼 길이
+    private static final int MAX_EXTRA_DATA_LENGTH = 2000;
 
     private final JdbcTemplate jdbcTemplate;
     private final BlockingQueue<ChatMessage> messageQueue = new LinkedBlockingQueue<>();
@@ -75,8 +79,12 @@ public class ChatBatchService {
         ps.setString(4, message.getContent());
         ps.setString(5, message.getSenderNickname());
         ps.setInt(6, message.getImageCount());
-        ps.setString(7, message.getMessageType().name());
-        ps.setString(8, message.getExtraData());
+        // 부가 데이터가 컬럼보다 길면 저장이 실패해 메시지가 통째로 사라진다.
+        // 잘린 JSON은 쓸 수 없으니 부가 데이터 없이 일반 메시지로 저장한다(부가 데이터를 저장하지 않던 예전과 같은 결과).
+        boolean extraDataTooLong = message.getExtraData() != null
+                && message.getExtraData().length() > MAX_EXTRA_DATA_LENGTH;
+        ps.setString(7, extraDataTooLong ? MessageType.TEXT.name() : message.getMessageType().name());
+        ps.setString(8, extraDataTooLong ? null : message.getExtraData());
         ps.setTimestamp(9, Timestamp.valueOf(message.getCreateDate()));
         ps.setTimestamp(10, Timestamp.valueOf(message.getModifiedDate()));
     }
