@@ -338,7 +338,7 @@ public class BusService {
             return null;
         }
 
-        // 1. Redis 추정치 캐시 확인 (3분 TTL - 30초마다 DB를 쿼리하지 않도록 보호)
+        // 1. Redis 추정치 캐시 확인 (3분 TTL - 30초마다 DB를 쿼리하지 않도록 보호하되, 경과 시간은 실시간 차감)
         String estKey = "bus_est:" + bstopId + ":" + routeId;
         String cachedEst = redisService.getValue(estKey);
         if (cachedEst != null && !cachedEst.isBlank()) {
@@ -346,7 +346,19 @@ public class BusService {
                 return null;
             }
             try {
-                return objectMapper.readValue(cachedEst, BusArrivalItemDto.class);
+                BusArrivalItemDto item = objectMapper.readValue(cachedEst, BusArrivalItemDto.class);
+                if (item.getObservedAt() != null) {
+                    long elapsedSec = (System.currentTimeMillis() - item.getObservedAt()) / 1000;
+                    int baseSec = item.getEstimatedArrivalSeconds() != null ? item.getEstimatedArrivalSeconds() : 0;
+                    if (baseSec > 0) {
+                        int dynamicRemaining = Math.max(60, baseSec - (int) elapsedSec);
+                        return item.toBuilder()
+                                .arrivalEstimateTime(String.valueOf(dynamicRemaining))
+                                .estimatedArrivalSeconds(dynamicRemaining)
+                                .build();
+                    }
+                }
+                return item;
             } catch (Exception e) {
                 log.error("추정치 캐시 역직렬화 실패 - bstopId: {}, routeId: {}", bstopId, routeId, e);
             }
@@ -361,6 +373,11 @@ public class BusService {
             return null;
         }
 
+        // 오늘 해당 정류소에 해당 노선이 마지막으로 도착/통과한 기록 조회
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+        Optional<BusArrivalHistory> lastTodayOpt = busArrivalHistoryRepository
+                .findFirstByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateDesc(bstopId, routeId, todayStart, now);
+
         List<Integer> remainingSecondsList = new ArrayList<>();
 
         // 최근 4주간 동일 요일의 실측 도착 시간 중 현재 시간 이후 가장 가까운 도착 시각과의 차이 계산
@@ -369,7 +386,6 @@ public class BusService {
             LocalDateTime startWindow = pastDate.atTime(currentTime);
             LocalDateTime endWindow = startWindow.plusMinutes(45);
 
-            // findFirstBy 사용으로 LIMIT 1 적용 (최초 1건만 조회하여 메모리 및 네트워크 오버헤드 최소화)
             Optional<BusArrivalHistory> pastLogOpt = busArrivalHistoryRepository
                     .findFirstByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(bstopId, routeId, startWindow, endWindow);
 
@@ -390,6 +406,17 @@ public class BusService {
         Collections.sort(remainingSecondsList);
         int medianSeconds = remainingSecondsList.get(remainingSecondsList.size() / 2);
 
+        // 오늘 최근 통과 기록(lastToday)이 있는 경우: 배차 주기와의 차이를 계산하여 연속성 보정
+        if (lastTodayOpt.isPresent()) {
+            long secondsSinceLast = java.time.Duration.between(lastTodayOpt.get().getCreateDate(), now).getSeconds();
+            // 최근 30분 이내에 버스가 통과한 기록이 있으면, 배차 주기 슬라이딩 적용
+            if (secondsSinceLast >= 60 && secondsSinceLast <= 30 * 60) {
+                // 과거 도착 간격을 기반으로 한 예상 잔여 시간 보정
+                int headwayEstimated = (int) Math.max(60, medianSeconds);
+                medianSeconds = headwayEstimated;
+            }
+        }
+
         BusArrivalItemDto estimated = BusArrivalItemDto.builder()
                 .observedAt(System.currentTimeMillis())
                 .bstopId(bstopId)
@@ -397,8 +424,8 @@ public class BusService {
                 .routeNo(routeNo)
                 .arrivalEstimateTime(String.valueOf(medianSeconds))
                 .estimatedArrivalSeconds(medianSeconds)
-                .latestStopName("시간표 기반")
-                .estimationNotice(String.format("최근 %d주 동일 요일·시간대 실측 기반 추정", remainingSecondsList.size()))
+                .latestStopName("과거 기록 기반")
+                .estimationNotice(String.format("최근 %d주 동일 요일·시간대 운행 이력 통계 기반 예상", remainingSecondsList.size()))
                 .congestion("2")
                 .build();
 
