@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -13,7 +14,9 @@ public record SchedulePollShareResponseDto(
     public record Result(
             @Schema(description = "채팅방 ID", example = "25")
             Long chatRoomId,
-            @Schema(description = "카드 메시지 ID", example = "9001")
+            // 메시지 ID는 2^53을 넘어서 숫자로 내리면 브라우저에서 끝자리가 바뀐다. 채팅 조회 응답처럼 문자열로 내린다.
+            @Schema(description = "카드 메시지 ID", type = "string", example = "897327790404474987")
+            @JsonFormat(shape = JsonFormat.Shape.STRING)
             Long chatMessageId,
             @Schema(description = "true 새로 보냄 / false 이미 보낸 카드 재사용", example = "true")
             boolean created,
