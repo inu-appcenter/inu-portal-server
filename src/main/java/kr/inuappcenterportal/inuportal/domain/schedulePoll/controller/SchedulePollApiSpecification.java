@@ -1,5 +1,9 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.controller;
 
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.data.domain.Page;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.MyPollFilter;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollMyListItemResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -102,6 +106,55 @@ public interface SchedulePollApiSpecification {
     ResponseEntity<ResponseDto<SchedulePollRevisionResponseDto>> getRevision(
             @Parameter(hidden = true) @AuthenticationPrincipal Member member,
             @Parameter(description = "조율 ID") @PathVariable Long pollId);
+
+    @Operation(
+            summary = "내 조율 목록",
+            description = """
+                    내가 만들었거나 시간을 제출한 조율을 최근에 바뀐 순으로 돌려줍니다.
+                    <br>
+                    filter: ACTIVE(진행 중, 기본값) / CLOSED(끝났거나 마감이 지남). size는 최대 50입니다.
+                    <br>
+                    카드만 받고 아직 제출하지 않은 조율은 들어가지 않습니다.
+                    <br><br>
+                    """ + ERROR_DESCRIPTION
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "내 시간 맞추기 목록 조회 성공",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ResponseDto.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "data": {
+                                        "content": [
+                                          {
+                                            "pollId": 812,
+                                            "title": "회의 시간 맞추기",
+                                            "status": "RESULT_READY",
+                                            "isHost": true,
+                                            "myStatus": "SUBMITTED",
+                                            "participantCount": 3,
+                                            "deadlineAt": "2026-10-11T23:00:00+09:00",
+                                            "updatedAt": "2026-10-10T21:00:13+09:00"
+                                          }
+                                        ],
+                                        "totalElements": 1,
+                                        "totalPages": 1,
+                                        "size": 20,
+                                        "number": 0,
+                                        "first": true,
+                                        "last": true,
+                                        "empty": false,
+                                        "numberOfElements": 1
+                                      },
+                                      "msg": "내 시간 맞추기 목록 조회 성공"
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR(filter·page·size 형식 오류)")
+    })
+    ResponseEntity<ResponseDto<Page<SchedulePollMyListItemResponseDto>>> getMine(
+            @Parameter(hidden = true) @AuthenticationPrincipal Member member,
+            @Parameter(description = "ACTIVE 진행 중 / CLOSED 종료") @RequestParam(defaultValue = "ACTIVE") MyPollFilter filter,
+            @Parameter(description = "페이지 번호(0부터)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기(최대 50)") @RequestParam(defaultValue = "20") int size);
 
     @Operation(
             summary = "링크 미리보기",

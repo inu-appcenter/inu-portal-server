@@ -1,5 +1,8 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.controller;
 
+import org.springframework.data.domain.Page;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.MyPollFilter;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollMyListItemResponseDto;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollAddToTimetableRequestDto;
@@ -47,6 +50,15 @@ public class SchedulePollController implements SchedulePollApiSpecification {
             @Valid @RequestBody SchedulePollCreateRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ResponseDto.of(schedulePollService.create(member, request), "시간 맞추기 생성 성공"));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<ResponseDto<Page<SchedulePollMyListItemResponseDto>>> getMine(
+            @AuthenticationPrincipal Member member,
+            @RequestParam(defaultValue = "ACTIVE") MyPollFilter filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(ResponseDto.of(schedulePollService.getMine(member, filter, page, size), "내 시간 맞추기 목록 조회 성공"));
     }
 
     @GetMapping("/{pollId}")

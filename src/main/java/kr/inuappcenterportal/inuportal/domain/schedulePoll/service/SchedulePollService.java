@@ -1,5 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.service;
 
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.MyPollFilter;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollMyListItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.chat.enums.ChatMemberStatus;
 import kr.inuappcenterportal.inuportal.domain.chat.repository.ChatRoomMemberRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
@@ -47,6 +52,7 @@ import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.Schedu
 public class SchedulePollService {
 
     private static final String DEFAULT_TITLE = "회의 시간 맞추기";
+    private static final int MAX_MY_LIST_SIZE = 50;
     private static final int MIN_RANGE_START_MINUTES = 9 * 60;
     private static final int MAX_ONE_TIME_DAYS = 14;
     private static final Set<Integer> FIXED_DURATIONS = Set.of(30, 60, 90);
@@ -149,6 +155,32 @@ public class SchedulePollService {
                 view.getParticipantCount(),
                 view.getSubmittedCount() > 0 ? ParticipantStatus.SUBMITTED : null,
                 toOffset(view.getDeadlineAt()));
+    }
+
+    // 12. 내 조율 목록. 내가 만들었거나 시간을 제출한 조율을 최근에 바뀐 순으로 돌려준다.
+    @Transactional(readOnly = true)
+    public Page<SchedulePollMyListItemResponseDto> getMine(Member member, MyPollFilter filter, int page, int size) {
+        if (page < 0 || size < 1) {
+            throw new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR);
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        Page<SchedulePoll> polls = schedulePollRepository.findMine(member.getId(), filter == MyPollFilter.CLOSED,
+                SchedulePollStatus.CLOSED, now, PageRequest.of(page, Math.min(size, MAX_MY_LIST_SIZE)));
+
+        List<Long> pollIds = polls.getContent().stream().map(SchedulePoll::getId).toList();
+        Set<Long> submittedPollIds = pollIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(schedulePollSubmissionRepository.findSubmittedPollIds(member.getId(), pollIds));
+
+        return polls.map(poll -> new SchedulePollMyListItemResponseDto(
+                poll.getId(),
+                poll.getTitle(),
+                displayStatus(poll.getStatus(), poll.getDeadlineAt(), now),
+                poll.getCreator().getId().equals(member.getId()),
+                submittedPollIds.contains(poll.getId()) ? ParticipantStatus.SUBMITTED : null,
+                poll.getParticipantCount(),
+                toOffset(poll.getDeadlineAt()),
+                toOffset(poll.getModifiedDate())));
     }
 
     // 10. 마감 변경·해제·즉시 종료. 개설자만 할 수 있다.
