@@ -264,7 +264,7 @@ public class TimeTableAgentTool implements AgentTool {
     @Override
     public String formatNotification(ToolResult result, Map<String, Object> params) {
         if (result == null || !(result.rawData() instanceof Map<?, ?> data)) {
-            return result != null && result.summary() != null ? result.summary() : "오늘의 시간표 정보입니다.";
+            return null;
         }
 
         Object rawClasses = data.get("todayClasses");
@@ -279,7 +279,8 @@ public class TimeTableAgentTool implements AgentTool {
             }
         }
 
-        return "📅 오늘 예정된 강의 일정이 없습니다 (공강).";
+        // 시스템 강의 시간표 알림 스펙과 동일: 강의가 없는 날(공강)에는 알림 발송을 생략
+        return null;
     }
 
     @Override

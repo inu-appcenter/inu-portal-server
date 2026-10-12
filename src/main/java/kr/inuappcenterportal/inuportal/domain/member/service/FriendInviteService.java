@@ -126,8 +126,8 @@ public class FriendInviteService {
 
         fcmAsyncService.sendAsyncTrackedNotification(
                 List.of(owner.getId()),
-                "친구 추가",
-                accepter.getNickname() + "님과 친구가 되었습니다.",
+                accepter.getNickname() + "님과 친구가 되었어요.",
+                "친구의 시간표를 확인하거나 반가운 인사를 건네보세요!",
                 FcmMessageType.FRIEND,
                 friend.getId(),
                 "/friend/list");

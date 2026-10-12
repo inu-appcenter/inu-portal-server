@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.dailyBrief.service;
 
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.req.DailyBriefSettingRequestDto;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.res.DailyBriefSettingResponseDto;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.PreClassAlertMethod;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.model.DailyBriefSetting;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.repository.DailyBriefSettingRepository;
@@ -47,6 +48,7 @@ class DailyBriefServiceTest {
 
         // then
         assertThat(result.timetableAlertEnabled()).isTrue();
+        assertThat(result.timetablePreAlertMethod()).isEqualTo(PreClassAlertMethod.NOW_BAR);
         assertThat(result.timetablePreAlertMinutes()).isEqualTo(10);
         assertThat(result.timetableDailyBriefTime()).isEqualTo("08:00");
         assertThat(result.scheduleDailyBriefTime()).isEqualTo("08:30");

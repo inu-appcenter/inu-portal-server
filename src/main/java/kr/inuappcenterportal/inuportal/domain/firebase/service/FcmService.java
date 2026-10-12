@@ -1,21 +1,10 @@
 package kr.inuappcenterportal.inuportal.domain.firebase.service;
 
-import com.google.firebase.messaging.AndroidConfig;
-import com.google.firebase.messaging.ApnsConfig;
-import com.google.firebase.messaging.Aps;
-import com.google.firebase.messaging.ApsAlert;
-import com.google.firebase.messaging.BatchResponse;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.MessagingErrorCode;
-import com.google.firebase.messaging.MulticastMessage;
-import com.google.firebase.messaging.Notification;
-import com.google.firebase.messaging.SendResponse;
+import com.google.firebase.messaging.*;
+import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.AdminNotificationDispatch;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.LiveActivityStartPush;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.TrackedNotificationDispatch;
-import kr.inuappcenterportal.inuportal.domain.firebase.event.TrackedNotificationDispatchEvent;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.AdminNotificationRequest;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.LiveActivityTokenRequestDto;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.req.TokenRequestDto;
@@ -36,7 +25,6 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenReposi
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
@@ -60,13 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.PreparedStatement;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -75,8 +57,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class FcmService {
-
-    private static final long UNLINKED_MEMBER_ID = -1L;
 
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmMessageRepository fcmMessageRepository;
@@ -94,7 +74,10 @@ public class FcmService {
     private final NotificationReadStatsReader notificationReadStatsReader;
     private final ApplicationEventPublisher eventPublisher;
 
-    /** 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다. */
+    private static final long UNLINKED_MEMBER_ID = -1L;
+    /**
+     * 청크 하나의 응답을 기다리는 상한. 초과분은 실패가 아니라 '미확인'으로 남는다.
+     */
     private static final long BATCH_AWAIT_MILLIS = 60_000L;
     /**
      * 지수 백오프의 기준 간격. 재시도 n회차 대기 = BACKOFF_BASE × 2^(n-1) + 지터.
@@ -760,16 +743,9 @@ public class FcmService {
         return counts;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ListResponseDto<NotificationResponse> findNotifications(Member member, int page) {
         int pageIndex = page > 0 ? page - 1 : page;
-
-        if (pageIndex == 0 && member != null) {
-            // 1. 이전 방문들에서 이미 2회 이상 조회된 알림들을 일괄 읽음 처리
-            memberFcmMessageRepository.markAsReadByViewCount(member.getId(), 2, LocalDateTime.now());
-            // 2. 현재 회원의 모든 안 읽은 알림의 viewCount를 일괄 1 증가 (페이지 스크롤 여부에 상관없이 전체 적용)
-            memberFcmMessageRepository.incrementViewCountForAllUnread(member.getId());
-        }
 
         Pageable pageable = PageRequest.of(pageIndex, 10, Sort.by(Sort.Direction.DESC, "id"));
         Page<MemberFcmMessage> messages = memberFcmMessageRepository.findAllByMemberId(member.getId(), pageable);
@@ -861,7 +837,7 @@ public class FcmService {
         if (member == null) {
             return false;
         }
-        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalseAndViewCountLessThan(member.getId(), 2);
+        return memberFcmMessageRepository.existsByMemberIdAndIsReadFalseAndViewCountLessThan(member.getId(), NotificationViewService.AUTO_READ_VIEW_THRESHOLD); // 2
     }
 
     private MulticastMessage createMulticastMessage(List<String> tokens, String title, String body, FcmMessageType type, Long targetId, String path) {
@@ -1235,7 +1211,9 @@ public class FcmService {
         }
 
         if (!notificationTokens.isEmpty()) {
-            MulticastMessage message = createMulticastMessage(notificationTokens, title, body, type, null, path);
+            MulticastMessage message = isOngoingCandidateType(type, liveActivity)
+                    ? createOngoingMemberMessage(notificationTokens, title, body, type, path, fcmMessageId, liveActivity)
+                    : createMulticastMessage(notificationTokens, title, body, type, null, path, fcmMessageId);
             try {
                 BatchResponse response = fcmDispatchGate.send(message);
                 success += response.getSuccessCount();
@@ -1252,6 +1230,55 @@ public class FcmService {
 
         fcmTransactionService.updateFinalStatus(fcmMessageId, success, failure);
         log.info("Member push sent: type={}, memberId={}, success={}, failure={}", type, memberId, success, failure);
+    }
+
+    private boolean isOngoingCandidateType(FcmMessageType type, LiveActivityStartPush liveActivity) {
+        return type == FcmMessageType.DAILY_BRIEF_TIMETABLE && liveActivity != null;
+    }
+
+    /**
+     * 시간표 수업 시작 전 알림({@link FcmMessageType#DAILY_BRIEF_TIMETABLE}) 등 실시간 Ongoing Activity로
+     * 승격될 수 있는 회원 알림 메시지를 생성한다.
+     *
+     * <p>Android: <b>data-only (priority: HIGH)</b>. 최상위 notification 블록이 있으면 Android OS가
+     * 알림 카드를 시스템 트레이에 먼저 그려 버려, 클라이언트의 Live Update / Now Bar와 함께 2개가 중복으로
+     * 표시되는 문제가 발생한다. data-only로 발송하여 클라이언트 백그라운드 핸들러가 사용자 나우바 설정에 따라
+     * 실시간 나우바로 승격하거나(중복 없음) 일반 알림으로 표시하도록 제어권을 넘긴다.
+     *
+     * <p>iOS: push-to-start 토큰이 없는 기기이거나 Live Activity 발송에 실패한 폴백 대상이므로,
+     * APNs alert와 sound를 aps 블록에 실어 일반 알림 센터에 정상 노출되도록 한다.
+     */
+    private MulticastMessage createOngoingMemberMessage(List<String> tokens, String title, String body, FcmMessageType type, String path, Long fcmMessageId, LiveActivityStartPush liveActivity) {
+        Aps.Builder apsBuilder = Aps.builder()
+                .setAlert(ApsAlert.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .setSound("default");
+
+        MulticastMessage.Builder builder = MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .putData("type", type != null ? type.name() : "")
+                .putData("title", title)
+                .putData("body", body)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .build())
+                .setApnsConfig(ApnsConfig.builder()
+                        .putHeader("apns-priority", "10")
+                        .setAps(apsBuilder.build())
+                        .build());
+
+        if (liveActivity != null && liveActivity.propsJson() != null) {
+            builder.putData("liveProps", liveActivity.propsJson());
+        }
+        if (path != null && !path.isBlank()) {
+            builder.putData("path", path);
+        }
+        if (fcmMessageId != null) {
+            builder.putData("fcmMessageId", String.valueOf(fcmMessageId));
+        }
+        return builder.build();
     }
 
     private boolean sendLiveActivityStart(FcmToken fcmToken, String title, String body, LiveActivityStartPush liveActivity) {
@@ -1284,7 +1311,9 @@ public class FcmService {
                 Instant.now().getEpochSecond()));
     }
 
-    /** ActivityKit update/end 규격. alert는 싣지 않는다(조용히 갱신·종료). */
+    /**
+     * ActivityKit update/end 규격. alert는 싣지 않는다(조용히 갱신·종료).
+     */
     static Message createLiveActivityEventMessage(String fcmToken, String activityPushToken, String event,
                                                   String activityName, String propsJson, Long staleDateSec,
                                                   Long dismissalDateSec, long nowEpochSec) {

@@ -10,11 +10,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.AdminNotification
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.NotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.dto.res.ScheduledNotificationResponse;
 import kr.inuappcenterportal.inuportal.domain.firebase.model.ScheduledNotification;
-import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmAsyncService;
-import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmRetryService;
-import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
-import kr.inuappcenterportal.inuportal.domain.firebase.service.LiveActivityLifecycleService;
-import kr.inuappcenterportal.inuportal.domain.firebase.service.ScheduledNotificationService;
+import kr.inuappcenterportal.inuportal.domain.firebase.service.*;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
@@ -39,6 +35,7 @@ public class FcmController implements FcmApiSpecification {
     private final FcmAsyncService fcmAsyncService;
     private final ScheduledNotificationService scheduledNotificationService;
     private final FcmRetryService fcmRetryService;
+    private final NotificationViewService notificationViewService;
     private final LiveActivityLifecycleService liveActivityLifecycleService;
 
     @PostMapping("")
@@ -78,7 +75,12 @@ public class FcmController implements FcmApiSpecification {
             @AuthenticationPrincipal Member member,
             @RequestParam(required = false, defaultValue = "1") int page
     ) {
-        return ResponseEntity.ok(ResponseDto.of(fcmService.findNotifications(member, page), "알림 조회 성공"));
+        ListResponseDto<NotificationResponse> result = fcmService.findNotifications(member, page);
+        if (page <= 1 && member != null) {
+            notificationViewService.recordVisit(member.getId());
+        }
+
+        return ResponseEntity.ok(ResponseDto.of(result, "알림 조회 성공"));
     }
 
     @PatchMapping("/notifications/{memberFcmMessageId}/read")

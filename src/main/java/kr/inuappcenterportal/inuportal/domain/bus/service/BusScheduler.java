@@ -69,6 +69,10 @@ public class BusScheduler {
                 }
 
                 List<BusArrivalItemDto> rawArrivals = busApiService.fetchBusArrivals(stop.getBstopId());
+                if (rawArrivals == null) {
+                    log.warn("정류장({}) 공공데이터 API 장애/미응답으로 인해 이번 주기 캐시 갱신을 스킵합니다.", stop.getBstopId());
+                    continue;
+                }
 
                 // 실시간 도착 정보에 시간표 기반 추정치까지 백그라운드에서 사전 계산 및 보강
                 List<BusArrivalItemDto> finalArrivals = busService.augmentWithEstimatedArrivals(stop.getBstopId(), rawArrivals);

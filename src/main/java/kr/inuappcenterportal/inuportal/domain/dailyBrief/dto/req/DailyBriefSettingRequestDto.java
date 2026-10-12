@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.dailyBrief.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.PreClassAlertMethod;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
 
 @Schema(description = "Daily Brief 설정 변경 요청 DTO")
@@ -11,7 +12,10 @@ public record DailyBriefSettingRequestDto(
         @Schema(description = "수업 시작 전 알림 활성화 여부", example = "true")
         Boolean timetablePreAlertEnabled,
 
-        @Schema(description = "수업 시작 몇 분 전 알림 (10, 20, 30, 60)", example = "10")
+        @Schema(description = "수업 시작 전 알림 수신 방식 (NOW_BAR: 실시간 카드, PUSH: 일반 푸시 알림)", example = "NOW_BAR")
+        PreClassAlertMethod timetablePreAlertMethod,
+
+        @Schema(description = "수업 시작 몇 분 전 알림 (5, 10, 15, 20, 30, 45, 60)", example = "10")
         Integer timetablePreAlertMinutes,
 
         @Schema(description = "당일 강의 목록 브리핑 활성화 여부", example = "true")
@@ -42,8 +46,24 @@ public record DailyBriefSettingRequestDto(
             String scheduleDailyBriefTime,
             ScheduleScope scheduleScope
     ) {
-        this(timetableAlertEnabled, timetablePreAlertEnabled, timetablePreAlertMinutes,
+        this(timetableAlertEnabled, timetablePreAlertEnabled, null, timetablePreAlertMinutes,
                 timetableDailyBriefEnabled, timetableDailyBriefTime,
                 scheduleAlertEnabled, scheduleDailyBriefTime, scheduleScope, null);
+    }
+
+    public DailyBriefSettingRequestDto(
+            Boolean timetableAlertEnabled,
+            Boolean timetablePreAlertEnabled,
+            Integer timetablePreAlertMinutes,
+            Boolean timetableDailyBriefEnabled,
+            String timetableDailyBriefTime,
+            Boolean scheduleAlertEnabled,
+            String scheduleDailyBriefTime,
+            ScheduleScope scheduleScope,
+            String cardSettingsJson
+    ) {
+        this(timetableAlertEnabled, timetablePreAlertEnabled, null, timetablePreAlertMinutes,
+                timetableDailyBriefEnabled, timetableDailyBriefTime,
+                scheduleAlertEnabled, scheduleDailyBriefTime, scheduleScope, cardSettingsJson);
     }
 }

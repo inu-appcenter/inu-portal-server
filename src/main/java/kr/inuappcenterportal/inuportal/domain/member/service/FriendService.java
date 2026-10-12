@@ -62,8 +62,14 @@ public class FriendService {
                 .status(FriendStatus.PENDING)
                 .build();
         friendRepository.save(friend);
-
-        fcmAsyncService.sendAsyncTrackedNotification(List.of(receiver.getId()), "친구 요청", requester.getNickname() + "님이 친구 요청을 보냈습니다.", FcmMessageType.FRIEND, friend.getId(), "/chat/list?category=친구");
+        fcmAsyncService.sendAsyncTrackedNotification(
+                List.of(receiver.getId()),
+                requester.getNickname() + "님이 친구 요청을 보냈어요.",
+                "수락하고 서로의 시간표를 확인해보세요!",
+                FcmMessageType.FRIEND,
+                friend.getId(),
+                "/chat/list?category=친구"
+        );
     }
 
     @Transactional(readOnly = true)
@@ -131,7 +137,14 @@ public class FriendService {
 
         friend.accept();
 
-        fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 수락", friend.getReceiver().getNickname() + "님이 친구 요청을 수락했습니다.", FcmMessageType.FRIEND, friend.getId(), "/chat/list?category=친구");
+        fcmAsyncService.sendAsyncTrackedNotification(
+                List.of(friend.getRequester().getId()),
+                friend.getReceiver().getNickname() + "님이 친구 요청을 수락했어요.",
+                "친구의 시간표를 확인하거나 반가운 인사를 건네보세요!",
+                FcmMessageType.FRIEND,
+                friend.getId(),
+                "/chat/list?category=친구"
+        );
     }
 
     @Transactional
@@ -141,10 +154,6 @@ public class FriendService {
 
         if (!friend.getRequester().getId().equals(memberId) && !friend.getReceiver().getId().equals(memberId)) {
             throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
-        }
-
-        if (friend.getStatus() == FriendStatus.PENDING && friend.getReceiver().getId().equals(memberId)) {
-            fcmAsyncService.sendAsyncTrackedNotification(List.of(friend.getRequester().getId()), "친구 요청 결과", friend.getReceiver().getNickname() + "님이 친구 요청을 거절했습니다.", FcmMessageType.FRIEND, friend.getId(), "/chat/list?category=친구");
         }
 
         friendRepository.delete(friend);

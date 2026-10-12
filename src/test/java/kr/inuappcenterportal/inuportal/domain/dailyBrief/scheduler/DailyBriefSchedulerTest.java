@@ -191,7 +191,7 @@ class DailyBriefSchedulerTest {
                 eq("/timetable")
         );
 
-        org.assertj.core.api.Assertions.assertThat(titleCaptor.getValue()).isEqualTo("[Daily Brief] 오늘 예정된 강의가 1개 있어요 📚");
+        org.assertj.core.api.Assertions.assertThat(titleCaptor.getValue()).isEqualTo("[Daily Brief] 오늘 예정된 강의가 1개 있어요");
         org.assertj.core.api.Assertions.assertThat(bodyCaptor.getValue()).contains("모바일소프트웨어 (10:00~11:50, 정보기술대학 201호)");
     }
 }

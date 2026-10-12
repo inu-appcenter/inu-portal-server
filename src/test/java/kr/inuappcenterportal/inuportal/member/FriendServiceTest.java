@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,8 +75,8 @@ class FriendServiceTest {
 
         verify(fcmAsyncService).sendAsyncTrackedNotification(
                 eq(List.of(2L)),
-                eq("친구 요청"),
-                eq("requester님이 친구 요청을 보냈습니다."),
+                eq("requester님이 친구 요청을 보냈어요."),
+                eq("수락하고 서로의 시간표를 확인해보세요!"),
                 eq(FcmMessageType.FRIEND),
                 eq(100L),
                 eq("/chat/list?category=친구")
@@ -102,8 +103,8 @@ class FriendServiceTest {
 
         verify(fcmAsyncService).sendAsyncTrackedNotification(
                 eq(List.of(1L)),
-                eq("친구 수락"),
-                eq("receiver님이 친구 요청을 수락했습니다."),
+                eq("receiver님이 친구 요청을 수락했어요."),
+                eq("친구의 시간표를 확인하거나 반가운 인사를 건네보세요!"),
                 eq(FcmMessageType.FRIEND),
                 eq(100L),
                 eq("/chat/list?category=친구")
@@ -111,8 +112,8 @@ class FriendServiceTest {
     }
 
     @Test
-    @DisplayName("친구 거절 시 FCM 알림에 correct path (/chat/list?category=친구)가 전달되어야 한다")
-    void deleteFriend_reject_sendsFcmNotificationWithCorrectPath() {
+    @DisplayName("친구 거절 시 FCM 알림을 전송하지 않아야 한다")
+    void deleteFriend_reject_doesNotSendFcmNotification() {
         Member requester = Member.builder().studentId("202000001").roles(List.of("ROLE_USER")).build();
         requester.updateNicknameAndFire("requester", 1L);
         ReflectionTestUtils.setField(requester, "id", 1L);
@@ -128,13 +129,8 @@ class FriendServiceTest {
 
         friendService.deleteFriend(2L, 100L);
 
-        verify(fcmAsyncService).sendAsyncTrackedNotification(
-                eq(List.of(1L)),
-                eq("친구 요청 결과"),
-                eq("receiver님이 친구 요청을 거절했습니다."),
-                eq(FcmMessageType.FRIEND),
-                eq(100L),
-                eq("/chat/list?category=친구")
+        verify(fcmAsyncService, never()).sendAsyncTrackedNotification(
+                any(), any(), any(), any(), any(), any()
         );
         verify(friendRepository).delete(friend);
     }

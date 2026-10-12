@@ -47,13 +47,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/chat-rooms/*/messages/public").permitAll()
                         // 친구추가 링크는 비로그인 상태에서도 "누구의 링크인지" 미리보기가 가능해야 한다.
                         .requestMatchers(HttpMethod.GET, "/api/friends/invite/*").permitAll()
-                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/search/unified", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**", "/error").permitAll()
+                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/search/unified", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**", "/error").permitAll()
 
                         // 공통 GET 허용 설정
-                        .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/buses/**", "/api/buses", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags", "/api/semesters", "/api/search/unified").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/buses/**", "/api/buses", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags", "/api/semesters", "/api/search/unified", "/api/departments", "/api/course-offerings", "/api/course-offerings/**", "/api/syllabus", "/api/syllabus/**").permitAll()
+
 
                         // 인증 없이 접근 가능한 POST 설정
-                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**", "/api/agent/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**", "/api/agent/**", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**").permitAll()
 
                         // ADMIN 권한 전용 설정
                         .requestMatchers(HttpMethod.POST, "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync", "/api/semesters/sync", "/api/courses/sync", "/api/course-offerings/sync", "/api/course-offerings/legacy", "/api/syllabus", "/api/search/admin/**").hasRole("ADMIN")

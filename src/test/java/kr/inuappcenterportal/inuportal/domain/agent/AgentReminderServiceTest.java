@@ -398,4 +398,38 @@ class AgentReminderServiceTest {
         assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(10, 0))).isTrue();
         assertThat(agentReminderService.isReminderDue(reminder, today, LocalTime.of(11, 0))).isFalse();
     }
+
+    @Test
+    @DisplayName("강의가 없는 날(공강) 시간표 루틴은 FCM 알림 발송을 생략해야 한다")
+    void dispatchDueReminders_skipNotification_whenNoClasses() {
+        // given
+        Member member = createTestMember(1L);
+        LocalDate today = LocalDate.now();
+        String currentTimeStr = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+
+        AgentReminder reminder = AgentReminder.builder()
+                .member(member)
+                .title("오늘 강의 시간표 알림")
+                .targetTime(currentTimeStr)
+                .repeatType(AgentReminderRepeatType.EVERYDAY)
+                .targetTool("TIMETABLE")
+                .route("/timetable")
+                .enabled(true)
+                .build();
+
+        given(agentReminderRepository.findAllActive()).willReturn(List.of(reminder));
+
+        // TIMETABLE 도구가 공강이라 null을 반환
+        AgentTool timeTableTool = org.mockito.Mockito.mock(AgentTool.class);
+        AgentTool.ToolResult emptyResult = AgentTool.ToolResult.of("공강", null, Map.of("todayClasses", Collections.emptyList()));
+        given(agentToolRegistry.execute(eq("TIMETABLE"), eq(member), anyMap())).willReturn(emptyResult);
+        given(agentToolRegistry.findTool("TIMETABLE")).willReturn(Optional.of(timeTableTool));
+        given(timeTableTool.formatNotification(eq(emptyResult), anyMap())).willReturn(null);
+
+        // when
+        agentReminderService.dispatchDueReminders();
+
+        // then: FCM 발송이 호출되지 않아야 함
+        verify(fcmService, never()).sendDailyBriefNotification(any(), any(), any(), any(), any());
+    }
 }

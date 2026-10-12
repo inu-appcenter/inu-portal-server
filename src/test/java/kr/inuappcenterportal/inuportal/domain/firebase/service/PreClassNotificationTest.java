@@ -85,7 +85,15 @@ class PreClassNotificationTest {
         verify(fcmDispatchGate, times(1)).sendOne(any(Message.class));
         ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
         verify(fcmDispatchGate).send(captor.capture());
-        assertThat((List<String>) ReflectionTestUtils.getField(captor.getValue(), "tokens")).containsExactly("android");
+        MulticastMessage sentMessage = captor.getValue();
+        assertThat((List<String>) ReflectionTestUtils.getField(sentMessage, "tokens")).containsExactly("android");
+        // Android 중복 시스템 알림 방지: 최상위 notification은 null이어야 하고 data 블록에 title/body가 실려야 한다
+        assertThat(ReflectionTestUtils.getField(sentMessage, "notification")).isNull();
+        java.util.Map<String, String> data = (java.util.Map<String, String>) ReflectionTestUtils.getField(sentMessage, "data");
+        assertThat(data).containsEntry("type", "DAILY_BRIEF_TIMETABLE")
+                .containsEntry("title", "title")
+                .containsEntry("body", "body")
+                .containsEntry("path", "/timetable");
         verify(fcmTransactionService).updateFinalStatus(1L, 2, 0);
     }
 
@@ -131,6 +139,26 @@ class PreClassNotificationTest {
         fcmService.sendPreClassNotification(MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable", PUSH);
 
         verify(fcmDispatchGate, never()).send(any(MulticastMessage.class));
+        verify(fcmTransactionService).updateFinalStatus(1L, 1, 0);
+    }
+
+    @Test
+    @DisplayName("liveActivity가 없는 시간표 데일리 브리프는 시스템 알림 노출을 위해 notification 블록을 포함한다")
+    void dailyBriefWithoutLiveActivityIncludesNotificationPayload() throws Exception {
+        when(fcmTokenRepository.findFcmTokensByMemberIds(List.of(MEMBER_ID)))
+                .thenReturn(List.of(token("android", null)));
+        BatchResponse response = batch(1, 0);
+        when(fcmDispatchGate.send(any(MulticastMessage.class))).thenReturn(response);
+
+        fcmService.sendDailyBriefNotification(MEMBER_ID, "title", "body", FcmMessageType.DAILY_BRIEF_TIMETABLE, "/timetable");
+
+        ArgumentCaptor<MulticastMessage> captor = ArgumentCaptor.forClass(MulticastMessage.class);
+        verify(fcmDispatchGate).send(captor.capture());
+        MulticastMessage sentMessage = captor.getValue();
+        assertThat(ReflectionTestUtils.getField(sentMessage, "notification")).isNotNull();
+        java.util.Map<String, String> data = (java.util.Map<String, String>) ReflectionTestUtils.getField(sentMessage, "data");
+        assertThat(data).containsEntry("type", "DAILY_BRIEF_TIMETABLE")
+                .containsEntry("path", "/timetable");
         verify(fcmTransactionService).updateFinalStatus(1L, 1, 0);
     }
 }

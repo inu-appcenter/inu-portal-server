@@ -105,6 +105,42 @@ public class ScheduleAgentTool implements AgentTool {
     }
 
     @Override
+    public String formatNotification(ToolResult result, Map<String, Object> params) {
+        if (result == null || !(result.rawData() instanceof Map<?, ?> allSchedules) || allSchedules.isEmpty()) {
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        List<ScheduleResponseDto> schoolSchedules = (List<ScheduleResponseDto>) allSchedules.get("school");
+        @SuppressWarnings("unchecked")
+        List<ScheduleResponseDto> deptSchedules = (List<ScheduleResponseDto>) allSchedules.get("department");
+
+        boolean hasSchool = schoolSchedules != null && !schoolSchedules.isEmpty();
+        boolean hasDept = deptSchedules != null && !deptSchedules.isEmpty();
+
+        if (!hasSchool && !hasDept) {
+            // 시스템 학사일정 알림 스펙과 동일: 예정된 학사일정이 없는 경우 알림 발송 생략
+            return null;
+        }
+
+        List<String> entries = new ArrayList<>();
+        if (hasSchool) {
+            for (int i = 0; i < Math.min(schoolSchedules.size(), 2); i++) {
+                ScheduleResponseDto s = schoolSchedules.get(i);
+                entries.add(String.format("• [학교] %s (%s~%s)", s.getTitle(), s.getStart(), s.getEnd()));
+            }
+        }
+        if (hasDept) {
+            for (int i = 0; i < Math.min(deptSchedules.size(), 2); i++) {
+                ScheduleResponseDto s = deptSchedules.get(i);
+                entries.add(String.format("• [학과] %s (%s~%s)", s.getTitle(), s.getStart(), s.getEnd()));
+            }
+        }
+
+        return String.join("\n", entries);
+    }
+
+    @Override
     public boolean supportsFallback(String message, java.util.List<kr.inuappcenterportal.inuportal.domain.agent.dto.ChatMessageDto> history) {
         if (message == null || message.isBlank()) return false;
         String lower = message.toLowerCase();

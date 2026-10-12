@@ -335,12 +335,40 @@ public class DirectoryAgentTool implements AgentTool {
         String trimmed = rawQuery != null ? rawQuery.trim() : "";
         boolean isGeneric = isGenericContactTerm(trimmed);
 
-        if ((trimmed.isBlank() || isGeneric) && params != null && params.containsKey("_clientContext")) {
-            Object clientCtxObj = params.get("_clientContext");
-            if (clientCtxObj instanceof Map<?, ?> clientCtx) {
-                String advisorName = extractAdvisorFromClientContext(clientCtx);
-                if (advisorName != null && !advisorName.isBlank()) {
-                    return advisorName;
+        if (trimmed.isBlank() || isGeneric) {
+            // 1. 대화 내역(_history)에서 가장 최근 언급된 실제 교수 성함/학과 추출
+            if (params != null && params.containsKey("_history")) {
+                Object historyObj = params.get("_history");
+                if (historyObj instanceof List<?> historyList) {
+                    for (int i = historyList.size() - 1; i >= 0; i--) {
+                        Object item = historyList.get(i);
+                        String content = null;
+                        if (item instanceof ChatMessageDto chat) {
+                            content = chat.content();
+                        } else if (item instanceof Map<?, ?> map) {
+                            content = (String) map.get("content");
+                        }
+                        if (content != null) {
+                            Matcher m = HISTORY_NAME_PATTERN.matcher(content);
+                            while (m.find()) {
+                                String candidate = m.group(1).trim();
+                                if (!NON_NAME_PREFIXES.contains(candidate)) {
+                                    return candidate;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. _clientContext에서 지도교수명 확인
+            if (params != null && params.containsKey("_clientContext")) {
+                Object clientCtxObj = params.get("_clientContext");
+                if (clientCtxObj instanceof Map<?, ?> clientCtx) {
+                    String advisorName = extractAdvisorFromClientContext(clientCtx);
+                    if (advisorName != null && !advisorName.isBlank()) {
+                        return advisorName;
+                    }
                 }
             }
         }
@@ -369,9 +397,12 @@ public class DirectoryAgentTool implements AgentTool {
         if (term == null || term.isBlank()) return true;
         String normalized = term.replaceAll("\\s+", "");
         return normalized.equals("전화번호") || normalized.equals("이메일") || normalized.equals("연락처")
-                || normalized.equals("번호") || normalized.equals("연구실") || normalized.equals("지도교수")
-                || normalized.equals("지도교수님") || normalized.equals("교수님") || normalized.equals("교수")
-                || normalized.contains("전화번호나이메일") || normalized.contains("이메일이나전화번호");
+                || normalized.equals("번호") || normalized.equals("연구실") || normalized.equals("위치")
+                || normalized.equals("사무실") || normalized.equals("과사")
+                || normalized.equals("지도교수") || normalized.equals("지도교수님") || normalized.equals("교수님") || normalized.equals("교수")
+                || normalized.contains("전화번호나이메일") || normalized.contains("이메일이나전화번호")
+                || normalized.contains("전화번호알려줘") || normalized.contains("연락처알려줘") || normalized.contains("번호알려줘")
+                || normalized.contains("전화번호누구야") || normalized.contains("번호누구야") || normalized.contains("연락처누구야");
     }
 
     private String cleanQuery(String query) {

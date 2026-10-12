@@ -27,6 +27,11 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Override
+    public void addFormatters(org.springframework.format.FormatterRegistry registry) {
+        registry.addConverter(new kr.inuappcenterportal.inuportal.domain.semester.converter.SemesterTermConverter());
+    }
+
+    @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/images/**")
                 .allowedOrigins("*")

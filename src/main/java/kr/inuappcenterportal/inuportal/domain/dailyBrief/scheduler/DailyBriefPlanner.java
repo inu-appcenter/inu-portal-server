@@ -7,9 +7,11 @@ import kr.inuappcenterportal.inuportal.domain.course.repository.CourseMeetingRep
 import kr.inuappcenterportal.inuportal.domain.course.service.CourseMeetingService;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.model.CustomScheduleMeeting;
 import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomScheduleMeetingRepository;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.PreClassAlertMethod;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.model.DailyBriefSetting;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.repository.DailyBriefSettingRepository;
+import kr.inuappcenterportal.inuportal.domain.firebase.dto.LiveActivityStartPush;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
@@ -71,12 +73,12 @@ public class DailyBriefPlanner {
         }
 
         Semester currentSemester = openSemesterOpt.get();
-        DayOfWeek today = toDomainDayOfWeek(LocalDate.now().getDayOfWeek());
+        DayOfWeek today = toDomainDayOfWeek(LocalDate.now(SEOUL).getDayOfWeek());
         if (today == null) {
             return notifications;
         }
 
-        LocalTime now = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+        LocalTime now = LocalTime.now(SEOUL).truncatedTo(ChronoUnit.MINUTES);
         List<DailyBriefSetting> settings = dailyBriefSettingRepository.findAllTimetablePreAlertEnabled();
 
         for (DailyBriefSetting setting : settings) {
@@ -115,14 +117,18 @@ public class DailyBriefPlanner {
                                 entry.endTime().format(TIME_FORMATTER),
                                 locationInfo);
 
+                        LiveActivityStartPush liveActivity = (setting.getTimetablePreAlertMethod() == PreClassAlertMethod.NOW_BAR)
+                                ? PreClassLiveActivity.of(entry.title(), entry.location(), LocalDate.now(SEOUL),
+                                        entry.startTime(), entry.endTime(), alertMinutes, SEOUL)
+                                : null;
+
                         notifications.add(new BriefNotification(
                                 member.getId(),
                                 title,
                                 body,
                                 FcmMessageType.DAILY_BRIEF_TIMETABLE,
                                 "/timetable",
-                                PreClassLiveActivity.of(entry.title(), entry.location(), LocalDate.now(SEOUL),
-                                        entry.startTime(), entry.endTime(), alertMinutes, SEOUL)
+                                liveActivity
                         ));
                     }
                 }
@@ -145,12 +151,12 @@ public class DailyBriefPlanner {
         }
 
         Semester currentSemester = openSemesterOpt.get();
-        DayOfWeek today = toDomainDayOfWeek(LocalDate.now().getDayOfWeek());
+        DayOfWeek today = toDomainDayOfWeek(LocalDate.now(SEOUL).getDayOfWeek());
         if (today == null) {
             return notifications;
         }
 
-        String currentTimeStr = LocalTime.now().format(TIME_FORMATTER);
+        String currentTimeStr = LocalTime.now(SEOUL).format(TIME_FORMATTER);
         List<DailyBriefSetting> settings = dailyBriefSettingRepository.findAllTimetableDailyBriefByTime(currentTimeStr);
 
         for (DailyBriefSetting setting : settings) {
@@ -174,7 +180,7 @@ public class DailyBriefPlanner {
                 // 시작 시간 순 정렬
                 todayEntries.sort(Comparator.comparing(ClassScheduleEntry::startTime));
 
-                String title = String.format("[Daily Brief] 오늘 예정된 강의가 %d개 있어요 📚", todayEntries.size());
+                String title = String.format("[Daily Brief] 오늘 예정된 강의가 %d개 있어요", todayEntries.size());
                 StringBuilder bodyBuilder = new StringBuilder();
                 for (int i = 0; i < todayEntries.size(); i++) {
                     ClassScheduleEntry entry = todayEntries.get(i);
@@ -214,14 +220,14 @@ public class DailyBriefPlanner {
     @Transactional(readOnly = true)
     public List<BriefNotification> planDailyScheduleBriefing() {
         List<BriefNotification> notifications = new ArrayList<>();
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(SEOUL);
         // 연속 일정은 시작일에만 브리핑한다.
         List<Schedule> todayStartingSchedules = scheduleRepository.findAllStartingOn(today);
         if (todayStartingSchedules.isEmpty()) {
             return notifications;
         }
 
-        String currentTimeStr = LocalTime.now().format(TIME_FORMATTER);
+        String currentTimeStr = LocalTime.now(SEOUL).format(TIME_FORMATTER);
         List<DailyBriefSetting> settings = dailyBriefSettingRepository.findAllScheduleDailyBriefByTime(currentTimeStr);
 
         for (DailyBriefSetting setting : settings) {

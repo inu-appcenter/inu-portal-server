@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @Builder
 @NoArgsConstructor
@@ -23,6 +25,9 @@ public class UnifiedSearchResponseDto {
 
     @Schema(description = "검색된 전체 결과 수")
     private long totalCount;
+
+    @Schema(description = "연관도 점수 기준 섹션 동적 정렬 순서", example = "[\"DIRECTORY\", \"NOTICE\", \"COURSE\"]")
+    private List<SearchTab> sectionOrder;
 
     @Schema(description = "학교 공지사항 섹션")
     private UnifiedSectionDto<NoticeSearchItemDto> notices;
