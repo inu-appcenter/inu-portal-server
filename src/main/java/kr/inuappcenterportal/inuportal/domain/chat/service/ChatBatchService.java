@@ -3,10 +3,14 @@ package kr.inuappcenterportal.inuportal.domain.chat.service;
 import kr.inuappcenterportal.inuportal.domain.chat.domain.ChatMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +20,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Slf4j
 @Service
 public class ChatBatchService {
+
+    private static final String INSERT_SQL = "INSERT INTO chat_message (id, chat_room_id, member_id, content, senderNickname, imageCount, messageType, extraData, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private final JdbcTemplate jdbcTemplate;
     private final BlockingQueue<ChatMessage> messageQueue = new LinkedBlockingQueue<>();
@@ -39,22 +45,39 @@ public class ChatBatchService {
 
         log.info("DB에 메시지 저장 중 {} ", messagesToSave.size());
 
-        String sql = "INSERT INTO chat_message (id, chat_room_id, member_id, content, senderNickname, imageCount, messageType, extraData, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try {
+            jdbcTemplate.batchUpdate(INSERT_SQL, messagesToSave, messagesToSave.size(), ChatBatchService::bind);
+        } catch (DataAccessException e) {
+            // 한 건 때문에 묶음 전체가 실패하면 나머지 메시지까지 사라진다. 한 건씩 다시 저장해 문제 있는 메시지만 걸러낸다.
+            log.error("채팅 메시지 묶음 저장 실패, 한 건씩 다시 저장합니다. size:{}", messagesToSave.size(), e);
+            saveOneByOne(messagesToSave);
+        }
+    }
 
-        jdbcTemplate.batchUpdate(sql,
-                messagesToSave,
-                messagesToSave.size(),
-                (ps, message) -> {
-                    ps.setLong(1, message.getId());
-                    ps.setLong(2, message.getChatRoom().getId());
-                    ps.setLong(3, message.getSender().getId());
-                    ps.setString(4, message.getContent());
-                    ps.setString(5, message.getSenderNickname());
-                    ps.setInt(6, message.getImageCount());
-                    ps.setString(7, message.getMessageType().name());
-                    ps.setString(8, message.getExtraData());
-                    ps.setTimestamp(9, Timestamp.valueOf(message.getCreateDate()));
-                    ps.setTimestamp(10, Timestamp.valueOf(message.getModifiedDate()));
-                });
+    private void saveOneByOne(List<ChatMessage> messages) {
+        for (ChatMessage message : messages) {
+            try {
+                jdbcTemplate.update(INSERT_SQL, ps -> bind(ps, message));
+            } catch (DuplicateKeyException e) {
+                // 묶음 저장이 일부만 반영된 뒤 실패한 경우. 이미 저장된 메시지다.
+                log.debug("이미 저장된 채팅 메시지 messageId:{}", message.getId());
+            } catch (DataAccessException e) {
+                log.error("채팅 메시지 저장 실패 messageId:{}, roomId:{}, messageType:{}",
+                        message.getId(), message.getChatRoom().getId(), message.getMessageType(), e);
+            }
+        }
+    }
+
+    private static void bind(PreparedStatement ps, ChatMessage message) throws SQLException {
+        ps.setLong(1, message.getId());
+        ps.setLong(2, message.getChatRoom().getId());
+        ps.setLong(3, message.getSender().getId());
+        ps.setString(4, message.getContent());
+        ps.setString(5, message.getSenderNickname());
+        ps.setInt(6, message.getImageCount());
+        ps.setString(7, message.getMessageType().name());
+        ps.setString(8, message.getExtraData());
+        ps.setTimestamp(9, Timestamp.valueOf(message.getCreateDate()));
+        ps.setTimestamp(10, Timestamp.valueOf(message.getModifiedDate()));
     }
 }
