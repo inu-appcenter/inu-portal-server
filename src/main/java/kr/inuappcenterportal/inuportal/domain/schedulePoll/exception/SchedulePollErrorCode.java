@@ -29,6 +29,8 @@ public enum SchedulePollErrorCode {
     RESULT_NOT_READY(HttpStatus.CONFLICT, "아직 결과가 없어요"),
     NO_PRIMARY_TIMETABLE(HttpStatus.CONFLICT, "시간표를 먼저 만들어 주세요"),
     ONE_TIME_NOT_SUPPORTED(HttpStatus.CONFLICT, "일회성 약속은 시간표에 추가할 수 없어요"),
+    // 명세서에 없는 코드. 내 시간표에 추가할 때 이미 있는 수업·일정과 시간이 겹침
+    TIMETABLE_CONFLICT(HttpStatus.CONFLICT, "시간표에 겹치는 일정이 있어요"),
 
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "잠시 후 다시 시도해 주세요");
 

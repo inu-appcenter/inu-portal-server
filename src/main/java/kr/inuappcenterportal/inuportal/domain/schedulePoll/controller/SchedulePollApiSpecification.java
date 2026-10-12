@@ -10,10 +10,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollAddToTimetableRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollShareRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollSubmitRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollAddToTimetableResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
@@ -278,4 +280,31 @@ public interface SchedulePollApiSpecification {
             @Parameter(hidden = true) @AuthenticationPrincipal Member member,
             @Parameter(description = "조율 ID") @PathVariable Long pollId,
             @Valid @RequestBody SchedulePollShareRequestDto request);
+
+    @Operation(
+            summary = "내 시간표에 추가",
+            description = """
+                    결과 후보를 지금 학기(진행 중, 없으면 가장 최근 학기) 대표 시간표에 매주 반복 일정으로 추가합니다.
+                    <br>
+                    제목 = 조율 제목, 요일 = 후보 요일, 시각 = 후보 시간(24:00은 23:59로 저장), 장소 없음
+                    <br>
+                    판정 순서: 참여자 아님(NOT_PARTICIPANT) → 최신·최종 버전 아님(RESULT_STALE) → 이미 추가함(200, alreadyAdded = true)
+                    → 일회성(ONE_TIME_NOT_SUPPORTED) → 대표 시간표 없음(NO_PRIMARY_TIMETABLE) → 기존 일정과 겹침(TIMETABLE_CONFLICT)
+                    <br>
+                    추가한 일정을 시간표에서 지웠다면 다시 추가합니다.
+                    <br><br>
+                    """ + ERROR_DESCRIPTION
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "내 시간표에 추가 성공"),
+            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR(없는 후보 순위)"),
+            @ApiResponse(responseCode = "403", description = "NOT_PARTICIPANT"),
+            @ApiResponse(responseCode = "404", description = "POLL_NOT_FOUND(없는 조율 또는 버전)"),
+            @ApiResponse(responseCode = "409", description = "RESULT_STALE / ONE_TIME_NOT_SUPPORTED / NO_PRIMARY_TIMETABLE / TIMETABLE_CONFLICT")
+    })
+    ResponseEntity<ResponseDto<SchedulePollAddToTimetableResponseDto>> addToTimetable(
+            @Parameter(hidden = true) @AuthenticationPrincipal Member member,
+            @Parameter(description = "조율 ID") @PathVariable Long pollId,
+            @Parameter(description = "결과 버전") @PathVariable int version,
+            @Valid @RequestBody SchedulePollAddToTimetableRequestDto request);
 }
