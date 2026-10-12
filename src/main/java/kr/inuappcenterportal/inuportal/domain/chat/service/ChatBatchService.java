@@ -39,7 +39,7 @@ public class ChatBatchService {
 
         log.info("DB에 메시지 저장 중 {} ", messagesToSave.size());
 
-        String sql = "INSERT INTO chat_message (id, chat_room_id, member_id, content, senderNickname, imageCount, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO chat_message (id, chat_room_id, member_id, content, senderNickname, imageCount, messageType, extraData, create_date, modified_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.batchUpdate(sql,
                 messagesToSave,
@@ -51,8 +51,10 @@ public class ChatBatchService {
                     ps.setString(4, message.getContent());
                     ps.setString(5, message.getSenderNickname());
                     ps.setInt(6, message.getImageCount());
-                    ps.setTimestamp(7, Timestamp.valueOf(message.getCreateDate()));
-                    ps.setTimestamp(8, Timestamp.valueOf(message.getModifiedDate()));
+                    ps.setString(7, message.getMessageType().name());
+                    ps.setString(8, message.getExtraData());
+                    ps.setTimestamp(9, Timestamp.valueOf(message.getCreateDate()));
+                    ps.setTimestamp(10, Timestamp.valueOf(message.getModifiedDate()));
                 });
     }
 }
