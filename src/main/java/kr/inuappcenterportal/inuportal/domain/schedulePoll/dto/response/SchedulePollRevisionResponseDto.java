@@ -11,8 +11,8 @@ public record SchedulePollRevisionResponseDto(
         long revision,
         @Schema(description = "상태. 마감 시각이 지났으면 CLOSED", example = "RESULT_READY")
         SchedulePollStatus status,
-        @Schema(description = "결과 번호", example = "2")
-        int resultVersion,
+        @Schema(description = "결과 번호(1부터). 아직 결과가 없으면 null", example = "2", nullable = true)
+        Integer resultVersion,
         @Schema(description = "참여자 수", example = "3")
         int participantCount,
         @Schema(description = "SUBMITTED / null", example = "SUBMITTED")

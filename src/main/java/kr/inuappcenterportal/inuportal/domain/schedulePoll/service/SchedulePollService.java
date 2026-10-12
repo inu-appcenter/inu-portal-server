@@ -131,7 +131,7 @@ public class SchedulePollService {
                 SchedulePoll.MAX_PARTICIPANTS,
                 linkUrl(poll.getLinkToken()),
                 poll.getRevision(),
-                poll.getResultVersion(),
+                resultVersionOrNull(poll.getResultVersion()),
                 toOffset(poll.isDeadlinePassed(now) ? poll.getDeadlineAt() : poll.getClosedAt()));
     }
 
@@ -145,7 +145,7 @@ public class SchedulePollService {
         return new SchedulePollRevisionResponseDto(
                 view.getRevision(),
                 displayStatus(view.getStatus(), view.getDeadlineAt(), now),
-                view.getResultVersion(),
+                resultVersionOrNull(view.getResultVersion()),
                 view.getParticipantCount(),
                 view.getSubmittedCount() > 0 ? ParticipantStatus.SUBMITTED : null,
                 toOffset(view.getDeadlineAt()));
@@ -183,7 +183,7 @@ public class SchedulePollService {
                 return new SchedulePollRevisionResponseDto(
                         poll.getRevision(),
                         poll.getStatus(),
-                        poll.getResultVersion(),
+                        resultVersionOrNull(poll.getResultVersion()),
                         poll.getParticipantCount(),
                         submitted ? ParticipantStatus.SUBMITTED : null,
                         toOffset(poll.getDeadlineAt()));
@@ -301,5 +301,10 @@ public class SchedulePollService {
 
     private String linkUrl(String linkToken) {
         return baseUrl + "/schedule-polls/join/" + linkToken;
+    }
+
+    // 결과가 아직 없으면(내부 값 0) 응답에는 null로 내린다. 제출 응답의 resultVersion과 같은 규칙이다.
+    private static Integer resultVersionOrNull(int resultVersion) {
+        return resultVersion == 0 ? null : resultVersion;
     }
 }

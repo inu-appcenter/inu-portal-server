@@ -43,8 +43,8 @@ public record SchedulePollDetailResponseDto(
         String linkUrl,
         @Schema(description = "변경 번호", example = "14")
         long revision,
-        @Schema(description = "결과 번호", example = "2")
-        int resultVersion,
+        @Schema(description = "결과 번호(1부터). 아직 결과가 없으면 null", example = "2", nullable = true)
+        Integer resultVersion,
         @Schema(description = "끝난 시각. 마감이 지났는데 아직 처리 전이면 마감 시각", example = "null")
         OffsetDateTime closedAt
 ) {
