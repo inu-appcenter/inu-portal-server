@@ -38,11 +38,13 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 // 9. 카드 공유. 채팅방이나 친구(1:1 방)에 참여 요청·결과 카드를 보낸다.
 // 공유 기록 저장까지 한 트랜잭션에서 하고, 커밋된 뒤에 채팅 메시지(실시간 전송·푸시)를 보낸다.
@@ -119,15 +121,38 @@ public class SchedulePollShareService {
         });
 
         // 커밋된 뒤 새 카드만 실제로 보낸다. 한 방이 실패해도 나머지는 보낸다.
+        // 보내지 못한 방은 공유 기록을 지워, 같은 요청을 다시 보냈을 때 "이미 보낸 카드"로 처리되지 않게 한다.
+        Set<Long> failedRoomIds = new HashSet<>();
         for (Long[] pending : plan.pending()) {
             try {
                 chatRoomService.sendServerMessage(pending[1], pending[0], member.getId(),
                         plan.content(), plan.messageType(), plan.extraData());
             } catch (Exception e) {
                 log.error("[SchedulePollShare] 카드 메시지 발송 실패 pollId={}, roomId={}", pollId, pending[0], e);
+                failedRoomIds.add(pending[0]);
+                discardShare(pollId, pending[0], pending[1]);
             }
         }
-        return plan.response();
+        if (failedRoomIds.isEmpty()) {
+            return plan.response();
+        }
+        // 응답에는 실제로 카드가 있는 방만 남긴다. 한 곳도 못 보냈으면 실패로 응답해 다시 시도할 수 있게 한다.
+        List<SchedulePollShareResponseDto.Result> delivered = plan.response().results().stream()
+                .filter(result -> !failedRoomIds.contains(result.chatRoomId()))
+                .toList();
+        if (delivered.isEmpty()) {
+            throw new SchedulePollException(SchedulePollErrorCode.INTERNAL_ERROR);
+        }
+        return new SchedulePollShareResponseDto(delivered);
+    }
+
+    private void discardShare(Long pollId, Long roomId, Long messageId) {
+        try {
+            schedulePollShareRepository.deleteByPollIdAndChatMessageId(pollId, messageId);
+        } catch (Exception e) {
+            log.error("[SchedulePollShare] 발송 실패한 공유 기록 삭제 실패 pollId={}, roomId={}, messageId={}",
+                    pollId, roomId, messageId, e);
+        }
     }
 
     // 마감 1시간 전 알림 준비(스케줄러용). 조율을 잠그고 다시 확인한 뒤 알림 시각을 기록하고,
