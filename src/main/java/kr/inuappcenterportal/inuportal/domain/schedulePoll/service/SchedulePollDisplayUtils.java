@@ -20,8 +20,12 @@ public class SchedulePollDisplayUtils {
     private SchedulePollDisplayUtils() {
     }
 
-    // 표시 이름: 실명이 있으면 실명, 없으면 닉네임
+    // 표시 이름: 실명이 있으면 실명, 없으면 닉네임.
+    // 실명이 없고 닉네임이 가입 때 들어간 학번 그대로면 학번이 통째로 드러나므로 가린 학번을 보여 준다.
     public static String displayName(Member member) {
+        if (member.needsRealName()) {
+            return member.getMaskedStudentId();
+        }
         return member.getDisplayName();
     }
 
