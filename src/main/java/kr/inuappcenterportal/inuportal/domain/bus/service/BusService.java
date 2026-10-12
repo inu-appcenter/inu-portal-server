@@ -280,7 +280,12 @@ public class BusService {
         }
 
         // 캐시가 없으면(스케줄러 미등록 정류장이거나 캐시 만료 시) 직접 API 호출 및 추정치 보강 후 캐싱
-        List<BusArrivalItemDto> arrivals = new ArrayList<>(busApiService.fetchBusArrivals(bstopId));
+        List<BusArrivalItemDto> rawArrivals = busApiService.fetchBusArrivals(bstopId);
+        if (rawArrivals == null) {
+            log.warn("공공데이터 API 장애/미응답으로 실시간 버스 정보 조회 실패 - bstopId: {}", bstopId);
+            return new ArrayList<>();
+        }
+        List<BusArrivalItemDto> arrivals = new ArrayList<>(rawArrivals);
         arrivals = augmentWithEstimatedArrivals(bstopId, arrivals);
         try {
             String json = objectMapper.writeValueAsString(arrivals);
