@@ -23,6 +23,9 @@ public interface BusArrivalHistoryRepository extends JpaRepository<BusArrivalHis
     java.util.Optional<BusArrivalHistory> findFirstByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateAsc(
             String bstopId, String routeId, LocalDateTime start, LocalDateTime end);
 
+    java.util.Optional<BusArrivalHistory> findFirstByBstopIdAndRouteIdAndCreateDateBetweenOrderByCreateDateDesc(
+            String bstopId, String routeId, LocalDateTime start, LocalDateTime end);
+
 
     boolean existsByBstopIdAndRouteIdAndBusNumPlateAndCreateDateAfter(
             String bstopId, String routeId, String busNumPlate, LocalDateTime after);

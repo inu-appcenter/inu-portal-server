@@ -115,7 +115,7 @@ public class BusApiService {
 
 
     public List<BusArrivalItemDto> fetchBusArrivals(String bstopId) {
-        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank()) {
+        if (!IS_API_ENABLED || busApiKey == null || busApiKey.isBlank() || bstopId == null || bstopId.isBlank()) {
             return List.of();
         }
 
@@ -131,21 +131,12 @@ public class BusApiService {
             String url = String.format("%s?serviceKey=%s&bstopId=%s&pageNo=1&numOfRows=30",
                     ARRIVAL_API_URL, encodedKey, encodedBstopId);
 
-            String xmlResponse = webClient.get()
-                    .uri(URI.create(url))
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .onErrorResume(org.springframework.web.reactive.function.client.WebClientResponseException.class, e -> {
-                        if (e.getStatusCode().value() == 429) {
-                            log.warn("공공데이터 API 호출 한도 초과 (429) - bstopId: {}", bstopId);
-                            return reactor.core.publisher.Mono.empty(); // Fallback 처리를 위해 빈 Mono 반환
-                        }
-                        return reactor.core.publisher.Mono.error(e);
-                    })
-                    .block();
+            String xmlResponse = executeGetXml(url);
 
+            // API 호출 실패(429, 타임아웃, 네트워크 오류 등) 시 null을 반환하여 장애 상태를 구분
             if (xmlResponse == null || xmlResponse.isBlank()) {
-                return List.of();
+                log.warn("공공데이터 버스 도착정보 API 응답 부재(장애/타임아웃/429) - bstopId: {}", bstopId);
+                return null;
             }
 
             List<BusArrivalItemDto> result = parseArrivalXml(xmlResponse).stream()
@@ -157,7 +148,7 @@ public class BusApiService {
             return result;
         } catch (Exception e) {
             log.error("버스 도착 정보 API 호출 실패 (bstopId: {})", bstopId, e);
-            return List.of();
+            return null;
         }
     }
 
