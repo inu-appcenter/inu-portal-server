@@ -180,6 +180,16 @@ public class SchedulePoll extends BaseTimeEntity {
         this.deadlineRemindedAt = null;
     }
 
+    // 마감 1시간 전 알림 대상: 안 끝났고, 아직 안 보냈고, 마감까지 1시간 이내(마감 전)
+    public boolean isReminderDue(LocalDateTime now) {
+        return !isClosed() && deadlineRemindedAt == null && deadlineAt != null
+                && now.isBefore(deadlineAt) && !now.isBefore(deadlineAt.minusHours(1));
+    }
+
+    public void markReminded(LocalDateTime now) {
+        this.deadlineRemindedAt = now;
+    }
+
     public void increaseRevision() {
         this.revision++;
     }

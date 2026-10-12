@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollShareRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollSubmitRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
@@ -20,6 +21,7 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.Schedule
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollParticipantsResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollResultResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollRevisionResponseDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollShareResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollSubmitResponseDto;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import org.springframework.http.ResponseEntity;
@@ -246,4 +248,34 @@ public interface SchedulePollApiSpecification {
             @Parameter(hidden = true) @AuthenticationPrincipal Member member,
             @Parameter(description = "조율 ID") @PathVariable Long pollId,
             @RequestBody SchedulePollUpdateRequestDto request);
+
+    @Operation(
+            summary = "카드 공유",
+            description = """
+                    채팅방이나 친구에게 참여 요청(INVITE)·결과(RESULT) 카드를 보냅니다. 카카오톡 공유와 링크 복사는 클라이언트에서 처리합니다.
+                    <br>
+                    권한: INVITE는 개설자 또는 참여자, RESULT는 참여자만. RESULT는 최신 버전(끝난 조율이면 최종 버전)만 보낼 수 있습니다.
+                    <br>
+                    친구는 1:1 방으로 바꿔 보냅니다(없으면 생성). 방 기준으로 중복을 없앤 뒤 10곳까지 보낼 수 있습니다.
+                    <br>
+                    대상 중 하나라도 보낼 수 없으면(참여하지 않은 방, 친구 아님, 차단) 전체를 취소합니다.
+                    <br>
+                    같은 방에 같은 카드(조율·종류·버전)가 이미 있으면 새로 보내지 않고 기존 메시지를 돌려줍니다(created = false).
+                    <br><br>
+                    카드 메시지: messageType = SCHEDULE_POLL_INVITE / SCHEDULE_POLL_RESULT,
+                    extraData = {"pollId":812} / {"pollId":812,"resultVersion":3,"candidateRank":1}
+                    <br><br>
+                    """ + ERROR_DESCRIPTION
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "카드 공유 성공"),
+            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR / TOO_MANY_TARGETS"),
+            @ApiResponse(responseCode = "403", description = "NOT_HOST / NOT_PARTICIPANT / NOT_SHARE_TARGET"),
+            @ApiResponse(responseCode = "404", description = "POLL_NOT_FOUND"),
+            @ApiResponse(responseCode = "409", description = "POLL_CLOSED / RESULT_STALE / RESULT_NOT_READY")
+    })
+    ResponseEntity<ResponseDto<SchedulePollShareResponseDto>> share(
+            @Parameter(hidden = true) @AuthenticationPrincipal Member member,
+            @Parameter(description = "조율 ID") @PathVariable Long pollId,
+            @Valid @RequestBody SchedulePollShareRequestDto request);
 }

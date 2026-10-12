@@ -5,6 +5,8 @@ public enum MessageType {
     IMAGE,
     TIMETABLE_SHARE,
     BOT_QUESTION,
-    BOT_ANSWER
+    BOT_ANSWER,
+    SCHEDULE_POLL_INVITE,
+    SCHEDULE_POLL_RESULT
 }
 

@@ -3,6 +3,7 @@ package kr.inuappcenterportal.inuportal.domain.schedulePoll.controller;
 import jakarta.validation.Valid;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollCreateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollShareRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollSubmitRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.SchedulePollUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
@@ -12,9 +13,11 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.Schedule
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollParticipantsResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollResultResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollRevisionResponseDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollShareResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollSubmitResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollResultService;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollService;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollShareService;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollSubmissionService;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,7 @@ public class SchedulePollController implements SchedulePollApiSpecification {
     private final SchedulePollService schedulePollService;
     private final SchedulePollSubmissionService schedulePollSubmissionService;
     private final SchedulePollResultService schedulePollResultService;
+    private final SchedulePollShareService schedulePollShareService;
 
     @PostMapping
     public ResponseEntity<ResponseDto<SchedulePollCreateResponseDto>> create(
@@ -107,5 +111,13 @@ public class SchedulePollController implements SchedulePollApiSpecification {
             @PathVariable Long pollId,
             @RequestBody SchedulePollUpdateRequestDto request) {
         return ResponseEntity.ok(ResponseDto.of(schedulePollService.update(member, pollId, request), "시간 맞추기 수정 성공"));
+    }
+
+    @PostMapping("/{pollId}/shares")
+    public ResponseEntity<ResponseDto<SchedulePollShareResponseDto>> share(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long pollId,
+            @Valid @RequestBody SchedulePollShareRequestDto request) {
+        return ResponseEntity.ok(ResponseDto.of(schedulePollShareService.share(member, pollId, request), "카드 공유 성공"));
     }
 }

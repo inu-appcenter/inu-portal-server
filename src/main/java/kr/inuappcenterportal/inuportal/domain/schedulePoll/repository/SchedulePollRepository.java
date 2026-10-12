@@ -27,6 +27,15 @@ public interface SchedulePollRepository extends JpaRepository<SchedulePoll, Long
     @Query("SELECT p.id FROM SchedulePoll p WHERE p.status <> :closed AND p.deadlineAt <= :now ORDER BY p.deadlineAt ASC")
     List<Long> findDueIds(@Param("closed") SchedulePollStatus closed, @Param("now") LocalDateTime now);
 
+    // 마감 1시간 전 알림용. 마감 전 1시간 안에 들어왔고 아직 알림을 보내지 않은 조율
+    @Query("""
+            SELECT p.id FROM SchedulePoll p
+            WHERE p.status <> :closed AND p.deadlineRemindedAt IS NULL
+              AND p.deadlineAt > :now AND p.deadlineAt <= :until
+            """)
+    List<Long> findReminderDueIds(@Param("closed") SchedulePollStatus closed,
+                                  @Param("now") LocalDateTime now, @Param("until") LocalDateTime until);
+
     // 폴링용. 조율 정보와 내 제출 여부를 쿼리 한 번으로 가져온다.
     @Query("""
             SELECT p.revision AS revision, p.status AS status, p.resultVersion AS resultVersion,
