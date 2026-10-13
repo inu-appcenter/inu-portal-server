@@ -31,6 +31,7 @@ public interface DailyBriefSettingRepository extends JpaRepository<DailyBriefSet
                 member_id,
                 timetable_alert_enabled,
                 timetable_pre_alert_enabled,
+                timetable_pre_alert_method,
                 timetable_pre_alert_minutes,
                 timetable_daily_brief_enabled,
                 timetable_daily_brief_time,
@@ -42,6 +43,7 @@ public interface DailyBriefSettingRepository extends JpaRepository<DailyBriefSet
                 m.id,
                 TRUE,
                 TRUE,
+                'NOW_BAR',
                 10,
                 TRUE,
                 '08:00',
@@ -53,4 +55,12 @@ public interface DailyBriefSettingRepository extends JpaRepository<DailyBriefSet
             WHERE dbs.member_id IS NULL
             """, nativeQuery = true)
     int backfillDefaultSettingsForAllMembers();
+
+    @Modifying
+    @Query(value = """
+            UPDATE daily_brief_setting
+            SET timetable_pre_alert_method = 'NOW_BAR'
+            WHERE timetable_pre_alert_method IS NULL
+            """, nativeQuery = true)
+    int updateNullPreAlertMethodToNowBar();
 }

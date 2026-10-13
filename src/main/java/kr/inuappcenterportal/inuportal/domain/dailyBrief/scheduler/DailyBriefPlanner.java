@@ -117,7 +117,11 @@ public class DailyBriefPlanner {
                                 entry.endTime().format(TIME_FORMATTER),
                                 locationInfo);
 
-                        LiveActivityStartPush liveActivity = (setting.getTimetablePreAlertMethod() == PreClassAlertMethod.NOW_BAR)
+                        PreClassAlertMethod alertMethod = setting.getTimetablePreAlertMethod() != null
+                                ? setting.getTimetablePreAlertMethod()
+                                : PreClassAlertMethod.NOW_BAR;
+
+                        LiveActivityStartPush liveActivity = (alertMethod == PreClassAlertMethod.NOW_BAR)
                                 ? PreClassLiveActivity.of(entry.title(), entry.location(), LocalDate.now(SEOUL),
                                         entry.startTime(), entry.endTime(), alertMinutes, SEOUL)
                                 : null;

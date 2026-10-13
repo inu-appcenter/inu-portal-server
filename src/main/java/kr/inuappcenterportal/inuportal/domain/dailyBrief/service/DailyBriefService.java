@@ -83,7 +83,8 @@ public class DailyBriefService {
     @Transactional
     public int backfillDefaultSettings() {
         int insertedCount = dailyBriefSettingRepository.backfillDefaultSettingsForAllMembers();
-        log.info("[Daily Brief] 기본 알림 설정 백필 완료: {}명의 회원에게 기본 설정 추가됨", insertedCount);
+        int updatedCount = dailyBriefSettingRepository.updateNullPreAlertMethodToNowBar();
+        log.info("[Daily Brief] 기본 알림 설정 백필 완료: 신규 추가 {}건, 수신방식(NOW_BAR) 보정 {}건", insertedCount, updatedCount);
         return insertedCount;
     }
 }
