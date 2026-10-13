@@ -194,4 +194,72 @@ class DailyBriefSchedulerTest {
         org.assertj.core.api.Assertions.assertThat(titleCaptor.getValue()).isEqualTo("[Daily Brief] 오늘 예정된 강의가 1개 있어요");
         org.assertj.core.api.Assertions.assertThat(bodyCaptor.getValue()).contains("모바일소프트웨어 (10:00~11:50, 정보기술대학 201호)");
     }
+
+    @Test
+    void planPreClassAlerts_nullMethod_fallsBackToNowBarLiveActivity() {
+        Member member = Member.builder().studentId("202600001").roles(List.of("ROLE_USER")).build();
+        ReflectionTestUtils.setField(member, "id", 1L);
+
+        DailyBriefSetting setting = DailyBriefSetting.builder()
+                .member(member)
+                .timetableAlertEnabled(true)
+                .timetablePreAlertEnabled(true)
+                .timetablePreAlertMethod(null)
+                .timetablePreAlertMinutes(10)
+                .timetableDailyBriefEnabled(true)
+                .timetableDailyBriefTime("08:00")
+                .scheduleAlertEnabled(true)
+                .scheduleDailyBriefTime("08:30")
+                .scheduleScope(kr.inuappcenterportal.inuportal.domain.dailyBrief.enums.ScheduleScope.ALL)
+                .build();
+
+        Semester semester = org.mockito.Mockito.mock(Semester.class);
+        when(semester.getId()).thenReturn(10L);
+
+        TimeTable timeTable = org.mockito.Mockito.mock(TimeTable.class);
+        when(timeTable.getId()).thenReturn(100L);
+
+        Course course = org.mockito.Mockito.mock(Course.class);
+        when(course.getTitle()).thenReturn("알고리즘");
+
+        CourseOffering offering = org.mockito.Mockito.mock(CourseOffering.class);
+        when(offering.getId()).thenReturn(1000L);
+        when(offering.getCourse()).thenReturn(course);
+
+        TimeTableItem item = org.mockito.Mockito.mock(TimeTableItem.class);
+        when(item.getCourseOffering()).thenReturn(offering);
+
+        LocalTime now = LocalTime.now(java.time.ZoneId.of("Asia/Seoul"));
+        LocalTime classStartTime = now.plusMinutes(10);
+        LocalTime classEndTime = classStartTime.plusMinutes(75);
+
+        DayOfWeek today = switch (LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).getDayOfWeek()) {
+            case MONDAY -> DayOfWeek.MONDAY;
+            case TUESDAY -> DayOfWeek.TUESDAY;
+            case WEDNESDAY -> DayOfWeek.WEDNESDAY;
+            case THURSDAY -> DayOfWeek.THURSDAY;
+            case FRIDAY -> DayOfWeek.FRIDAY;
+            case SATURDAY -> DayOfWeek.SATURDAY;
+            case SUNDAY -> DayOfWeek.SUNDAY;
+        };
+
+        CourseMeeting m = org.mockito.Mockito.mock(CourseMeeting.class);
+        when(m.getCourseOffering()).thenReturn(offering);
+
+        CourseMeetingResponseDto meetingDto = new CourseMeetingResponseDto(1L, "공과대학 101호", "1교시", "01", today, classStartTime, classEndTime);
+
+        when(semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)).thenReturn(Optional.of(semester));
+        when(dailyBriefSettingRepository.findAllTimetablePreAlertEnabled()).thenReturn(List.of(setting));
+        when(timeTableRepository.findByMemberIdAndSemesterIdAndIsPrimaryTrue(1L, 10L)).thenReturn(Optional.of(timeTable));
+        when(timeTableItemRepository.findAllByTimeTableId(100L)).thenReturn(List.of(item));
+        when(courseMeetingRepository.findAllByCourseOfferingIdIn(List.of(1000L))).thenReturn(List.of(m));
+        when(courseMeetingService.mergeContinuousMeetings(any())).thenReturn(List.of(meetingDto));
+
+        List<BriefNotification> result = dailyBriefPlanner.planPreClassAlerts();
+
+        org.assertj.core.api.Assertions.assertThat(result).hasSize(1);
+        BriefNotification notification = result.get(0);
+        org.assertj.core.api.Assertions.assertThat(notification.memberId()).isEqualTo(1L);
+        org.assertj.core.api.Assertions.assertThat(notification.liveActivity()).isNotNull();
+    }
 }
