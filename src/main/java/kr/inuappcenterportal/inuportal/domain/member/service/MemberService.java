@@ -193,6 +193,13 @@ public class MemberService {
     }
 
     @Transactional
+    public MemberResponseDto updateName(Long memberId, String name) {
+        Member member = findMemberById(memberId);
+        member.updateName(name.trim());
+        return getMemberResponseDto(member);
+    }
+
+    @Transactional
     public MemberResponseDto agreeTerms(Long memberId) {
         Member member = findMemberById(memberId);
         member.agreeTerms();

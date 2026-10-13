@@ -468,4 +468,17 @@ public class MemberServiceTest {
         MyException ex = assertThrows(MyException.class, () -> memberService.updateLocation(1L, dto));
         assertEquals(kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.INVALID_LOCATION_VALUE, ex.getErrorCode());
     }
+
+    @Test
+    @DisplayName("실명 수정 성공 - 앞뒤 공백 제거 후 본인 응답에 포함")
+    public void updateNameSuccessTest() {
+        Member member = Member.builder().studentId("202301452").roles(Collections.singletonList("ROLE_USER")).build();
+        ReflectionTestUtils.setField(member, "id", 1L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+
+        MemberResponseDto response = memberService.updateName(1L, "  홍길동 ");
+
+        assertEquals("홍길동", member.getName());
+        assertEquals("홍길동", response.getName());
+    }
 }

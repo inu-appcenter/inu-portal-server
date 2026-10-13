@@ -19,6 +19,9 @@ public class MemberResponseDto {
     @Schema(description = "닉네임",example = "인천대팁쟁이")
     private String nickname;
 
+    @Schema(description = "실명", example = "홍길동")
+    private String name;
+
     @Schema(description = "횃불이 이미지 번호")
     private Long fireId;
 
@@ -54,6 +57,7 @@ public class MemberResponseDto {
     private MemberResponseDto(Member member, String role, Department department) {
         this.id = member.getId();
         this.nickname = member.getNickname();
+        this.name = member.getName();
         this.fireId = member.getFireId();
         this.role = role;
         this.department = department == null? null : department.getDepartmentName();

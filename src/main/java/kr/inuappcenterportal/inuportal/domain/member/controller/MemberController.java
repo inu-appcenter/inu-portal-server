@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MemberNameUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
@@ -180,6 +181,19 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(
                 memberService.updateSchoolDepartment(member.getId(), request.departmentCode()),
                 "회원 학교 학과 수정 성공"));
+    }
+
+    @Operation(summary = "회원 실명 수정", description = "회원의 실명을 수정합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.<br>본문으로 name(1~20자)을 보내주세요.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",description = "회원 실명 수정 성공", content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "실명이 비어 있거나 20자를 초과합니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+    })
+    @PatchMapping("/name")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> updateName(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody MemberNameUpdateRequestDto request
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.updateName(member.getId(), request.name()), "회원 실명 수정 성공"));
     }
 
     @Operation(summary = "회원 약관 동의", description = "회원이 약관에 동의합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.")
