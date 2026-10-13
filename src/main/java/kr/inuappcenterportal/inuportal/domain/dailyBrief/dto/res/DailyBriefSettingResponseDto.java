@@ -38,10 +38,13 @@ public record DailyBriefSettingResponseDto(
         String cardSettingsJson
 ) {
     public static DailyBriefSettingResponseDto from(DailyBriefSetting setting) {
+        PreClassAlertMethod method = setting.getTimetablePreAlertMethod() != null
+                ? setting.getTimetablePreAlertMethod()
+                : PreClassAlertMethod.NOW_BAR;
         return new DailyBriefSettingResponseDto(
                 setting.isTimetableAlertEnabled(),
                 setting.isTimetablePreAlertEnabled(),
-                setting.getTimetablePreAlertMethod(),
+                method,
                 setting.getTimetablePreAlertMinutes(),
                 setting.isTimetableDailyBriefEnabled(),
                 setting.getTimetableDailyBriefTime(),

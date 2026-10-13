@@ -56,6 +56,37 @@ class DailyBriefServiceTest {
     }
 
     @Test
+    @DisplayName("DB에 timetablePreAlertMethod가 null인 기존 데이터 조회 시 기본값 NOW_BAR로 폴백 테스트")
+    void getSettings_nullPreAlertMethod_fallsBackToNowBar() {
+        // given
+        Member member = Member.builder()
+                .studentId("202000001")
+                .roles(List.of("ROLE_USER"))
+                .build();
+
+        DailyBriefSetting setting = DailyBriefSetting.builder()
+                .member(member)
+                .timetableAlertEnabled(true)
+                .timetablePreAlertEnabled(true)
+                .timetablePreAlertMethod(null)
+                .timetablePreAlertMinutes(10)
+                .timetableDailyBriefEnabled(true)
+                .timetableDailyBriefTime("08:00")
+                .scheduleAlertEnabled(true)
+                .scheduleDailyBriefTime("08:30")
+                .scheduleScope(ScheduleScope.ALL)
+                .build();
+
+        given(dailyBriefSettingRepository.findByMember(member)).willReturn(Optional.of(setting));
+
+        // when
+        DailyBriefSettingResponseDto result = dailyBriefService.getSettings(member);
+
+        // then
+        assertThat(result.timetablePreAlertMethod()).isEqualTo(PreClassAlertMethod.NOW_BAR);
+    }
+
+    @Test
     @DisplayName("설정 업데이트 테스트")
     void updateSettings() {
         // given
@@ -159,6 +190,7 @@ class DailyBriefServiceTest {
     void backfillDefaultSettings() {
         // given
         given(dailyBriefSettingRepository.backfillDefaultSettingsForAllMembers()).willReturn(42);
+        given(dailyBriefSettingRepository.updateNullPreAlertMethodToNowBar()).willReturn(15);
 
         // when
         int count = dailyBriefService.backfillDefaultSettings();
@@ -167,5 +199,7 @@ class DailyBriefServiceTest {
         assertThat(count).isEqualTo(42);
         org.mockito.Mockito.verify(dailyBriefSettingRepository, org.mockito.Mockito.times(1))
                 .backfillDefaultSettingsForAllMembers();
+        org.mockito.Mockito.verify(dailyBriefSettingRepository, org.mockito.Mockito.times(1))
+                .updateNullPreAlertMethodToNowBar();
     }
 }
