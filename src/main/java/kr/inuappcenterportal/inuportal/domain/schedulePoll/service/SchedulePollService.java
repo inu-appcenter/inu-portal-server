@@ -9,11 +9,14 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request.ScheduleP
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollCreateResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollMyListItemResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollRevisionResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.DurationMode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.JoinBlockReason;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.MyPollFilter;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.ParticipantStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.PollDay;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollErrorCode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollException;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
@@ -21,6 +24,8 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePo
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollSubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +52,7 @@ import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.Schedu
 public class SchedulePollService {
 
     private static final String DEFAULT_TITLE = "회의 시간 맞추기";
+    private static final int MAX_MY_LIST_SIZE = 50;
     private static final int MIN_RANGE_START_MINUTES = 9 * 60;
     private static final int MAX_ONE_TIME_DAYS = 14;
     // 약속 날짜와 마감은 1년 안쪽만 받는다. 터무니없이 먼 날짜가 DB 저장 단계에서 오류로 터지는 것을 막는다.
@@ -151,6 +157,32 @@ public class SchedulePollService {
                 view.getParticipantCount(),
                 view.getSubmittedCount() > 0 ? ParticipantStatus.SUBMITTED : null,
                 toOffset(view.getDeadlineAt()));
+    }
+
+    // 12. 내 조율 목록. 내가 만들었거나 시간을 제출한 조율을 최근에 바뀐 순으로 돌려준다.
+    @Transactional(readOnly = true)
+    public Page<SchedulePollMyListItemResponseDto> getMine(Member member, MyPollFilter filter, int page, int size) {
+        if (page < 0 || size < 1) {
+            throw new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR);
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        Page<SchedulePoll> polls = schedulePollRepository.findMine(member.getId(), filter == MyPollFilter.CLOSED,
+                SchedulePollStatus.CLOSED, now, PageRequest.of(page, Math.min(size, MAX_MY_LIST_SIZE)));
+
+        List<Long> pollIds = polls.getContent().stream().map(SchedulePoll::getId).toList();
+        Set<Long> submittedPollIds = pollIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(schedulePollSubmissionRepository.findSubmittedPollIds(member.getId(), pollIds));
+
+        return polls.map(poll -> new SchedulePollMyListItemResponseDto(
+                poll.getId(),
+                poll.getTitle(),
+                displayStatus(poll.getStatus(), poll.getDeadlineAt(), now),
+                poll.getCreator().getId().equals(member.getId()),
+                submittedPollIds.contains(poll.getId()) ? ParticipantStatus.SUBMITTED : null,
+                poll.getParticipantCount(),
+                toOffset(poll.getDeadlineAt()),
+                toOffset(poll.getModifiedDate())));
     }
 
     // 10. 마감 변경·해제·즉시 종료. 개설자만 할 수 있다.

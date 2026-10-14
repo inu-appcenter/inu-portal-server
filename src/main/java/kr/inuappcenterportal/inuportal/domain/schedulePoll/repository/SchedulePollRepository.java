@@ -3,6 +3,8 @@ package kr.inuappcenterportal.inuportal.domain.schedulePoll.repository;
 import jakarta.persistence.LockModeType;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -44,6 +46,27 @@ public interface SchedulePollRepository extends JpaRepository<SchedulePoll, Long
             FROM SchedulePoll p WHERE p.id = :pollId
             """)
     Optional<RevisionView> findRevisionView(@Param("pollId") Long pollId, @Param("memberId") Long memberId);
+
+    // 내 조율 목록용. 내가 만들었거나 시간을 제출한 조율.
+    // closed=true면 끝났거나 마감이 지난 조율, false면 진행 중인 조율만 돌려준다(조회 응답의 status 표시 규칙과 같다).
+    @Query(value = """
+            SELECT p FROM SchedulePoll p
+            WHERE (p.creator.id = :memberId
+                   OR EXISTS (SELECT 1 FROM SchedulePollSubmission s WHERE s.poll.id = p.id AND s.member.id = :memberId))
+              AND ((:closed = TRUE AND (p.status = :closedStatus OR (p.deadlineAt IS NOT NULL AND p.deadlineAt <= :now)))
+                OR (:closed = FALSE AND p.status <> :closedStatus AND (p.deadlineAt IS NULL OR p.deadlineAt > :now)))
+            ORDER BY p.modifiedDate DESC, p.id DESC
+            """,
+            countQuery = """
+            SELECT COUNT(p) FROM SchedulePoll p
+            WHERE (p.creator.id = :memberId
+                   OR EXISTS (SELECT 1 FROM SchedulePollSubmission s WHERE s.poll.id = p.id AND s.member.id = :memberId))
+              AND ((:closed = TRUE AND (p.status = :closedStatus OR (p.deadlineAt IS NOT NULL AND p.deadlineAt <= :now)))
+                OR (:closed = FALSE AND p.status <> :closedStatus AND (p.deadlineAt IS NULL OR p.deadlineAt > :now)))
+            """)
+    Page<SchedulePoll> findMine(@Param("memberId") Long memberId, @Param("closed") boolean closed,
+                                @Param("closedStatus") SchedulePollStatus closedStatus,
+                                @Param("now") LocalDateTime now, Pageable pageable);
 
     interface RevisionView {
         long getRevision();
