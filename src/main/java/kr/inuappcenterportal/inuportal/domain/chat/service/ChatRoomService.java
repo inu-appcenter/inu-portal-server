@@ -102,6 +102,15 @@ public class ChatRoomService {
         int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
 
         MessageType messageType = messageDto.getMessageType() != null ? messageDto.getMessageType() : MessageType.TEXT;
+        String extraData = messageDto.getExtraData();
+        // 챗불이 답변·시간 맞추기 카드는 서버만 만든다. 사용자가 그 종류로 보내면 일반 메시지로 낮춰
+        // 다른 사람이 만든 카드나 챗불이 답변인 척하는 메시지가 남지 않게 한다.
+        if (messageType.isServerOnly()) {
+            log.warn("서버 전용 메시지 종류로 전송 시도 memberId:{}, roomId:{}, messageType:{}",
+                    memberId, messageDto.getRoomId(), messageType);
+            messageType = MessageType.TEXT;
+            extraData = null;
+        }
         boolean isBotQuestion = messageType == MessageType.BOT_QUESTION
                 || (messageDto.getContent() != null && messageDto.getContent().contains("[CHATBULI_QUESTION]"));
         if (isBotQuestion) {
@@ -117,7 +126,7 @@ public class ChatRoomService {
                 .content(messageDto.getContent())
                 .imageCount(messageDto.getImageCount())
                 .messageType(messageType)
-                .extraData(messageDto.getExtraData())
+                .extraData(extraData)
                 .unreadCount(initialUnreadCount)
                 .createDate(now)
                 .build();
@@ -136,7 +145,7 @@ public class ChatRoomService {
                 .senderNickname(nickname)
                 .imageCount(messageDto.getImageCount())
                 .messageType(messageType)
-                .extraData(messageDto.getExtraData())
+                .extraData(extraData)
                 .createDate(now)
                 .modifiedDate(now)
                 .build();
@@ -160,6 +169,69 @@ public class ChatRoomService {
                         log.error("챗불이 답변 브로드캐스트 실패: roomId={}, error={}", chatRoom.getId(), e.getMessage(), e);
                     }
                 });
+    }
+
+    // 다른 기능이 서버에서 채팅 메시지를 보낼 때 쓴다(예: 시간 맞추기 카드·알림).
+    // 호출하는 쪽이 메시지 번호를 미리 정해 자기 기록에 남길 수 있도록 messageId를 받는다.
+    // 실시간 전송·캐시·DB 저장 대기열·채팅 푸시는 sendMessage와 같다. 호출하는 쪽 트랜잭션이 커밋된 뒤에 호출한다.
+    @Transactional
+    public void sendServerMessage(Long messageId, Long roomId, Long senderId, String content,
+                                  MessageType messageType, String extraData) {
+        Member sender = memberRepository.findById(senderId)
+                .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+
+        String nickname;
+        if (chatRoom.isOfficial() && sender.getRoles().contains("ROLE_ADMIN")) {
+            nickname = chatRedisService.getOrAssignAdminNickname(roomId, senderId);
+        } else if (chatRoom.isAnonymous()) {
+            nickname = chatRedisService.getOrAssignAnonymousNickname(roomId, senderId);
+        } else {
+            nickname = sender.getNickname();
+        }
+
+        ChatRoomMember senderChatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, sender)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_CHATROOM_MEMBER));
+
+        LocalDateTime now = LocalDateTime.now();
+        Set<String> activeUserIds = chatRedisService.getRoomUserIds(roomId);
+        int totalJoined = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatMemberStatus.JOINED);
+        int initialUnreadCount = Math.max(0, totalJoined - activeUserIds.size());
+
+        ChatMessageResponseDto responseDto = ChatMessageResponseDto.builder()
+                .messageId(messageId)
+                .roomId(roomId)
+                .senderNickname(nickname)
+                .senderHash(getSenderHash(senderId))
+                .senderChatRoomMemberId(senderChatRoomMember.getId())
+                .content(content)
+                .imageCount(0)
+                .messageType(messageType)
+                .extraData(extraData)
+                .unreadCount(initialUnreadCount)
+                .createDate(now)
+                .build();
+
+        broadcastAndCache(roomId, responseDto);
+
+        List<Long> activeMemberIds = activeUserIds.stream().map(Long::parseLong).toList();
+        chatRoomMemberRepository.updateLastReadMessageIdByRoomAndMemberIds(chatRoom, activeMemberIds, messageId);
+
+        chatBatchService.addMessageToQueue(ChatMessage.builder()
+                .id(messageId)
+                .chatRoom(chatRoom)
+                .sender(sender)
+                .content(content)
+                .senderNickname(nickname)
+                .imageCount(0)
+                .messageType(messageType)
+                .extraData(extraData)
+                .createDate(now)
+                .modifiedDate(now)
+                .build());
+
+        sendChatNotification(chatRoom, sender, nickname, content);
     }
 
     @Transactional
