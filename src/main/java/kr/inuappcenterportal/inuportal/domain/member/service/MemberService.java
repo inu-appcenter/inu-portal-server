@@ -50,6 +50,22 @@ public class MemberService {
             "notice", "admin", "system", "staff", "intip", "인팁", "appcenter", "앱센터"
     );
 
+    // 실명은 시간 맞추기·친구 화면에 닉네임 대신 보인다. 운영진인 척하는 이름만 막는다.
+    // 닉네임 금지어 중 '공지'·'알림'·'알람'은 실제 이름(예: 공지영)에 들어갈 수 있어 뺐다.
+    private static final List<String> FORBIDDEN_REAL_NAME_KEYWORDS = List.of(
+            "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
+            "admin", "system", "staff", "intip", "인팁", "appcenter", "앱센터"
+    );
+
+    private void validateRealNameKeywords(String realName) {
+        String normalized = realName.toLowerCase().replaceAll("\\s+", "");
+        for (String keyword : FORBIDDEN_REAL_NAME_KEYWORDS) {
+            if (normalized.contains(keyword)) {
+                throw new MyException(MyErrorCode.INVALID_REAL_NAME);
+            }
+        }
+    }
+
     private void validateNicknameKeywords(String nickname) {
         if (nickname == null) return;
         String normalized = nickname.toLowerCase().replaceAll("\\s+", "");
@@ -105,8 +121,13 @@ public class MemberService {
         if (!REAL_NAME_PATTERN.matcher(realName).matches()) {
             throw new MyException(MyErrorCode.INVALID_REAL_NAME);
         }
+        validateRealNameKeywords(realName);
         if (dto.getRealNameSource() == null) {
             throw new MyException(MyErrorCode.REAL_NAME_SOURCE_REQUIRED);
+        }
+        // 포털에서 가져온 이름을 직접 입력한 이름으로 바꾸면 포털 동의는 더 쓰이지 않는다. 철회로 기록한다.
+        if (member.getRealNameSource() == RealNameSource.PORTAL_SCRAPE && dto.getRealNameSource() == RealNameSource.MANUAL) {
+            memberNameConsentRepository.save(MemberNameConsent.withdraw(member.getId(), now));
         }
         if (dto.getRealNameSource() == RealNameSource.PORTAL_SCRAPE) {
             if (dto.getConsentTermsVersion() == null || dto.getConsentTermsVersion().isBlank()) {
