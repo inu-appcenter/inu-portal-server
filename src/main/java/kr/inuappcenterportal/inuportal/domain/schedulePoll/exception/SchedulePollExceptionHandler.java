@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.schedulePoll.exception;
 
 import jakarta.validation.ConstraintViolationException;
 import kr.inuappcenterportal.inuportal.global.dto.ResponseDto;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -36,6 +37,15 @@ public class SchedulePollExceptionHandler {
     public ResponseEntity<ResponseDto<SchedulePollErrorResponse>> handleValidationException(Exception ex) {
         log.warn("시간 맞추기 요청 형식 오류 msg:{}", ex.getMessage());
         return toResponse(SchedulePollErrorCode.VALIDATION_ERROR);
+    }
+
+    // 시간표·회원 등 다른 도메인이 던진 오류. 그쪽이 정한 상태 코드와 문구를 그대로 쓰고 모양만 맞춘다.
+    // (아래 RuntimeException 처리가 먼저 잡아 4xx가 500으로 바뀌는 것을 막는다.)
+    @ExceptionHandler(MyException.class)
+    public ResponseEntity<ResponseDto<SchedulePollErrorResponse>> handleMyException(MyException ex) {
+        log.warn("시간 맞추기 처리 중 다른 도메인 예외 code:{}", ex.getErrorCode());
+        return ResponseEntity.status(ex.getErrorCode().getStatus())
+                .body(ResponseDto.of(new SchedulePollErrorResponse(ex.getErrorCode().name()), ex.getErrorCode().getMessage()));
     }
 
     // 결과 계산 실패 등 예상하지 못한 오류. 트랜잭션은 이미 롤백된 상태다.
