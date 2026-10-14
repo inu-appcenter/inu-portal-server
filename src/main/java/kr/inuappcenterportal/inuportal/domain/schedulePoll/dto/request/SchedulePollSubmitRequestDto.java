@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.AvailableRangeDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.JoinSource;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SubmissionVia;
@@ -24,12 +25,20 @@ public record SchedulePollSubmitRequestDto(
 
         @Schema(description = "가능 시간 구간 목록. 빈 배열 허용. ANYTIME이면 무시")
         @NotNull
+        @Size(max = MAX_AVAILABLE_RANGES)
         List<AvailableRangeDto> available,
 
         @Schema(description = "시간표에서 불러온 수업 ID. 저장만 하고 검증하지 않음", example = "[4412, 4413]")
+        @Size(max = MAX_IMPORTED_COURSES)
         List<Long> importedCourseOfferingIds,
 
         @Schema(description = "첫 제출 시 필수. LINK / CHAT_CARD (통계용)", example = "LINK")
         JoinSource joinSource
 ) {
+
+    // 그리드는 최대 14열 × 30칸이라 겹치지 않는 구간은 열마다 15개(총 210개)를 넘을 수 없다. 넉넉히 잡은 상한이다.
+    public static final int MAX_AVAILABLE_RANGES = 500;
+    // 한 학기 시간표의 수업 수를 한참 넘는 상한. 저장 칸(TEXT)을 넘겨 500이 나는 것을 막는다.
+    public static final int MAX_IMPORTED_COURSES = 100;
+
 }

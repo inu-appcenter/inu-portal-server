@@ -49,6 +49,8 @@ public class SchedulePollService {
     private static final String DEFAULT_TITLE = "회의 시간 맞추기";
     private static final int MIN_RANGE_START_MINUTES = 9 * 60;
     private static final int MAX_ONE_TIME_DAYS = 14;
+    // 약속 날짜와 마감은 1년 안쪽만 받는다. 터무니없이 먼 날짜가 DB 저장 단계에서 오류로 터지는 것을 막는다.
+    private static final int MAX_FUTURE_DAYS = 366;
     private static final Set<Integer> FIXED_DURATIONS = Set.of(30, 60, 90);
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -84,7 +86,7 @@ public class SchedulePollService {
         }
         // 마감: 현재 이후
         LocalDateTime deadlineAt = request.deadlineAt() == null ? null : toSeoul(request.deadlineAt());
-        if (deadlineAt != null && !deadlineAt.isAfter(now)) {
+        if (deadlineAt != null && (!deadlineAt.isAfter(now) || deadlineAt.isAfter(now.plusDays(MAX_FUTURE_DAYS)))) {
             throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
         }
         // 채팅방: 내가 참여 중인 방
@@ -174,7 +176,7 @@ public class SchedulePollService {
                     schedulePollTransactionService.close(poll, now);
                 } else {
                     LocalDateTime deadlineAt = request.getDeadlineAt() == null ? null : toSeoul(request.getDeadlineAt());
-                    if (deadlineAt != null && !deadlineAt.isAfter(now)) {
+                    if (deadlineAt != null && (!deadlineAt.isAfter(now) || deadlineAt.isAfter(now.plusDays(MAX_FUTURE_DAYS)))) {
                         throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
                     }
                     poll.changeDeadline(deadlineAt);
@@ -279,9 +281,10 @@ public class SchedulePollService {
         }
     }
 
-    // 오늘 ≤ 시작일 ≤ 종료일, 기간 최대 14일
+    // 오늘 ≤ 시작일 ≤ 종료일, 기간 최대 14일, 시작일은 1년 이내
     private void validateDates(LocalDate startDate, LocalDate endDate, LocalDate today) {
         if (startDate == null || endDate == null || startDate.isBefore(today) || endDate.isBefore(startDate)
+                || startDate.isAfter(today.plusDays(MAX_FUTURE_DAYS))
                 || ChronoUnit.DAYS.between(startDate, endDate) + 1 > MAX_ONE_TIME_DAYS) {
             throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
         }

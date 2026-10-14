@@ -225,6 +225,10 @@ public class SchedulePollShareService {
             targets.put(roomId, null);
         }
         List<Long> friendIds = request.friendMemberIds() == null ? List.of() : request.friendMemberIds();
+        // 친구는 1:1 방을 찾거나 만들어야 해서, 그 전에 개수부터 본다(방과 친구가 같은 방으로 겹칠 수 있어 각각 본다).
+        if (targets.size() > MAX_TARGETS || new LinkedHashSet<>(friendIds).size() > MAX_TARGETS) {
+            throw new SchedulePollException(SchedulePollErrorCode.TOO_MANY_TARGETS);
+        }
         for (Long friendMemberId : new LinkedHashSet<>(friendIds)) {
             targets.putIfAbsent(personalRoomId(member, friendMemberId), friendMemberId);
         }
