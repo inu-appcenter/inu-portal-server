@@ -11,7 +11,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,12 +42,19 @@ public class InuChatAiService {
     @Value("${app.inuchat.timeout-seconds:120}")
     private long timeoutSeconds;
 
+    /**
+     * INUChat에 보내는 기기 ID를 만드는 키. 따로 정하지 않으면 JWT 서명 키를 쓴다.
+     * 키를 바꾸면 같은 회원의 기기 ID도 바뀐다(INUChat 쪽 대화 이어가기가 끊길 수 있음).
+     */
+    @Value("${app.inuchat.pseudonym-key:${jwtSecret}}")
+    private String pseudonymKey;
+
     public Mono<String> requestChat(Long memberId, String question, List<Object> history) {
         return requestChat(memberId, question, history, null);
     }
 
     public Mono<String> requestChat(Long memberId, String question, List<Object> history, Map<String, Object> academicContext) {
-        String deviceId = memberId != null ? "intip-" + memberId : "intip-" + UUID.randomUUID();
+        String deviceId = toPseudonymousDeviceId(memberId);
         // INUChat은 외부 AI 서비스이므로 개인 식별자는 전달하지 않는다. 학번은
         // 입학연도(예: 2020학번)만 남기며, 대화 이력은 원문 PII가 섞일 수 있어 넘기지 않는다.
         String safeQuestion = anonymizeForInuChat(question);
@@ -82,7 +94,7 @@ public class InuChatAiService {
      * 0ms 지연으로 클라이언트 SSE에 다이렉트 토스할 수 있도록 Flux<String> 형태로 반환합니다.
      */
     public reactor.core.publisher.Flux<String> streamChat(Long memberId, String question, List<Object> history, Map<String, Object> academicContext) {
-        String deviceId = memberId != null ? "intip-" + memberId : "intip-" + UUID.randomUUID();
+        String deviceId = toPseudonymousDeviceId(memberId);
         String safeQuestion = anonymizeForInuChat(question);
         String questionWithContext = safeQuestion + formatAcademicContext(academicContext);
         InuChatRequestDto requestDto = InuChatRequestDto.of(questionWithContext, List.of());
@@ -120,6 +132,27 @@ public class InuChatAiService {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed;
+    }
+
+    /**
+     * INUChat에는 학적 요약이 함께 가므로 회원 ID를 그대로 보내지 않는다.
+     * 서버만 아는 키로 만든 HMAC 값이라 INUChat은 회원을 알 수 없고,
+     * 같은 회원은 늘 같은 값이 되어 대화 이어가기는 유지된다.
+     */
+    String toPseudonymousDeviceId(Long memberId) {
+        if (memberId == null) {
+            return "intip-" + UUID.randomUUID();
+        }
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(pseudonymKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] digest = mac.doFinal(("inuchat-device:" + memberId).getBytes(StandardCharsets.UTF_8));
+            return "intip-" + HexFormat.of().formatHex(digest, 0, 16);
+        } catch (GeneralSecurityException | IllegalArgumentException e) {
+            // 키 문제로 가명값을 못 만들면 회원 ID 대신 일회용 값을 보낸다.
+            log.warn("INUChat 가명 기기 ID 생성 실패, 일회용 값 사용: {}", e.getMessage());
+            return "intip-" + UUID.randomUUID();
+        }
     }
 
     private String anonymizeForInuChat(String question) {
