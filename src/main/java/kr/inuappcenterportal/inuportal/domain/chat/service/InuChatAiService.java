@@ -50,8 +50,9 @@ public class InuChatAiService {
         InuChatRequestDto requestDto = InuChatRequestDto.of(questionWithContext, List.of());
         String fullUrl = trimTrailingSlash(baseUrl) + (chatPath.startsWith("/") ? chatPath : "/" + chatPath);
 
-        log.info("InuChat AI 요청 시작: memberId={}, deviceId={}, url={}, question={}",
-                memberId, deviceId, fullUrl, questionWithContext);
+        // 질문에는 학적 요약 등 개인정보가 붙을 수 있어 원문 대신 길이만 남긴다.
+        log.info("InuChat AI 요청 시작: memberId={}, deviceId={}, url={}, questionLength={}",
+                memberId, deviceId, fullUrl, questionWithContext.length());
 
         HttpClient httpClient = HttpClient.create()
                 .responseTimeout(Duration.ofSeconds(timeoutSeconds));
@@ -88,8 +89,9 @@ public class InuChatAiService {
         InuChatRequestDto requestDto = InuChatRequestDto.of(questionWithContext, List.of());
         String fullUrl = trimTrailingSlash(baseUrl) + (chatPath.startsWith("/") ? chatPath : "/" + chatPath);
 
-        log.info("InuChat AI 스트리밍 요청 시작: memberId={}, deviceId={}, url={}, question={}",
-                memberId, deviceId, fullUrl, questionWithContext);
+        // 질문에는 학적 요약 등 개인정보가 붙을 수 있어 원문 대신 길이만 남긴다.
+        log.info("InuChat AI 스트리밍 요청 시작: memberId={}, deviceId={}, url={}, questionLength={}",
+                memberId, deviceId, fullUrl, questionWithContext.length());
 
         HttpClient httpClient = HttpClient.create()
                 .responseTimeout(Duration.ofSeconds(timeoutSeconds));
