@@ -45,6 +45,9 @@ public class DailyBriefSetting {
     @Column(name = "timetable_pre_alert_minutes", nullable = false)
     private int timetablePreAlertMinutes = 10;
 
+    @Column(name = "timetable_pre_alert_ongoing_enabled", nullable = false)
+    private boolean timetablePreAlertOngoingEnabled = false;
+
     @Column(name = "timetable_daily_brief_enabled", nullable = false)
     private boolean timetableDailyBriefEnabled = true;
 
@@ -72,6 +75,7 @@ public class DailyBriefSetting {
             Boolean timetablePreAlertEnabled,
             PreClassAlertMethod timetablePreAlertMethod,
             Integer timetablePreAlertMinutes,
+            Boolean timetablePreAlertOngoingEnabled,
             Boolean timetableDailyBriefEnabled,
             String timetableDailyBriefTime,
             Boolean scheduleAlertEnabled,
@@ -84,6 +88,7 @@ public class DailyBriefSetting {
         if (timetablePreAlertEnabled != null) this.timetablePreAlertEnabled = timetablePreAlertEnabled;
         if (timetablePreAlertMethod != null) this.timetablePreAlertMethod = timetablePreAlertMethod;
         if (timetablePreAlertMinutes != null) this.timetablePreAlertMinutes = timetablePreAlertMinutes;
+        if (timetablePreAlertOngoingEnabled != null) this.timetablePreAlertOngoingEnabled = timetablePreAlertOngoingEnabled;
         if (timetableDailyBriefEnabled != null) this.timetableDailyBriefEnabled = timetableDailyBriefEnabled;
         if (timetableDailyBriefTime != null && !timetableDailyBriefTime.isBlank()) this.timetableDailyBriefTime = timetableDailyBriefTime;
         if (scheduleAlertEnabled != null) this.scheduleAlertEnabled = scheduleAlertEnabled;
@@ -99,6 +104,7 @@ public class DailyBriefSetting {
                 .timetablePreAlertEnabled(true)
                 .timetablePreAlertMethod(PreClassAlertMethod.NOW_BAR)
                 .timetablePreAlertMinutes(10)
+                .timetablePreAlertOngoingEnabled(false)
                 .timetableDailyBriefEnabled(true)
                 .timetableDailyBriefTime("08:00")
                 .scheduleAlertEnabled(true)
@@ -120,6 +126,9 @@ public class DailyBriefSetting {
         }
         if (dto.timetablePreAlertMinutes() != null) {
             this.timetablePreAlertMinutes = dto.timetablePreAlertMinutes();
+        }
+        if (dto.timetablePreAlertOngoingEnabled() != null) {
+            this.timetablePreAlertOngoingEnabled = dto.timetablePreAlertOngoingEnabled();
         }
         if (dto.timetableDailyBriefEnabled() != null) {
             this.timetableDailyBriefEnabled = dto.timetableDailyBriefEnabled();

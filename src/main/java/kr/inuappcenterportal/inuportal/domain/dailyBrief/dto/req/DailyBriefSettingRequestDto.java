@@ -18,6 +18,9 @@ public record DailyBriefSettingRequestDto(
         @Schema(description = "수업 시작 몇 분 전 알림 (5, 10, 15, 20, 30, 45, 60)", example = "10")
         Integer timetablePreAlertMinutes,
 
+        @Schema(description = "수업 중 실시간 알림 유지 여부 (기본값: false)", example = "false")
+        Boolean timetablePreAlertOngoingEnabled,
+
         @Schema(description = "당일 강의 목록 브리핑 활성화 여부", example = "true")
         Boolean timetableDailyBriefEnabled,
 
@@ -46,7 +49,7 @@ public record DailyBriefSettingRequestDto(
             String scheduleDailyBriefTime,
             ScheduleScope scheduleScope
     ) {
-        this(timetableAlertEnabled, timetablePreAlertEnabled, null, timetablePreAlertMinutes,
+        this(timetableAlertEnabled, timetablePreAlertEnabled, null, timetablePreAlertMinutes, false,
                 timetableDailyBriefEnabled, timetableDailyBriefTime,
                 scheduleAlertEnabled, scheduleDailyBriefTime, scheduleScope, null);
     }
@@ -62,7 +65,7 @@ public record DailyBriefSettingRequestDto(
             ScheduleScope scheduleScope,
             String cardSettingsJson
     ) {
-        this(timetableAlertEnabled, timetablePreAlertEnabled, null, timetablePreAlertMinutes,
+        this(timetableAlertEnabled, timetablePreAlertEnabled, null, timetablePreAlertMinutes, false,
                 timetableDailyBriefEnabled, timetableDailyBriefTime,
                 scheduleAlertEnabled, scheduleDailyBriefTime, scheduleScope, cardSettingsJson);
     }
