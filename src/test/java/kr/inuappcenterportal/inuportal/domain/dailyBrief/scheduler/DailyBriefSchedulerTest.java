@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.customSchedule.repository.CustomSc
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.model.DailyBriefSetting;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.repository.DailyBriefSettingRepository;
 import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
+import kr.inuappcenterportal.inuportal.domain.firebase.scheduler.LiveActivityLifecycleScheduler;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
@@ -65,6 +66,9 @@ class DailyBriefSchedulerTest {
     @Mock
     private ScheduleRepository scheduleRepository;
 
+    @Mock
+    private LiveActivityLifecycleScheduler liveActivityLifecycleScheduler;
+
     @InjectMocks
     private DailyBriefPlanner dailyBriefPlanner;
 
@@ -73,7 +77,7 @@ class DailyBriefSchedulerTest {
 
     @BeforeEach
     void setUpScheduler() {
-        dailyBriefScheduler = new DailyBriefScheduler(dailyBriefPlanner, fcmService);
+        dailyBriefScheduler = new DailyBriefScheduler(dailyBriefPlanner, fcmService, liveActivityLifecycleScheduler);
     }
 
     @Test
