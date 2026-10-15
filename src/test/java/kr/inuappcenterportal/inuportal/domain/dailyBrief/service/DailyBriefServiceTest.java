@@ -50,6 +50,7 @@ class DailyBriefServiceTest {
         assertThat(result.timetableAlertEnabled()).isTrue();
         assertThat(result.timetablePreAlertMethod()).isEqualTo(PreClassAlertMethod.NOW_BAR);
         assertThat(result.timetablePreAlertMinutes()).isEqualTo(10);
+        assertThat(result.timetablePreAlertOngoingEnabled()).isFalse();
         assertThat(result.timetableDailyBriefTime()).isEqualTo("08:00");
         assertThat(result.scheduleDailyBriefTime()).isEqualTo("08:30");
         assertThat(result.scheduleScope()).isEqualTo(ScheduleScope.ALL);
@@ -70,6 +71,7 @@ class DailyBriefServiceTest {
                 .timetablePreAlertEnabled(true)
                 .timetablePreAlertMethod(null)
                 .timetablePreAlertMinutes(10)
+                .timetablePreAlertOngoingEnabled(false)
                 .timetableDailyBriefEnabled(true)
                 .timetableDailyBriefTime("08:00")
                 .scheduleAlertEnabled(true)
@@ -84,6 +86,7 @@ class DailyBriefServiceTest {
 
         // then
         assertThat(result.timetablePreAlertMethod()).isEqualTo(PreClassAlertMethod.NOW_BAR);
+        assertThat(result.timetablePreAlertOngoingEnabled()).isFalse();
     }
 
     @Test
@@ -101,7 +104,9 @@ class DailyBriefServiceTest {
         DailyBriefSettingRequestDto requestDto = new DailyBriefSettingRequestDto(
                 true,
                 true,
+                PreClassAlertMethod.NOW_BAR,
                 30,
+                true,
                 true,
                 "09:00",
                 false,
@@ -115,6 +120,7 @@ class DailyBriefServiceTest {
 
         // then
         assertThat(result.timetablePreAlertMinutes()).isEqualTo(30);
+        assertThat(result.timetablePreAlertOngoingEnabled()).isTrue();
         assertThat(result.timetableDailyBriefTime()).isEqualTo("09:00");
         assertThat(result.scheduleAlertEnabled()).isFalse();
         assertThat(result.scheduleDailyBriefTime()).isEqualTo("10:00");

@@ -19,6 +19,9 @@ public record DailyBriefSettingResponseDto(
         @Schema(description = "수업 시작 몇 분 전 알림", example = "10")
         int timetablePreAlertMinutes,
 
+        @Schema(description = "수업 중 실시간 알림 유지 여부", example = "false")
+        boolean timetablePreAlertOngoingEnabled,
+
         @Schema(description = "당일 강의 목록 브리핑 활성화 여부", example = "true")
         boolean timetableDailyBriefEnabled,
 
@@ -46,6 +49,7 @@ public record DailyBriefSettingResponseDto(
                 setting.isTimetablePreAlertEnabled(),
                 method,
                 setting.getTimetablePreAlertMinutes(),
+                setting.isTimetablePreAlertOngoingEnabled(),
                 setting.isTimetableDailyBriefEnabled(),
                 setting.getTimetableDailyBriefTime(),
                 setting.isScheduleAlertEnabled(),
