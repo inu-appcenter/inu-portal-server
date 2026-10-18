@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/chat-rooms/*/messages/public").permitAll()
                         // 친구추가 링크는 비로그인 상태에서도 "누구의 링크인지" 미리보기가 가능해야 한다.
                         .requestMatchers(HttpMethod.GET, "/api/friends/invite/*").permitAll()
+                        // 시간 맞추기 참여 링크도 비로그인 상태에서 미리보기가 가능해야 한다.
+                        .requestMatchers(HttpMethod.GET, "/api/schedule-polls/join/*").permitAll()
                         .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/search/unified", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**", "/error").permitAll()
 
                         // 공통 GET 허용 설정

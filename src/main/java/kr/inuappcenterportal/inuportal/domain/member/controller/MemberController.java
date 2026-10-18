@@ -44,11 +44,11 @@ public class MemberController {
     private final PostService postService;
     private final ReplyService replyService;
 
-    @Operation(summary = "회원 닉네임/횃불이 이미지 변경",description = "url 헤더에 Auth 토큰,바디에 {nickname,fireId(횃불이 이미지 번호)}을 json 형식으로 보내주세요.성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "회원 닉네임/횃불이 이미지/실명 변경",description = "url 헤더에 Auth 토큰,바디에 {nickname,fireId(횃불이 이미지 번호),realName,realNameSource,consentTermsVersion}을 json 형식으로 보내주세요. 보낸 칸만 바뀝니다. realName이 빈 문자열이면 실명을 삭제합니다(동의 철회). 실명을 넣을 때는 realNameSource(MANUAL/PORTAL_SCRAPE)가 필요하고, PORTAL_SCRAPE면 consentTermsVersion도 필요합니다. 성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200",description = "회원 닉네임/횃불이 이미지 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
             @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다. / 닉네임, 횃불이 아이디 모두 공백입니다. / 닉네임이 빈칸 혹은 공백입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다. / 닉네임, 횃불이 아이디 모두 공백입니다. / 닉네임이 빈칸 혹은 공백입니다. / 실명은 2~30자의 한글·영문·공백만 입력할 수 있습니다. / 실명 출처(realNameSource)가 필요합니다. / 포털에서 가져온 실명은 약관 버전(consentTermsVersion)이 필요합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @PutMapping("")
     public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@Valid@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, @AuthenticationPrincipal Member member){
