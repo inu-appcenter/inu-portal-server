@@ -81,6 +81,7 @@ public class MemberTest {
         mockMvc.perform(post("/api/members/login").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("로그인 성공, 토근이 발급되었습니다."))
+                .andExpect(jsonPath("$.data.isNewMember").value(true))
                 .andDo(print());
         verify(schoolLoginRepository,times(1)).loginCheck(studentId,password);
         verify(schoolLoginRepository,times(1)).resolveRoles(studentId);
@@ -98,6 +99,7 @@ public class MemberTest {
         mockMvc.perform(post("/api/members/login").content(body).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("로그인 성공, 토근이 발급되었습니다."))
+                .andExpect(jsonPath("$.data.isNewMember").value(false))
                 .andDo(print());
         verify(schoolLoginRepository,times(1)).loginCheck(studentId,password);
         verify(schoolLoginRepository,times(1)).resolveRoles(studentId);
