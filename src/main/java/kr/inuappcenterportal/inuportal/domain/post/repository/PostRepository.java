@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -64,4 +65,8 @@ public interface PostRepository extends JpaRepository<Post,Long> {
             "AND (:postIds IS NULL OR p.id NOT IN :postIds) " +
             "AND (:blockedMemberIds IS NULL OR p.member.id NOT IN :blockedMemberIds)")
     List<Post> findFilteredPosts(@Param("category") String category, @Param("id") Long id, @Param("postIds") List<Long> postIds, @Param("blockedMemberIds") List<Long> blockedMemberIds, Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE Post p SET p.member = :targetMember WHERE p.member = :sourceMember")
+    int transferMember(@Param("sourceMember") Member sourceMember, @Param("targetMember") Member targetMember);
 }

@@ -2,6 +2,17 @@ package kr.inuappcenterportal.inuportal.domain.member.service;
 
 import kr.inuappcenterportal.inuportal.domain.member.dto.*;
 import kr.inuappcenterportal.inuportal.domain.member.enums.RealNameSource;
+import kr.inuappcenterportal.inuportal.domain.department.model.SchoolDepartment;
+import kr.inuappcenterportal.inuportal.domain.member.enums.MemberType;
+import kr.inuappcenterportal.inuportal.domain.member.dto.FreshmanLoginDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.OnboardingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.SyncAcademicRequestDto;
+import kr.inuappcenterportal.inuportal.domain.post.repository.PostRepository;
+import kr.inuappcenterportal.inuportal.domain.reply.repository.ReplyRepository;
+import kr.inuappcenterportal.inuportal.domain.scrap.repository.ScrapRepository;
+
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.model.MemberNameConsent;
 import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
@@ -44,6 +55,10 @@ public class MemberService {
     private final SchoolDepartmentRepository schoolDepartmentRepository;
     private final DailyBriefService dailyBriefService;
     private final MemberNameConsentRepository memberNameConsentRepository;
+    private final PostRepository postRepository;
+    private final ReplyRepository replyRepository;
+    private final ScrapRepository scrapRepository;
+    private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^\\d{9}$");
 
     private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
             "알림", "공지", "알람", "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
@@ -212,8 +227,20 @@ public class MemberService {
         createMember(studentId, Collections.singletonList("ROLE_USER"));
     }
 
+    public MemberType resolveMemberType(String studentId) {
+        if (studentId != null && STUDENT_ID_PATTERN.matcher(studentId).matches()) {
+            return MemberType.STUDENT;
+        }
+        return MemberType.FACULTY;
+    }
+
     private Member createMember(String studentId, List<String> roles) {
+        MemberType type = resolveMemberType(studentId);
         Member member = Member.builder().studentId(studentId).roles(roles).build();
+        member.setMemberType(type);
+        if (type == MemberType.FACULTY) {
+            member.setIsAcademicVerified(true);
+        }
         Member savedMember = memberRepository.save(member);
         dailyBriefService.createDefaultSetting(savedMember);
         return savedMember;
@@ -313,5 +340,121 @@ public class MemberService {
         }
         Member member = findMemberById(memberId);
         member.updateLocation(requestDto.getLatitude(), requestDto.getLongitude());
+    }
+
+    @Transactional
+    public TokenDto freshmanLogin(FreshmanLoginDto dto) {
+        Member member = memberRepository.findByExamNo(dto.getExamNo())
+                .orElseGet(() -> {
+                    Member newFreshman = Member.builder()
+                            .studentId("F_" + dto.getExamNo())
+                            .roles(List.of("ROLE_USER"))
+                            .build();
+                    newFreshman.setMemberType(MemberType.FRESHMAN);
+                    newFreshman.setExamNo(dto.getExamNo());
+                    newFreshman.setBirthDate(dto.getBirthDate());
+                    newFreshman.updateRealName(dto.getName(), RealNameSource.PORTAL_SCRAPE);
+                    newFreshman.setIsAcademicVerified(true);
+                    return memberRepository.save(newFreshman);
+                });
+
+        return login(member);
+    }
+
+    @Transactional
+    public MemberResponseDto completeOnboarding(Long memberId, OnboardingRequestDto dto) {
+        Member member = findMemberById(memberId);
+
+        // 닉네임 유효성 검사
+        String nickname = dto.getNickname().trim();
+        if (nickname.isEmpty()) {
+            throw new MyException(MyErrorCode.NOT_BLANK_NICKNAME);
+        }
+        validateNicknameKeywords(nickname);
+        if (STUDENT_ID_PATTERN.matcher(nickname).matches() || nickname.equals(member.getStudentId())) {
+            throw new MyException(MyErrorCode.INVALID_NICKNAME_KEYWORD);
+        }
+        if (!nickname.equals(member.getNickname()) && memberRepository.existsByNickname(nickname)) {
+            throw new MyException(MyErrorCode.USER_DUPLICATE_NICKNAME);
+        }
+
+        // 실명 처리
+        String realName = dto.getRealName() != null ? dto.getRealName().trim() : null;
+        RealNameSource source = dto.getRealNameSource();
+        if (realName != null && !realName.isEmpty()) {
+            if (!REAL_NAME_PATTERN.matcher(realName).matches()) {
+                throw new MyException(MyErrorCode.INVALID_REAL_NAME);
+            }
+            validateRealNameKeywords(realName);
+            if (source == null) {
+                source = RealNameSource.PORTAL_SCRAPE;
+            }
+        }
+
+        // 학과 처리
+        SchoolDepartment schoolDept = null;
+        if (dto.getDepartmentCode() != null && !dto.getDepartmentCode().isBlank()) {
+            schoolDept = schoolDepartmentRepository.findByCodeAndActiveTrue(dto.getDepartmentCode()).orElse(null);
+        }
+
+        boolean isVerified = Boolean.TRUE.equals(dto.getIsAcademicVerified()) && source == RealNameSource.PORTAL_SCRAPE;
+        if (member.getMemberType() == MemberType.FACULTY) {
+            isVerified = true;
+        }
+
+        member.completeOnboarding(nickname, dto.getFireId(), realName, source, schoolDept, isVerified);
+        return getMemberResponseDto(member);
+    }
+
+    @Transactional
+    public MergeFreshmanResponseDto checkAndMergeFreshman(Long currentMemberId, MergeFreshmanRequestDto dto) {
+        Member currentMember = findMemberById(currentMemberId);
+        if (currentMember.getMemberType() != MemberType.STUDENT) {
+            return MergeFreshmanResponseDto.notMerged();
+        }
+
+        Optional<Member> freshmanOpt = memberRepository.findFreshmanByRealNameAndBirthDate(
+                dto.getKoreanName().trim(),
+                dto.getBirthDate().trim()
+        );
+
+        if (freshmanOpt.isPresent()) {
+            Member freshman = freshmanOpt.get();
+            if (!freshman.getId().equals(currentMember.getId())) {
+                // 신입생 시절 게시글, 댓글, 스크랩 소유권 이전
+                postRepository.transferMember(freshman, currentMember);
+                replyRepository.transferMember(freshman, currentMember);
+                scrapRepository.transferMember(freshman, currentMember);
+
+                // 닉네임과 캐릭터 계승
+                currentMember.updateNicknameAndFire(freshman.getNickname(), freshman.getFireId());
+                currentMember.upgradeFromFreshman(currentMember.getStudentId());
+
+                // 임시 신입생 계정 삭제
+                memberRepository.delete(freshman);
+
+                return MergeFreshmanResponseDto.merged(freshman.getExamNo());
+            }
+        }
+
+        return MergeFreshmanResponseDto.notMerged();
+    }
+
+    @Transactional
+    public MemberResponseDto syncOfficialAcademic(Long memberId, SyncAcademicRequestDto dto) {
+        Member member = findMemberById(memberId);
+        String realName = dto.getRealName().trim();
+        if (!REAL_NAME_PATTERN.matcher(realName).matches()) {
+            throw new MyException(MyErrorCode.INVALID_REAL_NAME);
+        }
+        validateRealNameKeywords(realName);
+
+        SchoolDepartment schoolDept = null;
+        if (dto.getDepartmentCode() != null && !dto.getDepartmentCode().isBlank()) {
+            schoolDept = schoolDepartmentRepository.findByCodeAndActiveTrue(dto.getDepartmentCode()).orElse(null);
+        }
+
+        member.syncOfficialAcademic(realName, schoolDept);
+        return getMemberResponseDto(member);
     }
 }
