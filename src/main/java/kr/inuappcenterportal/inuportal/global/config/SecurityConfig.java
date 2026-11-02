@@ -76,7 +76,7 @@ public class SecurityConfig {
                 );
 
         httpSecurity
-                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, objectMapper), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint(objectMapper)));
 
