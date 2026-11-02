@@ -1,6 +1,7 @@
 package kr.inuappcenterportal.inuportal.domain.member.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.inuappcenterportal.inuportal.domain.member.enums.MemberType;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import lombok.Builder;
@@ -59,6 +60,21 @@ public class MemberResponseDto {
     @Schema(description = "주변 친구 찾기 위치 노출 여부")
     private Boolean nearbyVisibility;
 
+    @Schema(description = "회원 유형 (STUDENT, FACULTY, FRESHMAN)")
+    private MemberType memberType;
+
+    @Schema(description = "온보딩 완료 여부")
+    private Boolean onboardingCompleted;
+
+    @Schema(description = "온보딩 필요 여부")
+    private boolean needsOnboarding;
+
+    @Schema(description = "공식 학적 인증 여부")
+    private Boolean isAcademicVerified;
+
+    @Schema(description = "수험번호 (신입생)")
+    private String examNo;
+
     @Builder
     private MemberResponseDto(Member member, String role, Department department) {
         this.id = member.getId();
@@ -80,6 +96,11 @@ public class MemberResponseDto {
         this.lastSeenAt = member.getLastSeenAt();
         this.chatPushEnabled = member.getChatPushEnabled();
         this.nearbyVisibility = Boolean.TRUE.equals(member.getNearbyVisibility());
+        this.memberType = member.getMemberType();
+        this.onboardingCompleted = Boolean.TRUE.equals(member.getOnboardingCompleted());
+        this.needsOnboarding = !this.onboardingCompleted;
+        this.isAcademicVerified = Boolean.TRUE.equals(member.getIsAcademicVerified());
+        this.examNo = member.getExamNo();
     }
 
     public static MemberResponseDto userMember(Member member){
