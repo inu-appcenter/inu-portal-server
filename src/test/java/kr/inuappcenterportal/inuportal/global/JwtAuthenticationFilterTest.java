@@ -96,4 +96,24 @@ class JwtAuthenticationFilterTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.msg").value("인증이 실패하였습니다."));
     }
+
+    // 이 슬라이스에는 Agent 컨트롤러가 없어서, 보안 단계를 통과하면 404, 막히면 401이 된다.
+    @Test
+    @DisplayName("맞춤 알림 POST는 공개 목록에서 빠져 만료 토큰이면 만료 응답을 반환한다")
+    void expiredTokenOnReminderPostIsRejected() throws Exception {
+        givenExpiredToken();
+
+        mockMvc.perform(post("/api/agent/reminders").header("Auth", EXPIRED).content("{}").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.msg").value("만료된 토큰입니다."));
+    }
+
+    @Test
+    @DisplayName("AI 채팅 POST는 비로그인도 보안 단계를 통과한다")
+    void agentChatStaysPublic() throws Exception {
+        mockMvc.perform(post("/api/agent/chat").content("{}").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/agent/chat/stream").content("{}").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
 }
