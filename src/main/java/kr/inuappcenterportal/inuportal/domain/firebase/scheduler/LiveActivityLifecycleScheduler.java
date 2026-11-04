@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.function.LongSupplier;
 
 /**
@@ -18,6 +19,8 @@ import java.util.function.LongSupplier;
  *   <li>수업 종료 시각이 지나면 {@code end}로 끝내고 잠금화면에서도 바로 치운다(dismissal-date=지금).</li>
  * </ul>
  * 앱이 꺼져 있으면 앱은 이 일을 할 수 없어, 끝난 수업의 Activity가 남아 다음 수업 것과 겹쳤다.
+ * 연강이면 다음 수업 알림이 앞 수업 종료보다 먼저 오므로, 그때 앞 수업 것도 바로 끝낸다
+ * ({@link #endEarlierActivities}).
  *
  * <p>트랜잭션을 걸지 않는다. 대상 조회와 상태 기록은 {@link LiveActivityLifecycleService}의 짧은 트랜잭션,
  * FCM 발송은 그 밖에서 한다.
@@ -83,5 +86,29 @@ public class LiveActivityLifecycleScheduler {
             }
         }
         liveActivityLifecycleService.deleteEndedBefore(now - RETENTION_MILLIS);
+    }
+
+    /**
+     * 다음 수업 Live Activity를 막 시작한 기기들에서, 그보다 먼저 시작한 수업의 Activity를 끝낸다.
+     *
+     * <p>연강이면 다음 수업 알림(수업 N분 전)이 앞 수업 종료보다 먼저 와서 잠금화면에 카드가 둘 쌓인다.
+     * 사용자의 관심은 이미 다음 수업으로 넘어갔으므로 앞 수업 것은 바로 치운다. 발송이 실패하면 상태를
+     * 남겨 두어, 원래대로 수업 종료 시각에 {@link #run()}이 끝낸다.
+     *
+     * @param fcmTokens    다음 수업 Live Activity 시작 푸시를 받은 기기들
+     * @param classStartMs 다음 수업 시작 시각
+     */
+    public void endEarlierActivities(Long memberId, Collection<String> fcmTokens, long classStartMs) {
+        long now = clock.getAsLong();
+        for (DueLiveActivity activity : liveActivityLifecycleService.findEarlierActive(memberId, fcmTokens, classStartMs)) {
+            try {
+                String props = LiveActivityLifecycleService.withPhase(activity.propsJson(), PHASE_ONGOING);
+                fcmService.sendLiveActivityEvent(activity.fcmToken(), activity.pushToken(), "end", props,
+                        null, now / 1000);
+                liveActivityLifecycleService.markEnded(activity.id());
+            } catch (Exception e) {
+                log.warn("Live Activity end on next class failed (id={}): {}", activity.id(), e.getMessage());
+            }
+        }
     }
 }
