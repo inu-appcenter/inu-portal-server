@@ -1,23 +1,31 @@
+# 개발(dev) 서버 배포 워크플로
+# 흐름: 코드 받기 → 설정 파일 복원 → Gradle 빌드(테스트 포함) → Docker 이미지 빌드·푸시 → 서버로 파일 복사 → 서버에서 새 이미지로 재시작
 name: "[Dev] CI & CD"
 
+# 실행 조건: Actions 탭에서 수동 실행할 때만 (dev 브랜치 푸시로는 자동 실행되지 않음)
 on:
   workflow_dispatch: { }
 
+# 워크플로가 GitHub 토큰으로 할 수 있는 권한. 코드 읽기만 허용
 permissions:
   contents: read
 
+# 같은 브랜치에서 dev 배포가 겹치면 먼저 돌던 실행을 취소하고 최신 실행만 남김
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    # 커밋 메시지 조건. 수동 실행만 받으므로 현재는 항상 통과
     if: github.event_name == 'workflow_dispatch' ||
       (!contains(github.event.head_commit.message, '테스트코드 작성') &&
       !contains(github.event.head_commit.message, '임시 작성'))
 
+    # GitHub가 빌려주는 임시 Ubuntu 컴퓨터(러너). 실행할 때마다 새로 만들어지고 끝나면 사라진다
     runs-on: ubuntu-latest
 
+    # 테스트 실행 중 필요한 Redis를 러너 옆에 컨테이너로 띄움
     services:
       redis:
         image: redis:alpine
@@ -25,22 +33,27 @@ jobs:
           - 6379:6379
 
     steps:
+      # 레포 코드를 러너로 내려받음
       - uses: actions/checkout@v3
+      # Java 17 설치
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      # Gradle 라이브러리·빌드 캐시를 GitHub 캐시에 저장해 다음 실행 때 재사용
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
+      # 레포에 커밋하지 않는 dev 설정 파일을 secrets 값으로 만들어냄 (jar 안에 포함됨)
       - name: Create application.yml
         run: |
           cat > ./src/main/resources/application.yml <<'EOF'
           ${{ secrets.APPLICATION_YML_DEV }}
           EOF
 
+      # FCM 푸시 발송용 Firebase 서비스 계정 키를 secrets 값으로 만들어냄
       - name: Create firebase_key.json
         id: create-json
         uses: jsdaniell/create-json@v1.2.3
@@ -49,6 +62,8 @@ jobs:
           json: ${{ secrets.FIREBASE_KEY }}
           dir: 'src/main/resources/'
 
+      # ⚠️ (#483) 위에서 만든 설정 파일 두 개를 아티팩트로 GitHub에 업로드함
+      # 공개 레포라 누구나 Actions 탭에서 내려받을 수 있고, 이후 스텝에서 쓰는 곳도 없음 → 삭제 예정
       - uses: actions/upload-artifact@v4
         with:
           name: app-configs
@@ -56,24 +71,33 @@ jobs:
             ./src/main/resources/application.yml
             ./src/main/resources/firebase_key.json
 
+      # gradlew 스크립트에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 컴파일 + 테스트 + 실행용 jar 생성. 테스트까지 돌려서 1.5~3분 걸림
+      # (#483) PR 단계에서 테스트를 돌리도록 바꾸면 여기서는 -x test로 건너뛸 수 있음
       - name: Build with Gradle
         run: ./gradlew build
 
+      # 이미지를 올릴 DockerHub에 로그인
       - name: DockerHub Login
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.TOKEN }}
 
+      # Dockerfile로 이미지를 만듦 (:dev 태그)
+      # --no-cache: 캐시 없이 전부 새로 빌드. 러너는 매번 새 컴퓨터라 이 옵션이 없어도 남아 있는 캐시는 없음
+      # (#483) prod처럼 buildx + 외부 캐시(cache-from/to)를 써야 apt/Chrome/pip 레이어를 재사용할 수 있음
       - name: Docker Image Build
         run: docker build --no-cache -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev .
 
+      # 만든 이미지를 DockerHub에 푸시
       - name: DockerHub Push
         run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
 
+      # 인스타그램(2기숙사 식단) 스크래퍼 파이썬 파일을 서버 마운트 경로로 복사
       - name: Sync Instagram scraper files
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -84,6 +108,7 @@ jobs:
           source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/README.md"
           target: ${{ secrets.MOUNT_PATH }}
 
+      # docker compose 설정과 infra 폴더를 서버로 복사 (Elasticsearch 기동용)
       - name: Copy compose and infra files
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -94,6 +119,11 @@ jobs:
           source: "compose.yaml,infra/**"
           target: ${{ secrets.MOUNT_PATH }}
 
+      # 서버에 SSH로 접속해서 실행하는 명령
+      # 1) 기존 dev 컨테이너·이미지 삭제 후 새 이미지 pull
+      # 2) 스크래퍼용 Chrome 프로필 락 파일 정리
+      # 3) dev 전용 네트워크 생성, 운영과 같은 Elasticsearch 컨테이너를 dev 네트워크에도 연결
+      # 4) docker run으로 dev 앱 컨테이너 실행 (호스트 8104 포트 → 컨테이너 8080)
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -103,19 +133,19 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             set -e
-            
+
             docker stop ${{ secrets.APPLICATION_NAME }}-dev || true
             docker rm ${{ secrets.APPLICATION_NAME }}-dev || true
             docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev || true
-            
+
             docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
 
             # 새로운 컨테이너가 뜨기 전, 볼륨 마운트된 경로의 락 파일 강제 제거
             rm -f ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile/SingletonLock || true
             chmod -R 777 ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile || true
-            
+
             docker network create intip-dev || true
-            
+
             cd ${{ secrets.MOUNT_PATH }}
             export DOCKERHUB_USERNAME=${{ secrets.USERNAME }}
             export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
@@ -123,7 +153,7 @@ jobs:
             export KIBANA_URL=${{ secrets.KIBANA_URL || 'http://localhost:5601' }}
             docker compose up -d --build elasticsearch || true
             docker network connect intip-dev intip-elasticsearch || true
-            
+
             docker run -d \
               --init \
               --network intip-dev \
