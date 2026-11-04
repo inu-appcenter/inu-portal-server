@@ -56,7 +56,8 @@ public class SecurityConfig {
 
 
                         // 인증 없이 접근 가능한 POST 설정
-                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**", "/api/agent/**", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**", "/api/agent/chat", "/api/agent/chat/stream", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**").permitAll()
+
 
                         // ADMIN 권한 전용 설정
                         .requestMatchers(HttpMethod.POST, "/api/directory/sync", "/api/directory/sources/sync", "/api/directory/college-office-contacts/sync", "/api/semesters/sync", "/api/courses/sync", "/api/course-offerings/sync", "/api/course-offerings/legacy", "/api/syllabus", "/api/search/admin/**").hasRole("ADMIN")
@@ -76,7 +77,7 @@ public class SecurityConfig {
                 );
 
         httpSecurity
-                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, objectMapper), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception.accessDeniedHandler(new CustomAccessDeniedHandler(objectMapper))
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint(objectMapper)));
 
