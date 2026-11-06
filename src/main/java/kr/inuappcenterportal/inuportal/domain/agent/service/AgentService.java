@@ -112,8 +112,9 @@ public class AgentService {
     public AgentChatResponseDto processChat(AgentChatRequestDto requestDto, Member member) {
         String userMessage = requestDto.message().trim();
         List<ChatMessageDto> history = requestDto.history() != null ? requestDto.history() : Collections.emptyList();
-        log.info("AI Agent incoming message: '{}', member: {}, history turns: {}",
-                userMessage, (member != null ? member.getId() : "GUEST"), history.size());
+        // 채팅 원문은 개인정보가 섞일 수 있어 로그에 남기지 않는다. 길이만 기록한다.
+        log.info("AI Agent incoming message: length={}, member: {}, history turns: {}",
+                userMessage.length(), (member != null ? member.getId() : "GUEST"), history.size());
 
         // 1단계: 1차 도구 라우팅 결정 (대화 맥락 반영)
         AgentToolDecisionDto decision = decideTool(userMessage, history);

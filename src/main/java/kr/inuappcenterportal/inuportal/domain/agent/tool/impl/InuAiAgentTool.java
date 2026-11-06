@@ -47,7 +47,9 @@ public class InuAiAgentTool implements AgentTool {
         }
 
         Long memberId = member != null ? member.getId() : null;
-        log.info("[InuAiAgentTool] inuai 학사 RAG 엔진 질의 시작: memberId={}, question='{}'", memberId, question);
+        // 질문 원문은 개인정보가 섞일 수 있어 로그에 남기지 않는다.
+        log.info("[InuAiAgentTool] inuai 학사 RAG 엔진 질의 시작: memberId={}, questionLength={}",
+                memberId, question == null ? 0 : question.length());
 
         try {
             // inuai RAG 엔진 호출 (최대 25초 타임아웃)
