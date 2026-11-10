@@ -168,6 +168,11 @@ public enum MyErrorCode {
     FCM_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 관리자 알림입니다."),
     FCM_RETRY_NO_TARGET(HttpStatus.CONFLICT, "재시도할 대상이 없습니다. 전달에 실패한 수신자가 없거나, 실패 기록이 남지 않은 과거 발송입니다."),
     FCM_RETRY_NOT_ALLOWED(HttpStatus.CONFLICT, "지금은 재시도할 수 없습니다. 이미 발송 중이거나 재시도 대상이 아닌 상태입니다."),
+    COURSE_REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강의평입니다."),
+    COURSE_REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 해당 교수의 강의에 대해 작성한 강의평이 존재합니다."),
+    HAS_NOT_COURSE_REVIEW_AUTHORIZATION(HttpStatus.FORBIDDEN, "이 강의평의 수정/삭제 권한이 없습니다."),
+    CANNOT_LIKE_MY_COURSE_REVIEW(HttpStatus.BAD_REQUEST, "본인이 작성한 강의평에는 추천할 수 없습니다."),
+    COURSE_REVIEW_ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고한 강의평입니다."),
     ;
 
 

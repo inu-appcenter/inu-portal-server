@@ -52,7 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**", "/images/**", "/actuator/**", "/ws-chat/**", "/api/search", "/api/search/unified", "/api/notices", "/api/notices/**", "/api/schedules", "/api/schedules/**", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**", "/error").permitAll()
 
                         // 공통 GET 허용 설정
-                        .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/buses/**", "/api/buses", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags", "/api/semesters", "/api/search/unified", "/api/departments", "/api/course-offerings", "/api/course-offerings/**", "/api/syllabus", "/api/syllabus/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/posts", "/api/cafeterias", "/api/weathers", "/api/buses/**", "/api/buses", "/api/councilNotices", "/api/councilNotices/**", "/api/petitions", "/api/petitions/**", "/api/reservations/quantity/**", "/api/directory", "/api/directory/**", "/api/categories/**", "/api/images/**", "/api/books/**", "/api/items/**", "/api/lost/**", "/api/clubs", "/api/clubs/**", "/api/feature-flags", "/api/semesters", "/api/search/unified", "/api/departments", "/api/course-offerings", "/api/course-offerings/**", "/api/syllabus", "/api/syllabus/**", "/api/courses/*/reviews", "/api/courses/*/reviews/**").permitAll()
 
 
                         // 인증 없이 접근 가능한 POST 설정
@@ -67,7 +67,7 @@ public class SecurityConfig {
 
                         // USER 또는 ADMIN 권한 설정
                         .requestMatchers(HttpMethod.POST, "/api/reports/**", "/api/portal/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/chat-rooms/**", "/api/members/**", "/api/members", "/api/friends", "/api/friends/**", "/api/tokens", "/api/posts/**", "/api/posts", "/api/fires/**", "/api/petitions", "/api/petitions/**", "/api/replies/**", "/api/reservations/**", "/api/folders/**", "/api/folders", "/api/search/**", "/api/keywords/**", "/api/suggestions", "/api/suggestions/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/chat-rooms/**", "/api/members/**", "/api/members", "/api/friends", "/api/friends/**", "/api/tokens", "/api/posts/**", "/api/posts", "/api/fires/**", "/api/petitions", "/api/petitions/**", "/api/replies/**", "/api/reservations/**", "/api/folders/**", "/api/folders", "/api/search/**", "/api/keywords/**", "/api/suggestions", "/api/suggestions/**", "/api/courses/*/reviews", "/api/reviews/**", "/api/my/course-reviews").hasAnyRole("USER", "ADMIN")
 
                         // 추가 인증 필요 설정
                         .requestMatchers(HttpMethod.POST, "/api/chat/messages").authenticated()
