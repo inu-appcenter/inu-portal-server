@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,6 +38,7 @@ public class BusService {
     
     private final kr.inuappcenterportal.inuportal.global.service.RedisService redisService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final Clock clock;
 
     private static final String SERVICE_STATUS_CONFIG_KEY = "BUS_SERVICE_STATUS";
 
@@ -301,7 +303,7 @@ public class BusService {
         List<BusArrivalItemDto> result = new ArrayList<>(realTimeArrivals);
 
         // 심야 운행 종료 시간대(00:30 ~ 05:00)에는 추정 계산을 전면 스킵하여 불필요한 DB 연산 방지
-        LocalTime currentTime = LocalTime.now();
+        LocalTime currentTime = LocalTime.now(clock);
         if ((currentTime.isAfter(LocalTime.of(0, 30)) && currentTime.isBefore(LocalTime.of(5, 0))) || currentTime.equals(LocalTime.of(0, 30))) {
             return result;
         }
@@ -364,7 +366,7 @@ public class BusService {
             }
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalTime currentTime = now.toLocalTime();
 
         // 00:30 ~ 05:00 심야 시간대 컷오프
@@ -572,7 +574,7 @@ public class BusService {
             return null;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<LocalTime> arrivalTimes = new ArrayList<>();
 
         for (int i = 0; i < 28; i++) {
@@ -1084,7 +1086,7 @@ public class BusService {
 
     @Transactional
     public int cleanupOldArrivalHistory(int weeks) {
-        LocalDateTime cutoffDate = LocalDateTime.now().minusWeeks(weeks > 0 ? weeks : 4);
+        LocalDateTime cutoffDate = LocalDateTime.now(clock).minusWeeks(weeks > 0 ? weeks : 4);
         return busArrivalHistoryRepository.deleteByCreateDateBefore(cutoffDate);
     }
 
@@ -1107,7 +1109,7 @@ public class BusService {
     }
 
     private List<BusArrivalItemDto> calculateEstimatedArrivals(String bstopId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         DayOfWeek currentDay = now.getDayOfWeek();
         LocalTime currentTime = now.toLocalTime();
 
