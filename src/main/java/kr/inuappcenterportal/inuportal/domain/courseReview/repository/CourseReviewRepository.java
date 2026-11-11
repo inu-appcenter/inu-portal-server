@@ -11,4 +11,5 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
     boolean existsByCourseIdAndMemberIdAndProfessor(Long courseId, Long memberId, String professor);
     Optional<CourseReview> findByIdAndStatusNot(Long id, ReviewStatus status);
     List<CourseReview> findByMemberIdAndStatusNotOrderByCreateDateDesc(Long memberId, ReviewStatus status);
+    List<CourseReview> findByStatusOrderByCreateDateDesc(ReviewStatus status, org.springframework.data.domain.Pageable pageable);
 }

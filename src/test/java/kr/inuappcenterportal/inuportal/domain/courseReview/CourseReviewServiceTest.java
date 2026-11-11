@@ -4,6 +4,7 @@ import kr.inuappcenterportal.inuportal.domain.course.model.Course;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.course.repository.CourseRepository;
 import kr.inuappcenterportal.inuportal.domain.courseReview.dto.CourseReviewCreateDto;
+import kr.inuappcenterportal.inuportal.domain.courseReview.dto.CourseReviewRecentDto;
 import kr.inuappcenterportal.inuportal.domain.courseReview.dto.CourseReviewResponseDto;
 import kr.inuappcenterportal.inuportal.domain.courseReview.dto.CourseReviewUpdateDto;
 import kr.inuappcenterportal.inuportal.domain.courseReview.enums.*;
@@ -342,5 +343,41 @@ class CourseReviewServiceTest {
         // then
         assertThat(review.getReportCount()).isEqualTo(5);
         assertThat(review.getStatus()).isEqualTo(ReviewStatus.BLINDED);
+    }
+
+    @Test
+    @DisplayName("최근 등록된 강의평 피드 조회 성공 - ACTIVE 상태인 강의평 목록이 반환된다")
+    void getRecentReviews_success() {
+        // given
+        CourseReview review = CourseReview.create(
+                course,
+                null,
+                author,
+                "홍길동",
+                2026,
+                1,
+                5,
+                GradeSatisfaction.GENEROUS,
+                AssignmentAmount.NORMAL,
+                TeamProject.NONE,
+                ExamCount.TWICE,
+                AttendanceType.ELECTRONIC,
+                "정말 유익했던 강의입니다.",
+                true
+        );
+        ReflectionTestUtils.setField(review, "id", 101L);
+
+        given(courseReviewRepository.findByStatusOrderByCreateDateDesc(any(), any()))
+                .willReturn(List.of(review));
+
+        // when
+        List<CourseReviewRecentDto> recentReviews = courseReviewService.getRecentReviews(10, author);
+
+        // then
+        assertThat(recentReviews).hasSize(1);
+        CourseReviewRecentDto dto = recentReviews.get(0);
+        assertThat(dto.getCourseTitle()).isEqualTo("자료구조");
+        assertThat(dto.getProfessor()).isEqualTo("홍길동");
+        assertThat(dto.getRating()).isEqualTo(5);
     }
 }

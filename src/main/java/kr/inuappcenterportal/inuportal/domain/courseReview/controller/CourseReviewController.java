@@ -110,4 +110,14 @@ public class CourseReviewController implements CourseReviewApiSpecification {
         List<CourseReviewResponseDto> myReviews = courseReviewService.getMyReviews(member);
         return ResponseEntity.ok(ResponseDto.of(myReviews, "내 강의평 목록 조회 성공"));
     }
+
+    @Override
+    @GetMapping("/api/course-reviews/recent")
+    public ResponseEntity<ResponseDto<List<CourseReviewRecentDto>>> getRecentReviews(
+            @RequestParam(defaultValue = "10") int limit,
+            @AuthenticationPrincipal Member member
+    ) {
+        List<CourseReviewRecentDto> recentReviews = courseReviewService.getRecentReviews(limit, member);
+        return ResponseEntity.ok(ResponseDto.of(recentReviews, "최근 강의평 목록 조회 성공"));
+    }
 }

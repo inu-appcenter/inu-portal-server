@@ -71,4 +71,10 @@ public interface CourseReviewApiSpecification {
     ResponseEntity<ResponseDto<List<CourseReviewResponseDto>>> getMyReviews(
             Member member
     );
+
+    @Operation(summary = "최근 등록된 강의평 피드 조회", description = "전체 교과목 중 최근에 등록된 공개 강의평 목록을 최신순으로 조회합니다.")
+    ResponseEntity<ResponseDto<List<CourseReviewRecentDto>>> getRecentReviews(
+            int limit,
+            Member member
+    );
 }

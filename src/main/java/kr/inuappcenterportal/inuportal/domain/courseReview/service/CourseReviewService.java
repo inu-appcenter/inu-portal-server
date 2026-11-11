@@ -206,6 +206,30 @@ public class CourseReviewService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 최근 등록된 강의평 피드 조회
+     */
+    public List<CourseReviewRecentDto> getRecentReviews(int limit, Member currentMember) {
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
+        org.springframework.data.domain.PageRequest pageRequest =
+                org.springframework.data.domain.PageRequest.of(0, safeLimit);
+
+        List<CourseReview> list = courseReviewRepository.findByStatusOrderByCreateDateDesc(
+                ReviewStatus.ACTIVE,
+                pageRequest
+        );
+
+        Long currentMemberId = currentMember != null ? currentMember.getId() : null;
+
+        return list.stream()
+                .map(review -> {
+                    boolean isLiked = currentMemberId != null &&
+                            courseReviewLikeRepository.existsByCourseReviewIdAndMemberId(review.getId(), currentMemberId);
+                    return CourseReviewRecentDto.of(review, currentMemberId, isLiked);
+                })
+                .collect(Collectors.toList());
+    }
+
     private Course findCourseById(Long courseId) {
         return courseRepository.findById(courseId)
                 .orElseThrow(() -> new MyException(MyErrorCode.COURSE_NOT_FOUND));
