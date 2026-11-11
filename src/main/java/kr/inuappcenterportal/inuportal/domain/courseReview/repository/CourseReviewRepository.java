@@ -9,6 +9,7 @@ import java.util.Optional;
 
 public interface CourseReviewRepository extends JpaRepository<CourseReview, Long>, CourseReviewRepositoryCustom {
     boolean existsByCourseIdAndMemberIdAndProfessor(Long courseId, Long memberId, String professor);
+    List<CourseReview> findByCourseIdAndMemberIdAndProfessorAndStatusNot(Long courseId, Long memberId, String professor, ReviewStatus status);
     Optional<CourseReview> findByIdAndStatusNot(Long id, ReviewStatus status);
     List<CourseReview> findByMemberIdAndStatusNotOrderByCreateDateDesc(Long memberId, ReviewStatus status);
     List<CourseReview> findByStatusOrderByCreateDateDesc(ReviewStatus status, org.springframework.data.domain.Pageable pageable);

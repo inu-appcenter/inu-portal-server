@@ -46,17 +46,32 @@ public class CourseReviewService {
         Course course = findCourseById(courseId);
 
         String trimmedProfessor = dto.getProfessor().trim();
-        if (courseReviewRepository.existsByCourseIdAndMemberIdAndProfessor(courseId, member.getId(), trimmedProfessor)) {
-            throw new MyException(MyErrorCode.COURSE_REVIEW_ALREADY_EXISTS);
+        List<CourseReview> existingReviews = courseReviewRepository.findByCourseIdAndMemberIdAndProfessorAndStatusNot(
+                courseId, member.getId(), trimmedProfessor, ReviewStatus.DELETED
+        );
+
+        // 수강생 인증 판별: 회원의 시간표에 해당 과목이 담겨 있는지 여부
+        boolean isVerified = timeTableItemRepository.existsByMemberIdAndCourseId(member.getId(), courseId);
+
+        if (!existingReviews.isEmpty()) {
+            // 동일 학기(연도+학기)에 이미 작성한 후기가 있는지 확인
+            boolean sameTermExists = existingReviews.stream().anyMatch(r ->
+                    r.getYear().equals(dto.getYear()) && r.getTerm().equals(dto.getTerm())
+            );
+            if (sameTermExists) {
+                throw new MyException(MyErrorCode.COURSE_REVIEW_SAME_TERM_EXISTS);
+            }
+
+            // 다른 학기(재수강)인 경우: 포털 시간표 인증된 수강자만 추가 작성 가능
+            if (!isVerified) {
+                throw new MyException(MyErrorCode.COURSE_REVIEW_RETAKE_UNVERIFIED);
+            }
         }
 
         CourseOffering offering = null;
         if (dto.getCourseOfferingId() != null) {
             offering = courseOfferingRepository.findById(dto.getCourseOfferingId()).orElse(null);
         }
-
-        // 수강생 인증 판별: 회원의 시간표에 해당 과목이 담겨 있는지 여부
-        boolean isVerified = timeTableItemRepository.existsByMemberIdAndCourseId(member.getId(), courseId);
 
         CourseReview review = CourseReview.create(
                 course,
@@ -110,14 +125,14 @@ public class CourseReviewService {
     }
 
     /**
-     * 강의평 수정
+     * 강의평 수정 (에브리타임 정책: 일반 사용자 수정 불가, 관리자만 가능)
      */
     @Transactional
     public CourseReviewResponseDto updateReview(Long reviewId, CourseReviewUpdateDto dto, Member member) {
         CourseReview review = findActiveReviewById(reviewId);
 
-        if (!review.getMember().getId().equals(member.getId())) {
-            throw new MyException(MyErrorCode.HAS_NOT_COURSE_REVIEW_AUTHORIZATION);
+        if (!member.getRoles().contains("ROLE_ADMIN")) {
+            throw new MyException(MyErrorCode.COURSE_REVIEW_CANNOT_EDIT);
         }
 
         review.update(
@@ -135,14 +150,14 @@ public class CourseReviewService {
     }
 
     /**
-     * 강의평 삭제
+     * 강의평 삭제 (에브리타임 정책: 일반 사용자 삭제 불가, 관리자만 가능)
      */
     @Transactional
     public void deleteReview(Long reviewId, Member member) {
         CourseReview review = findActiveReviewById(reviewId);
 
-        if (!review.getMember().getId().equals(member.getId())) {
-            throw new MyException(MyErrorCode.HAS_NOT_COURSE_REVIEW_AUTHORIZATION);
+        if (!member.getRoles().contains("ROLE_ADMIN")) {
+            throw new MyException(MyErrorCode.COURSE_REVIEW_CANNOT_DELETE);
         }
 
         review.delete();
