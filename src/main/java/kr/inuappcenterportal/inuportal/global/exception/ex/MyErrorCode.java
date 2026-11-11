@@ -79,6 +79,7 @@ public enum MyErrorCode {
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 메시지입니다."),
     SCHEDULED_NOTIFICATION_ALREADY_DISPATCHING(HttpStatus.CONFLICT, "이미 발송이 시작되었거나 종결된 예약 알림입니다."),
     NOT_FOUND_LOG(HttpStatus.NOT_FOUND, "존재하지 않는 로그입니다."),
+    INVALID_STATS_RANGE(HttpStatus.BAD_REQUEST, "통계 기간이 올바르지 않습니다. 시작일은 종료일 이전이어야 하고 기간은 최대 400일입니다."),
     FEATURE_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "현재 비활성화된 기능입니다."),
     FEATURE_FLAG_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 feature flag입니다."),
     DUPLICATE_FEATURE_FLAG_KEY(HttpStatus.BAD_REQUEST, "이미 존재하는 feature flag key입니다."),
