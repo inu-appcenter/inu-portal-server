@@ -11,7 +11,7 @@ public final class StatsRows {
     private StatsRows() {
     }
 
-    public record DailyCount(LocalDate date, Long count) {
+    public record DailyVisitor(LocalDate date, String memberId) {
     }
 
     public record MemberJoin(Long memberId, LocalDateTime joinedAt) {

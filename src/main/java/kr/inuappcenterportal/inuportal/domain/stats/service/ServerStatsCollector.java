@@ -39,17 +39,21 @@ public class ServerStatsCollector {
         Set<String> existingMemberIds = statsRepository.findAllMemberIds().stream()
                 .map(String::valueOf).collect(Collectors.toSet());
 
+        // 요약 로그의 접속 ID. 최근 30일 활성 회원 계산을 위해 to-29일부터 읽는다
+        LocalDate visitorsFrom = from.isBefore(to.minusDays(29)) ? from : to.minusDays(29);
+        Set<LocalDate> summarized = new HashSet<>(statsRepository.findSummarizedDates(visitorsFrom, to));
+        Map<LocalDate, List<String>> idsByDay = new HashMap<>();
+        statsRepository.findDailyVisitors(visitorsFrom, to)
+                .forEach(v -> idsByDay.computeIfAbsent(v.date(), k -> new ArrayList<>()).add(v.memberId()));
+
         // 요약이 없는 오늘·어제는 원본 로그를 날짜당 한 번씩만 읽는다
-        Set<LocalDate> summarized = new HashSet<>(statsRepository.findSummarizedDates(from, to));
-        Map<LocalDate, List<String>> rawIds = new HashMap<>();
+        Set<LocalDate> rawDays = new HashSet<>();
         for (LocalDate d : List.of(today.minusDays(1), today)) {
-            if (!d.isBefore(to.minusDays(29)) && !d.isAfter(to) && !summarized.contains(d)) {
-                rawIds.put(d, loggingService.getRawMemberIds(d));
+            if (!d.isBefore(visitorsFrom) && !d.isAfter(to) && !summarized.contains(d)) {
+                idsByDay.put(d, loggingService.getRawMemberIds(d));
+                rawDays.add(d);
             }
         }
-
-        Map<LocalDate, Long> members = toMap(statsRepository.countDailyMembers(from, to));
-        Map<LocalDate, Long> guests = toMap(statsRepository.countDailyGuests(from, to));
 
         List<StatsRows.MemberJoin> joins = statsRepository.findMemberJoins(
                 from.atStartOfDay(), to.plusDays(1).atStartOfDay());
@@ -58,23 +62,20 @@ public class ServerStatsCollector {
 
         List<ServerStats.DailyPoint> daily = days.stream().map(d -> {
             long signups = signupsByDay.getOrDefault(d, 0L);
-            if (summarized.contains(d)) {
-                return new ServerStats.DailyPoint(d, members.getOrDefault(d, 0L), guests.getOrDefault(d, 0L),
-                        signups, LogStatus.SUMMARY);
-            }
-            List<String> ids = rawIds.get(d);
-            if (ids != null && !ids.isEmpty()) {
+            List<String> ids = idsByDay.getOrDefault(d, List.of());
+            boolean raw = rawDays.contains(d);
+            if (summarized.contains(d) || (raw && !ids.isEmpty())) {
                 return new ServerStats.DailyPoint(d,
-                        ids.stream().filter(existingMemberIds::contains).count(),
-                        ids.stream().filter(ServerStatsCollector::isGuestId).count(),
-                        signups, LogStatus.RAW);
+                        ids.stream().filter(existingMemberIds::contains).distinct().count(),
+                        ids.stream().filter(ServerStatsCollector::isGuestId).distinct().count(),
+                        signups, raw ? LogStatus.RAW : LogStatus.SUMMARY);
             }
             return new ServerStats.DailyPoint(d, 0, 0, signups, LogStatus.MISSING);
         }).toList();
 
         // to 기준 최근 7일·30일 접속 회원
-        Set<String> active30 = activeMemberIds(to.minusDays(29), to, rawIds, existingMemberIds);
-        Set<String> active7 = activeMemberIds(to.minusDays(6), to, rawIds, existingMemberIds);
+        Set<String> active30 = activeMemberIds(to.minusDays(29), to, idsByDay, existingMemberIds);
+        Set<String> active7 = activeMemberIds(to.minusDays(6), to, idsByDay, existingMemberIds);
 
         ServerStats.Summary summary = new ServerStats.Summary(
                 existingMemberIds.size(), active7.size(), active30.size(), joins.size());
@@ -83,10 +84,10 @@ public class ServerStatsCollector {
                 apiTrends(query, days, summarized, today));
     }
 
-    private Set<String> activeMemberIds(LocalDate from, LocalDate to, Map<LocalDate, List<String>> rawIds,
+    private Set<String> activeMemberIds(LocalDate from, LocalDate to, Map<LocalDate, List<String>> idsByDay,
                                         Set<String> existingMemberIds) {
-        Set<String> ids = new HashSet<>(statsRepository.findDistinctMemberIds(from, to));
-        rawIds.forEach((d, list) -> {
+        Set<String> ids = new HashSet<>();
+        idsByDay.forEach((d, list) -> {
             if (!d.isBefore(from) && !d.isAfter(to)) {
                 list.stream().filter(existingMemberIds::contains).forEach(ids::add);
             }
@@ -150,15 +151,11 @@ public class ServerStatsCollector {
                 .toList();
     }
 
-    private static Map<LocalDate, Long> toMap(List<StatsRows.DailyCount> rows) {
-        return rows.stream().collect(Collectors.toMap(StatsRows.DailyCount::date, StatsRows.DailyCount::count));
-    }
-
     private static String key(String method, String uri) {
         return method + " " + uri;
     }
 
-    /** 비로그인 방문자 ID는 IP다. AdminStatsRepository의 LIKE 조건과 같은 규칙. */
+    /** 비로그인 방문자 ID는 IP다. */
     static boolean isGuestId(String id) {
         return id != null && (id.contains(".") || id.contains(":"));
     }
