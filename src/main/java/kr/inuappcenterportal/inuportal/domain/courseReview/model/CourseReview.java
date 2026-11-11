@@ -74,7 +74,7 @@ public class CourseReview extends BaseTimeEntity {
     @Column(name = "attendance_type", nullable = false, length = 30)
     private AttendanceType attendanceType;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "is_verified", nullable = false)

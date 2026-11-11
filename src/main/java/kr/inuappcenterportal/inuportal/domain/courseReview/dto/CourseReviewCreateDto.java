@@ -56,9 +56,8 @@ public class CourseReviewCreateDto {
     @Schema(description = "출결 방식 (전자출결/직접호명/혼합/반영안함)")
     private AttendanceType attendanceType;
 
-    @NotBlank(message = "후기 내용을 입력해주세요.")
-    @Size(min = 20, max = 1000, message = "후기는 최소 20자 이상 1000자 이하로 작성해주세요.")
-    @Schema(description = "상세 후기 내용 (최소 20자)", example = "강의 설명이 매우 명확하고 과제 피드백을 꼼꼼하게 주셔서 많은 도움이 되었습니다.")
+    @Size(max = 1000, message = "후기는 최대 1000자 이하로 작성해주세요.")
+    @Schema(description = "상세 후기 내용 (자율)", example = "강의 설명이 매우 명확하고 과제 피드백을 꼼꼼하게 주셔서 많은 도움이 되었습니다.")
     private String content;
 
     public CourseReviewCreateDto(

@@ -41,9 +41,8 @@ public class CourseReviewUpdateDto {
     @Schema(description = "출결 방식")
     private AttendanceType attendanceType;
 
-    @NotBlank(message = "후기 내용을 입력해주세요.")
-    @Size(min = 20, max = 1000, message = "후기는 최소 20자 이상 1000자 이하로 작성해주세요.")
-    @Schema(description = "상세 후기 내용")
+    @Size(max = 1000, message = "후기는 최대 1000자 이하로 작성해주세요.")
+    @Schema(description = "상세 후기 내용 (자율)")
     private String content;
 
     public CourseReviewUpdateDto(
