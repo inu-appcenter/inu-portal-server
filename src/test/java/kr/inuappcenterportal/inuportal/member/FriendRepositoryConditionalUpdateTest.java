@@ -50,4 +50,55 @@ class FriendRepositoryConditionalUpdateTest {
         assertThat(friendRepository.findById(friend.getId()).orElseThrow().getStatus())
                 .isEqualTo(FriendStatus.ACCEPTED);
     }
+
+    private Friend savePending(String requesterStudentId, String receiverStudentId) {
+        Member requester = Member.builder().studentId(requesterStudentId).roles(List.of("ROLE_USER")).build();
+        Member receiver = Member.builder().studentId(receiverStudentId).roles(List.of("ROLE_USER")).build();
+        em.persist(requester);
+        em.persist(receiver);
+        Friend friend = friendRepository.save(
+                Friend.builder().requester(requester).receiver(receiver).status(FriendStatus.PENDING).build());
+        em.flush();
+        return friend;
+    }
+
+    @Test
+    @DisplayName("PENDING이면 조건부 DELETE로 지워지고, 두 번째는 0행이다")
+    void deleteIfStatus_pending_deletesOnce() {
+        Friend friend = savePending("209900011", "209900012");
+
+        int first = friendRepository.deleteIfStatus(friend.getId(), FriendStatus.PENDING);
+        int second = friendRepository.deleteIfStatus(friend.getId(), FriendStatus.PENDING);
+
+        assertThat(first).isEqualTo(1);
+        assertThat(second).isZero();
+        assertThat(friendRepository.findById(friend.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("이미 수락된 관계는 PENDING 조건부 DELETE로 지워지지 않는다")
+    void deleteIfStatus_accepted_isNotDeleted() {
+        Friend friend = savePending("209900021", "209900022");
+        friendRepository.updateStatusIfMatches(
+                friend.getId(), FriendStatus.PENDING, FriendStatus.ACCEPTED, LocalDateTime.now());
+
+        int deleted = friendRepository.deleteIfStatus(friend.getId(), FriendStatus.PENDING);
+
+        assertThat(deleted).isZero();
+        em.clear();
+        assertThat(friendRepository.findById(friend.getId()).orElseThrow().getStatus())
+                .isEqualTo(FriendStatus.ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("거절(조건부 DELETE)이 먼저 처리되면 늦게 온 수락은 0행이다")
+    void updateStatusIfMatches_afterPendingDelete_isZero() {
+        Friend friend = savePending("209900031", "209900032");
+        friendRepository.deleteIfStatus(friend.getId(), FriendStatus.PENDING);
+
+        int accepted = friendRepository.updateStatusIfMatches(
+                friend.getId(), FriendStatus.PENDING, FriendStatus.ACCEPTED, LocalDateTime.now());
+
+        assertThat(accepted).isZero();
+    }
 }

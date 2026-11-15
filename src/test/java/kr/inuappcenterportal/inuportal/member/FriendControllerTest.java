@@ -29,7 +29,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -95,5 +97,42 @@ public class FriendControllerTest {
                 .andDo(print());
 
         verify(friendService).getNearbyFriends(eq(1L), eq(37.4638), eq(126.6321), eq(200));
+    }
+
+    private String authenticate() {
+        Member authMember = mock(Member.class);
+        when(authMember.getId()).thenReturn(2L);
+        when(authMember.getUsername()).thenReturn("2");
+        String token = "testToken";
+        when(tokenProvider.resolveToken(any(HttpServletRequest.class))).thenReturn(token);
+        when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.getAuthentication(token))
+                .thenReturn(new UsernamePasswordAuthenticationToken(authMember, "", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        return token;
+    }
+
+    @Test
+    @DisplayName("친구 요청 거절은 POST /{friendId}/reject로 서비스의 거절을 호출한다")
+    void rejectFriendTest() throws Exception {
+        String token = authenticate();
+
+        mockMvc.perform(post("/api/friends/100/reject").header("Auth", token))
+                .andExpect(status().isOk());
+
+        verify(friendService).rejectFriend(2L, 100L);
+    }
+
+    @Test
+    @DisplayName("이미 처리된 요청을 취소하면 409를 돌려준다")
+    void cancelFriendRequest_alreadyProcessed_conflict() throws Exception {
+        String token = authenticate();
+        doThrow(new kr.inuappcenterportal.inuportal.global.exception.ex.MyException(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST))
+                .when(friendService).cancelFriendRequest(2L, 100L);
+
+        mockMvc.perform(post("/api/friends/100/cancel").header("Auth", token))
+                .andExpect(status().isConflict());
+
+        verify(friendService).cancelFriendRequest(2L, 100L);
     }
 }

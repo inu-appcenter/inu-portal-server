@@ -287,4 +287,111 @@ class FriendServiceTest {
         org.junit.jupiter.api.Assertions.assertEquals("midUser", result.get(1).nickname());
         org.junit.jupiter.api.Assertions.assertTrue(result.get(0).distanceMeters() <= result.get(1).distanceMeters());
     }
+
+    private Friend pendingFriend(FriendStatus status) {
+        Member requester = Member.builder().studentId("202000001").roles(List.of("ROLE_USER")).build();
+        ReflectionTestUtils.setField(requester, "id", 1L);
+        Member receiver = Member.builder().studentId("202000002").roles(List.of("ROLE_USER")).build();
+        ReflectionTestUtils.setField(receiver, "id", 2L);
+        Friend friend = Friend.builder().requester(requester).receiver(receiver).status(status).build();
+        ReflectionTestUtils.setField(friend, "id", 100L);
+        return friend;
+    }
+
+    private static kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode errorOf(
+            org.junit.jupiter.api.function.Executable call) {
+        return org.junit.jupiter.api.Assertions.assertThrows(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyException.class, call).getErrorCode();
+    }
+
+    @Test
+    @DisplayName("거절: 수신자가 PENDING 요청을 거절하면 조건부 DELETE하고 알림은 없다")
+    void rejectFriend_pending_deletesConditionally() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(pendingFriend(FriendStatus.PENDING)));
+        when(friendRepository.deleteIfStatus(100L, FriendStatus.PENDING)).thenReturn(1);
+
+        friendService.rejectFriend(2L, 100L);
+
+        verify(friendRepository).deleteIfStatus(100L, FriendStatus.PENDING);
+        verify(friendRepository, never()).delete(any(Friend.class));
+        org.mockito.Mockito.verifyNoInteractions(fcmAsyncService);
+    }
+
+    @Test
+    @DisplayName("거절: 이미 수락돼 0행이면 409이고 행을 지우지 않는다")
+    void rejectFriend_alreadyAccepted_throwsConflict() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(pendingFriend(FriendStatus.ACCEPTED)));
+        when(friendRepository.deleteIfStatus(100L, FriendStatus.PENDING)).thenReturn(0);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST,
+                errorOf(() -> friendService.rejectFriend(2L, 100L)));
+        verify(friendRepository, never()).delete(any(Friend.class));
+    }
+
+    @Test
+    @DisplayName("거절: 요청자가 거절하면 권한 없음")
+    void rejectFriend_byRequester_forbidden() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(pendingFriend(FriendStatus.PENDING)));
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION,
+                errorOf(() -> friendService.rejectFriend(1L, 100L)));
+        verify(friendRepository, never()).deleteIfStatus(any(), any());
+    }
+
+    @Test
+    @DisplayName("거절: 요청이 없으면 404")
+    void rejectFriend_notFound() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.NOT_FOUND_FRIEND_REQUEST,
+                errorOf(() -> friendService.rejectFriend(2L, 100L)));
+    }
+
+    @Test
+    @DisplayName("취소: 요청자가 PENDING 요청을 취소하면 조건부 DELETE하고 알림은 없다")
+    void cancelFriendRequest_pending_deletesConditionally() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(pendingFriend(FriendStatus.PENDING)));
+        when(friendRepository.deleteIfStatus(100L, FriendStatus.PENDING)).thenReturn(1);
+
+        friendService.cancelFriendRequest(1L, 100L);
+
+        verify(friendRepository).deleteIfStatus(100L, FriendStatus.PENDING);
+        verify(friendRepository, never()).delete(any(Friend.class));
+        org.mockito.Mockito.verifyNoInteractions(fcmAsyncService);
+    }
+
+    @Test
+    @DisplayName("취소: 이미 수락돼 0행이면 409")
+    void cancelFriendRequest_alreadyAccepted_throwsConflict() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(pendingFriend(FriendStatus.ACCEPTED)));
+        when(friendRepository.deleteIfStatus(100L, FriendStatus.PENDING)).thenReturn(0);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST,
+                errorOf(() -> friendService.cancelFriendRequest(1L, 100L)));
+    }
+
+    @Test
+    @DisplayName("취소: 수신자가 취소하면 권한 없음")
+    void cancelFriendRequest_byReceiver_forbidden() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(pendingFriend(FriendStatus.PENDING)));
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION,
+                errorOf(() -> friendService.cancelFriendRequest(2L, 100L)));
+        verify(friendRepository, never()).deleteIfStatus(any(), any());
+    }
+
+    @Test
+    @DisplayName("취소: 요청이 없으면 404")
+    void cancelFriendRequest_notFound() {
+        when(friendRepository.findById(100L)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.NOT_FOUND_FRIEND_REQUEST,
+                errorOf(() -> friendService.cancelFriendRequest(1L, 100L)));
+    }
 }
