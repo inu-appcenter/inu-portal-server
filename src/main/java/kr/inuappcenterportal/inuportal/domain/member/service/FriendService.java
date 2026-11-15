@@ -173,6 +173,41 @@ public class FriendService {
         });
     }
 
+    /** 받은 친구 요청 거절. 수신자만 할 수 있고, 아직 PENDING일 때만 지운다. 알림은 보내지 않는다. */
+    @Transactional
+    public void rejectFriend(Long memberId, Long friendId) {
+        Friend friend = friendRepository.findById(friendId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+
+        if (!friend.getReceiver().getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+        }
+
+        deletePendingOrThrow(friendId);
+    }
+
+    /** 내가 보낸 친구 요청 취소. 요청자만 할 수 있고, 아직 PENDING일 때만 지운다. 알림은 보내지 않는다. */
+    @Transactional
+    public void cancelFriendRequest(Long memberId, Long friendId) {
+        Friend friend = friendRepository.findById(friendId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_FRIEND_REQUEST));
+
+        if (!friend.getRequester().getId().equals(memberId)) {
+            throw new MyException(MyErrorCode.HAS_NOT_FRIEND_AUTHORIZATION);
+        }
+
+        deletePendingOrThrow(friendId);
+    }
+
+    // 조회 시점의 상태로 판단하면 그 사이 다른 기기에서 수락된 관계를 지울 수 있다.
+    // 조건부 DELETE의 영향 행 수로 판정해, 이미 수락·삭제된 요청은 409로 돌려보낸다.
+    private void deletePendingOrThrow(Long friendId) {
+        int deleted = friendRepository.deleteIfStatus(friendId, FriendStatus.PENDING);
+        if (deleted == 0) {
+            throw new MyException(MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST);
+        }
+    }
+
     @Transactional
     public void deleteFriend(Long memberId, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
