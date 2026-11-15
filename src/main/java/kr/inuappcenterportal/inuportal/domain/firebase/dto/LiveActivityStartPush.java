@@ -9,12 +9,14 @@ package kr.inuappcenterportal.inuportal.domain.firebase.dto;
  *
  * @param activityName  앱의 createLiveActivity 이름 (ContentState.name)
  * @param propsJson     레이아웃 props의 JSON 문자열 (ContentState.props)
+ * @param classStartMs  이 Activity가 알리는 수업의 시작 시각 (epoch ms). 앞 수업 Activity를 정리할 때 쓴다.
  * @param staleDateSec  이 시각 이후 내용이 낡은 것으로 표시된다 (epoch seconds)
  * @param expirationSec APNs가 이 시각까지만 전달을 재시도한다 (epoch seconds)
  */
 public record LiveActivityStartPush(
         String activityName,
         String propsJson,
+        long classStartMs,
         long staleDateSec,
         long expirationSec
 ) {
