@@ -46,6 +46,14 @@ import java.awt.image.BufferedImage;
 @Transactional(readOnly = true)
 public class TimeTableImageRecognitionService {
 
+    /**
+     * vLLM 이미지 분석 대기 상한. 웹 클라이언트 timeout(55s)보다 짧아야 서버의
+     * "분석 시간 초과" 안내(504)가 클라이언트에 도착한다. 클라이언트가 먼저 끊으면
+     * 서버는 결과를 버릴 분석을 계속 붙잡고 있게 된다.
+     */
+    static final java.time.Duration RECOGNITION_TIMEOUT = java.time.Duration.ofSeconds(40);
+
+
     private final VllmService vllmService;
     private final SemesterRepository semesterRepository;
     private final CourseOfferingRepository courseOfferingRepository;
@@ -136,11 +144,10 @@ public class TimeTableImageRecognitionService {
 
         String rawResponse;
         try {
-            rawResponse = vllmService.chat(request);
+            rawResponse = vllmService.chat(request, RECOGNITION_TIMEOUT);
         } catch (VllmService.VllmTimeoutException e) {
-            // 클라이언트가 이 시점까지 자체 타임아웃(45s)으로 먼저 끊었을 수도 있지만,
-            // 아직 대기 중이라면 흐리거나 잘못 인식되는 이미지가 아니라 분석 서버
-            // 자체의 응답 지연임을 구분해서 안내한다.
+            // 흐리거나 잘못 인식되는 이미지가 아니라 분석 서버 자체의 응답 지연임을
+            // 구분해서 안내한다.
             log.warn("Timetable image recognition timed out.", e);
             throw new MyException(MyErrorCode.TIMETABLE_IMAGE_RECOGNITION_TIMEOUT);
         } catch (RuntimeException e) {

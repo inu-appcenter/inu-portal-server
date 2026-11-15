@@ -119,15 +119,19 @@ public class VllmService {
                 );
     }
 
-    // vLLM 서버가 응답 없이 멈추는 경우(특히 이미지 분석)까지 요청 스레드가
-    // 무한정 붙잡히지 않도록 상한을 둔다. 클라이언트 쪽 axios timeout(45s)보다
-    // 여유 있게 잡아, 타임아웃 안내가 클라이언트 쪽에서 우선 뜨지 않게 한다.
-    private static final Duration SYNC_CHAT_TIMEOUT = Duration.ofSeconds(50);
-
     /**
      * 범용 동기(단건) 채팅 완성
      */
     public String chat(VllmChatRequestDto requestDto) {
+        return chat(requestDto, null);
+    }
+
+    /**
+     * 응답 대기 상한을 둔 동기 호출. 상한을 넘기면 {@link VllmTimeoutException}을 던진다.
+     *
+     * @param timeout null이면 상한 없이 기다린다(기존 {@link #chat(VllmChatRequestDto)}와 같음).
+     */
+    public String chat(VllmChatRequestDto requestDto, Duration timeout) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
                 : vllmProperties.model();
@@ -146,14 +150,14 @@ public class VllmService {
         String endpointUrl = resolveChatCompletionUrl();
 
         try {
-            String responseBody = webClient.post()
+            reactor.core.publisher.Mono<String> response = webClient.post()
                     .uri(endpointUrl)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(actualRequest)
                     .retrieve()
-                    .bodyToMono(String.class)
-                    .block(SYNC_CHAT_TIMEOUT);
+                    .bodyToMono(String.class);
+            String responseBody = timeout != null ? response.block(timeout) : response.block();
 
             if (responseBody != null) {
                 JsonNode root = objectMapper.readTree(responseBody);
