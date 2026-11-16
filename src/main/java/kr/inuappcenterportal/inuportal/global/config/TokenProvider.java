@@ -49,7 +49,8 @@ public class TokenProvider {
 
     @PostConstruct
     protected void init() {
-        log.info("키 생성 암호화 키: {}", secret);
+        // 서명 키 원문은 로그에 남기지 않는다. 로그만 보고 토큰을 위조하거나
+        // (이 키를 기본값으로 쓰는) INUChat 가명 기기 ID를 회원 ID로 되돌릴 수 있기 때문이다.
         secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         refreshKey = Keys.hmacShaKeyFor(refreshSecret.getBytes(StandardCharsets.UTF_8));
         log.info("키 생성 완료 - secretKey 객체 생성됨");
