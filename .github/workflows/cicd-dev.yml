@@ -1,5 +1,5 @@
 # 개발(dev) 서버 배포 워크플로
-# 흐름: 코드 받기 → 설정 파일 복원 → Gradle 빌드(테스트 포함) → Docker 이미지 빌드·푸시 → 서버로 파일 복사 → 서버에서 새 이미지로 재시작
+# 흐름: 코드 받기 → 설정 파일 복원 → Gradle 빌드(테스트 제외, ci.yml에서 실행) → Docker 이미지 빌드·푸시 → 서버로 파일 복사 → 서버에서 새 이미지로 재시작
 name: "[Dev] CI & CD"
 
 # 실행 조건: Actions 탭에서 수동 실행할 때만 (dev 브랜치 푸시로는 자동 실행되지 않음)
@@ -25,13 +25,6 @@ jobs:
     # GitHub가 빌려주는 임시 Ubuntu 컴퓨터(러너). 실행할 때마다 새로 만들어지고 끝나면 사라진다
     runs-on: ubuntu-latest
 
-    # 테스트 실행 중 필요한 Redis를 러너 옆에 컨테이너로 띄움
-    services:
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-
     steps:
       # 레포 코드를 러너로 내려받음
       - uses: actions/checkout@v3
@@ -42,7 +35,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Gradle 라이브러리·빌드 캐시를 GitHub 캐시에 저장해 다음 실행 때 재사용
+      # Gradle 라이브러리·빌드 캐시 복원
+      # 캐시는 ci.yml이 dev에서 저장해둔 것을 읽음 (기능 브랜치에서 실행하면 저장은 하지 않음)
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
@@ -75,10 +69,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 컴파일 + 테스트 + 실행용 jar 생성. 테스트까지 돌려서 1.5~3분 걸림
-      # (#483) PR 단계에서 테스트를 돌리도록 바꾸면 여기서는 -x test로 건너뛸 수 있음
+      # 컴파일 + 실행용 jar 생성. 테스트는 ci.yml(PR 단계)에서 돌리므로 -x test로 건너뜀
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build -x test
 
       # 이미지를 올릴 DockerHub에 로그인
       - name: DockerHub Login
