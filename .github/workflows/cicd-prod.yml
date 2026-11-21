@@ -1,37 +1,51 @@
+# 운영(prod) 서버 배포 워크플로
+# 흐름: 코드 받기 → 설정 파일 복원 → Gradle로 jar 빌드 → Docker 이미지 빌드·푸시 → 서버로 파일 복사 → 서버에서 새 이미지로 재시작
 name: "[Prod] CI & CD"
 
+# 실행 조건: main 브랜치에 푸시될 때(PR 머지 포함), 또는 Actions 탭에서 수동 실행할 때
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch: { }
 
+# 워크플로가 GitHub 토큰으로 할 수 있는 권한. 코드 읽기만 허용
 permissions:
   contents: read
 
 jobs:
   build:
+    # 커밋 메시지에 '테스트코드 작성' 또는 '임시 작성'이 들어간 푸시는 배포하지 않음 (수동 실행은 항상 진행)
     if: github.event_name == 'workflow_dispatch' ||
       (!contains(github.event.head_commit.message, '테스트코드 작성') &&
       !contains(github.event.head_commit.message, '임시 작성'))
 
+    # GitHub가 빌려주는 임시 Ubuntu 컴퓨터(러너). 실행할 때마다 새로 만들어지고 끝나면 사라진다
     runs-on: ubuntu-latest
 
     steps:
+      # 레포 코드를 러너로 내려받음
       - uses: actions/checkout@v3
 
+      # Java 17 설치
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
 
+      # Gradle 라이브러리·빌드 캐시 복원
+      # main은 기본 브랜치가 아니라 저장은 하지 않고, ci.yml이 dev에서 저장해둔 캐시를 읽음
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # 레포에 커밋하지 않는 운영 설정 파일을 secrets 값으로 만들어냄 (jar 안에 포함됨)
       - name: Create application.yml
         run: |
           cat > ./src/main/resources/application.yml <<'EOF'
           ${{ secrets.APPLICATION_YML }}
           EOF
 
+      # FCM 푸시 발송용 Firebase 서비스 계정 키를 secrets 값으로 만들어냄
       - name: Create firebase_key.json
         id: create-json
         uses: jsdaniell/create-json@v1.2.3
@@ -40,37 +54,41 @@ jobs:
           json: ${{ secrets.FIREBASE_KEY }}
           dir: "src/main/resources/"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-configs
-          path: |
-            ./src/main/resources/application.yml
-            ./src/main/resources/firebase_key.json
-
+      # gradlew 스크립트에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 실행용 jar 생성. -x test로 테스트는 건너뜀 (prod는 테스트 없이 배포되는 상태)
+      # 결과물: build/libs/inu-portal-0.0.1-SNAPSHOT.jar (약 199MB, 라이브러리 전부 포함한 fat jar)
       - name: Build with Gradle
         run: ./gradlew build -x test
 
+      # 캐시 저장/불러오기 같은 고급 기능을 쓰기 위한 Docker 빌더(buildx) 준비
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # 이미지를 올릴 DockerHub에 로그인
       - name: DockerHub Login
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.TOKEN }}
 
+      # Dockerfile로 이미지를 만들고 DockerHub에 :latest 태그로 푸시
+      # cache-from/to: 레이어 캐시를 DockerHub의 :buildcache 태그에 저장해서 다음 빌드 때 재사용
+      # GitHub Actions 캐시(type=gha)는 7일간 안 쓰면 삭제돼 배포 간격이 긴 prod에 맞지 않아 registry 캐시를 씀 (만료 없음)
+      # 캐시를 못 읽으면 실패하지 않고 전체 빌드로 진행함
+      # Chrome은 베이스 이미지가 갱신돼 캐시가 깨질 때 함께 최신으로 다시 설치됨
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true
 
+      # 인스타그램(2기숙사 식단) 스크래퍼 파이썬 파일을 서버 마운트 경로로 복사
       - name: Sync Instagram scraper files to Prod
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -81,6 +99,7 @@ jobs:
           source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/README.md"
           target: ${{ secrets.MOUNT_PATH }}
 
+      # docker compose 설정, Elastic Agent 설정, infra 폴더를 서버로 복사
       - name: Copy compose files to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -91,6 +110,10 @@ jobs:
           source: "compose.yaml,elastic-agent.yml,infra/**"
           target: ${{ secrets.MOUNT_PATH }}
 
+      # 서버에 SSH로 접속해서 실행하는 명령
+      # 1) compose.yaml이 쓰는 환경변수 설정
+      # 2) 스크래퍼용 Chrome 프로필 락 파일 정리
+      # 3) Elasticsearch 기동(이미 떠 있으면 유지), 새 앱 이미지 pull 후 앱 컨테이너 재생성
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -100,15 +123,15 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd ${{ secrets.MOUNT_PATH }}
-            
+
             export DOCKERHUB_USERNAME=${{ secrets.USERNAME }}
             export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
             export MOUNT_PATH=${{ secrets.MOUNT_PATH }}
             export KIBANA_URL=${{ secrets.KIBANA_URL }}
-            
+
             rm -f ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile/SingletonLock || true
             chmod -R 777 ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile || true
-            
+
             docker login -u ${{ secrets.USERNAME }} -p ${{ secrets.TOKEN }}
             docker compose up -d --build elasticsearch
             docker compose pull app

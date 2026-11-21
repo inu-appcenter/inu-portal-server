@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.dailyBrief.scheduler;
 
+import kr.inuappcenterportal.inuportal.domain.firebase.scheduler.LiveActivityLifecycleScheduler;
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Daily Brief 알림 스케줄러.
@@ -22,6 +24,7 @@ public class DailyBriefScheduler {
 
     private final DailyBriefPlanner dailyBriefPlanner;
     private final FcmService fcmService;
+    private final LiveActivityLifecycleScheduler liveActivityLifecycleScheduler;
 
     /**
      * 1. 수업 시작 전 알림 (5분마다 실행)
@@ -51,8 +54,14 @@ public class DailyBriefScheduler {
         for (BriefNotification notification : notifications) {
             try {
                 if (notification.liveActivity() != null) {
-                    fcmService.sendPreClassNotification(notification.memberId(), notification.title(),
-                            notification.body(), notification.type(), notification.path(), notification.liveActivity());
+                    Set<String> liveActivityDevices = fcmService.sendPreClassNotification(notification.memberId(),
+                            notification.title(), notification.body(), notification.type(), notification.path(),
+                            notification.liveActivity());
+                    // 연강이면 앞 수업 Live Activity가 아직 떠 있다 — 다음 수업 것을 띄운 기기에서는 바로 치운다.
+                    if (!liveActivityDevices.isEmpty()) {
+                        liveActivityLifecycleScheduler.endEarlierActivities(notification.memberId(),
+                                liveActivityDevices, notification.liveActivity().classStartMs());
+                    }
                 } else {
                     fcmService.sendDailyBriefNotification(notification.memberId(), notification.title(),
                             notification.body(), notification.type(), notification.path());

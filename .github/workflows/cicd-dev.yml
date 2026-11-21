@@ -1,46 +1,53 @@
+# 개발(dev) 서버 배포 워크플로
+# 흐름: 코드 받기 → 설정 파일 복원 → Gradle 빌드(테스트 제외, ci.yml에서 실행) → Docker 이미지 빌드·푸시 → 서버로 파일 복사 → 서버에서 새 이미지로 재시작
 name: "[Dev] CI & CD"
 
+# 실행 조건: Actions 탭에서 수동 실행할 때만 (dev 브랜치 푸시로는 자동 실행되지 않음)
 on:
   workflow_dispatch: { }
 
+# 워크플로가 GitHub 토큰으로 할 수 있는 권한. 코드 읽기만 허용
 permissions:
   contents: read
 
+# 같은 브랜치에서 dev 배포가 겹치면 먼저 돌던 실행을 취소하고 최신 실행만 남김
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    # 커밋 메시지 조건. 수동 실행만 받으므로 현재는 항상 통과
     if: github.event_name == 'workflow_dispatch' ||
       (!contains(github.event.head_commit.message, '테스트코드 작성') &&
       !contains(github.event.head_commit.message, '임시 작성'))
 
+    # GitHub가 빌려주는 임시 Ubuntu 컴퓨터(러너). 실행할 때마다 새로 만들어지고 끝나면 사라진다
     runs-on: ubuntu-latest
 
-    services:
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-
     steps:
+      # 레포 코드를 러너로 내려받음
       - uses: actions/checkout@v3
+      # Java 17 설치
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      # Gradle 라이브러리·빌드 캐시 복원
+      # 캐시는 ci.yml이 dev에서 저장해둔 것을 읽음 (기능 브랜치에서 실행하면 저장은 하지 않음)
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
+      # 레포에 커밋하지 않는 dev 설정 파일을 secrets 값으로 만들어냄 (jar 안에 포함됨)
       - name: Create application.yml
         run: |
           cat > ./src/main/resources/application.yml <<'EOF'
           ${{ secrets.APPLICATION_YML_DEV }}
           EOF
 
+      # FCM 푸시 발송용 Firebase 서비스 계정 키를 secrets 값으로 만들어냄
       - name: Create firebase_key.json
         id: create-json
         uses: jsdaniell/create-json@v1.2.3
@@ -49,31 +56,40 @@ jobs:
           json: ${{ secrets.FIREBASE_KEY }}
           dir: 'src/main/resources/'
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-configs
-          path: |
-            ./src/main/resources/application.yml
-            ./src/main/resources/firebase_key.json
-
+      # gradlew 스크립트에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 컴파일 + 실행용 jar 생성. 테스트는 ci.yml(PR 단계)에서 돌리므로 -x test로 건너뜀
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build -x test
 
+      # 캐시 저장/불러오기 같은 고급 기능을 쓰기 위한 Docker 빌더(buildx) 준비
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # 이미지를 올릴 DockerHub에 로그인
       - name: DockerHub Login
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.TOKEN }}
 
-      - name: Docker Image Build
-        run: docker build --no-cache -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev .
+      # Dockerfile로 이미지를 만들고 DockerHub에 :dev 태그로 푸시
+      # cache-from/to: 레이어 캐시를 DockerHub의 :buildcache-dev 태그에 저장해서 다음 빌드 때 재사용 (만료 없음)
+      # prod 캐시(:buildcache)와 분리해서 dev의 Dockerfile 실험이 prod 캐시를 덮어쓰지 않게 함
+      # 캐시를 못 읽으면 실패하지 않고 전체 빌드로 진행함
+      # Chrome은 베이스 이미지가 갱신돼 캐시가 깨질 때 함께 최신으로 다시 설치됨
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+          cache-from: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache-dev
+          cache-to: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache-dev,mode=max,image-manifest=true,oci-mediatypes=true
 
-      - name: DockerHub Push
-        run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
-
+      # 인스타그램(2기숙사 식단) 스크래퍼 파이썬 파일을 서버 마운트 경로로 복사
       - name: Sync Instagram scraper files
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -84,6 +100,7 @@ jobs:
           source: "instagram-2gisik-scrapping/insta_latest_post.py,instagram-2gisik-scrapping/requirements.txt,instagram-2gisik-scrapping/README.md"
           target: ${{ secrets.MOUNT_PATH }}
 
+      # docker compose 설정과 infra 폴더를 서버로 복사 (Elasticsearch 기동용)
       - name: Copy compose and infra files
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -94,6 +111,12 @@ jobs:
           source: "compose.yaml,infra/**"
           target: ${{ secrets.MOUNT_PATH }}
 
+      # 서버에 SSH로 접속해서 실행하는 명령
+      # 1) 기존 dev 컨테이너 삭제 후 새 이미지 pull (이전 이미지는 남겨둬서 바뀐 레이어만 받음)
+      # 2) 스크래퍼용 Chrome 프로필 락 파일 정리
+      # 3) dev 전용 네트워크 생성, 운영과 같은 Elasticsearch 컨테이너를 dev 네트워크에도 연결
+      # 4) docker run으로 dev 앱 컨테이너 실행 (호스트 8104 포트 → 컨테이너 8080)
+      # 5) 이전 dev 이미지만 삭제
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -103,19 +126,22 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             set -e
-            
+
             docker stop ${{ secrets.APPLICATION_NAME }}-dev || true
             docker rm ${{ secrets.APPLICATION_NAME }}-dev || true
-            docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev || true
-            
+
+            # 이전 이미지는 pull 전에 지우지 않고 ID만 기억해 둠
+            # 지우고 받으면 레이어를 전부 다시 받게 되고, 남겨두면 바뀐 레이어만 받음
+            OLD_IMAGE_ID=$(docker image inspect --format '{{.Id}}' ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev 2>/dev/null || true)
+
             docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
 
             # 새로운 컨테이너가 뜨기 전, 볼륨 마운트된 경로의 락 파일 강제 제거
             rm -f ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile/SingletonLock || true
             chmod -R 777 ${{ secrets.MOUNT_PATH }}/instagram-2gisik-scrapping/chrome-profile || true
-            
+
             docker network create intip-dev || true
-            
+
             cd ${{ secrets.MOUNT_PATH }}
             export DOCKERHUB_USERNAME=${{ secrets.USERNAME }}
             export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
@@ -123,7 +149,7 @@ jobs:
             export KIBANA_URL=${{ secrets.KIBANA_URL || 'http://localhost:5601' }}
             docker compose up -d --build elasticsearch || true
             docker network connect intip-dev intip-elasticsearch || true
-            
+
             docker run -d \
               --init \
               --network intip-dev \
@@ -141,3 +167,11 @@ jobs:
               -v ${{ secrets.MOUNT_PATH }}:/intip \
               -v ${{ secrets.MOUNT_PATH }}-dev:/intip-dev \
               --name ${{ secrets.APPLICATION_NAME }}-dev ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+
+            # 새 컨테이너가 뜬 뒤 이전 dev 이미지만 삭제
+            # 다른 프로젝트가 같은 서버를 쓰므로 docker image prune(서버 전체 정리)은 쓰지 않음
+            # 이미지가 바뀌지 않았으면(ID 동일) 지우지 않음
+            NEW_IMAGE_ID=$(docker image inspect --format '{{.Id}}' ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev)
+            if [ -n "$OLD_IMAGE_ID" ] && [ "$OLD_IMAGE_ID" != "$NEW_IMAGE_ID" ]; then
+              docker rmi "$OLD_IMAGE_ID" || true
+            fi

@@ -98,6 +98,8 @@ class FriendServiceTest {
         ReflectionTestUtils.setField(friend, "id", 100L);
 
         when(friendRepository.findById(100L)).thenReturn(Optional.of(friend));
+        when(friendRepository.updateStatusIfMatches(eq(100L), eq(FriendStatus.PENDING), eq(FriendStatus.ACCEPTED), any()))
+                .thenReturn(1);
 
         friendService.acceptFriend(2L, 100L);
 
@@ -109,6 +111,37 @@ class FriendServiceTest {
                 eq(100L),
                 eq("/chat/list?category=친구")
         );
+    }
+
+    @Test
+    @DisplayName("이미 처리된 친구 요청(조건부 UPDATE 0행)을 다시 수락하면 예외가 발생하고 FCM 알림이 중복 발송되지 않는다")
+    void acceptFriend_alreadyAccepted_throwsAndDoesNotResendNotification() {
+        Member requester = Member.builder().studentId("202000001").roles(List.of("ROLE_USER")).build();
+        requester.updateNicknameAndFire("requester", 1L);
+        ReflectionTestUtils.setField(requester, "id", 1L);
+
+        Member receiver = Member.builder().studentId("202000002").roles(List.of("ROLE_USER")).build();
+        receiver.updateNicknameAndFire("receiver", 2L);
+        ReflectionTestUtils.setField(receiver, "id", 2L);
+
+        Friend friend = Friend.builder().requester(requester).receiver(receiver).status(FriendStatus.ACCEPTED).build();
+        ReflectionTestUtils.setField(friend, "id", 100L);
+
+        when(friendRepository.findById(100L)).thenReturn(Optional.of(friend));
+        when(friendRepository.updateStatusIfMatches(eq(100L), eq(FriendStatus.PENDING), eq(FriendStatus.ACCEPTED), any()))
+                .thenReturn(0);
+
+        kr.inuappcenterportal.inuportal.global.exception.ex.MyException ex =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        kr.inuappcenterportal.inuportal.global.exception.ex.MyException.class,
+                        () -> friendService.acceptFriend(2L, 100L)
+                );
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode.ALREADY_PROCESSED_FRIEND_REQUEST,
+                ex.getErrorCode()
+        );
+        org.mockito.Mockito.verifyNoInteractions(fcmAsyncService);
     }
 
     @Test

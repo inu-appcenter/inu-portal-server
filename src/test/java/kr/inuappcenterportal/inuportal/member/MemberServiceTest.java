@@ -77,7 +77,8 @@ public class MemberServiceTest {
 
         assertAll(
                 ()->assertEquals(tokenDto.getAccessToken(),"testAccessToken"),
-                ()->assertEquals(tokenDto.getAccessToken(),"testAccessToken")
+                ()->assertEquals(tokenDto.getAccessToken(),"testAccessToken"),
+                ()->assertFalse(tokenDto.isNewMember())
         );
 
         verify(schoolLoginRepository,times(1)).loginCheck(studentId,password);
