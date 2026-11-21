@@ -69,6 +69,18 @@ public class LoggingService {
         }
     }
 
+    /** 요약 여부와 상관없이 그날 원본 로그에서 접속 ID를 읽는다. 요약 전인 날(오늘, 자정 직후의 어제)에 쓴다. */
+    @Transactional(readOnly = true)
+    public List<String> getRawMemberIds(LocalDate date) {
+        return getMemberLogResponseByDate(date).memberIds();
+    }
+
+    /** 요약 여부와 상관없이 그날 원본 로그에서 API 호출 상위 20개를 읽는다. */
+    @Transactional(readOnly = true)
+    public List<LoggingApiResponse> getRawApiLogs(LocalDate date) {
+        return getAPILogResponseByDate(date);
+    }
+
     // 매일 00시에 실행
     @Scheduled(cron = "0 0 0 * * *")
     @SchedulerLock(

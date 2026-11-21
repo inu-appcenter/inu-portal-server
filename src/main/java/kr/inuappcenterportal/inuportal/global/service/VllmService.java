@@ -13,6 +13,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 
 @Service
@@ -122,6 +123,15 @@ public class VllmService {
      * 범용 동기(단건) 채팅 완성
      */
     public String chat(VllmChatRequestDto requestDto) {
+        return chat(requestDto, null);
+    }
+
+    /**
+     * 응답 대기 상한을 둔 동기 호출. 상한을 넘기면 {@link VllmTimeoutException}을 던진다.
+     *
+     * @param timeout null이면 상한 없이 기다린다(기존 {@link #chat(VllmChatRequestDto)}와 같음).
+     */
+    public String chat(VllmChatRequestDto requestDto, Duration timeout) {
         String targetModel = (requestDto.model() != null && !requestDto.model().isBlank())
                 ? requestDto.model()
                 : vllmProperties.model();
@@ -140,14 +150,14 @@ public class VllmService {
         String endpointUrl = resolveChatCompletionUrl();
 
         try {
-            String responseBody = webClient.post()
+            reactor.core.publisher.Mono<String> response = webClient.post()
                     .uri(endpointUrl)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + vllmProperties.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(actualRequest)
                     .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+                    .bodyToMono(String.class);
+            String responseBody = timeout != null ? response.block(timeout) : response.block();
 
             if (responseBody != null) {
                 JsonNode root = objectMapper.readTree(responseBody);
@@ -160,10 +170,33 @@ public class VllmService {
             log.error("vLLM sync chat error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(), e);
             throw new RuntimeException("AI 응답 생성 실패: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
+            // Mono#block(Duration)이 시간 초과하면 원인 체인 어딘가에 TimeoutException을
+            // 담은 IllegalStateException 등으로 던져진다. 다른 실패와 구분해 처리할 수
+            // 있도록 별도 타입으로 다시 던진다.
+            if (isTimeoutCause(e)) {
+                log.error("vLLM sync chat timeout: ", e);
+                throw new VllmTimeoutException("AI 응답 시간 초과", e);
+            }
             log.error("vLLM sync chat error: ", e);
             throw new RuntimeException("AI 응답 생성 실패", e);
         }
         return "";
+    }
+
+    private boolean isTimeoutCause(Throwable e) {
+        Throwable cursor = e;
+        while (cursor != null) {
+            if (cursor instanceof java.util.concurrent.TimeoutException) return true;
+            cursor = cursor.getCause();
+        }
+        return false;
+    }
+
+    /** vLLM 호출이 제한 시간 내에 응답하지 못했을 때 던지는 예외. 다른 실패와 구분해 처리할 수 있게 별도 타입으로 둔다. */
+    public static class VllmTimeoutException extends RuntimeException {
+        public VllmTimeoutException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     private String resolveChatCompletionUrl() {

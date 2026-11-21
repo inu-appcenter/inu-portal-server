@@ -16,8 +16,7 @@ class LiveActivityStartMessageTest {
     @Test
     @DisplayName("push-to-start 메시지는 FCM 토큰과 ActivityKit 토큰을 함께 싣고, aps에 ActivityKit 시작 규격을 채운다")
     void buildsPushToStartPayload() throws Exception {
-        LiveActivityStartPush push = new LiveActivityStartPush(
-                "TimetableLiveActivity", "{\"phase\":\"UPCOMING\"}", 1_800_000_000L, 1_800_000_000L);
+        LiveActivityStartPush push = new LiveActivityStartPush("TimetableLiveActivity", "{\"phase\":\"UPCOMING\"}", 1_800_000_000_000L, 1_800_000_000L, 1_800_000_000L);
 
         Message message = FcmService.createLiveActivityStartMessage(
                 "fcm-token", "la-token", "10분 후 수업이 시작돼요.", "자료구조 (10:30~11:45)", push, 1_799_999_400L);
