@@ -64,6 +64,10 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build -x test
 
+      # 캐시 저장/불러오기 같은 고급 기능을 쓰기 위한 Docker 빌더(buildx) 준비
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       # 이미지를 올릴 DockerHub에 로그인
       - name: DockerHub Login
         uses: docker/login-action@v2
@@ -71,15 +75,19 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.TOKEN }}
 
-      # Dockerfile로 이미지를 만듦 (:dev 태그)
-      # --no-cache: 캐시 없이 전부 새로 빌드. 러너는 매번 새 컴퓨터라 이 옵션이 없어도 남아 있는 캐시는 없음
-      # (#483) prod처럼 buildx + 외부 캐시(cache-from/to)를 써야 apt/Chrome/pip 레이어를 재사용할 수 있음
-      - name: Docker Image Build
-        run: docker build --no-cache -t ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev .
-
-      # 만든 이미지를 DockerHub에 푸시
-      - name: DockerHub Push
-        run: docker push ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+      # Dockerfile로 이미지를 만들고 DockerHub에 :dev 태그로 푸시
+      # cache-from/to: 레이어 캐시를 DockerHub의 :buildcache-dev 태그에 저장해서 다음 빌드 때 재사용 (만료 없음)
+      # prod 캐시(:buildcache)와 분리해서 dev의 Dockerfile 실험이 prod 캐시를 덮어쓰지 않게 함
+      # 캐시를 못 읽으면 실패하지 않고 전체 빌드로 진행함
+      # Chrome은 베이스 이미지가 갱신돼 캐시가 깨질 때 함께 최신으로 다시 설치됨
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+          cache-from: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache-dev
+          cache-to: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache-dev,mode=max,image-manifest=true,oci-mediatypes=true
 
       # 인스타그램(2기숙사 식단) 스크래퍼 파이썬 파일을 서버 마운트 경로로 복사
       - name: Sync Instagram scraper files

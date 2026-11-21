@@ -75,16 +75,18 @@ jobs:
           password: ${{ secrets.TOKEN }}
 
       # Dockerfile로 이미지를 만들고 DockerHub에 :latest 태그로 푸시
-      # cache-from/to: type=gha → 레이어 캐시를 GitHub Actions 캐시에 저장해서 다음 빌드 때 재사용
-      # (#483) GitHub 캐시는 7일간 안 쓰면 삭제돼서, 배포 간격이 긴 prod는 캐시가 비어 있는 경우가 많음
+      # cache-from/to: 레이어 캐시를 DockerHub의 :buildcache 태그에 저장해서 다음 빌드 때 재사용
+      # GitHub Actions 캐시(type=gha)는 7일간 안 쓰면 삭제돼 배포 간격이 긴 prod에 맞지 않아 registry 캐시를 씀 (만료 없음)
+      # 캐시를 못 읽으면 실패하지 않고 전체 빌드로 진행함
+      # Chrome은 베이스 이미지가 갱신돼 캐시가 깨질 때 함께 최신으로 다시 설치됨
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true
 
       # 인스타그램(2기숙사 식단) 스크래퍼 파이썬 파일을 서버 마운트 경로로 복사
       - name: Sync Instagram scraper files to Prod
