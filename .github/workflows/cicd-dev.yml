@@ -112,10 +112,11 @@ jobs:
           target: ${{ secrets.MOUNT_PATH }}
 
       # 서버에 SSH로 접속해서 실행하는 명령
-      # 1) 기존 dev 컨테이너·이미지 삭제 후 새 이미지 pull
+      # 1) 기존 dev 컨테이너 삭제 후 새 이미지 pull (이전 이미지는 남겨둬서 바뀐 레이어만 받음)
       # 2) 스크래퍼용 Chrome 프로필 락 파일 정리
       # 3) dev 전용 네트워크 생성, 운영과 같은 Elasticsearch 컨테이너를 dev 네트워크에도 연결
       # 4) docker run으로 dev 앱 컨테이너 실행 (호스트 8104 포트 → 컨테이너 8080)
+      # 5) 이전 dev 이미지만 삭제
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -128,7 +129,10 @@ jobs:
 
             docker stop ${{ secrets.APPLICATION_NAME }}-dev || true
             docker rm ${{ secrets.APPLICATION_NAME }}-dev || true
-            docker rmi ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev || true
+
+            # 이전 이미지는 pull 전에 지우지 않고 ID만 기억해 둠
+            # 지우고 받으면 레이어를 전부 다시 받게 되고, 남겨두면 바뀐 레이어만 받음
+            OLD_IMAGE_ID=$(docker image inspect --format '{{.Id}}' ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev 2>/dev/null || true)
 
             docker pull ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
 
@@ -163,3 +167,11 @@ jobs:
               -v ${{ secrets.MOUNT_PATH }}:/intip \
               -v ${{ secrets.MOUNT_PATH }}-dev:/intip-dev \
               --name ${{ secrets.APPLICATION_NAME }}-dev ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev
+
+            # 새 컨테이너가 뜬 뒤 이전 dev 이미지만 삭제
+            # 다른 프로젝트가 같은 서버를 쓰므로 docker image prune(서버 전체 정리)은 쓰지 않음
+            # 이미지가 바뀌지 않았으면(ID 동일) 지우지 않음
+            NEW_IMAGE_ID=$(docker image inspect --format '{{.Id}}' ${{ secrets.USERNAME }}/${{ secrets.PROJECT_NAME }}:dev)
+            if [ -n "$OLD_IMAGE_ID" ] && [ "$OLD_IMAGE_ID" != "$NEW_IMAGE_ID" ]; then
+              docker rmi "$OLD_IMAGE_ID" || true
+            fi
