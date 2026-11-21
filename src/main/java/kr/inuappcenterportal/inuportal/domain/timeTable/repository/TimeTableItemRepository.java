@@ -20,6 +20,17 @@ public interface TimeTableItemRepository extends JpaRepository<TimeTableItem, Lo
     @Query("""
             select case when count(item) > 0 then true else false end
             from TimeTableItem item
+            where item.timeTable.member.id = :memberId
+              and item.courseOffering.course.id = :courseId
+            """)
+    boolean existsByMemberIdAndCourseId(
+            @Param("memberId") Long memberId,
+            @Param("courseId") Long courseId
+    );
+
+    @Query("""
+            select case when count(item) > 0 then true else false end
+            from TimeTableItem item
             where item.timeTable.id = :timeTableId
               and (:excludeTimeTableItemId is null or item.id <> :excludeTimeTableItemId)
               and (
