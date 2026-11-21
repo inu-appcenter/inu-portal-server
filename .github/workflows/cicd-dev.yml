@@ -56,15 +56,6 @@ jobs:
           json: ${{ secrets.FIREBASE_KEY }}
           dir: 'src/main/resources/'
 
-      # ⚠️ (#483) 위에서 만든 설정 파일 두 개를 아티팩트로 GitHub에 업로드함
-      # 공개 레포라 누구나 Actions 탭에서 내려받을 수 있고, 이후 스텝에서 쓰는 곳도 없음 → 삭제 예정
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-configs
-          path: |
-            ./src/main/resources/application.yml
-            ./src/main/resources/firebase_key.json
-
       # gradlew 스크립트에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
