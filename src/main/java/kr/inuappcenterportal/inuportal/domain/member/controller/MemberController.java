@@ -10,6 +10,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.FreshmanLoginDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.OnboardingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.SyncAcademicRequestDto;
+
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
@@ -222,5 +228,38 @@ public class MemberController {
             @RequestBody LocationUpdateRequestDto requestDto) {
         memberService.updateLocation(member.getId(), requestDto);
         return ResponseEntity.ok(ResponseDto.of(null, "위치 정보가 갱신되었습니다."));
+    }
+
+    @Operation(summary = "신입생 로그인/가입", description = "신입생 전산망 인증 정보를 바탕으로 신입생 계정을 생성/조회하고 JWT 토큰을 발급합니다.")
+    @PostMapping("/freshman-login")
+    public ResponseEntity<ResponseDto<TokenDto>> freshmanLogin(@Valid @RequestBody FreshmanLoginDto dto) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.freshmanLogin(dto), "신입생 로그인 성공, 토큰이 발급되었습니다."));
+    }
+
+    @Operation(summary = "온보딩 완료", description = "신규 가입 유저의 닉네임, 실명, 학과, 캐릭터 설정을 완료하고 정규 서비스 이용 권한을 활성화합니다.")
+    @PostMapping("/onboarding")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> completeOnboarding(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody OnboardingRequestDto dto
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.completeOnboarding(member.getId(), dto), "온보딩이 완료되었습니다."));
+    }
+
+    @Operation(summary = "신입생 계정 강제 통합 감지 및 병합", description = "3월 포털 학번 첫 로그인 시 공식 학적(이름, 생년월일)과 일치하는 신입생 계정을 100% 무조건 강제 통합합니다.")
+    @PostMapping("/check-merge-freshman")
+    public ResponseEntity<ResponseDto<MergeFreshmanResponseDto>> checkAndMergeFreshman(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody MergeFreshmanRequestDto dto
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.checkAndMergeFreshman(member.getId(), dto), "신입생 계정 통합 확인 완료"));
+    }
+
+    @Operation(summary = "사후 공식 학적 동기화", description = "온보딩 시 학적 스크래핑 실패로 직접 입력한 학생이 사후에 학적 동기화를 완료할 때 호출합니다.")
+    @PostMapping("/sync-academic")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> syncAcademic(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody SyncAcademicRequestDto dto
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.syncOfficialAcademic(member.getId(), dto), "공식 학적 동기화 성공"));
     }
 }

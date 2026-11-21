@@ -8,6 +8,7 @@ import kr.inuappcenterportal.inuportal.domain.reply.model.Reply;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -32,4 +33,8 @@ public interface ReplyRepository extends JpaRepository<Reply,Long> {
 
     @Query("SELECT DISTINCT r.member FROM Reply r WHERE r.reply = :parentReply AND r.isDeleted = false AND r.member IS NOT NULL")
     List<Member> findReReplyMembersByParentReply(@Param("parentReply") Reply parentReply);
+
+    @Modifying
+    @Query("UPDATE Reply r SET r.member = :targetMember WHERE r.member = :sourceMember")
+    int transferMember(@org.springframework.data.repository.query.Param("sourceMember") Member sourceMember, @org.springframework.data.repository.query.Param("targetMember") Member targetMember);
 }

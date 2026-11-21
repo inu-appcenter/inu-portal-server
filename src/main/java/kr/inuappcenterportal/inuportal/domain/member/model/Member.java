@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.member.model;
 
+import kr.inuappcenterportal.inuportal.domain.member.enums.MemberType;
 import kr.inuappcenterportal.inuportal.domain.member.enums.RealNameSource;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -49,6 +50,22 @@ public class Member implements UserDetails {
 
     @Column(nullable = false, name = "student_id")
     private String studentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "member_type", nullable = false, length = 20)
+    private MemberType memberType = MemberType.STUDENT;
+
+    @Column(name = "onboarding_completed", nullable = false)
+    private Boolean onboardingCompleted = false;
+
+    @Column(name = "is_academic_verified", nullable = false)
+    private Boolean isAcademicVerified = false;
+
+    @Column(name = "exam_no", length = 30)
+    private String examNo;
+
+    @Column(name = "birth_date", length = 10)
+    private String birthDate;
 
     @Column(nullable = false)
     private String nickname;
@@ -286,5 +303,48 @@ public class Member implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public void setMemberType(MemberType memberType) {
+        this.memberType = memberType;
+    }
+
+    public void setIsAcademicVerified(Boolean isAcademicVerified) {
+        this.isAcademicVerified = isAcademicVerified;
+    }
+
+    public void setExamNo(String examNo) {
+        this.examNo = examNo;
+    }
+
+    public void setBirthDate(String birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public void completeOnboarding(String nickname, Long fireId, String realName, RealNameSource source, SchoolDepartment dept, Boolean isVerified) {
+        this.nickname = nickname;
+        this.fireId = fireId;
+        this.realName = realName;
+        this.realNameSource = source;
+        this.schoolDepartment = dept;
+        this.isAcademicVerified = isVerified;
+        this.onboardingCompleted = true;
+        touchProfileModifiedAt();
+    }
+
+    public void upgradeFromFreshman(String regularStudentId) {
+        this.studentId = regularStudentId;
+        this.memberType = MemberType.STUDENT;
+        this.isAcademicVerified = true;
+        this.onboardingCompleted = true;
+        touchProfileModifiedAt();
+    }
+
+    public void syncOfficialAcademic(String officialName, SchoolDepartment dept) {
+        this.realName = officialName;
+        this.realNameSource = RealNameSource.PORTAL_SCRAPE;
+        this.schoolDepartment = dept;
+        this.isAcademicVerified = true;
+        touchProfileModifiedAt();
     }
 }
