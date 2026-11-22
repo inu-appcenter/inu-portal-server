@@ -174,6 +174,10 @@ public enum MyErrorCode {
     FCM_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 관리자 알림입니다."),
     FCM_RETRY_NO_TARGET(HttpStatus.CONFLICT, "재시도할 대상이 없습니다. 전달에 실패한 수신자가 없거나, 실패 기록이 남지 않은 과거 발송입니다."),
     FCM_RETRY_NOT_ALLOWED(HttpStatus.CONFLICT, "지금은 재시도할 수 없습니다. 이미 발송 중이거나 재시도 대상이 아닌 상태입니다."),
+    INVALID_APP_CHECK_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 앱 인증 토큰입니다."),
+    FRESHMAN_AUTH_MISMATCH(HttpStatus.UNAUTHORIZED, "신입생 인증 정보가 일치하지 않습니다."),
+    FRESHMAN_EXPIRED(HttpStatus.FORBIDDEN, "신입생 임시 계정 유효기간이 만료되었습니다. 정규 학번으로 포털 로그인해 주세요."),
+    FRESHMAN_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "요청 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요."),
     ;
 
 

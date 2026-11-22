@@ -17,6 +17,10 @@ public interface MemberRepository extends JpaRepository<Member,Long> {
     Optional<Member> findByNickname(String nickname);
     Optional<Member> findByStudentId(String studentId);
     boolean existsByStudentId(String studentId);
+    Optional<Member> findByExamNo(String examNo);
+
+    @Query("SELECT m FROM Member m WHERE m.memberType = kr.inuappcenterportal.inuportal.domain.member.enums.MemberType.FRESHMAN AND m.freshmanVerifyHash = :verifyHash")
+    Optional<Member> findFreshmanByVerifyHash(@Param("verifyHash") String verifyHash);
 
     @Query("""
             SELECT m

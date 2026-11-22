@@ -9,5 +9,6 @@ import java.util.Optional;
 public interface SchoolDepartmentRepository extends JpaRepository<SchoolDepartment, Long> {
     Optional<SchoolDepartment> findByCode(String code);
     Optional<SchoolDepartment> findByCodeAndActiveTrue(String code);
+    Optional<SchoolDepartment> findFirstByNameAndActiveTrue(String name);
     List<SchoolDepartment> findAllByActiveTrueOrderByNameAscCodeAsc();
 }

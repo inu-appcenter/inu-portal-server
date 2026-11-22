@@ -56,7 +56,7 @@ public class SecurityConfig {
 
 
                         // 인증 없이 접근 가능한 POST 설정
-                        .requestMatchers(HttpMethod.POST, "/api/members/**", "/api/members", "/api/tokens", "/api/logs/**", "/api/agent/chat", "/api/agent/chat/stream", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/members/login", "/api/members/refresh", "/api/members/freshman-login", "/api/tokens", "/api/logs/**", "/api/agent/chat", "/api/agent/chat/stream", "/mcp", "/mcp/**", "/api/mcp", "/api/mcp/**").permitAll()
 
 
                         // ADMIN 권한 전용 설정

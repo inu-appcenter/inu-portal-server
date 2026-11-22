@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import kr.inuappcenterportal.inuportal.domain.member.model.Member;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -11,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -36,7 +39,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 토큰 파싱 + 서명/만료 검증 → 통과하면 회원 조회 후 인증 정보 등록
             if (token != null && tokenProvider.validateToken(token)) {
                 Authentication authentication = tokenProvider.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (authentication.getPrincipal() instanceof Member member && member.isFreshmanExpired(LocalDateTime.now())) {
+                    SecurityContextHolder.clearContext();
+                    request.setAttribute(AUTH_ERROR_ATTRIBUTE, MyErrorCode.FRESHMAN_EXPIRED);
+                } else {
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         } catch (MyException e) {
             // 익명으로 체인을 계속 진행하고, 인증이 필요한 엔드포인트에서만 EntryPoint가 사유를 담아 응답
