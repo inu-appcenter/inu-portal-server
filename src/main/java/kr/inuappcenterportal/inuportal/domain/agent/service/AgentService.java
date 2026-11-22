@@ -119,10 +119,11 @@ public class AgentService {
         // 1단계: 1차 도구 라우팅 결정 (대화 맥락 반영)
         AgentToolDecisionDto decision = decideTool(userMessage, history);
         List<AgentToolDecisionDto.SingleToolCall> effectiveTools = ensureAcademicToolForAdvisorQuestion(userMessage, decision.getEffectiveTools());
-        log.info("AI Agent hop 1 tools decision: {}, count: {}, thought: {}", 
+        // thought는 LLM이 질문을 풀어 쓴 문장이라 원문 내용이 그대로 담길 수 있다. 길이만 기록한다.
+        log.info("AI Agent hop 1 tools decision: {}, count: {}, thoughtLength: {}",
                 effectiveTools.stream().map(AgentToolDecisionDto.SingleToolCall::tool).toList(),
                 effectiveTools.size(),
-                decision.thought());
+                decision.thought() == null ? 0 : decision.thought().length());
 
         // 2단계: 도구가 없는 경우 일반 대화 처리
         if (effectiveTools.isEmpty()) {
