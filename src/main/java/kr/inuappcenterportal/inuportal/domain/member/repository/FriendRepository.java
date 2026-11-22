@@ -31,6 +31,20 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
                               @Param("to") FriendStatus to,
                               @Param("now") LocalDateTime now);
 
+    /**
+     * 상태가 {@code status}일 때만 행을 지운다. 지운 행 수(0 또는 1)를 돌려준다.
+     *
+     * <p>거절·취소가 수락과 엇갈려 늦게 도착해도 이미 맺어진 친구 관계를 지우지 않도록,
+     * 상태 확인과 삭제를 한 문장으로 묶어 수락의 조건부 UPDATE와 직렬화한다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            delete from Friend f
+             where f.id = :id
+               and f.status = :status
+            """)
+    int deleteIfStatus(@Param("id") Long id, @Param("status") FriendStatus status);
+
     Optional<Friend> findByRequesterAndReceiver(Member requester, Member receiver);
 
     List<Friend> findAllByRequesterAndStatus(Member requester, FriendStatus status);

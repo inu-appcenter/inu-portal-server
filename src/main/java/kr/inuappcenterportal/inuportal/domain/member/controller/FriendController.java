@@ -73,7 +73,34 @@ public class FriendController {
         return ResponseEntity.ok(ResponseDto.of(null));
     }
 
-    @Operation(summary = "친구 삭제/요청 거절")
+    @Operation(summary = "받은 친구 요청 거절",
+            description = "수신자만 호출할 수 있습니다. 요청이 아직 대기(PENDING) 중일 때만 삭제하며, "
+                    + "이미 수락되었거나 처리된 요청이면 409(이미 처리된 친구 요청입니다.)를 반환합니다. "
+                    + "요청이 없으면 404, 수신자가 아니면 403입니다. 알림은 보내지 않습니다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/{friendId}/reject")
+    public ResponseEntity<ResponseDto<Void>> rejectFriend(@PathVariable Long friendId, @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        friendService.rejectFriend(memberId, friendId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "보낸 친구 요청 취소",
+            description = "요청자만 호출할 수 있습니다. 요청이 아직 대기(PENDING) 중일 때만 삭제하며, "
+                    + "이미 수락되었거나 처리된 요청이면 409(이미 처리된 친구 요청입니다.)를 반환합니다. "
+                    + "요청이 없으면 404, 요청자가 아니면 403입니다. 알림은 보내지 않습니다.")
+    @SecurityRequirement(name = "Auth")
+    @PostMapping("/{friendId}/cancel")
+    public ResponseEntity<ResponseDto<Void>> cancelFriendRequest(@PathVariable Long friendId, @AuthenticationPrincipal UserDetails userDetails) {
+        Long memberId = Long.parseLong(userDetails.getUsername());
+        friendService.cancelFriendRequest(memberId, friendId);
+        return ResponseEntity.ok(ResponseDto.of(null));
+    }
+
+    @Operation(summary = "친구 삭제",
+            description = "상태와 관계없이 친구 관계 행을 삭제합니다(구버전 클라이언트 호환). "
+                    + "받은 요청 거절은 POST /{friendId}/reject, 보낸 요청 취소는 POST /{friendId}/cancel을 사용하세요. "
+                    + "이 API로 거절·취소하면 다른 기기에서 먼저 수락된 친구 관계까지 지워질 수 있습니다.")
     @SecurityRequirement(name = "Auth")
     @DeleteMapping("/{friendId}")
     public ResponseEntity<ResponseDto<Void>> deleteFriend(@PathVariable Long friendId, @AuthenticationPrincipal UserDetails userDetails) {
