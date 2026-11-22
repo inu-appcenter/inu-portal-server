@@ -20,8 +20,9 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("FCM-MSG-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         // 종료 시 진행 중/대기 중인 발송 작업을 마무리한 뒤 종료 (배포 중 알림 유실 방지)
+        // 대기 30s는 컨테이너 stop_grace_period(45s)보다 짧게 둬서 SIGKILL 전에 드레인을 끝낸다
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(15);
+        executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
     }
@@ -35,8 +36,9 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("FCM-SEND-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         // 종료 시 진행 중/대기 중인 배치 발송을 마무리한 뒤 종료 (배포 중 알림 유실 방지)
+        // 대기 30s는 컨테이너 stop_grace_period(45s)보다 짧게 둬서 SIGKILL 전에 드레인을 끝낸다
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(15);
+        executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
     }
@@ -64,6 +66,9 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("CRAWLER-");
         // 크롤링은 오래 걸리고 스케줄러가 재실행하므로, 종료 시 배포를 붙잡지 않고 즉시 중단
         executor.setWaitForTasksToCompleteOnShutdown(false);
+        // Spring 6.1부터 executor가 lifecycle 종료 단계에서 실행 중인 작업을 기다리므로(phase timeout까지),
+        // 종료 단계 대기에서 제외해 실행 중인 크롤링을 즉시 interrupt 한다
+        executor.setAcceptTasksAfterContextClose(true);
         executor.initialize();
         return executor;
     }

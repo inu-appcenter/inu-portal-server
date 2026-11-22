@@ -101,4 +101,6 @@ clean {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // 운영과 같은 KST로 고정: 앱이 @PostConstruct에서 기본 타임존을 바꾸면 UTC 러너에서 H2 DATE가 하루 밀린다
+    systemProperty 'user.timezone', 'Asia/Seoul'
 }

@@ -15,10 +15,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 
@@ -42,6 +44,11 @@ class BusServiceEstimationTest {
     @Test
     @DisplayName("과거 4주 실측 이력이 존재할 때 과거 기록 기반 예측치가 성공적으로 산출된다")
     void testAugmentWithEstimatedArrivals_success() {
+        // 서비스가 심야(00:30~05:00)에는 추정 계산을 건너뛰므로 이 시간대에는 검증하지 않음
+        LocalTime now = LocalTime.now();
+        assumeFalse(!now.isBefore(LocalTime.of(0, 30)) && now.isBefore(LocalTime.of(5, 0)),
+                "심야 시간대(00:30~05:00)에는 추정 계산을 건너뛰므로 테스트 생략");
+
         // given
         String bstopId = "164000395";
         String routeId = "165000012";

@@ -159,6 +159,10 @@ public class MemberService {
     }
 
     public TokenDto login(Member member) {
+        return login(member, false);
+    }
+
+    private TokenDto login(Member member, boolean newMember) {
         LocalDateTime localDateTime = LocalDateTime.now();
         String accessToken = tokenProvider.createToken(member.getId().toString(), member.getRoles(), localDateTime);
         String refreshToken = tokenProvider.createRefreshToken(member.getId().toString(), localDateTime);
@@ -166,7 +170,8 @@ public class MemberService {
                 accessToken,
                 refreshToken,
                 tokenProvider.getAccessTokenExpiry(localDateTime).toString(),
-                tokenProvider.getRefreshTokenExpiry(localDateTime).toString()
+                tokenProvider.getRefreshTokenExpiry(localDateTime).toString(),
+                newMember
         );
     }
 
@@ -220,7 +225,7 @@ public class MemberService {
         Member member = existingMemberOpt
                 .map(existingMember -> synchronizeRoles(existingMember, roles))
                 .orElseGet(() -> createMember(studentId, roles));
-        return login(member);
+        return login(member, existingMemberOpt.isEmpty());
     }
 
     public void createMember(String studentId) {

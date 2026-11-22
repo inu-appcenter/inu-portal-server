@@ -1,0 +1,64 @@
+# 테스트 워크플로 (배포 없음)
+# 흐름: 코드 받기 → Gradle 캐시 복원 → 테스트 → (dev에서 실행된 경우) Gradle 캐시 저장
+# 테스트는 여기서만 돌리고, 배포 워크플로는 -x test로 건너뛴다
+name: "[CI] Test"
+
+on:
+  # dev/main으로 가는 PR에 커밋이 올라올 때마다 테스트 → 머지 전에 깨진 코드를 잡음
+  pull_request:
+    branches: [ "dev", "main" ]
+
+  # PR이 dev에 머지되면 dev에서 한 번 더 실행 → 기본 브랜치에서만 Gradle 캐시가 저장되므로 여기서 캐시를 갱신
+  push:
+    branches: [ "dev" ]
+
+  # 매주 월요일 03:00(KST)에 dev에서 실행 → GitHub 캐시는 7일간 안 쓰면 삭제되므로 PR이 뜸한 기간에도 캐시를 살려둠
+  schedule:
+    - cron: "0 18 * * 0"
+  workflow_dispatch: { }
+
+# 워크플로가 GitHub 토큰으로 할 수 있는 권한. 코드 읽기만 허용
+permissions:
+  contents: read
+
+# 같은 PR(또는 브랜치)에 새 커밋이 올라오면 이전 실행을 취소하고 최신 커밋만 테스트
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # 테스트 중 필요한 Redis를 러너 옆에 컨테이너로 띄움 (application-test.properties의 localhost:6379)
+    # DB는 테스트 설정이 H2 인메모리를 쓰므로 따로 띄우지 않음
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      # 레포 코드를 러너로 내려받음
+      - uses: actions/checkout@v4
+
+      # Java 17 설치
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Gradle 의존성·빌드 캐시 복원/저장
+      # 기본 브랜치(dev)에서 실행될 때만 저장하고, PR·다른 브랜치에서는 dev의 캐시를 읽기만 함
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # gradlew 스크립트에 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 테스트 실행. application.yml·firebase_key.json 없이 test 설정만으로 돌아가므로 secrets가 필요 없음
+      # (공개 레포라 포크에서 온 PR에는 secrets가 전달되지 않음)
+      - name: Run tests
+        run: ./gradlew test
