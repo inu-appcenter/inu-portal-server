@@ -232,8 +232,24 @@ public class MemberController {
 
     @Operation(summary = "신입생 로그인/가입", description = "신입생 전산망 인증 정보를 바탕으로 신입생 계정을 생성/조회하고 JWT 토큰을 발급합니다.")
     @PostMapping("/freshman-login")
-    public ResponseEntity<ResponseDto<TokenDto>> freshmanLogin(@Valid @RequestBody FreshmanLoginDto dto) {
-        return ResponseEntity.ok(ResponseDto.of(memberService.freshmanLogin(dto), "신입생 로그인 성공, 토큰이 발급되었습니다."));
+    public ResponseEntity<ResponseDto<TokenDto>> freshmanLogin(
+            @Valid @RequestBody FreshmanLoginDto dto,
+            @RequestHeader(value = "X-Firebase-AppCheck", required = false) String appCheckToken,
+            HttpServletRequest request
+    ) {
+        String clientIp = extractClientIp(request);
+        return ResponseEntity.ok(ResponseDto.of(memberService.freshmanLogin(dto, appCheckToken, clientIp), "신입생 로그인 성공, 토큰이 발급되었습니다."));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
     }
 
     @Operation(summary = "온보딩 완료", description = "신규 가입 유저의 닉네임, 실명, 학과, 캐릭터 설정을 완료하고 정규 서비스 이용 권한을 활성화합니다.")

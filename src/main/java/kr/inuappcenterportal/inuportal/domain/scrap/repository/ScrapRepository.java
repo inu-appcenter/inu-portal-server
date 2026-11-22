@@ -26,4 +26,6 @@ public interface ScrapRepository extends JpaRepository<Scrap,Long> {
     @Modifying
     @Query("UPDATE Scrap s SET s.member = :targetMember WHERE s.member = :sourceMember")
     int transferMember(@Param("sourceMember") Member sourceMember, @Param("targetMember") Member targetMember);
+
+    boolean existsByMember(Member member);
 }

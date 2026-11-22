@@ -23,22 +23,32 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.FriendRepository
 import kr.inuappcenterportal.inuportal.domain.member.repository.BlockRepository;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
+import kr.inuappcenterportal.inuportal.domain.dailyBrief.repository.DailyBriefSettingRepository;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
 import kr.inuappcenterportal.inuportal.domain.department.repository.SchoolDepartmentRepository;
+import kr.inuappcenterportal.inuportal.global.config.FreshmanSecurityProperties;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
+import kr.inuappcenterportal.inuportal.global.security.FirebaseAppCheckVerifier;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -46,6 +56,7 @@ public class MemberService {
     private static final long LAST_SEEN_UPDATE_THRESHOLD_MINUTES = 5L;
     // 실명: 2~30자, 한글·영문·공백
     private static final Pattern REAL_NAME_PATTERN = Pattern.compile("[가-힣a-zA-Z ]{2,30}");
+    private static final String DEFAULT_DEV_VERIFY_SECRET = "intip-dev-freshman-verify-secret-change-me";
 
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
@@ -58,6 +69,10 @@ public class MemberService {
     private final PostRepository postRepository;
     private final ReplyRepository replyRepository;
     private final ScrapRepository scrapRepository;
+    private final DailyBriefSettingRepository dailyBriefSettingRepository;
+    private final FirebaseAppCheckVerifier firebaseAppCheckVerifier;
+    private final FreshmanRateLimiter freshmanRateLimiter;
+    private final FreshmanSecurityProperties freshmanSecurityProperties;
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^\\d{9}$");
 
     private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
@@ -348,22 +363,57 @@ public class MemberService {
     }
 
     @Transactional
-    public TokenDto freshmanLogin(FreshmanLoginDto dto) {
-        Member member = memberRepository.findByExamNo(dto.getExamNo())
-                .orElseGet(() -> {
-                    Member newFreshman = Member.builder()
-                            .studentId("F_" + dto.getExamNo())
-                            .roles(List.of("ROLE_USER"))
-                            .build();
-                    newFreshman.setMemberType(MemberType.FRESHMAN);
-                    newFreshman.setExamNo(dto.getExamNo());
-                    newFreshman.setBirthDate(dto.getBirthDate());
-                    newFreshman.updateRealName(dto.getName(), RealNameSource.PORTAL_SCRAPE);
-                    newFreshman.setIsAcademicVerified(true);
-                    return memberRepository.save(newFreshman);
-                });
+    public TokenDto freshmanLogin(FreshmanLoginDto dto, String appCheckToken, String clientIp) {
+        String examNo = dto.getExamNo().trim();
+        freshmanRateLimiter.checkAttempt(clientIp, examNo);
+        firebaseAppCheckVerifier.verify(appCheckToken);
 
-        return login(member);
+        String verifyHash = computeFreshmanVerifyHash(dto.getName(), dto.getBirthDate());
+        LocalDateTime now = LocalDateTime.now();
+
+        Optional<Member> existingOpt = memberRepository.findByExamNo(examNo);
+        if (existingOpt.isPresent()) {
+            Member existing = existingOpt.get();
+            if (existing.getMemberType() != MemberType.FRESHMAN) {
+                throw new MyException(MyErrorCode.FRESHMAN_AUTH_MISMATCH);
+            }
+            if (existing.isFreshmanExpired(now)) {
+                throw new MyException(MyErrorCode.FRESHMAN_EXPIRED);
+            }
+            if (!Objects.equals(verifyHash, existing.getFreshmanVerifyHash())) {
+                freshmanRateLimiter.recordExamFailure(examNo);
+                throw new MyException(MyErrorCode.FRESHMAN_AUTH_MISMATCH);
+            }
+            freshmanRateLimiter.clearExamFailure(examNo);
+            if (existing.getSchoolDepartment() == null && dto.getDeptNm() != null && !dto.getDeptNm().isBlank()) {
+                SchoolDepartment resolvedDept = resolveSchoolDepartment(dto.getDeptNm());
+                if (resolvedDept != null) {
+                    existing.updateSchoolDepartment(resolvedDept);
+                }
+            }
+            return login(existing);
+        }
+
+        freshmanRateLimiter.checkSignupLimit(clientIp);
+        SchoolDepartment schoolDept = resolveSchoolDepartment(dto.getDeptNm());
+
+        Member newFreshman = Member.builder()
+                .studentId("F_" + examNo)
+                .roles(List.of("ROLE_USER"))
+                .build();
+        newFreshman.setMemberType(MemberType.FRESHMAN);
+        newFreshman.setExamNo(examNo);
+        newFreshman.setFreshmanVerifyHash(verifyHash);
+        newFreshman.setFreshmanExpiresAt(Member.calculateFreshmanExpiresAt(now));
+        newFreshman.updateRealName(dto.getName().trim(), RealNameSource.PORTAL_SCRAPE);
+        newFreshman.updateSchoolDepartment(schoolDept);
+        newFreshman.setIsAcademicVerified(true);
+
+        Member saved = memberRepository.save(newFreshman);
+        if (dailyBriefService != null) {
+            dailyBriefService.createDefaultSetting(saved);
+        }
+        return login(saved, true);
     }
 
     @Transactional
@@ -396,10 +446,10 @@ public class MemberService {
             }
         }
 
-        // 학과 처리
-        SchoolDepartment schoolDept = null;
-        if (dto.getDepartmentCode() != null && !dto.getDepartmentCode().isBlank()) {
-            schoolDept = schoolDepartmentRepository.findByCodeAndActiveTrue(dto.getDepartmentCode()).orElse(null);
+        // 학과 처리 (코드 우선, 학과명 폴백 허용)
+        SchoolDepartment schoolDept = resolveSchoolDepartment(dto.getDepartmentCode());
+        if (schoolDept == null) {
+            schoolDept = member.getSchoolDepartment();
         }
 
         boolean isVerified = Boolean.TRUE.equals(dto.getIsAcademicVerified()) && source == RealNameSource.PORTAL_SCRAPE;
@@ -418,31 +468,55 @@ public class MemberService {
             return MergeFreshmanResponseDto.notMerged();
         }
 
-        Optional<Member> freshmanOpt = memberRepository.findFreshmanByRealNameAndBirthDate(
-                dto.getKoreanName().trim(),
-                dto.getBirthDate().trim()
-        );
+        String verifyHash = computeFreshmanVerifyHash(dto.getKoreanName(), dto.getBirthDate());
+        Optional<Member> freshmanOpt = memberRepository.findFreshmanByVerifyHash(verifyHash);
 
-        if (freshmanOpt.isPresent()) {
-            Member freshman = freshmanOpt.get();
-            if (!freshman.getId().equals(currentMember.getId())) {
-                // 신입생 시절 게시글, 댓글, 스크랩 소유권 이전
-                postRepository.transferMember(freshman, currentMember);
-                replyRepository.transferMember(freshman, currentMember);
-                scrapRepository.transferMember(freshman, currentMember);
-
-                // 닉네임과 캐릭터 계승
-                currentMember.updateNicknameAndFire(freshman.getNickname(), freshman.getFireId());
-                currentMember.upgradeFromFreshman(currentMember.getStudentId());
-
-                // 임시 신입생 계정 삭제
-                memberRepository.delete(freshman);
-
-                return MergeFreshmanResponseDto.merged(freshman.getExamNo());
-            }
+        if (freshmanOpt.isEmpty()) {
+            return MergeFreshmanResponseDto.notMerged();
         }
 
-        return MergeFreshmanResponseDto.notMerged();
+        Member freshman = freshmanOpt.get();
+        if (freshman.getId().equals(currentMember.getId())) {
+            return MergeFreshmanResponseDto.notMerged();
+        }
+
+        SchoolDepartment resolvedDept = resolveSchoolDepartment(dto.getDepartmentName());
+        boolean hasExistingActivity = postRepository.existsByMember(currentMember)
+                || replyRepository.existsByMember(currentMember)
+                || scrapRepository.existsByMember(currentMember);
+
+        if (!hasExistingActivity) {
+            // 빈 신규 STUDENT 레코드를 제거하고, 기존 FRESHMAN 레코드를 정규 학번으로 승격하여 모든 FK 데이터를 보존한다.
+            String officialStudentId = currentMember.getStudentId();
+            if (dailyBriefSettingRepository != null) {
+                dailyBriefSettingRepository.deleteByMember(currentMember);
+                dailyBriefSettingRepository.flush();
+            }
+            memberRepository.delete(currentMember);
+            memberRepository.flush();
+
+            freshman.upgradeToStudent(officialStudentId, dto.getKoreanName().trim(), resolvedDept);
+            TokenDto upgradedToken = login(freshman);
+            return MergeFreshmanResponseDto.merged(freshman.getExamNo(), upgradedToken);
+        }
+
+        log.warn("[MergeFreshman] currentMember({}) already has activity data; transferring posts/replies/scraps instead of in-place upgrade.", currentMember.getId());
+        postRepository.transferMember(freshman, currentMember);
+        replyRepository.transferMember(freshman, currentMember);
+        scrapRepository.transferMember(freshman, currentMember);
+
+        currentMember.updateNicknameAndFire(freshman.getNickname(), freshman.getFireId());
+        currentMember.upgradeFromFreshman(currentMember.getStudentId());
+        if (resolvedDept != null) {
+            currentMember.updateSchoolDepartment(resolvedDept);
+        }
+
+        if (dailyBriefSettingRepository != null) {
+            dailyBriefSettingRepository.deleteByMember(freshman);
+            dailyBriefSettingRepository.flush();
+        }
+        memberRepository.delete(freshman);
+        return MergeFreshmanResponseDto.merged(freshman.getExamNo(), login(currentMember));
     }
 
     @Transactional
@@ -454,12 +528,39 @@ public class MemberService {
         }
         validateRealNameKeywords(realName);
 
-        SchoolDepartment schoolDept = null;
-        if (dto.getDepartmentCode() != null && !dto.getDepartmentCode().isBlank()) {
-            schoolDept = schoolDepartmentRepository.findByCodeAndActiveTrue(dto.getDepartmentCode()).orElse(null);
+        SchoolDepartment schoolDept = resolveSchoolDepartment(dto.getDepartmentCode());
+        if (schoolDept == null) {
+            schoolDept = member.getSchoolDepartment();
         }
 
         member.syncOfficialAcademic(realName, schoolDept);
         return getMemberResponseDto(member);
+    }
+
+    public String computeFreshmanVerifyHash(String name, String birthDate) {
+        String normalizedName = name == null ? "" : name.trim().replaceAll("\\s+", "");
+        String normalizedBirth = birthDate == null ? "" : birthDate.replaceAll("\\D", "");
+        String payload = normalizedName + ":" + normalizedBirth;
+        String secret = freshmanSecurityProperties != null
+                ? freshmanSecurityProperties.resolvedVerifySecret()
+                : DEFAULT_DEV_VERIFY_SECRET;
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] raw = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(raw);
+        } catch (Exception e) {
+            throw new IllegalStateException("신입생 검증 해시 계산 실패", e);
+        }
+    }
+
+    private SchoolDepartment resolveSchoolDepartment(String codeOrName) {
+        if (codeOrName == null || codeOrName.isBlank()) {
+            return null;
+        }
+        String trimmed = codeOrName.trim();
+        return schoolDepartmentRepository.findByCodeAndActiveTrue(trimmed)
+                .or(() -> schoolDepartmentRepository.findFirstByNameAndActiveTrue(trimmed))
+                .orElse(null);
     }
 }

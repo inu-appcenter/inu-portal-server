@@ -37,4 +37,6 @@ public interface ReplyRepository extends JpaRepository<Reply,Long> {
     @Modifying
     @Query("UPDATE Reply r SET r.member = :targetMember WHERE r.member = :sourceMember")
     int transferMember(@org.springframework.data.repository.query.Param("sourceMember") Member sourceMember, @org.springframework.data.repository.query.Param("targetMember") Member targetMember);
+
+    boolean existsByMember(Member member);
 }

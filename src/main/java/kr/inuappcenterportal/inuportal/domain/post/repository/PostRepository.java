@@ -69,4 +69,6 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     @Modifying
     @Query("UPDATE Post p SET p.member = :targetMember WHERE p.member = :sourceMember")
     int transferMember(@Param("sourceMember") Member sourceMember, @Param("targetMember") Member targetMember);
+
+    boolean existsByMember(Member member);
 }

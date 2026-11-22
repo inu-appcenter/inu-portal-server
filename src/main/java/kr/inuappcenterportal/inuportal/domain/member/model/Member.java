@@ -64,8 +64,11 @@ public class Member implements UserDetails {
     @Column(name = "exam_no", length = 30)
     private String examNo;
 
-    @Column(name = "birth_date", length = 10)
-    private String birthDate;
+    @Column(name = "freshman_verify_hash", length = 64)
+    private String freshmanVerifyHash;
+
+    @Column(name = "freshman_expires_at")
+    private LocalDateTime freshmanExpiresAt;
 
     @Column(nullable = false)
     private String nickname;
@@ -317,8 +320,23 @@ public class Member implements UserDetails {
         this.examNo = examNo;
     }
 
-    public void setBirthDate(String birthDate) {
-        this.birthDate = birthDate;
+    public void setFreshmanVerifyHash(String freshmanVerifyHash) {
+        this.freshmanVerifyHash = freshmanVerifyHash;
+    }
+
+    public void setFreshmanExpiresAt(LocalDateTime freshmanExpiresAt) {
+        this.freshmanExpiresAt = freshmanExpiresAt;
+    }
+
+    public boolean isFreshmanExpired(LocalDateTime now) {
+        return this.memberType == MemberType.FRESHMAN
+                && this.freshmanExpiresAt != null
+                && now.isAfter(this.freshmanExpiresAt);
+    }
+
+    public static LocalDateTime calculateFreshmanExpiresAt(LocalDateTime now) {
+        int admissionYear = now.getMonthValue() >= 11 ? now.getYear() + 1 : now.getYear();
+        return LocalDateTime.of(admissionYear, 3, 31, 23, 59, 59);
     }
 
     public void completeOnboarding(String nickname, Long fireId, String realName, RealNameSource source, SchoolDepartment dept, Boolean isVerified) {
@@ -337,6 +355,25 @@ public class Member implements UserDetails {
         this.memberType = MemberType.STUDENT;
         this.isAcademicVerified = true;
         this.onboardingCompleted = true;
+        this.freshmanExpiresAt = null;
+        this.freshmanVerifyHash = null;
+        touchProfileModifiedAt();
+    }
+
+    public void upgradeToStudent(String officialStudentId, String realName, SchoolDepartment schoolDept) {
+        this.studentId = officialStudentId;
+        this.memberType = MemberType.STUDENT;
+        this.isAcademicVerified = true;
+        this.onboardingCompleted = true;
+        this.freshmanExpiresAt = null;
+        this.freshmanVerifyHash = null;
+        if (realName != null && !realName.isBlank()) {
+            this.realName = realName;
+            this.realNameSource = RealNameSource.PORTAL_SCRAPE;
+        }
+        if (schoolDept != null) {
+            this.schoolDepartment = schoolDept;
+        }
         touchProfileModifiedAt();
     }
 

@@ -19,11 +19,8 @@ public interface MemberRepository extends JpaRepository<Member,Long> {
     boolean existsByStudentId(String studentId);
     Optional<Member> findByExamNo(String examNo);
 
-    @Query("SELECT m FROM Member m WHERE m.memberType = kr.inuappcenterportal.inuportal.domain.member.enums.MemberType.FRESHMAN AND m.realName = :realName AND m.birthDate = :birthDate")
-    Optional<Member> findFreshmanByRealNameAndBirthDate(@Param("realName") String realName, @Param("birthDate") String birthDate);
-
-    @Query("SELECT m FROM Member m WHERE m.memberType = kr.inuappcenterportal.inuportal.domain.member.enums.MemberType.FRESHMAN AND m.examNo = :examNo AND m.realName = :realName AND m.birthDate = :birthDate")
-    Optional<Member> findFreshmanByExamNoAndRealNameAndBirthDate(@Param("examNo") String examNo, @Param("realName") String realName, @Param("birthDate") String birthDate);
+    @Query("SELECT m FROM Member m WHERE m.memberType = kr.inuappcenterportal.inuportal.domain.member.enums.MemberType.FRESHMAN AND m.freshmanVerifyHash = :verifyHash")
+    Optional<Member> findFreshmanByVerifyHash(@Param("verifyHash") String verifyHash);
 
     @Query("""
             SELECT m
