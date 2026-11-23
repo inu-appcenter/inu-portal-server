@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum MyErrorCode {
 
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 유저입니다."),
+    WITHDRAWN_MEMBER(HttpStatus.UNAUTHORIZED, "탈퇴한 회원입니다."),
     INVALID_REAL_NAME(HttpStatus.BAD_REQUEST, "실명은 2~30자의 한글·영문·공백만 입력할 수 있습니다."),
     REAL_NAME_SOURCE_REQUIRED(HttpStatus.BAD_REQUEST, "실명 출처(realNameSource)가 필요합니다."),
     CONSENT_TERMS_VERSION_REQUIRED(HttpStatus.BAD_REQUEST, "포털에서 가져온 실명은 약관 버전(consentTermsVersion)이 필요합니다."),
