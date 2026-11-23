@@ -6,10 +6,15 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePol
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollException;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 // 가능 시간 구간 검증·정리. DB와 무관한 계산만 한다.
 // 시각은 "HH:mm"이고 하루의 끝은 "24:00"(1440분)이라 LocalTime 대신 분 숫자로 다룬다.
@@ -42,14 +47,27 @@ public class SchedulePollSlotUtils {
         return String.format("%02d:%02d", minutes / 60, minutes % 60);
     }
 
-    // 조율의 열 키. 정기면 고른 요일(월→일 순), 일회성이면 시작일~종료일 날짜("YYYY-MM-DD") 전부
+    // 조율의 열 키. 정기면 고른 요일(월→일 순), 일회성이면 oneTimeDateKeys
     public static List<String> columnKeys(SchedulePoll poll) {
         if (poll.isRecurring()) {
             return poll.getDays().stream().sorted().distinct().map(PollDay::name).toList();
         }
+        return oneTimeDateKeys(poll.getStartDate(), poll.getEndDate(), poll.getDays(), poll.getExcludedDates());
+    }
+
+    // 일회성 열 키("YYYY-MM-DD"). 시작일~종료일 중 고른 요일에 들어가고(요일이 비었으면 모든 요일) 뺀 날짜가 아닌 날
+    public static List<String> oneTimeDateKeys(LocalDate startDate, LocalDate endDate,
+                                               List<PollDay> days, List<LocalDate> excludedDates) {
+        Set<DayOfWeek> allowedDays = days == null || days.isEmpty()
+                ? EnumSet.allOf(DayOfWeek.class)
+                : days.stream().map(PollDay::toDayOfWeek).collect(Collectors.toCollection(() -> EnumSet.noneOf(DayOfWeek.class)));
+        Set<LocalDate> excluded = excludedDates == null ? Set.of() : new HashSet<>(excludedDates);
+
         List<String> keys = new ArrayList<>();
-        for (LocalDate date = poll.getStartDate(); !date.isAfter(poll.getEndDate()); date = date.plusDays(1)) {
-            keys.add(date.toString());
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            if (allowedDays.contains(date.getDayOfWeek()) && !excluded.contains(date)) {
+                keys.add(date.toString());
+            }
         }
         return keys;
     }

@@ -22,7 +22,8 @@ public record SchedulePollCreateRequestDto(
         @NotNull
         Boolean isRecurring,
 
-        @Schema(description = "정기일 때 요일 1~7개, 중복 불가. 일회성이면 무시", example = "[\"MON\", \"WED\"]")
+        @Schema(description = "정기면 필수, 요일 1~7개. 일회성이면 선택(기간 중 이 요일만 열로 씀, 없거나 빈 배열이면 모든 요일). 중복 불가",
+                example = "[\"MON\", \"WED\"]")
         List<PollDay> days,
 
         @Schema(description = "일회성일 때 시작일. 오늘 이후. 정기면 무시", example = "2026-10-12")
@@ -30,6 +31,10 @@ public record SchedulePollCreateRequestDto(
 
         @Schema(description = "일회성일 때 종료일. 시작일 이후, 기간 최대 14일. 정기면 무시", example = "2026-10-16")
         LocalDate endDate,
+
+        @Schema(description = "일회성일 때 기간 안에서 뺄 날짜. 기간 밖 날짜는 INVALID_RANGE. 없거나 빈 배열이면 빼지 않음. 정기면 무시",
+                example = "[\"2026-10-14\"]")
+        List<LocalDate> excludedDates,
 
         @Schema(description = "시간대 시작. 30분 단위, 09:00 이상", example = "09:00")
         @NotNull

@@ -45,7 +45,10 @@ public interface SchedulePollApiSpecification {
             description = """
                     시간 맞추기 조율을 만듭니다. 개설자는 이 시점에 참여자가 아닙니다(시간을 제출해야 참여자).
                     <br><br>
-                    정기면 days, 일회성이면 startDate·endDate를 쓰고, 다른 쪽 값은 무시합니다.
+                    정기면 days(필수)를 쓰고 startDate·endDate·excludedDates는 무시합니다.
+                    <br>
+                    일회성이면 startDate~endDate 중 days에 들어가고(없거나 빈 배열이면 모든 요일) excludedDates에 없는 날짜만 열이 됩니다.
+                    excludedDates에 기간 밖 날짜가 있거나, 거르고 남는 날짜가 0개면 INVALID_RANGE입니다.
                     <br>
                     durationMin: FIXED면 30·60·90 중 하나, AT_LEAST면 30분 단위(시간대 길이 이하).
                     <br><br>
@@ -65,7 +68,7 @@ public interface SchedulePollApiSpecification {
                                       "msg": "시간 맞추기 생성 성공"
                                     }
                                     """))),
-            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR(필드 누락·형식 오류) / INVALID_RANGE(시간 범위·기간·마감 조건 위반)"),
+            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR(필드 누락·형식 오류) / INVALID_RANGE(시간 범위·기간·마감 조건 위반, 기간 밖 제외 날짜, 남는 날짜 0개)"),
             @ApiResponse(responseCode = "403", description = "NOT_SHARE_TARGET(참여하지 않은 채팅방)")
     })
     ResponseEntity<ResponseDto<SchedulePollCreateResponseDto>> create(
