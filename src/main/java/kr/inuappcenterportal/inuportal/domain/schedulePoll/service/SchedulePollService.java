@@ -82,6 +82,7 @@ public class SchedulePollService {
             validateDays(request.days());
         } else {
             validateDates(request.startDate(), request.endDate(), now.toLocalDate());
+            validateOneTimeColumns(request.startDate(), request.endDate(), request.days(), request.excludedDates());
         }
         // 시간대: 30분 단위, 09:00 ≤ 시작 < 끝 ≤ 24:00, 회의 길이 이상
         int rangeStart = toRangeMinutes(request.rangeStart());
@@ -106,7 +107,8 @@ public class SchedulePollService {
         SchedulePoll poll = request.isRecurring()
                 ? SchedulePoll.createRecurring(member, title, request.days(), rangeStart, rangeEnd,
                 request.durationMode(), request.durationMin(), deadlineAt, request.originChatRoomId(), linkToken)
-                : SchedulePoll.createOneTime(member, title, request.startDate(), request.endDate(), rangeStart, rangeEnd,
+                : SchedulePoll.createOneTime(member, title, request.startDate(), request.endDate(),
+                request.days(), request.excludedDates(), rangeStart, rangeEnd,
                 request.durationMode(), request.durationMin(), deadlineAt, request.originChatRoomId(), linkToken);
         schedulePollRepository.save(poll);
 
@@ -318,6 +320,28 @@ public class SchedulePollService {
         if (startDate == null || endDate == null || startDate.isBefore(today) || endDate.isBefore(startDate)
                 || startDate.isAfter(today.plusDays(MAX_FUTURE_DAYS))
                 || ChronoUnit.DAYS.between(startDate, endDate) + 1 > MAX_ONE_TIME_DAYS) {
+            throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
+        }
+    }
+
+    // 일회성의 요일·뺄 날짜 (기간 검사 뒤에 호출)
+    // - 요일: 선택. 빈 값(null)·중복 → INVALID_RANGE (정기 요일 규칙과 같음)
+    // - 뺄 날짜: 빈 값(null) → VALIDATION_ERROR, 기간 밖 → INVALID_RANGE. 같은 날짜가 두 번이거나 요일로 이미 빠진 날은 그냥 둔다
+    // - 거르고 남는 날이 0개 → INVALID_RANGE
+    private void validateOneTimeColumns(LocalDate startDate, LocalDate endDate,
+                                        List<PollDay> days, List<LocalDate> excludedDates) {
+        if (days != null && (days.stream().anyMatch(Objects::isNull) || new HashSet<>(days).size() != days.size())) {
+            throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
+        }
+        if (excludedDates != null) {
+            if (excludedDates.stream().anyMatch(Objects::isNull)) {
+                throw new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR);
+            }
+            if (excludedDates.stream().anyMatch(date -> date.isBefore(startDate) || date.isAfter(endDate))) {
+                throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
+            }
+        }
+        if (SchedulePollSlotUtils.oneTimeDateKeys(startDate, endDate, days, excludedDates).isEmpty()) {
             throw new SchedulePollException(SchedulePollErrorCode.INVALID_RANGE);
         }
     }

@@ -46,7 +46,8 @@ public class SchedulePoll extends BaseTimeEntity {
     @Column(name = "is_recurring", nullable = false)
     private boolean recurring;
 
-    // 정기일 때만 값이 있다. "MON,WED,FRI"(월→일 순). 일회성이면 NULL
+    // "MON,WED,FRI"(월→일 순). 정기면 항상 값이 있다.
+    // 일회성이면 기간 중 이 요일만 열로 쓴다. NULL이면 모든 요일
     @Column(length = 27)
     private String days;
 
@@ -56,6 +57,10 @@ public class SchedulePoll extends BaseTimeEntity {
 
     @Column(name = "end_date")
     private LocalDate endDate;
+
+    // 일회성일 때 기간 안에서 뺄 날짜. "2026-11-11,2026-11-12"(날짜순). NULL이면 빼지 않음
+    @Column(name = "excluded_dates", length = 160)
+    private String excludedDates;
 
     // 하루 시작부터의 분. "24:00"을 담으려고 시각 타입 대신 숫자로 저장한다. (09:00 → 540, 24:00 → 1440)
     @Column(name = "range_start_min", nullable = false)
@@ -107,15 +112,17 @@ public class SchedulePoll extends BaseTimeEntity {
     private LocalDateTime deadlineProcessedAt;
 
     private SchedulePoll(Member creator, String title, boolean recurring, List<PollDay> days,
-                         LocalDate startDate, LocalDate endDate, int rangeStartMinutes, int rangeEndMinutes,
+                         LocalDate startDate, LocalDate endDate, List<LocalDate> excludedDates,
+                         int rangeStartMinutes, int rangeEndMinutes,
                          DurationMode durationMode, int durationMinutes, LocalDateTime deadlineAt,
                          Long originChatRoomId, String linkToken) {
         this.creator = creator;
         this.title = title;
         this.recurring = recurring;
-        this.days = recurring ? joinDays(days) : null;
+        this.days = joinDays(days);
         this.startDate = recurring ? null : startDate;
         this.endDate = recurring ? null : endDate;
+        this.excludedDates = recurring ? null : joinDates(excludedDates);
         this.rangeStartMinutes = rangeStartMinutes;
         this.rangeEndMinutes = rangeEndMinutes;
         this.durationMode = durationMode;
@@ -133,24 +140,35 @@ public class SchedulePoll extends BaseTimeEntity {
                                                int rangeStartMinutes, int rangeEndMinutes,
                                                DurationMode durationMode, int durationMinutes,
                                                LocalDateTime deadlineAt, Long originChatRoomId, String linkToken) {
-        return new SchedulePoll(creator, title, true, days, null, null, rangeStartMinutes, rangeEndMinutes,
+        return new SchedulePoll(creator, title, true, days, null, null, null, rangeStartMinutes, rangeEndMinutes,
                 durationMode, durationMinutes, deadlineAt, originChatRoomId, linkToken);
     }
 
+    // days가 비었으면 모든 요일, excludedDates가 비었으면 빼는 날 없음
     public static SchedulePoll createOneTime(Member creator, String title, LocalDate startDate, LocalDate endDate,
+                                             List<PollDay> days, List<LocalDate> excludedDates,
                                              int rangeStartMinutes, int rangeEndMinutes,
                                              DurationMode durationMode, int durationMinutes,
                                              LocalDateTime deadlineAt, Long originChatRoomId, String linkToken) {
-        return new SchedulePoll(creator, title, false, List.of(), startDate, endDate, rangeStartMinutes, rangeEndMinutes,
+        return new SchedulePoll(creator, title, false, days, startDate, endDate, excludedDates,
+                rangeStartMinutes, rangeEndMinutes,
                 durationMode, durationMinutes, deadlineAt, originChatRoomId, linkToken);
     }
 
-    // 정기 조율의 요일 목록. 일회성이면 빈 목록
+    // 요일 목록. 일회성에서 요일을 고르지 않았으면 빈 목록(= 모든 요일)
     public List<PollDay> getDays() {
         if (days == null || days.isBlank()) {
             return List.of();
         }
         return Arrays.stream(days.split(",")).map(PollDay::valueOf).toList();
+    }
+
+    // 일회성에서 뺀 날짜. 없으면 빈 목록
+    public List<LocalDate> getExcludedDates() {
+        if (excludedDates == null || excludedDates.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(excludedDates.split(",")).map(LocalDate::parse).toList();
     }
 
     public boolean isClosed() {
@@ -205,8 +223,20 @@ public class SchedulePoll extends BaseTimeEntity {
         return ++this.resultVersion;
     }
 
+    // 비었으면 NULL
     private static String joinDays(List<PollDay> days) {
+        if (days == null || days.isEmpty()) {
+            return null;
+        }
         return String.join(",", days.stream().sorted().distinct().map(PollDay::name).toList());
+    }
+
+    // 비었으면 NULL. 중복은 하나로, 날짜순
+    private static String joinDates(List<LocalDate> dates) {
+        if (dates == null || dates.isEmpty()) {
+            return null;
+        }
+        return String.join(",", dates.stream().sorted().distinct().map(LocalDate::toString).toList());
     }
 
     // 상태는 앞으로만 바뀐다.
