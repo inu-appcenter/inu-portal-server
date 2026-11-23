@@ -31,7 +31,9 @@ public record SchedulePollResultResponseDto(
         @Schema(description = "heatmap[열][칸] = 그 칸에 가능한 참여자 비트마스크", example = "[[0, 0, 3, 7, 7, 7, 5, 1]]")
         int[][] heatmap,
         @Schema(description = "추천 후보(최대 3개)")
-        List<Candidate> candidates
+        List<Candidate> candidates,
+        @Schema(description = "개설자가 정한 후보(조율 단위, 어느 결과 번호에서 정했는지는 resultVersion). 아직 안 정했으면 null", nullable = true)
+        SchedulePollDecidedResponseDto decided
 ) {
 
     public record Participant(

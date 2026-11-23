@@ -106,6 +106,28 @@ public class SchedulePoll extends BaseTimeEntity {
     @Column(name = "deadline_processed_at")
     private LocalDateTime deadlineProcessedAt;
 
+    // 개설자가 정한 후보. 정한 적이 없으면 모두 NULL. 한 번 정하면 바꾸지 않는다.
+    // 결과는 만들어진 뒤 바뀌지 않지만, 조회 때 결과 JSON을 다시 읽지 않도록 열·시작·끝을 복사해 둔다.
+    @Column(name = "decided_result_version")
+    private Integer decidedResultVersion;
+
+    @Column(name = "decided_candidate_rank")
+    private Integer decidedCandidateRank;
+
+    // 열 키. 정기면 요일("MON"), 일회성이면 날짜("2026-10-12")
+    @Column(name = "decided_key", length = 10)
+    private String decidedKey;
+
+    // 하루 시작부터의 분 (range_start_min과 같은 방식, 24:00 → 1440)
+    @Column(name = "decided_start_min")
+    private Integer decidedStartMinutes;
+
+    @Column(name = "decided_end_min")
+    private Integer decidedEndMinutes;
+
+    @Column(name = "decided_at")
+    private LocalDateTime decidedAt;
+
     private SchedulePoll(Member creator, String title, boolean recurring, List<PollDay> days,
                          LocalDate startDate, LocalDate endDate, int rangeStartMinutes, int rangeEndMinutes,
                          DurationMode durationMode, int durationMinutes, LocalDateTime deadlineAt,
@@ -184,6 +206,27 @@ public class SchedulePoll extends BaseTimeEntity {
     public boolean isReminderDue(LocalDateTime now) {
         return !isClosed() && deadlineRemindedAt == null && deadlineAt != null
                 && now.isBefore(deadlineAt) && !now.isBefore(deadlineAt.minusHours(1));
+    }
+
+    public boolean isDecided() {
+        return decidedResultVersion != null;
+    }
+
+    // 개설자가 정한 후보를 기록한다. 끝난 조율에서만, 한 번만 할 수 있다.
+    public void decide(int resultVersion, int candidateRank, String key, int startMinutes, int endMinutes,
+                       LocalDateTime now) {
+        if (!isClosed()) {
+            throw new IllegalStateException("끝난 조율에서만 후보를 정할 수 있습니다.");
+        }
+        if (isDecided()) {
+            throw new IllegalStateException("이미 정한 후보는 바꿀 수 없습니다.");
+        }
+        this.decidedResultVersion = resultVersion;
+        this.decidedCandidateRank = candidateRank;
+        this.decidedKey = key;
+        this.decidedStartMinutes = startMinutes;
+        this.decidedEndMinutes = endMinutes;
+        this.decidedAt = now;
     }
 
     public void markReminded(LocalDateTime now) {

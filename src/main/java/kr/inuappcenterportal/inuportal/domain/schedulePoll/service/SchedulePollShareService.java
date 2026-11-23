@@ -1,7 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hypersistence.tsid.TSID;
 import kr.inuappcenterportal.inuportal.domain.chat.dto.PersonalChatRoomRequestDto;
@@ -61,6 +60,7 @@ public class SchedulePollShareService {
     private final SchedulePollRepository schedulePollRepository;
     private final SchedulePollSubmissionRepository schedulePollSubmissionRepository;
     private final SchedulePollResultRepository schedulePollResultRepository;
+    private final SchedulePollResultService schedulePollResultService;
     private final SchedulePollShareRepository schedulePollShareRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatRoomService chatRoomService;
@@ -207,7 +207,7 @@ public class SchedulePollShareService {
             extraData = writeJson(Map.of("pollId", poll.getId()));
             version = 0;
         } else {
-            SchedulePollResultResponseDto.Candidate candidate = findCandidate(result, request.candidateRank());
+            SchedulePollResultResponseDto.Candidate candidate = schedulePollResultService.findCandidate(result, request.candidateRank());
             content = "회의 시간이 정해졌어요: " + candidateLabel(poll, candidate);
             messageType = MessageType.SCHEDULE_POLL_RESULT;
             Map<String, Object> extra = new LinkedHashMap<>();
@@ -280,15 +280,6 @@ public class SchedulePollShareService {
         return chatRoomService.getOrCreatePersonalChatRoom(roomRequest, member.getId()).getId();
     }
 
-    private SchedulePollResultResponseDto.Candidate findCandidate(SchedulePollResult result, int rank) {
-        List<SchedulePollResultResponseDto.Candidate> candidates = readJson(result.getCandidates(), new TypeReference<>() {
-        });
-        return candidates.stream()
-                .filter(c -> c.rank() == rank)
-                .findFirst()
-                .orElseThrow(() -> new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR));
-    }
-
     // 정기: "월 10:30~11:30" / 일회성: "10/12(월) 10:30~11:30"
     private String candidateLabel(SchedulePoll poll, SchedulePollResultResponseDto.Candidate candidate) {
         String column;
@@ -329,14 +320,6 @@ public class SchedulePollShareService {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("카드 JSON 변환 실패", e);
-        }
-    }
-
-    private <T> T readJson(String json, TypeReference<T> type) {
-        try {
-            return objectMapper.readValue(json, type);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("카드 JSON 읽기 실패", e);
         }
     }
 

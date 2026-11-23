@@ -10,6 +10,7 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.Schedule
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDetailResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollJoinPreviewResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollMyListItemResponseDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollResultResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollRevisionResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.DurationMode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.JoinBlockReason;
@@ -20,7 +21,9 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollSta
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollErrorCode;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.exception.SchedulePollException;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePollResult;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollRepository;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollResultRepository;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollSubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.columns;
+import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.decided;
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.displayName;
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.displayStatus;
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.toOffset;
@@ -64,7 +68,9 @@ public class SchedulePollService {
     private final SchedulePollSubmissionRepository schedulePollSubmissionRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final BlockRepository blockRepository;
+    private final SchedulePollResultRepository schedulePollResultRepository;
     private final SchedulePollTransactionService schedulePollTransactionService;
+    private final SchedulePollResultService schedulePollResultService;
     private final Clock clock;
 
     @Value("${schedulePollBaseUrl:https://intip.inuappcenter.kr}")
@@ -140,7 +146,8 @@ public class SchedulePollService {
                 linkUrl(poll.getLinkToken()),
                 poll.getRevision(),
                 resultVersionOrNull(poll.getResultVersion()),
-                toOffset(poll.isDeadlinePassed(now) ? poll.getDeadlineAt() : poll.getClosedAt()));
+                toOffset(poll.isDeadlinePassed(now) ? poll.getDeadlineAt() : poll.getClosedAt()),
+                decided(poll));
     }
 
     // 3. 변경 확인(폴링). 조회 한 번으로 끝낸다.
@@ -185,13 +192,14 @@ public class SchedulePollService {
                 toOffset(poll.getModifiedDate())));
     }
 
-    // 10. 마감 변경·해제·즉시 종료. 개설자만 할 수 있다.
+    // 10. 마감 변경·해제·즉시 종료(+ 후보 정하기). 개설자만 할 수 있다.
     // 공통 처리 위에서 돈다. 개설자 확인은 끝났는지 확인보다 먼저 한다(명세서 순서).
     // 트랜잭션은 SchedulePollTransactionService가 연다. 이 메서드에 @Transactional을 붙이지 않는다.
     public SchedulePollRevisionResponseDto update(Member member, Long pollId, SchedulePollUpdateRequestDto request) {
         if (!request.isValidShape()) {
             throw new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR);
         }
+        SchedulePollUpdateRequestDto.Decided decided = request.getDecided();
         return schedulePollTransactionService.execute(pollId, new SchedulePollTransactionService.Write<>() {
 
             @Override
@@ -199,13 +207,25 @@ public class SchedulePollService {
                 if (!poll.getCreator().getId().equals(member.getId())) {
                     throw new SchedulePollException(SchedulePollErrorCode.NOT_HOST);
                 }
+                // 이미 끝났거나 마감이 지난 조율이라도, 아직 후보를 정하지 않았으면 정하기만 한다.
+                // 이미 정했으면 아래 끝났는지 확인에서 409 POLL_CLOSED (한 번 정하면 바꿀 수 없음)
+                LocalDateTime now = LocalDateTime.now(clock);
+                if (decided != null && !poll.isDecided() && (poll.isClosed() || poll.isDeadlinePassed(now))) {
+                    closeAndDecide(poll, decided, now);
+                    poll.increaseRevision();
+                    return Optional.of(revisionResponse(member, poll));
+                }
                 return Optional.empty();
             }
 
             @Override
             public SchedulePollRevisionResponseDto apply(SchedulePoll poll, LocalDateTime now) {
                 if (request.isCloseRequest()) {
-                    schedulePollTransactionService.close(poll, now);
+                    if (decided != null) {
+                        closeAndDecide(poll, decided, now);
+                    } else {
+                        schedulePollTransactionService.close(poll, now);
+                    }
                 } else {
                     LocalDateTime deadlineAt = request.getDeadlineAt() == null ? null : toSeoul(request.getDeadlineAt());
                     if (deadlineAt != null && (!deadlineAt.isAfter(now) || deadlineAt.isAfter(now.plusDays(MAX_FUTURE_DAYS)))) {
@@ -213,16 +233,43 @@ public class SchedulePollService {
                     }
                     poll.changeDeadline(deadlineAt);
                 }
-                boolean submitted = schedulePollSubmissionRepository.existsByPollIdAndMemberId(poll.getId(), member.getId());
-                return new SchedulePollRevisionResponseDto(
-                        poll.getRevision(),
-                        poll.getStatus(),
-                        resultVersionOrNull(poll.getResultVersion()),
-                        poll.getParticipantCount(),
-                        submitted ? ParticipantStatus.SUBMITTED : null,
-                        toOffset(poll.getDeadlineAt()));
+                return revisionResponse(member, poll);
             }
         });
+    }
+
+    // 후보를 확인한 뒤 종료하고(이미 끝났으면 건너뜀) 정한 후보를 기록한다.
+    // 확인에 실패하면 예외로 트랜잭션 전체가 되돌려져 종료도 되지 않는다.
+    // - 결과 없음(참여자 2명 미만) → 409 RESULT_NOT_READY
+    // - 최신 결과 번호가 아님 → 409 RESULT_STALE (공유 API와 같음)
+    // - 그 순위 후보가 없음 → 400 VALIDATION_ERROR
+    private void closeAndDecide(SchedulePoll poll, SchedulePollUpdateRequestDto.Decided decided, LocalDateTime now) {
+        if (poll.getResultVersion() == 0) {
+            throw new SchedulePollException(SchedulePollErrorCode.RESULT_NOT_READY);
+        }
+        if (decided.resultVersion() != poll.getResultVersion()) {
+            throw new SchedulePollException(SchedulePollErrorCode.RESULT_STALE);
+        }
+        SchedulePollResult result = schedulePollResultRepository.findByPollIdAndVersion(poll.getId(), decided.resultVersion())
+                .orElseThrow(() -> new SchedulePollException(SchedulePollErrorCode.RESULT_STALE));
+        SchedulePollResultResponseDto.Candidate candidate =
+                schedulePollResultService.findCandidate(result, decided.candidateRank());
+
+        schedulePollTransactionService.close(poll, now);
+        poll.decide(result.getVersion(), candidate.rank(), candidate.key(),
+                SchedulePollSlotUtils.toMinutes(candidate.start()), SchedulePollSlotUtils.toMinutes(candidate.end()), now);
+    }
+
+    // 10번 응답. 3번 폴링 응답과 같은 모양
+    private SchedulePollRevisionResponseDto revisionResponse(Member member, SchedulePoll poll) {
+        boolean submitted = schedulePollSubmissionRepository.existsByPollIdAndMemberId(poll.getId(), member.getId());
+        return new SchedulePollRevisionResponseDto(
+                poll.getRevision(),
+                poll.getStatus(),
+                resultVersionOrNull(poll.getResultVersion()),
+                poll.getParticipantCount(),
+                submitted ? ParticipantStatus.SUBMITTED : null,
+                toOffset(poll.getDeadlineAt()));
     }
 
     // 4. 링크 미리보기. 비로그인(member == null)도 호출할 수 있고, 참여 처리는 하지 않는다.

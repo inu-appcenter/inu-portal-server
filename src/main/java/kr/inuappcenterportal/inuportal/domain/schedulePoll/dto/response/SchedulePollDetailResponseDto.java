@@ -46,7 +46,9 @@ public record SchedulePollDetailResponseDto(
         @Schema(description = "결과 번호(1부터). 아직 결과가 없으면 null", example = "2", nullable = true)
         Integer resultVersion,
         @Schema(description = "끝난 시각. 마감이 지났는데 아직 처리 전이면 마감 시각", example = "null")
-        OffsetDateTime closedAt
+        OffsetDateTime closedAt,
+        @Schema(description = "개설자가 정한 후보. 아직 안 정했으면 null", nullable = true)
+        SchedulePollDecidedResponseDto decided
 ) {
 
     public record Creator(

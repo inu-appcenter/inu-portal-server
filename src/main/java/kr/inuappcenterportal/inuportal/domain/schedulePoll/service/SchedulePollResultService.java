@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.columns;
+import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.decided;
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.displayName;
 import static kr.inuappcenterportal.inuportal.domain.schedulePoll.service.SchedulePollDisplayUtils.toOffset;
 
@@ -92,6 +93,17 @@ public class SchedulePollResultService {
         return toResponse(poll, findResult(pollId, version));
     }
 
+    // 결과에서 순위로 후보를 찾는다. 그 순위 후보가 없으면(후보가 3개보다 적을 때) 400 VALIDATION_ERROR
+    // 공유(결과 카드), 시간표 추가, 후보 정하기가 같이 쓴다.
+    public SchedulePollResultResponseDto.Candidate findCandidate(SchedulePollResult result, int rank) {
+        List<SchedulePollResultResponseDto.Candidate> candidates = readJson(result.getCandidates(), new TypeReference<>() {
+        });
+        return candidates.stream()
+                .filter(c -> c.rank() == rank)
+                .findFirst()
+                .orElseThrow(() -> new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR));
+    }
+
     private SchedulePoll findPollForParticipant(Member member, Long pollId) {
         SchedulePoll poll = schedulePollRepository.findById(pollId)
                 .orElseThrow(() -> new SchedulePollException(SchedulePollErrorCode.POLL_NOT_FOUND));
@@ -134,7 +146,8 @@ public class SchedulePollResultService {
                 readJson(result.getHeatmap(), new TypeReference<>() {
                 }),
                 readJson(result.getCandidates(), new TypeReference<>() {
-                }));
+                }),
+                decided(poll));
     }
 
     private String writeJson(Object value) {

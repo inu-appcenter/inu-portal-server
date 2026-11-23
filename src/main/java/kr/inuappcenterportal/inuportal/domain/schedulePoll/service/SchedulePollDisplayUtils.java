@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.schedulePoll.service;
 
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollColumnResponseDto;
+import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollDecidedResponseDto;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.PollDay;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.enums.SchedulePollStatus;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.model.SchedulePoll;
@@ -12,7 +13,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
-// 응답에 내려 줄 표시용 값 변환(이름, 학번, 열 이름, 시각, 상태)
+// 응답에 내려 줄 표시용 값 변환(이름, 학번, 열 이름, 시각, 상태, 정한 후보)
 public class SchedulePollDisplayUtils {
 
     public static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -34,6 +35,20 @@ public class SchedulePollDisplayUtils {
         return SchedulePollSlotUtils.columnKeys(poll).stream()
                 .map(key -> new SchedulePollColumnResponseDto(key, columnLabel(poll.isRecurring(), key)))
                 .toList();
+    }
+
+    // 개설자가 정한 후보. 안 정했으면 null
+    public static SchedulePollDecidedResponseDto decided(SchedulePoll poll) {
+        if (!poll.isDecided()) {
+            return null;
+        }
+        return new SchedulePollDecidedResponseDto(
+                poll.getDecidedResultVersion(),
+                poll.getDecidedCandidateRank(),
+                poll.getDecidedKey(),
+                SchedulePollSlotUtils.formatMinutes(poll.getDecidedStartMinutes()),
+                SchedulePollSlotUtils.formatMinutes(poll.getDecidedEndMinutes()),
+                toOffset(poll.getDecidedAt()));
     }
 
     // 마감 시각이 지났으면 스케줄러가 처리하기 전(최대 1분)이라도 CLOSED로 보여 준다.
