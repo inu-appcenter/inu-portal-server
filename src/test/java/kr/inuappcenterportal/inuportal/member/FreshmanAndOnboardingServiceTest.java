@@ -379,4 +379,20 @@ public class FreshmanAndOnboardingServiceTest {
         assertEquals("202701234", freshman.getStudentId());
         assertEquals(MemberType.STUDENT, freshman.getMemberType());
     }
+
+    @Test
+    @DisplayName("이미 정식 학번으로 전환된 수험번호로 신입생 재로그인 시도 시 FRESHMAN_ALREADY_CONVERTED 예외가 발생한다")
+    void freshmanLoginAlreadyConvertedTest() {
+        Member converted = Member.builder().studentId("202701234").roles(List.of("ROLE_USER")).build();
+        converted.setMemberType(MemberType.STUDENT);
+        converted.setExamNo("202799999");
+
+        when(memberRepository.findByExamNo("202799999")).thenReturn(Optional.of(converted));
+
+        FreshmanLoginDto dto = new FreshmanLoginDto("202799999", "홍길동", "20080101", "컴퓨터공학부");
+
+        MyException ex = assertThrows(MyException.class,
+                () -> memberService.freshmanLogin(dto, null, "127.0.0.1"));
+        assertEquals(MyErrorCode.FRESHMAN_ALREADY_CONVERTED, ex.getErrorCode());
+    }
 }

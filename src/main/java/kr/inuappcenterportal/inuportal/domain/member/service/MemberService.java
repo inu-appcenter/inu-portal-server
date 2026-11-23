@@ -375,7 +375,7 @@ public class MemberService {
         if (existingOpt.isPresent()) {
             Member existing = existingOpt.get();
             if (existing.getMemberType() != MemberType.FRESHMAN) {
-                throw new MyException(MyErrorCode.FRESHMAN_AUTH_MISMATCH);
+                throw new MyException(MyErrorCode.FRESHMAN_ALREADY_CONVERTED);
             }
             if (existing.isFreshmanExpired(now)) {
                 throw new MyException(MyErrorCode.FRESHMAN_EXPIRED);
@@ -515,8 +515,13 @@ public class MemberService {
             dailyBriefSettingRepository.deleteByMember(freshman);
             dailyBriefSettingRepository.flush();
         }
+        String transferredExamNo = freshman.getExamNo();
         memberRepository.delete(freshman);
-        return MergeFreshmanResponseDto.merged(freshman.getExamNo(), login(currentMember));
+        memberRepository.flush();
+        if (currentMember.getExamNo() == null && transferredExamNo != null) {
+            currentMember.setExamNo(transferredExamNo);
+        }
+        return MergeFreshmanResponseDto.merged(transferredExamNo, login(currentMember));
     }
 
     @Transactional
@@ -575,7 +580,12 @@ public class MemberService {
                     dailyBriefSettingRepository.deleteByMember(freshman);
                     dailyBriefSettingRepository.flush();
                 }
+                String transferredExamNo = freshman.getExamNo();
                 memberRepository.delete(freshman);
+                memberRepository.flush();
+                if (existingStudent.getExamNo() == null && transferredExamNo != null) {
+                    existingStudent.setExamNo(transferredExamNo);
+                }
                 synchronizeRoles(existingStudent, roles);
                 return login(existingStudent);
             }

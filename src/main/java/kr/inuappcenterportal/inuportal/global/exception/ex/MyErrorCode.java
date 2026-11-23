@@ -180,6 +180,7 @@ public enum MyErrorCode {
     FRESHMAN_EXPIRED(HttpStatus.FORBIDDEN, "신입생 임시 계정 유효기간이 만료되었습니다. 정규 학번으로 포털 로그인해 주세요."),
     FRESHMAN_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "요청 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요."),
     FRESHMAN_CONVERT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "신입생 임시 계정만 정식 학번으로 전환할 수 있습니다."),
+    FRESHMAN_ALREADY_CONVERTED(HttpStatus.CONFLICT, "이미 정식 학번으로 전환된 계정입니다. 정식 학번으로 포털 로그인해 주세요."),
     ;
 
 
