@@ -41,7 +41,7 @@ public class FriendService {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
-        Member receiver = memberRepository.findByNickname(requestDto.getNickname())
+        Member receiver = memberRepository.findByNicknameAndDeletedAtIsNull(requestDto.getNickname())
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (requester.getId().equals(receiver.getId())) {
@@ -112,7 +112,7 @@ public class FriendService {
     public FriendResponseDto searchMemberByNickname(Long memberId, String nickname) {
         Member requester = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
-        Member target = memberRepository.findByNickname(nickname)
+        Member target = memberRepository.findByNicknameAndDeletedAtIsNull(nickname)
                 .orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
 
         if (blockRepository.existsByBlockerAndBlocked(requester, target) ||

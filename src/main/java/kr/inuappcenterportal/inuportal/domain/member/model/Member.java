@@ -43,6 +43,9 @@ import java.util.stream.Collectors;
 @Table(name = "member")
 public class Member implements UserDetails {
 
+    public static final String WITHDRAWN_NICKNAME = "탈퇴한 사용자";
+    private static final String WITHDRAWN_STUDENT_ID_PREFIX = "withdrawn_";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -97,6 +100,10 @@ public class Member implements UserDetails {
 
     @Column(name = "location_updated_at")
     private LocalDateTime locationUpdatedAt;
+
+    // 탈퇴 일시. 값이 있으면 탈퇴한 회원이다. 게시글·댓글의 FK를 지키려고 레코드는 남기고 개인정보만 지운다.
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "member", fetch = FetchType.LAZY, cascade = jakarta.persistence.CascadeType.ALL)
     private List<Scrap> scraps;
@@ -217,6 +224,31 @@ public class Member implements UserDetails {
         this.locationUpdatedAt = LocalDateTime.now();
     }
 
+    public boolean isWithdrawn() {
+        return this.deletedAt != null;
+    }
+
+    // 회원탈퇴: 개인을 알아볼 수 있는 정보를 지우고 탈퇴 일시를 남긴다.
+    // 닉네임을 바꿔 두면 게시글·댓글·채팅 등 닉네임을 보여주는 모든 곳에 '탈퇴한 사용자'로 나온다.
+    // 학번은 null이 안 되므로 복원할 수 없는 값으로 바꾼다. 같은 학번으로 다시 로그인하면 새 계정이 만들어진다.
+    public void withdraw(LocalDateTime now) {
+        this.studentId = WITHDRAWN_STUDENT_ID_PREFIX + this.id;
+        this.nickname = WITHDRAWN_NICKNAME;
+        this.realName = null;
+        this.realNameSource = null;
+        this.fireId = 1L;
+        this.department = null;
+        this.schoolDepartment = null;
+        this.chatPushEnabled = false;
+        this.nearbyVisibility = false;
+        this.latitude = null;
+        this.longitude = null;
+        this.locationUpdatedAt = null;
+        this.roles = new ArrayList<>();
+        this.deletedAt = now;
+        this.profileModifiedAt = now;
+    }
+
     public String getMaskedStudentId() {
         if (this.studentId == null || this.studentId.length() < 6) {
             return this.studentId;
@@ -285,6 +317,6 @@ public class Member implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return !isWithdrawn();
     }
 }
