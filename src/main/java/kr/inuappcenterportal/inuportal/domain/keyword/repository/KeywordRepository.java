@@ -88,4 +88,9 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
             "AND k.type = 'SCHOOL_NOTICE' " +
             "AND k.keyword IS NULL")
     void deleteSchoolNoticeByKeywordIsNull(@Param("memberId") Long memberId);
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from Keyword k where k.memberId = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }

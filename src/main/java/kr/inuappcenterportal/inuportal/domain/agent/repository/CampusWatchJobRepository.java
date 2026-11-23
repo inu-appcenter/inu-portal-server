@@ -27,4 +27,9 @@ public interface CampusWatchJobRepository extends JpaRepository<CampusWatchJob, 
     @Modifying
     @Query("UPDATE CampusWatchJob w SET w.status = 'EXPIRED' WHERE w.status = 'ACTIVE' AND w.expiresAt <= :now")
     int expireOldJobs(@Param("now") LocalDateTime now);
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from CampusWatchJob c where c.member.id = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }

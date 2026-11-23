@@ -24,4 +24,9 @@ public interface LiveActivityInstanceRepository extends JpaRepository<LiveActivi
     @Modifying
     @Query("DELETE FROM LiveActivityInstance l WHERE l.ended = true AND l.endAt < :beforeMs")
     int deleteEndedBefore(@Param("beforeMs") long beforeMs);
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from LiveActivityInstance l where l.memberId = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }
