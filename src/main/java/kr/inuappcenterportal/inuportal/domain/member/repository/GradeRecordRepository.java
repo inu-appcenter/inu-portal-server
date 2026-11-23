@@ -25,4 +25,9 @@ public interface GradeRecordRepository extends JpaRepository<GradeRecord, Long> 
     void deleteAllByMemberIdAndSemesterId(@Param("memberId") Long memberId, @Param("semesterId") Long semesterId);
 
     Optional<GradeRecord> findByIdAndMemberId(Long id, Long memberId);
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from GradeRecord g where g.member.id = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }

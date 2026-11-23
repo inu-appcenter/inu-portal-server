@@ -11,6 +11,7 @@ import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.global.config.TokenProvider;
+import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.domain.dailyBrief.service.DailyBriefService;
 import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
@@ -341,15 +342,37 @@ public class MemberServiceTest {
     }
 
     @Test
-    @DisplayName("회원 삭제 테스트")
-    public void deleteMemberTest() throws NoSuchFieldException, IllegalAccessException {
+    @DisplayName("탈퇴한 회원은 refresh 토큰으로 재발급받을 수 없다")
+    public void refreshTokenWithdrawnMemberTest() throws NoSuchFieldException, IllegalAccessException {
         //given
+        String token = "testToken";
+        when(tokenProvider.validateRefreshToken(token)).thenReturn(true);
+        when(tokenProvider.getUsernameByRefresh(token)).thenReturn("1");
         Member member = createMember("20241234");
+        member.withdraw(LocalDateTime.now());
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+
         //when
-        memberService.delete(member);
+        MyException exception = assertThrows(MyException.class, () -> memberService.refreshToken(token));
 
         //then
-        verify(memberRepository, times(1)).delete(member);
+        assertEquals(MyErrorCode.WITHDRAWN_MEMBER, exception.getErrorCode());
+        verify(tokenProvider, never()).createToken(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("탈퇴 회원 표시 이름('탈퇴한 사용자')은 닉네임으로 쓸 수 없다")
+    public void withdrawnNicknameForbiddenTest() throws NoSuchFieldException, IllegalAccessException {
+        //given
+        Member member = createMember("20241234");
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        MemberUpdateNicknameDto dto = MemberUpdateNicknameDto.builder().nickname("탈퇴한 사용자").build();
+
+        //when
+        MyException exception = assertThrows(MyException.class, () -> memberService.updateMemberNicknameFireId(1L, dto));
+
+        //then
+        assertEquals(MyErrorCode.INVALID_NICKNAME_KEYWORD, exception.getErrorCode());
     }
 
     @Test

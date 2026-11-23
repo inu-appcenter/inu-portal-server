@@ -1,11 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.member.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -25,6 +19,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.NearbyVisibilityRequest
 import kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
+import kr.inuappcenterportal.inuportal.domain.member.service.MemberWithdrawalService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
@@ -41,21 +36,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Slf4j
-@Tag(name="Members", description = "회원 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/members")
-public class MemberController {
+public class MemberController implements MemberApiSpecification {
     private final MemberService memberService;
+    private final MemberWithdrawalService memberWithdrawalService;
     private final PostService postService;
     private final ReplyService replyService;
 
-    @Operation(summary = "회원 닉네임/횃불이 이미지/실명 변경",description = "url 헤더에 Auth 토큰,바디에 {nickname,fireId(횃불이 이미지 번호),realName,realNameSource,consentTermsVersion}을 json 형식으로 보내주세요. 보낸 칸만 바뀝니다. realName이 빈 문자열이면 실명을 삭제합니다(동의 철회). 실명을 넣을 때는 realNameSource(MANUAL/PORTAL_SCRAPE)가 필요하고, PORTAL_SCRAPE면 consentTermsVersion도 필요합니다. 성공 시 수정된 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원 닉네임/횃불이 이미지 변경 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "입력한 닉네임과 현재 닉네임이 동일합니다. / 동일한 닉네임이 존재합니다. / 닉네임, 횃불이 아이디 모두 공백입니다. / 닉네임이 빈칸 혹은 공백입니다. / 실명은 2~30자의 한글·영문·공백만 입력할 수 있습니다. / 실명 출처(realNameSource)가 필요합니다. / 포털에서 가져온 실명은 약관 버전(consentTermsVersion)이 필요합니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @PutMapping("")
     public ResponseEntity<ResponseDto<Long>> updateNicknameFireId(@Valid@RequestBody MemberUpdateNicknameDto memberUpdateNicknameDto, @AuthenticationPrincipal Member member){
         log.info("회원 닉네임 변경 호출 id:{}",member.getId());
@@ -63,55 +52,32 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(memberId,"회원 닉네임/횃불이 이미지 변경 성공"));
     }
 
-    @Operation(summary = "회원 삭제",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 성공 시 삭제한 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원삭제성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @DeleteMapping("")
-    public ResponseEntity<ResponseDto<Long>> delete(@AuthenticationPrincipal Member member){
+    public ResponseEntity<ResponseDto<Long>> withdraw(@AuthenticationPrincipal Member member){
         log.info("회원 탈퇴 호출 id:{}",member.getId());
         Long id = member.getId();
-        memberService.delete(member);
-        return ResponseEntity.ok(ResponseDto.of(id,"회원삭제성공"));
+        memberWithdrawalService.withdraw(id);
+        return ResponseEntity.ok(ResponseDto.of(id,"회원탈퇴 성공"));
     }
 
-    @Operation(summary = "로그인",description = "바디에 {studentId,password}을 json 형식으로 보내주세요. 토큰 유효시간은 2시간, 리프레시 토큰의 유효시간은 1일입니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "로그인 성공, 토근이 발급되었습니다.",content = @Content(schema = @Schema(implementation = TokenDto.class))),
-            @ApiResponse(responseCode = "401",description = "학번 또는 비밀번호가 틀립니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-    })
     @PostMapping("/login")
     public ResponseEntity<ResponseDto<TokenDto>> login(@Valid @RequestBody LoginDto loginDto){
         //log.info("로그인 호출");
         return ResponseEntity.ok(ResponseDto.of(memberService.schoolLogin(loginDto),"로그인 성공, 토근이 발급되었습니다."));
     }
 
-    @Operation(summary = "토큰 재발급",description = "헤더에 refresh 토큰을 보내주세요. 토큰 유효시간은 2시간, 리프레시 토큰의 유효시간은 1일입니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "토큰 재발급 성공",content = @Content(schema = @Schema(implementation = TokenDto.class)))
-            ,@ApiResponse(responseCode = "401",description = "만료된 토큰입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @PostMapping("/refresh")
     public ResponseEntity<ResponseDto<TokenDto>> refresh(HttpServletRequest httpServletRequest){
         //log.info("토큰 재발급 호출");
         return ResponseEntity.ok(ResponseDto.of(memberService.refreshToken(httpServletRequest.getHeader("refresh")),"토큰 재발급 성공"));
     }
 
-    @Operation(summary = "회원 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원 가져오기 성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
-    })
     @GetMapping("")
     public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member){
         //log.info("회원 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(memberService.getCurrentMember(member),"회원 가져오기 성공"));
     }
 
-    @Operation(summary = "모든 회원 가져오기")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "모든 회원가져오기성공",content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
-    })
     @GetMapping("/all")
     public ResponseEntity<ResponseDto<List<MemberResponseDto>>> getAllMember(){
         return ResponseEntity.ok(ResponseDto.of(memberService.getAllMember(),"모든 회원 가져오기 성공"));
@@ -119,24 +85,12 @@ public class MemberController {
 
 
 
-    @Operation(summary = "회원이 작성한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like)를, 페이지(공백일 시 1)를 보내주세요.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원이 작성한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @GetMapping("/posts")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllPost(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
         //log.info("회원이 작성한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getPostByMember(member,sort),"회원이 작성한 모든 게시글 가져오기 성공"));
     }
 
-    @Operation(summary = "회원이 스크랩한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like, scrap)를, 페이지(공백일 시 1)를 보내주세요.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원이 스크랩한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = ListResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @GetMapping("/scraps")
     public ResponseEntity<ResponseDto<ListResponseDto>> getAllScrap(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort
     ,@RequestParam(required = false,defaultValue = "1") @Min(1) int page){
@@ -144,34 +98,18 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(postService.getScrapsByMember(member,sort,page),"회원이 스크랩한 모든 게시글 가져오기 성공"));
     }
 
-    @Operation(summary = "회원이 좋아요한 모든 글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like,scrap)를 보내주세요.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원이 스크랩한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @GetMapping("/likes")
     public ResponseEntity<ResponseDto<List<PostListResponseDto>>> getAllLike(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
         //log.info("회원이 좋아요한 모든 글 가져오기 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(postService.getLikeByMember(member,sort),"회원이 좋아요한 모든 게시글 가져오기 성공"));
     }
 
-    @Operation(summary = "회원이 작성한 모든 댓글 가져오기",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 정렬기준 sort(date/공백(최신순), like)를 보내주세요.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원이 스크랩한 모든 글 가져오기성공",content = @Content(schema = @Schema(implementation = PostListResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "400",description = "정렬의 기준값이 올바르지 않습니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @GetMapping("/replies")
     public ResponseEntity<ResponseDto<List<ReplyListResponseDto>>> getAllReply(@AuthenticationPrincipal Member member, @RequestParam(required = false,defaultValue = "date") String sort){
         //log.info("회원이 작성한 모든 댓글 호출 id:{}",member.getId());
         return ResponseEntity.ok(ResponseDto.of(replyService.getReplyByMember(member,sort),"회원이 작성한 모든 댓글 가져오기 성공"));
     }
 
-    @Operation(summary = "회원 학과 수정", description = "회원의 학과 정보를 수정합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.<br>요청 파라미터로 department(학과)를 보내주세요.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원 학과 수정 성공", content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
-    })
     @PutMapping("/department")
     public ResponseEntity<ResponseDto<MemberResponseDto>> getMember(@AuthenticationPrincipal Member member,
                                                                     @RequestParam Department department){
@@ -188,27 +126,17 @@ public class MemberController {
                 "회원 학교 학과 수정 성공"));
     }
 
-    @Operation(summary = "회원 약관 동의", description = "회원이 약관에 동의합니다. <br><br>url 헤더에 Auth 토큰을 담아 보내주세요.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원 약관 동의 성공", content = @Content(schema = @Schema(implementation = MemberResponseDto.class)))
-    })
     @PutMapping("/terms")
     public ResponseEntity<ResponseDto<MemberResponseDto>> agreeTerms(@AuthenticationPrincipal Member member){
         return ResponseEntity.ok(ResponseDto.of(memberService.agreeTerms(member.getId()),"회원 약관 동의 성공"));
     }
 
-    @Operation(summary = "전체 채팅 푸시 알림 설정 토글", description = "전체 채팅 푸시 알림을 켜거나 끕니다.")
     @PatchMapping("/push-setting/chat")
     public ResponseEntity<ResponseDto<Boolean>> toggleChatPush(@AuthenticationPrincipal Member member) {
         boolean isEnabled = memberService.toggleChatPush(member.getId());
         return ResponseEntity.ok(ResponseDto.of(isEnabled, "전체 채팅 알림 설정이 " + (isEnabled ? "켜졌습니다" : "꺼졌습니다")));
     }
 
-    @Operation(summary = "주변 친구 찾기 위치 노출 설정 변경", description = "주변 친구 찾기 기능의 위치 노출 여부를 설정합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "주변 친구 찾기 노출 설정이 변경되었습니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "유효성 검사 실패", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @PatchMapping("/nearby-visibility")
     public ResponseEntity<ResponseDto<Void>> updateNearbyVisibility(
             @AuthenticationPrincipal Member member,
@@ -217,11 +145,6 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(null, "주변 친구 찾기 노출 설정이 변경되었습니다."));
     }
 
-    @Operation(summary = "내 위치 정보 갱신", description = "회원의 현재 위도, 경도 위치 정보를 갱신합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "위치 정보가 갱신되었습니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "위치 값이 올바르지 않습니다. / 위치 파라미터가 필요합니다.", content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-    })
     @PutMapping("/location")
     public ResponseEntity<ResponseDto<Void>> updateLocation(
             @AuthenticationPrincipal Member member,
@@ -230,7 +153,6 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(null, "위치 정보가 갱신되었습니다."));
     }
 
-    @Operation(summary = "신입생 로그인/가입", description = "신입생 전산망 인증 정보를 바탕으로 신입생 계정을 생성/조회하고 JWT 토큰을 발급합니다.")
     @PostMapping("/freshman-login")
     public ResponseEntity<ResponseDto<TokenDto>> freshmanLogin(
             @Valid @RequestBody FreshmanLoginDto dto,
@@ -252,7 +174,6 @@ public class MemberController {
         return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
     }
 
-    @Operation(summary = "온보딩 완료", description = "신규 가입 유저의 닉네임, 실명, 학과, 캐릭터 설정을 완료하고 정규 서비스 이용 권한을 활성화합니다.")
     @PostMapping("/onboarding")
     public ResponseEntity<ResponseDto<MemberResponseDto>> completeOnboarding(
             @AuthenticationPrincipal Member member,
@@ -261,7 +182,6 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(memberService.completeOnboarding(member.getId(), dto), "온보딩이 완료되었습니다."));
     }
 
-    @Operation(summary = "신입생 계정 강제 통합 감지 및 병합", description = "3월 포털 학번 첫 로그인 시 공식 학적(이름, 생년월일)과 일치하는 신입생 계정을 100% 무조건 강제 통합합니다.")
     @PostMapping("/check-merge-freshman")
     public ResponseEntity<ResponseDto<MergeFreshmanResponseDto>> checkAndMergeFreshman(
             @AuthenticationPrincipal Member member,
@@ -270,7 +190,6 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(memberService.checkAndMergeFreshman(member.getId(), dto), "신입생 계정 통합 확인 완료"));
     }
 
-    @Operation(summary = "사후 공식 학적 동기화", description = "온보딩 시 학적 스크래핑 실패로 직접 입력한 학생이 사후에 학적 동기화를 완료할 때 호출합니다.")
     @PostMapping("/sync-academic")
     public ResponseEntity<ResponseDto<MemberResponseDto>> syncAcademic(
             @AuthenticationPrincipal Member member,

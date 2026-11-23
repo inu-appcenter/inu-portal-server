@@ -28,4 +28,9 @@ public interface ScrapRepository extends JpaRepository<Scrap,Long> {
     int transferMember(@Param("sourceMember") Member sourceMember, @Param("targetMember") Member targetMember);
 
     boolean existsByMember(Member member);
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from Scrap s where s.member.id = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }

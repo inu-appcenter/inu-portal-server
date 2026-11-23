@@ -60,7 +60,7 @@ class FriendServiceTest {
         ReflectionTestUtils.setField(dto, "nickname", "receiver");
 
         when(memberRepository.findById(1L)).thenReturn(Optional.of(requester));
-        when(memberRepository.findByNickname("receiver")).thenReturn(Optional.of(receiver));
+        when(memberRepository.findByNicknameAndDeletedAtIsNull("receiver")).thenReturn(Optional.of(receiver));
         when(friendRepository.existsByRequesterAndReceiver(requester, receiver)).thenReturn(false);
         when(friendRepository.existsByRequesterAndReceiver(receiver, requester)).thenReturn(false);
         when(blockRepository.existsByBlockerAndBlocked(requester, receiver)).thenReturn(false);

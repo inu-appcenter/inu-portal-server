@@ -1366,6 +1366,10 @@ public class ChatRoomService {
         }
 
         Member target = targetMember.getMember();
+        // 탈퇴한 회원의 프로필은 보여주지 않는다.
+        if (target.isWithdrawn()) {
+            throw new MyException(MyErrorCode.USER_NOT_FOUND);
+        }
 
         if (blockRepository.existsByBlockerAndBlocked(target, requester) ||
             blockRepository.existsByBlockerAndBlocked(requester, target)) {

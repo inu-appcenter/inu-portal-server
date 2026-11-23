@@ -56,4 +56,9 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
             @Param("targetMemberId") Long targetMemberId,
             @Param("status") FriendStatus status
     );
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from Friend f where f.requester.id = :memberId or f.receiver.id = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }

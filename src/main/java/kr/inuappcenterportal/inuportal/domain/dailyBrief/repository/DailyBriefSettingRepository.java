@@ -55,6 +55,7 @@ public interface DailyBriefSettingRepository extends JpaRepository<DailyBriefSet
             FROM member m
             LEFT JOIN daily_brief_setting dbs ON m.id = dbs.member_id
             WHERE dbs.member_id IS NULL
+              AND m.deleted_at IS NULL
             """, nativeQuery = true)
     int backfillDefaultSettingsForAllMembers();
 
@@ -65,4 +66,9 @@ public interface DailyBriefSettingRepository extends JpaRepository<DailyBriefSet
             WHERE timetable_pre_alert_method IS NULL
             """, nativeQuery = true)
     int updateNullPreAlertMethodToNowBar();
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from DailyBriefSetting d where d.member.id = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }

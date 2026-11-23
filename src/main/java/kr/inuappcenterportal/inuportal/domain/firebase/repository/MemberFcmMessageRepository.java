@@ -98,4 +98,9 @@ public interface MemberFcmMessageRepository extends JpaRepository<MemberFcmMessa
     List<Object[]> aggregateReadStatsByFcmMessageIds(@Param("fcmMessageIds") List<Long> fcmMessageIds,
                                                      @Param("push") NotificationReadSource push,
                                                      @Param("inbox") NotificationReadSource inbox);
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from MemberFcmMessage m where m.memberId = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }

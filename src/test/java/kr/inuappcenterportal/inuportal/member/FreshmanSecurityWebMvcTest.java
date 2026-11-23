@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.TokenDto;
 import kr.inuappcenterportal.inuportal.domain.member.enums.MemberType;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
+import kr.inuappcenterportal.inuportal.domain.member.service.MemberWithdrawalService;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
 import kr.inuappcenterportal.inuportal.domain.reply.service.ReplyService;
 import kr.inuappcenterportal.inuportal.global.config.CustomResourceResolver;
@@ -44,6 +45,8 @@ class FreshmanSecurityWebMvcTest {
     TokenProvider tokenProvider;
     @MockBean
     MemberService memberService;
+    @MockBean
+    MemberWithdrawalService memberWithdrawalService;
     @MockBean
     PostService postService;
     @MockBean

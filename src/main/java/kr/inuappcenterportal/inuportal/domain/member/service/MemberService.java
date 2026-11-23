@@ -77,7 +77,8 @@ public class MemberService {
 
     private static final List<String> FORBIDDEN_NICKNAME_KEYWORDS = List.of(
             "알림", "공지", "알람", "운영자", "운영진", "관리자", "시스템", "스태프", "어드민",
-            "notice", "admin", "system", "staff", "intip", "인팁", "appcenter", "앱센터"
+            "notice", "admin", "system", "staff", "intip", "인팁", "appcenter", "앱센터",
+            "탈퇴한사용자"
     );
 
     // 실명은 시간 맞추기·친구 화면에 닉네임 대신 보인다. 운영진인 척하는 이름만 막는다.
@@ -169,10 +170,6 @@ public class MemberService {
     }
 
     @Transactional
-    public void delete(Member member) {
-        memberRepository.delete(member);
-    }
-
     public TokenDto login(Member member) {
         return login(member, false);
     }
@@ -196,6 +193,9 @@ public class MemberService {
         }
         Long id = Long.valueOf(tokenProvider.getUsernameByRefresh(token));
         Member member = memberRepository.findById(id).orElseThrow(() -> new MyException(MyErrorCode.USER_NOT_FOUND));
+        if (member.isWithdrawn()) {
+            throw new MyException(MyErrorCode.WITHDRAWN_MEMBER);
+        }
         return login(member);
     }
 
@@ -211,7 +211,7 @@ public class MemberService {
     }
 
     public List<MemberResponseDto> getAllMember() {
-        return memberRepository.findAll().stream().map(this::getMemberResponseDto).collect(Collectors.toList());
+        return memberRepository.findAllActive().stream().map(this::getMemberResponseDto).collect(Collectors.toList());
     }
 
     @Transactional
