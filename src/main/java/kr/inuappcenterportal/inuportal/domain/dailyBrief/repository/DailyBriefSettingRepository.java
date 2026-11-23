@@ -16,6 +16,8 @@ public interface DailyBriefSettingRepository extends JpaRepository<DailyBriefSet
 
     Optional<DailyBriefSetting> findByMemberId(Long memberId);
 
+    void deleteByMember(Member member);
+
     @Query("SELECT s FROM DailyBriefSetting s JOIN FETCH s.member WHERE s.timetablePreAlertEnabled = true")
     List<DailyBriefSetting> findAllTimetablePreAlertEnabled();
 

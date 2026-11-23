@@ -5,8 +5,8 @@ import kr.inuappcenterportal.inuportal.domain.post.model.Post;
 import kr.inuappcenterportal.inuportal.domain.scrap.model.Scrap;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
@@ -22,6 +22,12 @@ public interface ScrapRepository extends JpaRepository<Scrap,Long> {
 
     @Query("SELECT s FROM Scrap s JOIN FETCH s.post p WHERE s.member=:member and (s.post.title  LIKE CONCAT('%',:content,'%') or s.post.content LIKE CONCAT('%',:content,'%')) AND p.isDeleted = false")
     List<Scrap> searchScrap(Member member, String content,Sort sort);
+
+    @Modifying
+    @Query("UPDATE Scrap s SET s.member = :targetMember WHERE s.member = :sourceMember")
+    int transferMember(@Param("sourceMember") Member sourceMember, @Param("targetMember") Member targetMember);
+
+    boolean existsByMember(Member member);
 
     // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
     @Modifying(flushAutomatically = true)

@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.member.model;
 
+import kr.inuappcenterportal.inuportal.domain.member.enums.MemberType;
 import kr.inuappcenterportal.inuportal.domain.member.enums.RealNameSource;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -52,6 +53,25 @@ public class Member implements UserDetails {
 
     @Column(nullable = false, name = "student_id")
     private String studentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "member_type", nullable = false, length = 20)
+    private MemberType memberType = MemberType.STUDENT;
+
+    @Column(name = "onboarding_completed", nullable = false)
+    private Boolean onboardingCompleted = false;
+
+    @Column(name = "is_academic_verified", nullable = false)
+    private Boolean isAcademicVerified = false;
+
+    @Column(name = "exam_no", length = 30)
+    private String examNo;
+
+    @Column(name = "freshman_verify_hash", length = 64)
+    private String freshmanVerifyHash;
+
+    @Column(name = "freshman_expires_at")
+    private LocalDateTime freshmanExpiresAt;
 
     @Column(nullable = false)
     private String nickname;
@@ -318,5 +338,82 @@ public class Member implements UserDetails {
     @Override
     public boolean isEnabled() {
         return !isWithdrawn();
+    }
+
+    public void setMemberType(MemberType memberType) {
+        this.memberType = memberType;
+    }
+
+    public void setIsAcademicVerified(Boolean isAcademicVerified) {
+        this.isAcademicVerified = isAcademicVerified;
+    }
+
+    public void setExamNo(String examNo) {
+        this.examNo = examNo;
+    }
+
+    public void setFreshmanVerifyHash(String freshmanVerifyHash) {
+        this.freshmanVerifyHash = freshmanVerifyHash;
+    }
+
+    public void setFreshmanExpiresAt(LocalDateTime freshmanExpiresAt) {
+        this.freshmanExpiresAt = freshmanExpiresAt;
+    }
+
+    public boolean isFreshmanExpired(LocalDateTime now) {
+        return this.memberType == MemberType.FRESHMAN
+                && this.freshmanExpiresAt != null
+                && now.isAfter(this.freshmanExpiresAt);
+    }
+
+    public static LocalDateTime calculateFreshmanExpiresAt(LocalDateTime now) {
+        int admissionYear = now.getMonthValue() >= 11 ? now.getYear() + 1 : now.getYear();
+        return LocalDateTime.of(admissionYear, 3, 31, 23, 59, 59);
+    }
+
+    public void completeOnboarding(String nickname, Long fireId, String realName, RealNameSource source, SchoolDepartment dept, Boolean isVerified) {
+        this.nickname = nickname;
+        this.fireId = fireId;
+        this.realName = realName;
+        this.realNameSource = source;
+        this.schoolDepartment = dept;
+        this.isAcademicVerified = isVerified;
+        this.onboardingCompleted = true;
+        touchProfileModifiedAt();
+    }
+
+    public void upgradeFromFreshman(String regularStudentId) {
+        this.studentId = regularStudentId;
+        this.memberType = MemberType.STUDENT;
+        this.isAcademicVerified = true;
+        this.onboardingCompleted = true;
+        this.freshmanExpiresAt = null;
+        this.freshmanVerifyHash = null;
+        touchProfileModifiedAt();
+    }
+
+    public void upgradeToStudent(String officialStudentId, String realName, SchoolDepartment schoolDept) {
+        this.studentId = officialStudentId;
+        this.memberType = MemberType.STUDENT;
+        this.isAcademicVerified = true;
+        this.onboardingCompleted = true;
+        this.freshmanExpiresAt = null;
+        this.freshmanVerifyHash = null;
+        if (realName != null && !realName.isBlank()) {
+            this.realName = realName;
+            this.realNameSource = RealNameSource.PORTAL_SCRAPE;
+        }
+        if (schoolDept != null) {
+            this.schoolDepartment = schoolDept;
+        }
+        touchProfileModifiedAt();
+    }
+
+    public void syncOfficialAcademic(String officialName, SchoolDepartment dept) {
+        this.realName = officialName;
+        this.realNameSource = RealNameSource.PORTAL_SCRAPE;
+        this.schoolDepartment = dept;
+        this.isAcademicVerified = true;
+        touchProfileModifiedAt();
     }
 }

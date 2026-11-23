@@ -4,6 +4,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.FreshmanLoginDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.OnboardingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.SyncAcademicRequestDto;
+
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberProfileResponseDto;
@@ -145,5 +151,50 @@ public class MemberController implements MemberApiSpecification {
             @RequestBody LocationUpdateRequestDto requestDto) {
         memberService.updateLocation(member.getId(), requestDto);
         return ResponseEntity.ok(ResponseDto.of(null, "위치 정보가 갱신되었습니다."));
+    }
+
+    @PostMapping("/freshman-login")
+    public ResponseEntity<ResponseDto<TokenDto>> freshmanLogin(
+            @Valid @RequestBody FreshmanLoginDto dto,
+            @RequestHeader(value = "X-Firebase-AppCheck", required = false) String appCheckToken,
+            HttpServletRequest request
+    ) {
+        String clientIp = extractClientIp(request);
+        return ResponseEntity.ok(ResponseDto.of(memberService.freshmanLogin(dto, appCheckToken, clientIp), "신입생 로그인 성공, 토큰이 발급되었습니다."));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
+    }
+
+    @PostMapping("/onboarding")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> completeOnboarding(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody OnboardingRequestDto dto
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.completeOnboarding(member.getId(), dto), "온보딩이 완료되었습니다."));
+    }
+
+    @PostMapping("/check-merge-freshman")
+    public ResponseEntity<ResponseDto<MergeFreshmanResponseDto>> checkAndMergeFreshman(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody MergeFreshmanRequestDto dto
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.checkAndMergeFreshman(member.getId(), dto), "신입생 계정 통합 확인 완료"));
+    }
+
+    @PostMapping("/sync-academic")
+    public ResponseEntity<ResponseDto<MemberResponseDto>> syncAcademic(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody SyncAcademicRequestDto dto
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.syncOfficialAcademic(member.getId(), dto), "공식 학적 동기화 성공"));
     }
 }

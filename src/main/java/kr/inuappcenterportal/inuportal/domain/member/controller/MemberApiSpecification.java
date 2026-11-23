@@ -12,6 +12,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.FreshmanLoginDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.OnboardingRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanRequestDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.MergeFreshmanResponseDto;
+import kr.inuappcenterportal.inuportal.domain.member.dto.SyncAcademicRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.LoginDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberResponseDto;
 import kr.inuappcenterportal.inuportal.domain.member.dto.MemberUpdateNicknameDto;
@@ -145,4 +150,29 @@ public interface MemberApiSpecification {
     ResponseEntity<ResponseDto<Void>> updateLocation(
             @Parameter(hidden = true) @AuthenticationPrincipal Member member,
             @RequestBody LocationUpdateRequestDto requestDto);
+
+    @Operation(summary = "신입생 로그인/가입", description = "신입생 전산망 인증 정보를 바탕으로 신입생 계정을 생성/조회하고 JWT 토큰을 발급합니다.")
+    ResponseEntity<ResponseDto<TokenDto>> freshmanLogin(
+            @Valid @RequestBody FreshmanLoginDto dto,
+            @RequestHeader(value = "X-Firebase-AppCheck", required = false) String appCheckToken,
+            HttpServletRequest request
+    );
+
+    @Operation(summary = "온보딩 완료", description = "신규 가입 유저의 닉네임, 실명, 학과, 캐릭터 설정을 완료하고 정규 서비스 이용 권한을 활성화합니다.")
+    ResponseEntity<ResponseDto<MemberResponseDto>> completeOnboarding(
+            @Parameter(hidden = true) @AuthenticationPrincipal Member member,
+            @Valid @RequestBody OnboardingRequestDto dto
+    );
+
+    @Operation(summary = "신입생 계정 강제 통합 감지 및 병합", description = "3월 포털 학번 첫 로그인 시 공식 학적(이름, 생년월일)과 일치하는 신입생 계정을 100% 무조건 강제 통합합니다.")
+    ResponseEntity<ResponseDto<MergeFreshmanResponseDto>> checkAndMergeFreshman(
+            @Parameter(hidden = true) @AuthenticationPrincipal Member member,
+            @Valid @RequestBody MergeFreshmanRequestDto dto
+    );
+
+    @Operation(summary = "사후 공식 학적 동기화", description = "온보딩 시 학적 스크래핑 실패로 직접 입력한 학생이 사후에 학적 동기화를 완료할 때 호출합니다.")
+    ResponseEntity<ResponseDto<MemberResponseDto>> syncAcademic(
+            @Parameter(hidden = true) @AuthenticationPrincipal Member member,
+            @Valid @RequestBody SyncAcademicRequestDto dto
+    );
 }
