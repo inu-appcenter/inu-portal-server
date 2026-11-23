@@ -197,4 +197,12 @@ public class MemberController implements MemberApiSpecification {
     ) {
         return ResponseEntity.ok(ResponseDto.of(memberService.syncOfficialAcademic(member.getId(), dto), "공식 학적 동기화 성공"));
     }
+
+    @PostMapping("/freshman/convert")
+    public ResponseEntity<ResponseDto<TokenDto>> convertFreshmanToStudent(
+            @AuthenticationPrincipal Member member,
+            @Valid @RequestBody LoginDto loginDto
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(memberService.convertFreshmanToStudent(member.getId(), loginDto), "신입생 정식 학번 전환 성공"));
+    }
 }
