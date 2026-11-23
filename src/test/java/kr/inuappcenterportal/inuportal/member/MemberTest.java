@@ -142,10 +142,18 @@ public class MemberTest {
 
         mockMvc.perform(delete("/api/members").header("Auth",tokenDto.getAccessToken()).with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.msg").value("회원삭제성공"))
+                .andExpect(jsonPath("$.msg").value("회원탈퇴 성공"))
                 .andDo(print());
 
+        // 학번으로는 더 이상 찾을 수 없다 → 같은 학번으로 로그인하면 새 계정이 만들어진다
         assertNull(memberRepository.findByStudentId(studentId).orElse(null));
+        // 레코드는 남고(Soft Delete) 탈퇴 상태다
+        assertTrue(memberRepository.findById(member.getId()).orElseThrow().isWithdrawn());
+
+        // 탈퇴 전에 받은 토큰으로는 더 이상 접근할 수 없다
+        mockMvc.perform(get("/api/members").header("Auth",tokenDto.getAccessToken()).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.msg").value("탈퇴한 회원입니다."));
     }
 
     @Test
