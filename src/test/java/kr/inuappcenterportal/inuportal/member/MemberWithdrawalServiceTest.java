@@ -13,6 +13,7 @@ import kr.inuappcenterportal.inuportal.domain.folderPost.repository.FolderPostRe
 import kr.inuappcenterportal.inuportal.domain.keyword.domain.Keyword;
 import kr.inuappcenterportal.inuportal.domain.keyword.repository.KeywordRepository;
 import kr.inuappcenterportal.inuportal.domain.member.enums.FriendStatus;
+import kr.inuappcenterportal.inuportal.domain.member.enums.MemberType;
 import kr.inuappcenterportal.inuportal.domain.member.enums.RealNameSource;
 import kr.inuappcenterportal.inuportal.domain.member.model.Block;
 import kr.inuappcenterportal.inuportal.domain.member.model.Friend;
@@ -42,6 +43,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -226,6 +228,32 @@ class MemberWithdrawalServiceTest {
         assertThat(memberRepository.findByNicknameAndDeletedAtIsNull(Member.WITHDRAWN_NICKNAME)).isEmpty();
         assertThat(memberRepository.findAllIds()).containsExactly(active.getId());
         assertThat(memberRepository.findAllActive()).extracting(Member::getId).containsExactly(active.getId());
+    }
+
+    @Test
+    @DisplayName("탈퇴한 신입생은 수험번호·본인확인 해시로 다시 조회되지 않는다 (재가입·3월 계정 통합 대상에서 제외)")
+    void withdraw_clearsFreshmanIdentifiers() {
+        // given: 신입생 로그인(freshmanLogin)으로 만들어진 계정과 같은 상태
+        Member freshman = Member.builder().studentId("F_2027000001").roles(List.of("ROLE_USER")).build();
+        freshman.setMemberType(MemberType.FRESHMAN);
+        freshman.setExamNo("2027000001");
+        freshman.setFreshmanVerifyHash("verify-hash-of-name-and-birth");
+        freshman.setFreshmanExpiresAt(LocalDateTime.of(2027, 3, 31, 23, 59, 59));
+        em.persist(freshman);
+        em.flush();
+
+        // when
+        memberWithdrawalService.withdraw(freshman.getId());
+        em.flush();
+        em.clear();
+
+        // then: 같은 수험번호로 로그인하면 새 계정이 만들어지고, 3월 통합에서도 잡히지 않음
+        assertThat(memberRepository.findByExamNo("2027000001")).isEmpty();
+        assertThat(memberRepository.findFreshmanByVerifyHash("verify-hash-of-name-and-birth")).isEmpty();
+        Member withdrawn = memberRepository.findById(freshman.getId()).orElseThrow();
+        assertThat(withdrawn.getExamNo()).isNull();
+        assertThat(withdrawn.getFreshmanVerifyHash()).isNull();
+        assertThat(withdrawn.getFreshmanExpiresAt()).isNull();
     }
 
     private Member persistMember(String studentId) {

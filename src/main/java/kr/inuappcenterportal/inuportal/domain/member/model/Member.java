@@ -264,6 +264,9 @@ public class Member implements UserDetails {
         this.latitude = null;
         this.longitude = null;
         this.locationUpdatedAt = null;
+        this.examNo = null;
+        this.freshmanVerifyHash = null;
+        this.freshmanExpiresAt = null;
         this.roles = new ArrayList<>();
         this.deletedAt = now;
         this.profileModifiedAt = now;
