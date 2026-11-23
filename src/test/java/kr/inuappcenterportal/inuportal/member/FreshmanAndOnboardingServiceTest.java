@@ -9,6 +9,7 @@ import kr.inuappcenterportal.inuportal.domain.member.enums.MemberType;
 import kr.inuappcenterportal.inuportal.domain.member.enums.RealNameSource;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
+import kr.inuappcenterportal.inuportal.domain.member.repository.SchoolLoginRepository;
 import kr.inuappcenterportal.inuportal.domain.member.service.FreshmanRateLimiter;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
 import kr.inuappcenterportal.inuportal.domain.post.repository.PostRepository;
@@ -47,6 +48,9 @@ public class FreshmanAndOnboardingServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private SchoolLoginRepository schoolLoginRepository;
 
     @Mock
     private TokenProvider tokenProvider;
@@ -284,5 +288,95 @@ public class FreshmanAndOnboardingServiceTest {
         assertTrue(freshman.getOnboardingCompleted());
         assertNull(freshman.getFreshmanExpiresAt());
         assertNull(freshman.getFreshmanVerifyHash());
+    }
+
+    @Test
+    @DisplayName("신입생 인앱 전환 성공 시 현재 FRESHMAN 레코드가 정식 학번 STUDENT 로 승격되고 새 JWT 를 반환한다")
+    void convertFreshmanToStudentSuccessTest() {
+        Long freshmanId = 100L;
+        Member freshman = Member.builder().studentId("F_202799999").roles(List.of("ROLE_USER")).build();
+        freshman.setMemberType(MemberType.FRESHMAN);
+        freshman.setExamNo("202799999");
+        freshman.updateNicknameAndFire("신입이", 4L);
+        ReflectionTestUtils.setField(freshman, "id", freshmanId);
+
+        when(memberRepository.findById(freshmanId)).thenReturn(Optional.of(freshman));
+        when(schoolLoginRepository.loginCheck("202701234", "pw1234")).thenReturn(true);
+        when(schoolLoginRepository.resolveRoles("202701234")).thenReturn(List.of("ROLE_USER"));
+        when(memberRepository.findByStudentId("202701234")).thenReturn(Optional.empty());
+        when(tokenProvider.createToken(eq("100"), any(), any())).thenReturn("converted_access_token");
+
+        TokenDto token = memberService.convertFreshmanToStudent(freshmanId, new LoginDto("202701234", "pw1234"));
+
+        assertNotNull(token);
+        assertEquals("converted_access_token", token.getAccessToken());
+        assertEquals("202701234", freshman.getStudentId());
+        assertEquals(MemberType.STUDENT, freshman.getMemberType());
+        assertTrue(freshman.getIsAcademicVerified());
+        assertNull(freshman.getFreshmanExpiresAt());
+        assertNull(freshman.getFreshmanVerifyHash());
+    }
+
+    @Test
+    @DisplayName("신입생 인앱 전환 시 포털 비밀번호가 틀리면 STUDENT_LOGIN_ERROR 예외가 발생한다")
+    void convertFreshmanToStudentWrongPasswordTest() {
+        Long freshmanId = 100L;
+        Member freshman = Member.builder().studentId("F_202799999").roles(List.of("ROLE_USER")).build();
+        freshman.setMemberType(MemberType.FRESHMAN);
+        ReflectionTestUtils.setField(freshman, "id", freshmanId);
+
+        when(memberRepository.findById(freshmanId)).thenReturn(Optional.of(freshman));
+        when(schoolLoginRepository.loginCheck("202701234", "wrong")).thenReturn(false);
+
+        MyException ex = assertThrows(MyException.class,
+                () -> memberService.convertFreshmanToStudent(freshmanId, new LoginDto("202701234", "wrong")));
+        assertEquals(MyErrorCode.STUDENT_LOGIN_ERROR, ex.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("신입생이 아닌 계정이 인앱 전환을 호출하면 FRESHMAN_CONVERT_NOT_ALLOWED 예외가 발생한다")
+    void convertFreshmanToStudentNotFreshmanTest() {
+        Long studentId = 200L;
+        Member student = Member.builder().studentId("202701234").roles(List.of("ROLE_USER")).build();
+        student.setMemberType(MemberType.STUDENT);
+        ReflectionTestUtils.setField(student, "id", studentId);
+
+        when(memberRepository.findById(studentId)).thenReturn(Optional.of(student));
+
+        MyException ex = assertThrows(MyException.class,
+                () -> memberService.convertFreshmanToStudent(studentId, new LoginDto("202701234", "pw")));
+        assertEquals(MyErrorCode.FRESHMAN_CONVERT_NOT_ALLOWED, ex.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("신입생 인앱 전환 시 동일 학번의 빈 STUDENT 레코드가 이미 있으면 삭제 후 FRESHMAN 을 승격한다")
+    void convertFreshmanToStudentDeletesEmptyExistingStudentTest() {
+        Long freshmanId = 100L;
+        Member freshman = Member.builder().studentId("F_202799999").roles(List.of("ROLE_USER")).build();
+        freshman.setMemberType(MemberType.FRESHMAN);
+        ReflectionTestUtils.setField(freshman, "id", freshmanId);
+
+        Long existingId = 200L;
+        Member existingStudent = Member.builder().studentId("202701234").roles(List.of("ROLE_USER")).build();
+        existingStudent.setMemberType(MemberType.STUDENT);
+        ReflectionTestUtils.setField(existingStudent, "id", existingId);
+
+        when(memberRepository.findById(freshmanId)).thenReturn(Optional.of(freshman));
+        when(schoolLoginRepository.loginCheck("202701234", "pw1234")).thenReturn(true);
+        when(schoolLoginRepository.resolveRoles("202701234")).thenReturn(List.of("ROLE_USER"));
+        when(memberRepository.findByStudentId("202701234")).thenReturn(Optional.of(existingStudent));
+        when(postRepository.existsByMember(existingStudent)).thenReturn(false);
+        when(replyRepository.existsByMember(existingStudent)).thenReturn(false);
+        when(scrapRepository.existsByMember(existingStudent)).thenReturn(false);
+        when(tokenProvider.createToken(eq("100"), any(), any())).thenReturn("converted_access_token");
+
+        TokenDto token = memberService.convertFreshmanToStudent(freshmanId, new LoginDto("202701234", "pw1234"));
+
+        assertEquals("converted_access_token", token.getAccessToken());
+        verify(dailyBriefSettingRepository).deleteByMember(existingStudent);
+        verify(memberRepository).delete(existingStudent);
+        verify(memberRepository, never()).delete(freshman);
+        assertEquals("202701234", freshman.getStudentId());
+        assertEquals(MemberType.STUDENT, freshman.getMemberType());
     }
 }

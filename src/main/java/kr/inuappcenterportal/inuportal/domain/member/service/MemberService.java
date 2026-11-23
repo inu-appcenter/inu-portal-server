@@ -537,6 +537,62 @@ public class MemberService {
         return getMemberResponseDto(member);
     }
 
+    @Transactional
+    public TokenDto convertFreshmanToStudent(Long memberId, LoginDto loginDto) {
+        Member freshman = findMemberById(memberId);
+        if (freshman.getMemberType() != MemberType.FRESHMAN) {
+            throw new MyException(MyErrorCode.FRESHMAN_CONVERT_NOT_ALLOWED);
+        }
+
+        String studentId = loginDto.getStudentId().trim();
+        if (!schoolLoginRepository.loginCheck(studentId, loginDto.getPassword())) {
+            throw new MyException(MyErrorCode.STUDENT_LOGIN_ERROR);
+        }
+
+        List<String> roles = schoolLoginRepository.resolveRoles(studentId);
+        Optional<Member> existingOpt = memberRepository.findByStudentId(studentId);
+
+        if (existingOpt.isPresent() && !existingOpt.get().getId().equals(freshman.getId())) {
+            Member existingStudent = existingOpt.get();
+            boolean hasExistingActivity = postRepository.existsByMember(existingStudent)
+                    || replyRepository.existsByMember(existingStudent)
+                    || scrapRepository.existsByMember(existingStudent);
+
+            if (hasExistingActivity) {
+                log.warn("[ConvertFreshman] existingStudent({}) already has activity data; transferring freshman({}) data.", existingStudent.getId(), freshman.getId());
+                postRepository.transferMember(freshman, existingStudent);
+                replyRepository.transferMember(freshman, existingStudent);
+                scrapRepository.transferMember(freshman, existingStudent);
+
+                if (existingStudent.getNickname() == null || existingStudent.getNickname().equals(existingStudent.getStudentId())) {
+                    if (freshman.getNickname() != null && !freshman.getNickname().equals(freshman.getStudentId())) {
+                        existingStudent.updateNicknameAndFire(freshman.getNickname(), freshman.getFireId());
+                    }
+                }
+                existingStudent.upgradeToStudent(studentId, freshman.getRealName(), freshman.getSchoolDepartment());
+
+                if (dailyBriefSettingRepository != null) {
+                    dailyBriefSettingRepository.deleteByMember(freshman);
+                    dailyBriefSettingRepository.flush();
+                }
+                memberRepository.delete(freshman);
+                synchronizeRoles(existingStudent, roles);
+                return login(existingStudent);
+            }
+
+            if (dailyBriefSettingRepository != null) {
+                dailyBriefSettingRepository.deleteByMember(existingStudent);
+                dailyBriefSettingRepository.flush();
+            }
+            memberRepository.delete(existingStudent);
+            memberRepository.flush();
+        }
+
+        freshman.upgradeToStudent(studentId, freshman.getRealName(), freshman.getSchoolDepartment());
+        synchronizeRoles(freshman, roles);
+        return login(freshman);
+    }
+
     public String computeFreshmanVerifyHash(String name, String birthDate) {
         String normalizedName = name == null ? "" : name.trim().replaceAll("\\s+", "");
         String normalizedBirth = birthDate == null ? "" : birthDate.replaceAll("\\D", "");
