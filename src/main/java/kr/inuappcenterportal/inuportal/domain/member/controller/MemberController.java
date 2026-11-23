@@ -19,6 +19,7 @@ import kr.inuappcenterportal.inuportal.domain.member.dto.NearbyVisibilityRequest
 import kr.inuappcenterportal.inuportal.domain.member.dto.LocationUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.service.MemberService;
+import kr.inuappcenterportal.inuportal.domain.member.service.MemberWithdrawalService;
 import kr.inuappcenterportal.inuportal.domain.department.enums.Department;
 import kr.inuappcenterportal.inuportal.domain.post.dto.PostListResponseDto;
 import kr.inuappcenterportal.inuportal.domain.post.service.PostService;
@@ -41,6 +42,7 @@ import java.util.List;
 @RequestMapping("/api/members")
 public class MemberController {
     private final MemberService memberService;
+    private final MemberWithdrawalService memberWithdrawalService;
     private final PostService postService;
     private final ReplyService replyService;
 
@@ -57,17 +59,18 @@ public class MemberController {
         return ResponseEntity.ok(ResponseDto.of(memberId,"회원 닉네임/횃불이 이미지 변경 성공"));
     }
 
-    @Operation(summary = "회원 삭제",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 성공 시 삭제한 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
+    @Operation(summary = "회원탈퇴",description = "url 헤더에 Auth 토큰을 담아 보내주세요. 계정을 탈퇴 상태로 바꾸고 개인정보와 개인화 데이터(시간표, 성적, 알림 설정 등)를 삭제합니다. 작성한 게시글·댓글은 남고 작성자는 '탈퇴한 사용자'로 표시됩니다. 탈퇴 후에는 기존 토큰으로 접근할 수 없고(401 탈퇴한 회원입니다.), 같은 포털 계정으로 다시 로그인하면 새 계정이 만들어집니다. 성공 시 탈퇴한 회원의 데이터베이스 아이디 값이 {data: id}으로 보내집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200",description = "회원삭제성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
-            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            @ApiResponse(responseCode = "200",description = "회원탈퇴 성공",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "401",description = "탈퇴한 회원입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
+            ,@ApiResponse(responseCode = "404",description = "존재하지 않는 유저입니다.",content = @Content(schema = @Schema(implementation = ResponseDto.class)))
     })
     @DeleteMapping("")
-    public ResponseEntity<ResponseDto<Long>> delete(@AuthenticationPrincipal Member member){
+    public ResponseEntity<ResponseDto<Long>> withdraw(@AuthenticationPrincipal Member member){
         log.info("회원 탈퇴 호출 id:{}",member.getId());
         Long id = member.getId();
-        memberService.delete(member);
-        return ResponseEntity.ok(ResponseDto.of(id,"회원삭제성공"));
+        memberWithdrawalService.withdraw(id);
+        return ResponseEntity.ok(ResponseDto.of(id,"회원탈퇴 성공"));
     }
 
     @Operation(summary = "로그인",description = "바디에 {studentId,password}을 json 형식으로 보내주세요. 토큰 유효시간은 2시간, 리프레시 토큰의 유효시간은 1일입니다.")
