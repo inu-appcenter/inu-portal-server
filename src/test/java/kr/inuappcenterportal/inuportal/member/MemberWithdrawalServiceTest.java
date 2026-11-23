@@ -141,9 +141,8 @@ class MemberWithdrawalServiceTest {
         assertThat(scrapRepository.findAll()).isEmpty();
         assertThat(memberFcmMessageRepository.findAll()).isEmpty();
 
-        // 푸시 토큰은 지우지 않고 회원 연결만 끊음 (로그아웃과 같음)
-        FcmToken token = fcmTokenRepository.findByToken("device-token-1").orElseThrow();
-        assertThat(token.getMemberId()).isNull();
+        // 푸시 토큰도 삭제
+        assertThat(fcmTokenRepository.findByToken("device-token-1")).isEmpty();
 
         // 다른 회원의 데이터는 그대로
         assertThat(postRepository.findById(otherPost.getId())).isPresent();

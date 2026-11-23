@@ -2,6 +2,7 @@ package kr.inuappcenterportal.inuportal.domain.firebase.repository;
 
 import kr.inuappcenterportal.inuportal.domain.firebase.model.FcmToken;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -34,4 +35,9 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken, Long> {
 
     @Query("SELECT f FROM FcmToken f WHERE f.memberId IN :memberIds")
     List<FcmToken> findFcmTokensByMemberIds(@Param("memberIds") List<Long> memberIds);
+
+    // 회원탈퇴 시 해당 회원의 데이터를 한 번에 지운다.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from FcmToken f where f.memberId = :memberId")
+    int deleteAllByMemberIdForWithdrawal(@Param("memberId") Long memberId);
 }
