@@ -276,7 +276,7 @@ public interface SchedulePollApiSpecification {
             @Parameter(description = "결과 버전") @PathVariable int version);
 
     @Operation(
-            summary = "마감 변경·해제·즉시 종료",
+            summary = "마감 변경·해제·즉시 종료(+ 후보 정하기)",
             description = """
                     개설자만 할 수 있습니다. 요청은 셋 중 하나입니다.
                     <br>
@@ -287,17 +287,31 @@ public interface SchedulePollApiSpecification {
                     종료하면 참여자 2명 이상일 때 최신 결과를 최종 결과로 고정하고 참여자에게 푸시를 보냅니다.
                     <br>
                     마감을 바꾸면 마감 1시간 전 알림을 새 마감 기준으로 다시 보냅니다.
+                    <br><br>
+                    <b>후보 정하기:</b> {"close": true, "decided": {"resultVersion": 3, "candidateRank": 1}}
                     <br>
+                    종료하면서 정한 후보를 기록합니다. 조율 조회·결과 조회의 decided로 내려갑니다. decided가 없으면 종료만 합니다.
+                    <br>
+                    - resultVersion이 최신 결과 번호가 아니면 409 RESULT_STALE, 결과가 아직 없으면(참여자 2명 미만) 409 RESULT_NOT_READY
+                    <br>
+                    - 그 순위 후보가 없으면(1~3 밖, 후보가 3개보다 적음) 400 VALIDATION_ERROR. decided만 보내고 close가 없어도 400 VALIDATION_ERROR
+                    <br>
+                    - 위 오류가 나면 종료도 하지 않습니다.
+                    <br>
+                    - 이미 끝났지만(마감으로 자동 종료 등) 아직 정하지 않은 조율이면 같은 요청으로 정하기만 합니다.
+                    <br>
+                    - 한 번 정하면 바꿀 수 없습니다. 다시 보내면 409 POLL_CLOSED
+                    <br><br>
                     응답은 변경 확인(폴링) API와 같은 모양입니다.
                     <br><br>
                     """ + ERROR_DESCRIPTION
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "시간 맞추기 수정 성공"),
-            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR / INVALID_RANGE(새 마감이 현재 이전)"),
+            @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR(요청 모양, 없는 후보 순위) / INVALID_RANGE(새 마감이 현재 이전)"),
             @ApiResponse(responseCode = "403", description = "NOT_HOST"),
             @ApiResponse(responseCode = "404", description = "POLL_NOT_FOUND"),
-            @ApiResponse(responseCode = "409", description = "POLL_CLOSED")
+            @ApiResponse(responseCode = "409", description = "POLL_CLOSED(이미 끝남, 이미 후보를 정함) / RESULT_STALE(최신 결과 아님) / RESULT_NOT_READY(결과 없음)")
     })
     ResponseEntity<ResponseDto<SchedulePollRevisionResponseDto>> update(
             @Parameter(hidden = true) @AuthenticationPrincipal Member member,

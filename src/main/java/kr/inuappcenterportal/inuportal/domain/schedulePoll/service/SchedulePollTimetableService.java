@@ -1,8 +1,5 @@
 package kr.inuappcenterportal.inuportal.domain.schedulePoll.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inuappcenterportal.inuportal.domain.course.enums.courseOffering.DayOfWeek;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.dto.response.SchedulePollAddToTimetableResponseDto;
@@ -59,7 +56,7 @@ public class SchedulePollTimetableService {
     private final TimeTableRepository timeTableRepository;
     private final TimeTableItemRepository timeTableItemRepository;
     private final TimeTableItemService timeTableItemService;
-    private final ObjectMapper objectMapper;
+    private final SchedulePollResultService schedulePollResultService;
 
     // 참여자 → 최신·최종 버전 → 이미 추가함 → 일회성 → 대표 시간표 순으로 판정한다(명세서 순서).
     @Transactional
@@ -91,7 +88,7 @@ public class SchedulePollTimetableService {
                 .flatMap(semester -> timeTableRepository.findByMemberIdAndSemesterIdAndIsPrimaryTrue(member.getId(), semester.getId()))
                 .orElseThrow(() -> new SchedulePollException(SchedulePollErrorCode.NO_PRIMARY_TIMETABLE));
 
-        SchedulePollResultResponseDto.Candidate candidate = findCandidate(result, candidateRank);
+        SchedulePollResultResponseDto.Candidate candidate = schedulePollResultService.findCandidate(result, candidateRank);
         TimeTableItem item = createCustomItem(member, timeTable, poll.getTitle(), candidate);
         Long customScheduleId = item.getCustomSchedule().getId();
 
@@ -127,19 +124,5 @@ public class SchedulePollTimetableService {
     private Optional<Semester> currentSemester() {
         return semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)
                 .or(() -> semesterRepository.findAllByOrderByStartDateDesc().stream().findFirst());
-    }
-
-    private SchedulePollResultResponseDto.Candidate findCandidate(SchedulePollResult result, int rank) {
-        try {
-            List<SchedulePollResultResponseDto.Candidate> candidates =
-                    objectMapper.readValue(result.getCandidates(), new TypeReference<>() {
-                    });
-            return candidates.stream()
-                    .filter(c -> c.rank() == rank)
-                    .findFirst()
-                    .orElseThrow(() -> new SchedulePollException(SchedulePollErrorCode.VALIDATION_ERROR));
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("결과 JSON 읽기 실패", e);
-        }
     }
 }
