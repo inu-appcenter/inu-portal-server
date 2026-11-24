@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.domain.semester.service;
 
+import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.dto.SemesterResponseDto;
@@ -27,6 +28,7 @@ public class SemesterService {
     private static final int MIN_VISIBLE_YEAR = 2020;
     private final SemesterRepository semesterRepository;
     private final ScheduleRepository scheduleRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
     private final Clock clock;
 
     /**
@@ -34,14 +36,39 @@ public class SemesterService {
      */
     @Transactional(readOnly = true)
     public List<SemesterResponseDto> getSemesters() {
+        Long currentSemesterId = resolveCurrentSemester()
+                .map(Semester::getId)
+                .orElse(null);
+
         return semesterRepository.findAllByYearGreaterThanEqual(MIN_VISIBLE_YEAR)
                 .stream()
                 .sorted(Comparator
                         .comparingInt((Semester semester) -> statusOrder(semester.getStatus()))
                         .thenComparing(Semester::getYear, Comparator.reverseOrder())
                         .thenComparingInt(semester -> termOrderDescending(semester.getTerm())))
-                .map(SemesterResponseDto::from)
+                .map(semester -> SemesterResponseDto.from(
+                        semester,
+                        semester.getId() != null && semester.getId().equals(currentSemesterId)
+                ))
                 .toList();
+    }
+
+    /**
+     * 현재 수업이 진행 중인 학기를 우선 반환하고, 방학 등 공백기에는 OPEN 중 최신 학기로 폴백한다.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Semester> resolveCurrentSemester() {
+        LocalDate today = LocalDate.now(clock);
+        List<Semester> all = semesterRepository.findAllByOrderByStartDateDesc();
+
+        return all.stream()
+                .filter(s -> s.getStartDate() != null && s.getEndDate() != null)
+                .filter(s -> !today.isBefore(s.getStartDate()) && !today.isAfter(s.getEndDate()))
+                .findFirst()
+                .or(() -> all.stream()
+                        .filter(s -> s.getStatus() == SemesterStatus.OPEN)
+                        .findFirst())
+                .or(() -> all.stream().findFirst());
     }
 
     // 상태 기준 정렬
@@ -139,19 +166,25 @@ public class SemesterService {
             return;
         }
 
-        // 학기 상태 계산
-        SemesterStatus status = calculateStatus(startDate, endDate, LocalDate.now(clock));
-
+        LocalDate today = LocalDate.now(clock);
 
         // 정규학기 종료일은 계절학기 시작일 기준으로 계산
         // 계절학기 종료일은 학사일정의 endDate 그대로 사용
-        semesterRepository.findByYearAndTerm(year, term)
-                .ifPresentOrElse(
-                        semester -> semester.updatePeriodAndStatus(startDate, endDate, status),
-                        () -> semesterRepository.save(
-                                Semester.create(year, term, status, startDate, endDate)
-                        )
-                );
+        Optional<Semester> existing = semesterRepository.findByYearAndTerm(year, term);
+        boolean hasCourseOfferings = existing
+                .map(semester -> semester.getId() != null && courseOfferingRepository.existsBySemesterId(semester.getId()))
+                .orElse(false);
+
+        // 학기 상태 계산
+        SemesterStatus status = calculateStatus(startDate, endDate, today, hasCourseOfferings);
+
+        if (existing.isPresent()) {
+            existing.get().updatePeriodAndStatus(startDate, endDate, status);
+        } else {
+            semesterRepository.save(
+                    Semester.create(year, term, status, startDate, endDate)
+            );
+        }
     }
 
     /**
@@ -197,10 +230,13 @@ public class SemesterService {
         List<Semester> semesters = semesterRepository.findAll();
 
         for (Semester semester : semesters) {
+            boolean hasCourseOfferings = semester.getId() != null
+                    && courseOfferingRepository.existsBySemesterId(semester.getId());
             SemesterStatus status = calculateStatus(
                     semester.getStartDate(),
                     semester.getEndDate(),
-                    today
+                    today,
+                    hasCourseOfferings
             );
 
             semester.updateStatus(status);
@@ -209,23 +245,24 @@ public class SemesterService {
 
     /**
      * 학기 상태 계산 메서드
+     * - 종료일 이후: CLOSED
+     * - 개설 강의가 동기화되었거나 개강일이 도래한 경우: OPEN
+     * - 그 외: UPCOMING
      */
-    private SemesterStatus calculateStatus(LocalDate startDate, LocalDate endDate, LocalDate today) {
-
-        // 학기 시작일의 4주 전부터 학기가 열림
-        LocalDate openDate = startDate.minusWeeks(4);
-
-        // 학기 시작일의 4주 전보다 이전이면 UPCOMING
-        if (today.isBefore(openDate)) {
-            return SemesterStatus.UPCOMING;
-        }
-
-        // 종료일 이후면 CLOSED
+    private SemesterStatus calculateStatus(
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalDate today,
+            boolean hasCourseOfferings
+    ) {
         if (endDate != null && today.isAfter(endDate)) {
             return SemesterStatus.CLOSED;
         }
 
-        // 그 이외에는 OPEN
-        return SemesterStatus.OPEN;
+        if (hasCourseOfferings || !today.isBefore(startDate)) {
+            return SemesterStatus.OPEN;
+        }
+
+        return SemesterStatus.UPCOMING;
     }
 }

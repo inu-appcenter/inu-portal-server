@@ -18,9 +18,8 @@ import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePo
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollResultRepository;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollSubmissionRepository;
 import kr.inuappcenterportal.inuportal.domain.schedulePoll.repository.SchedulePollTimetableAddRepository;
-import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
-import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomItemCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTableItem.TimeTableCustomMeetingRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
@@ -55,7 +54,7 @@ public class SchedulePollTimetableService {
     private final SchedulePollSubmissionRepository schedulePollSubmissionRepository;
     private final SchedulePollResultRepository schedulePollResultRepository;
     private final SchedulePollTimetableAddRepository schedulePollTimetableAddRepository;
-    private final SemesterRepository semesterRepository;
+    private final SemesterService semesterService;
     private final TimeTableRepository timeTableRepository;
     private final TimeTableItemRepository timeTableItemRepository;
     private final TimeTableItemService timeTableItemService;
@@ -123,10 +122,8 @@ public class SchedulePollTimetableService {
         }
     }
 
-    // 진행 중(OPEN) 학기, 없으면 가장 최근 학기 (기존 시간표 인식 기능과 같은 규칙)
     private Optional<Semester> currentSemester() {
-        return semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)
-                .or(() -> semesterRepository.findAllByOrderByStartDateDesc().stream().findFirst());
+        return semesterService.resolveCurrentSemester();
     }
 
     private SchedulePollResultResponseDto.Candidate findCandidate(SchedulePollResult result, int rank) {

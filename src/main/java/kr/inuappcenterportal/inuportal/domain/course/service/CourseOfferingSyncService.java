@@ -5,6 +5,7 @@ import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingApiIte
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseMeetingGroupKey;
 import kr.inuappcenterportal.inuportal.domain.course.dto.api.CourseOfferingApiItem;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.domain.department.service.SchoolDepartmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class CourseOfferingSyncService {
     private final CourseMeetingService courseMeetingService;
     private final CourseOverviewProperties courseOverviewProperties;
     private final SchoolDepartmentService schoolDepartmentService;
+    private final SemesterService semesterService;
 
     /**
      * 전체 개설 강의 동기화 메서드
@@ -35,6 +37,7 @@ public class CourseOfferingSyncService {
         syncCourseOfferingsWithSchoolApi(year, modDate);
         syncCourseOfferingFieldsFromExcel(year);
         syncCourseMeetingWithSchoolApi(year, modDate);
+        semesterService.updateSemesterStatus();
     }
 
     /**

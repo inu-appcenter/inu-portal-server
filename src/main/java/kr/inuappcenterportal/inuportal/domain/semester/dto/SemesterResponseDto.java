@@ -28,16 +28,24 @@ public record SemesterResponseDto(
 
         @Schema(description = "학기 종료일", example = "2026-06-21")
         @JsonFormat(pattern = "yyyy-MM-dd")
-        LocalDate endDate) {
+        LocalDate endDate,
+
+        @Schema(description = "현재 진행 중 학기 여부", example = "true")
+        Boolean isCurrent) {
 
     public static SemesterResponseDto from(Semester semester) {
+        return from(semester, false);
+    }
+
+    public static SemesterResponseDto from(Semester semester, boolean isCurrent) {
         return new SemesterResponseDto(
                 semester.getId(),
                 semester.getYear(),
                 semester.getTerm(),
                 semester.getStatus(),
                 semester.getStartDate(),
-                semester.getEndDate()
+                semester.getEndDate(),
+                isCurrent
         );
     }
 }
