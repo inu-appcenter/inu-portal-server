@@ -16,9 +16,8 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmService;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
-import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
-import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
@@ -62,7 +61,7 @@ class DailyBriefSchedulerTest {
     @Mock
     private CustomScheduleMeetingRepository customScheduleMeetingRepository;
     @Mock
-    private SemesterRepository semesterRepository;
+    private SemesterService semesterService;
     @Mock
     private ScheduleRepository scheduleRepository;
 
@@ -162,7 +161,7 @@ class DailyBriefSchedulerTest {
         CourseMeeting m2 = org.mockito.Mockito.mock(CourseMeeting.class);
         when(m2.getCourseOffering()).thenReturn(offering);
 
-        when(semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)).thenReturn(Optional.of(semester));
+        when(semesterService.resolveCurrentSemester()).thenReturn(Optional.of(semester));
         when(dailyBriefSettingRepository.findAllTimetableDailyBriefByTime(anyString())).thenReturn(List.of(setting));
         when(timeTableRepository.findByMemberIdAndSemesterIdAndIsPrimaryTrue(1L, 10L)).thenReturn(Optional.of(timeTable));
         when(timeTableItemRepository.findAllByTimeTableId(100L)).thenReturn(List.of(item));
@@ -252,7 +251,7 @@ class DailyBriefSchedulerTest {
 
         CourseMeetingResponseDto meetingDto = new CourseMeetingResponseDto(1L, "공과대학 101호", "1교시", "01", today, classStartTime, classEndTime);
 
-        when(semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)).thenReturn(Optional.of(semester));
+        when(semesterService.resolveCurrentSemester()).thenReturn(Optional.of(semester));
         when(dailyBriefSettingRepository.findAllTimetablePreAlertEnabled()).thenReturn(List.of(setting));
         when(timeTableRepository.findByMemberIdAndSemesterIdAndIsPrimaryTrue(1L, 10L)).thenReturn(Optional.of(timeTable));
         when(timeTableItemRepository.findAllByTimeTableId(100L)).thenReturn(List.of(item));

@@ -17,6 +17,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionSer
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
@@ -63,6 +64,9 @@ class NotificationReadByFcmMessageIdTest {
 
     @MockBean
     private SemesterRepository semesterRepository;
+
+    @MockBean
+    private SemesterService semesterService;
 
     @MockBean
     private JdbcTemplate jdbcTemplate;

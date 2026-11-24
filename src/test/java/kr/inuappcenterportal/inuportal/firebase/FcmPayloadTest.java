@@ -20,6 +20,7 @@ import kr.inuappcenterportal.inuportal.domain.firebase.service.NotificationReadS
 import kr.inuappcenterportal.inuportal.domain.firebase.service.FcmTransactionService;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.global.metric.FcmMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,9 @@ class FcmPayloadTest {
 
     @MockBean
     private SemesterRepository semesterRepository;
+
+    @MockBean
+    private SemesterService semesterService;
 
     @MockBean
     private JdbcTemplate jdbcTemplate;
