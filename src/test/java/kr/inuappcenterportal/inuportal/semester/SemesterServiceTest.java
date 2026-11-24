@@ -1,5 +1,6 @@
 package kr.inuappcenterportal.inuportal.semester;
 
+import kr.inuappcenterportal.inuportal.domain.course.repository.CourseOfferingRepository;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
 import kr.inuappcenterportal.inuportal.domain.semester.dto.SemesterResponseDto;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -43,6 +45,9 @@ public class SemesterServiceTest {
     @Mock
     private ScheduleRepository scheduleRepository;
 
+    @Mock
+    private CourseOfferingRepository courseOfferingRepository;
+
     @BeforeEach
         // 각 테스트 실행 전에 매번 실행되는 코드
     void setUp() {
@@ -57,6 +62,7 @@ public class SemesterServiceTest {
         semesterService = new SemesterService(
                 semesterRepository,
                 scheduleRepository,
+                courseOfferingRepository,
                 fixedClock
         );
     }
@@ -370,6 +376,111 @@ public class SemesterServiceTest {
 
         assertThat(closedSemester.getStatus())
                 .isEqualTo(SemesterStatus.CLOSED);
+    }
+
+    @Test
+    @DisplayName("개설 강의가 동기화되면 개강 전이라도 OPEN 상태가 되고, 없으면 UPCOMING을 유지한다.")
+    void 개설_강의_유무에_따른_OPEN_전환_테스트() {
+        // Given
+        Semester withoutOfferings = createSemester(
+                TEST_YEAR,
+                SemesterTerm.SECOND,
+                SemesterStatus.UPCOMING,
+                TEST_TODAY.plusWeeks(2),
+                TEST_TODAY.plusWeeks(16)
+        );
+        ReflectionTestUtils.setField(withoutOfferings, "id", 1L);
+
+        Semester withOfferings = createSemester(
+                TEST_YEAR,
+                SemesterTerm.WINTER,
+                SemesterStatus.UPCOMING,
+                TEST_TODAY.plusWeeks(2),
+                TEST_TODAY.plusWeeks(6)
+        );
+        ReflectionTestUtils.setField(withOfferings, "id", 2L);
+
+        when(semesterRepository.findAll()).thenReturn(List.of(withoutOfferings, withOfferings));
+        when(courseOfferingRepository.existsBySemesterId(1L)).thenReturn(false);
+        when(courseOfferingRepository.existsBySemesterId(2L)).thenReturn(true);
+
+        // When
+        semesterService.updateSemesterStatus();
+
+        // Then
+        assertThat(withoutOfferings.getStatus()).isEqualTo(SemesterStatus.UPCOMING);
+        assertThat(withOfferings.getStatus()).isEqualTo(SemesterStatus.OPEN);
+    }
+
+    @Test
+    @DisplayName("두 학기가 동시에 OPEN이어도 현재 수업 진행 중인 학기만 isCurrent=true로 반환한다.")
+    void 동시_OPEN시_현재_진행중_학기_판별_테스트() {
+        // Given: TEST_TODAY = 2026-07-01
+        Semester activeSummer = createSemester(
+                2026,
+                SemesterTerm.SUMMER,
+                SemesterStatus.OPEN,
+                LocalDate.of(2026, 6, 22),
+                LocalDate.of(2026, 7, 12)
+        );
+        ReflectionTestUtils.setField(activeSummer, "id", 10L);
+
+        Semester upcomingOpenSecond = createSemester(
+                2026,
+                SemesterTerm.SECOND,
+                SemesterStatus.OPEN,
+                LocalDate.of(2026, 9, 1),
+                LocalDate.of(2026, 12, 21)
+        );
+        ReflectionTestUtils.setField(upcomingOpenSecond, "id", 11L);
+
+        when(semesterRepository.findAllByOrderByStartDateDesc())
+                .thenReturn(List.of(upcomingOpenSecond, activeSummer));
+        when(semesterRepository.findAllByYearGreaterThanEqual(2020))
+                .thenReturn(List.of(upcomingOpenSecond, activeSummer));
+
+        // When
+        Optional<Semester> resolved = semesterService.resolveCurrentSemester();
+        List<SemesterResponseDto> list = semesterService.getSemesters();
+
+        // Then
+        assertThat(resolved).isPresent();
+        assertThat(resolved.get().getId()).isEqualTo(10L);
+        assertThat(list).extracting(SemesterResponseDto::id).containsExactly(11L, 10L);
+        assertThat(list).extracting(SemesterResponseDto::isCurrent).containsExactly(false, true);
+    }
+
+    @Test
+    @DisplayName("방학 등 진행 중인 학기가 없으면 OPEN 학기 중 가장 최근 학기로 폴백한다.")
+    void 방학_공백기_현재_학기_폴백_테스트() {
+        // Given: TEST_TODAY = 2026-07-01 (기간이 겹치는 학기 없음)
+        Semester closedFirst = createSemester(
+                2026,
+                SemesterTerm.FIRST,
+                SemesterStatus.CLOSED,
+                LocalDate.of(2026, 3, 2),
+                LocalDate.of(2026, 6, 21)
+        );
+        ReflectionTestUtils.setField(closedFirst, "id", 20L);
+
+        Semester openSecond = createSemester(
+                2026,
+                SemesterTerm.SECOND,
+                SemesterStatus.OPEN,
+                LocalDate.of(2026, 9, 1),
+                LocalDate.of(2026, 12, 21)
+        );
+        ReflectionTestUtils.setField(openSecond, "id", 21L);
+
+        when(semesterRepository.findAllByOrderByStartDateDesc())
+                .thenReturn(List.of(openSecond, closedFirst));
+
+        // When
+        Optional<Semester> resolved = semesterService.resolveCurrentSemester();
+
+        // Then
+        assertThat(resolved).isPresent();
+        assertThat(resolved.get().getId()).isEqualTo(21L);
     }
 
     private Semester createSemester(
