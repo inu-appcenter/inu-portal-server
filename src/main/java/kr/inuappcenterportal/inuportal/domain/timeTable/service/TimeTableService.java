@@ -21,6 +21,7 @@ import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterTerm;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableCreateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableNameUpdateRequestDto;
 import kr.inuappcenterportal.inuportal.domain.timeTable.dto.request.timeTable.TimeTableVisibilityUpdateRequestDto;
@@ -55,6 +56,7 @@ public class TimeTableService {
     private final TimeTableItemRepository timeTableItemRepository;
     private final MemberRepository memberRepository;
     private final SemesterRepository semesterRepository;
+    private final SemesterService semesterService;
     private final TimeTableItemService timeTableItemService;
     private final CourseMeetingRepository courseMeetingRepository;
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
@@ -409,14 +411,13 @@ public class TimeTableService {
                 .toList();
     }
 
-    /** year/term이 모두 주어지면 해당 학기를, 아니면 진행 중(OPEN)인 학기를, 그마저 없으면 가장 최신 학기를 반환한다. */
+    /** year/term이 모두 주어지면 해당 학기를, 아니면 현재 진행 중인 학기를 반환한다. */
     private Semester resolveSemester(Integer year, SemesterTerm term) {
         if (year != null && term != null) {
             return semesterRepository.findByYearAndTerm(year, term)
                     .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
         }
-        return semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN)
-                .or(() -> semesterRepository.findAllByOrderByStartDateDesc().stream().findFirst())
+        return semesterService.resolveCurrentSemester()
                 .orElseThrow(() -> new MyException(MyErrorCode.SEMESTER_NOT_FOUND));
     }
 
