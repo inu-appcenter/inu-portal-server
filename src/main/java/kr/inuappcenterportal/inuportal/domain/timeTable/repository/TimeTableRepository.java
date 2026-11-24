@@ -1,8 +1,12 @@
 package kr.inuappcenterportal.inuportal.domain.timeTable.repository;
 
+import kr.inuappcenterportal.inuportal.domain.timeTable.enums.Visibility;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,5 +26,17 @@ public interface TimeTableRepository extends JpaRepository<TimeTable, Long> {
             Long semesterId,
             String timeTableName,
             Long timeTableId
+    );
+
+    @Query("""
+            SELECT DISTINCT t.semester.id
+            FROM TimeTable t
+            WHERE t.member.id IN :memberIds
+              AND t.isPrimary = true
+              AND t.visibility <> :excludedVisibility
+            """)
+    List<Long> findDistinctPrimarySemesterIdsByMemberIdInAndVisibilityNot(
+            @Param("memberIds") Collection<Long> memberIds,
+            @Param("excludedVisibility") Visibility excludedVisibility
     );
 }

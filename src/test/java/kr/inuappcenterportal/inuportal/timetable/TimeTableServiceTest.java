@@ -354,6 +354,42 @@ public class TimeTableServiceTest {
     }
 
     @Test
+    @DisplayName("친구 대표 시간표가 존재하는 학기 ID 조회 시 비친구를 제외하고 PRIVATE가 아닌 학기만 반환한다")
+    void 친구_대표_시간표_존재_학기_조회_테스트() {
+        // given
+        Long viewerId = 1L;
+        when(friendService.isReadableFriend(viewerId, 2L)).thenReturn(true);
+        when(friendService.isReadableFriend(viewerId, 3L)).thenReturn(false);
+        when(timeTableRepository.findDistinctPrimarySemesterIdsByMemberIdInAndVisibilityNot(
+                List.of(2L), Visibility.PRIVATE
+        )).thenReturn(List.of(10L, 12L));
+
+        // when
+        List<Long> result = timeTableService.getReadableFriendPrimarySemesterIds(viewerId, List.of(2L, 3L, 2L));
+
+        // then
+        assertThat(result).containsExactly(10L, 12L);
+        verify(timeTableRepository).findDistinctPrimarySemesterIdsByMemberIdInAndVisibilityNot(
+                List.of(2L), Visibility.PRIVATE
+        );
+    }
+
+    @Test
+    @DisplayName("읽을 수 있는 친구가 없으면 DB 조회 없이 빈 학기 목록을 반환한다")
+    void 친구_대표_시간표_존재_학기_빈목록_테스트() {
+        // given
+        Long viewerId = 1L;
+        when(friendService.isReadableFriend(viewerId, 3L)).thenReturn(false);
+
+        // when
+        List<Long> result = timeTableService.getReadableFriendPrimarySemesterIds(viewerId, List.of(3L));
+
+        // then
+        assertThat(result).isEmpty();
+        verify(timeTableRepository, never()).findDistinctPrimarySemesterIdsByMemberIdInAndVisibilityNot(any(), any());
+    }
+
+    @Test
     @DisplayName("시간표를 삭제합니다")
     void 시간표_삭제_테스트() {
 

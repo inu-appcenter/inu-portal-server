@@ -469,6 +469,36 @@ public interface TimeTableApiSpecification {
             @RequestParam(required = false) SemesterTerm term
     );
 
+    @Operation(
+            summary = "친구 대표 시간표 존재 학기 ID 목록 조회",
+            description = "지정한 친구 회원들 중 비공개가 아닌 대표 시간표가 존재하는 학기 ID 목록을 반환합니다."
+    )
+    ResponseEntity<ResponseDto<List<Long>>> getFriendPrimarySemesterIds(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Member member,
+            @Parameter(
+                    description = "조회할 친구 회원 id 목록",
+                    example = "1,2"
+            )
+            @RequestParam List<Long> memberIds
+    );
+
+    @Operation(
+            summary = "단체톡 참여자 대표 시간표 존재 학기 ID 목록 조회",
+            description = "일반 단체톡에서 본인을 제외한 참여자들에게 비공개가 아닌 대표 시간표가 존재하는 학기 ID 목록을 반환합니다."
+    )
+    ResponseEntity<ResponseDto<List<Long>>> getChatRoomPrimarySemesterIds(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal Member member,
+            @Parameter(
+                    name = "roomId",
+                    description = "조회할 채팅방 id",
+                    in = ParameterIn.PATH,
+                    example = "1"
+            )
+            @PathVariable Long roomId
+    );
+
 
     @Operation(
             summary = "시간표 조회",
