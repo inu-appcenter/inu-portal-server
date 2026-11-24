@@ -25,9 +25,9 @@ import kr.inuappcenterportal.inuportal.domain.firebase.repository.FcmTokenReposi
 import kr.inuappcenterportal.inuportal.domain.firebase.repository.MemberFcmMessageRepository;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.member.repository.MemberRepository;
-import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
 import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.global.dto.ListResponseDto;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyErrorCode;
 import kr.inuappcenterportal.inuportal.global.exception.ex.MyException;
@@ -65,6 +65,7 @@ public class FcmService {
     private final FirebaseMessaging firebaseMessaging;
     private final MemberRepository memberRepository;
     private final SemesterRepository semesterRepository;
+    private final SemesterService semesterService;
     private final JdbcTemplate jdbcTemplate;
     private final FcmTransactionService fcmTransactionService;
     private final FcmMetrics fcmMetrics;
@@ -1051,7 +1052,7 @@ public class FcmService {
             return memberRepository.findAllIds();
         }
 
-        java.util.Optional<Semester> activeSemesterOpt = semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN);
+        java.util.Optional<Semester> activeSemesterOpt = semesterService.resolveCurrentSemester();
         Long activeSemesterId = activeSemesterOpt.map(Semester::getId).orElse(null);
 
         return switch (subFilter) {
