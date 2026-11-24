@@ -16,9 +16,8 @@ import kr.inuappcenterportal.inuportal.domain.firebase.enums.FcmMessageType;
 import kr.inuappcenterportal.inuportal.domain.member.model.Member;
 import kr.inuappcenterportal.inuportal.domain.schedule.model.Schedule;
 import kr.inuappcenterportal.inuportal.domain.schedule.repository.ScheduleRepository;
-import kr.inuappcenterportal.inuportal.domain.semester.enums.SemesterStatus;
 import kr.inuappcenterportal.inuportal.domain.semester.model.Semester;
-import kr.inuappcenterportal.inuportal.domain.semester.repository.SemesterRepository;
+import kr.inuappcenterportal.inuportal.domain.semester.service.SemesterService;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTable;
 import kr.inuappcenterportal.inuportal.domain.timeTable.model.TimeTableItem;
 import kr.inuappcenterportal.inuportal.domain.timeTable.repository.TimeTableItemRepository;
@@ -54,7 +53,7 @@ public class DailyBriefPlanner {
     private final CourseMeetingRepository courseMeetingRepository;
     private final CourseMeetingService courseMeetingService;
     private final CustomScheduleMeetingRepository customScheduleMeetingRepository;
-    private final SemesterRepository semesterRepository;
+    private final SemesterService semesterService;
     private final ScheduleRepository scheduleRepository;
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -67,7 +66,7 @@ public class DailyBriefPlanner {
     @Transactional(readOnly = true)
     public List<BriefNotification> planPreClassAlerts() {
         List<BriefNotification> notifications = new ArrayList<>();
-        Optional<Semester> openSemesterOpt = semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN);
+        Optional<Semester> openSemesterOpt = semesterService.resolveCurrentSemester();
         if (openSemesterOpt.isEmpty()) {
             return notifications;
         }
@@ -149,7 +148,7 @@ public class DailyBriefPlanner {
     @Transactional(readOnly = true)
     public List<BriefNotification> planDailyClassBriefing() {
         List<BriefNotification> notifications = new ArrayList<>();
-        Optional<Semester> openSemesterOpt = semesterRepository.findFirstByStatusOrderByStartDateDesc(SemesterStatus.OPEN);
+        Optional<Semester> openSemesterOpt = semesterService.resolveCurrentSemester();
         if (openSemesterOpt.isEmpty()) {
             return notifications;
         }
