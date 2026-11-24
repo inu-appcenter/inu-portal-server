@@ -80,6 +80,28 @@ public class TimeTableController implements TimeTableApiSpecification {
                 "단체톡 참여자 대표 시간표 조회 성공"));
     }
 
+    @Override
+    @GetMapping("/friends/semesters")
+    public ResponseEntity<ResponseDto<List<Long>>> getFriendPrimarySemesterIds(
+            @AuthenticationPrincipal Member member,
+            @RequestParam List<Long> memberIds
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(
+                timeTableService.getReadableFriendPrimarySemesterIds(member.getId(), memberIds),
+                "친구 대표 시간표 존재 학기 목록 조회 성공"));
+    }
+
+    @Override
+    @GetMapping("/chat-rooms/{roomId}/semesters")
+    public ResponseEntity<ResponseDto<List<Long>>> getChatRoomPrimarySemesterIds(
+            @AuthenticationPrincipal Member member,
+            @PathVariable Long roomId
+    ) {
+        return ResponseEntity.ok(ResponseDto.of(
+                timeTableService.getChatRoomPrimarySemesterIds(member.getId(), roomId),
+                "단체톡 참여자 대표 시간표 존재 학기 목록 조회 성공"));
+    }
+
     /**
      * 시간표 조회 컨트롤러
      */
