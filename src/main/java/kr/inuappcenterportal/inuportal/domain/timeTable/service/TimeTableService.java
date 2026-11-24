@@ -409,6 +409,43 @@ public class TimeTableService {
                 .toList();
     }
 
+    /** 친구(들)에게 비공개가 아닌 대표 시간표가 존재하는 학기 ID 목록을 반환한다. */
+    public List<Long> getReadableFriendPrimarySemesterIds(Long viewerId, List<Long> friendMemberIds) {
+        if (friendMemberIds == null || friendMemberIds.isEmpty()) {
+            return List.of();
+        }
+        List<Long> readableIds = friendMemberIds.stream()
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .filter(friendMemberId -> friendService.isReadableFriend(viewerId, friendMemberId))
+                .toList();
+        if (readableIds.isEmpty()) {
+            return List.of();
+        }
+        return timeTableRepository.findDistinctPrimarySemesterIdsByMemberIdInAndVisibilityNot(
+                readableIds, Visibility.PRIVATE);
+    }
+
+    /** 일반 단체톡에서 본인을 제외한 참여자들에게 비공개가 아닌 대표 시간표가 존재하는 학기 ID 목록을 반환한다. */
+    public List<Long> getChatRoomPrimarySemesterIds(Long viewerId, Long roomId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new MyException(MyErrorCode.NOT_FOUND_CHATROOM));
+        if (room.getType() == ChatRoomType.OPEN || room.isAnonymous() ||
+                !chatRoomMemberRepository.existsByChatRoomIdAndMemberIdAndStatus(roomId, viewerId, ChatMemberStatus.JOINED)) {
+            throw new MyException(MyErrorCode.NOT_CHATROOM_TIMETABLE_ACCESSIBLE);
+        }
+        List<Long> peerIds = chatRoomMemberRepository.findAllByChatRoomAndStatus(room, ChatMemberStatus.JOINED).stream()
+                .map(roomMember -> roomMember.getMember().getId())
+                .filter(id -> !id.equals(viewerId))
+                .distinct()
+                .toList();
+        if (peerIds.isEmpty()) {
+            return List.of();
+        }
+        return timeTableRepository.findDistinctPrimarySemesterIdsByMemberIdInAndVisibilityNot(
+                peerIds, Visibility.PRIVATE);
+    }
+
     /** year/term이 모두 주어지면 해당 학기를, 아니면 진행 중(OPEN)인 학기를, 그마저 없으면 가장 최신 학기를 반환한다. */
     private Semester resolveSemester(Integer year, SemesterTerm term) {
         if (year != null && term != null) {
